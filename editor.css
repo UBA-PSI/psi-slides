@@ -26,15 +26,15 @@
    panel shows source - an element name, an option value, a compiler
    sentence, the source pane itself - and the bundled mono face ligates
    -> and -- into one glyph, so a waypoint list or a step chip would show
-   a token the author cannot type back. #dge-canvas is left out because
+   a token the author cannot type back. #psiINT-dge-canvas is left out because
    what is in it is the compiler's own SVG: its mono labels are already
    answered by the rule in DIAGRAM_CSS, and its sans and serif labels have
    to look here exactly as they look on the slide. */
-#dge-top, #dge-tools, #dge-side, #dge-status, #dge-strip {
+#psiINT-dge-top, #psiINT-dge-tools, #psiINT-dge-side, #psiINT-dge-status, #psiINT-dge-strip {
   font-variant-ligatures: none;
 }
 
-#dge-root {
+#psiINT-dge-root {
   position: fixed;
   inset: 0;
   z-index: 240;
@@ -52,11 +52,11 @@
   font-size: 11px;
   user-select: none;
 }
-#dge-root[hidden] { display: none; }
+#psiINT-dge-root[hidden] { display: none; }
 
 /* The strip down the right edge instead of along the bottom (Shift-V), the
    same flip the cockpit's preview strip already offers and in the same key. */
-#dge-root.dge-strip-right {
+#psiINT-dge-root.dge-strip-right {
   grid-template-columns: auto minmax(0, 1fr) 18rem auto;
   grid-template-areas:
     "top    top    top    top"
@@ -66,7 +66,7 @@
 
 /* ── the top bar ──────────────────────────────────────────────────── */
 
-#dge-top {
+#psiINT-dge-top {
   grid-area: top;
   display: flex;
   align-items: center;
@@ -75,7 +75,7 @@
   border-bottom: 1px solid var(--rule);
   color: var(--ink-soft);
 }
-#dge-top .dge-name {
+#psiINT-dge-top .dge-name {
   font-weight: 600;
   color: var(--ink);
   font-size: 12px;
@@ -84,7 +84,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#dge-top .dge-experimental {
+#psiINT-dge-top .dge-experimental {
   flex: none;
   padding: 0.16rem 0.42rem;
   /* --emph, not --accent: the lecture views define --emph and know nothing
@@ -101,7 +101,7 @@
   letter-spacing: 0.11em;
   line-height: 1;
 }
-#dge-top .dge-spacer { flex: 1; }
+#psiINT-dge-top .dge-spacer { flex: 1; }
 
 .dge-group {
   display: flex;
@@ -184,17 +184,17 @@
 /* Whether the room is watching. Not a second concept: it is the cockpit's
    own freeze, said out loud, because "can I work unseen?" is answered by V
    and by nothing else. */
-#dge-room {
+#psiINT-dge-room {
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
   font-weight: 600;
 }
-#dge-room.dge-live { color: oklch(0.55 0.16 30); }
-#dge-room.dge-frozen { color: oklch(0.55 0.16 150); }
+#psiINT-dge-room.dge-live { color: oklch(0.55 0.16 30); }
+#psiINT-dge-room.dge-frozen { color: oklch(0.55 0.16 150); }
 
 /* ── the tool rail ────────────────────────────────────────────────── */
 
-#dge-tools {
+#psiINT-dge-tools {
   grid-area: tools;
   display: flex;
   flex-direction: column;
@@ -203,7 +203,7 @@
   border-right: 1px solid var(--rule);
   align-content: start;
 }
-#dge-tools .dge-tool {
+#psiINT-dge-tools .dge-tool {
   width: 2.6rem;
   height: 2.2rem;
   display: flex;
@@ -213,14 +213,14 @@
   gap: 1px;
   padding: 0;
 }
-#dge-tools .dge-tool svg { width: 15px; height: 15px; }
-#dge-tools .dge-tool span {
+#psiINT-dge-tools .dge-tool svg { width: 15px; height: 15px; }
+#psiINT-dge-tools .dge-tool span {
   font-size: 8px;
   font-family: var(--mono-font);
   opacity: 0.6;
 }
-#dge-tools .dge-tool kbd { display: none; }
-#dge-tools hr {
+#psiINT-dge-tools .dge-tool kbd { display: none; }
+#psiINT-dge-tools hr {
   border: 0;
   border-top: 1px solid var(--rule);
   margin: 0.3rem 0.2rem;
@@ -228,11 +228,11 @@
 /* A wrapper acts on the selection, so it is unusable until there is one.
    Saying that with the disabled state teaches the semantics: there is
    nothing to draw, there is something to select first. */
-#dge-tools .dge-tool:disabled span { opacity: 0.35; }
+#psiINT-dge-tools .dge-tool:disabled span { opacity: 0.35; }
 
 /* ── the canvas ───────────────────────────────────────────────────── */
 
-#dge-canvas {
+#psiINT-dge-canvas {
   grid-area: canvas;
   position: relative;
   overflow: hidden;
@@ -241,19 +241,19 @@
   place-items: center;
   cursor: default;
 }
-#dge-canvas.dge-panning { cursor: grabbing; }
-#dge-canvas.dge-pannable { cursor: grab; }
-#dge-canvas.dge-placing { cursor: crosshair; }
+#psiINT-dge-canvas.dge-panning { cursor: grabbing; }
+#psiINT-dge-canvas.dge-pannable { cursor: grab; }
+#psiINT-dge-canvas.dge-placing { cursor: crosshair; }
 
 /* The frame is a real destination, not a canvas size: the chunk's own width
    class in a 16:9 view, one pane of a ::: side at that class, or the print
    measure where the height cap does not apply. Switching frames changes
    nothing in the source - it is a preview of where the same block lands. */
-#dge-stage {
+#psiINT-dge-stage {
   position: relative;
   transform-origin: center center;
 }
-#dge-frame {
+#psiINT-dge-frame {
   position: relative;
   background: var(--paper);
   box-shadow: 0 1px 12px oklch(0 0 0 / 0.18);
@@ -263,7 +263,7 @@
   align-items: center;
   justify-content: center;
 }
-#dge-frame::after {
+#psiINT-dge-frame::after {
   content: attr(data-measure);
   position: absolute;
   left: 0;
@@ -273,14 +273,14 @@
   color: var(--ink-soft);
   white-space: nowrap;
 }
-#dge-art { position: relative; display: block; width: 100%; }
-#dge-art svg.psi-diagram { display: block; max-width: 100%; height: auto; }
+#psiINT-dge-art { position: relative; display: block; width: 100%; }
+#psiINT-dge-art svg.psi-diagram { display: block; max-width: 100%; height: auto; }
 
 /* The guide layer sits exactly on the drawing and shares its viewBox, so a
    guide drawn at 3.2,1 is at 3.2,1 in the figure. Kept out of the emitted
    SVG on purpose: that SVG stays exactly what the build would have
    produced, which is what the identity check asserts. */
-#dge-guides {
+#psiINT-dge-guides {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -288,22 +288,22 @@
   overflow: visible;
   pointer-events: none;
 }
-#dge-guides * { vector-effect: non-scaling-stroke; }
-#dge-guides .dge-cell { stroke: var(--rule); stroke-width: 0.5; opacity: 0.4; fill: none; }
+#psiINT-dge-guides * { vector-effect: non-scaling-stroke; }
+#psiINT-dge-guides .dge-cell { stroke: var(--rule); stroke-width: 0.5; opacity: 0.4; fill: none; }
 /* The slide's canvas. Louder than a cell line and quieter than an element:
    it is the edge of the frame, not part of the drawing, and an author has to
    be able to see it without reading it as something they drew. Dashed for the
    same reason a `zone` is - a line nobody drew. */
-#dge-guides .dge-canvas {
+#psiINT-dge-guides .dge-canvas {
   stroke: var(--ink-soft, var(--rule));
   stroke-width: 1;
   stroke-dasharray: 7 6;
   opacity: 0.45;
   fill: none;
 }
-#dge-guides .dge-axis { stroke: var(--rule); stroke-width: 1; opacity: 0.75; }
-#dge-guides .dge-tick { stroke: var(--ink-soft); stroke-width: 1; opacity: 0.5; }
-#dge-guides .dge-ruler-label {
+#psiINT-dge-guides .dge-axis { stroke: var(--rule); stroke-width: 1; opacity: 0.75; }
+#psiINT-dge-guides .dge-tick { stroke: var(--ink-soft); stroke-width: 1; opacity: 0.5; }
+#psiINT-dge-guides .dge-ruler-label {
   fill: var(--ink-soft);
   font-family: var(--mono-font);
   font-size: 9px;
@@ -313,9 +313,9 @@
    hairline, its statement named beside it. This is the editor's first job,
    before it lets anyone drag anything - two boxes 0.55 apart look exactly
    like two boxes that happen to be 0.55 apart. */
-#dge-guides .dge-rel { stroke: var(--rule); stroke-width: 1.2; fill: none; }
-#dge-guides .dge-rel-strong { stroke: var(--emph); stroke-width: 1.4; fill: none; }
-#dge-guides .dge-rel-label {
+#psiINT-dge-guides .dge-rel { stroke: var(--rule); stroke-width: 1.2; fill: none; }
+#psiINT-dge-guides .dge-rel-strong { stroke: var(--emph); stroke-width: 1.4; fill: none; }
+#psiINT-dge-guides .dge-rel-label {
   fill: var(--ink-soft);
   font-family: var(--mono-font);
   font-size: 10px;
@@ -324,17 +324,17 @@
   stroke-width: 3px;
   stroke-linejoin: round;
 }
-#dge-guides .dge-snap { stroke: var(--emph); stroke-width: 1.2; stroke-dasharray: 4 3; fill: none; }
-#dge-guides .dge-sel {
+#psiINT-dge-guides .dge-snap { stroke: var(--emph); stroke-width: 1.2; stroke-dasharray: 4 3; fill: none; }
+#psiINT-dge-guides .dge-sel {
   fill: none;
   stroke: var(--emph);
   stroke-width: 1.6;
 }
-#dge-guides .dge-sel-master { stroke-dasharray: none; }
+#psiINT-dge-guides .dge-sel-master { stroke-dasharray: none; }
 /* An edge has no box to outline, so the selection traces the line itself. Wide
    and translucent, under the stroke rather than around it, so the arrow it
    marks stays readable. */
-#dge-guides .dge-sel-path {
+#psiINT-dge-guides .dge-sel-path {
   fill: none;
   stroke: var(--emph);
   stroke-width: 5;
@@ -342,52 +342,52 @@
   stroke-linejoin: round;
   stroke-linecap: round;
 }
-#dge-guides .dge-handle {
+#psiINT-dge-guides .dge-handle {
   fill: var(--paper);
   stroke: var(--emph);
   stroke-width: 1.4;
   pointer-events: all;
   cursor: nwse-resize;
 }
-#dge-guides .dge-handle.dge-h-e, #dge-guides .dge-handle.dge-h-w { cursor: ew-resize; }
-#dge-guides .dge-handle.dge-h-n, #dge-guides .dge-handle.dge-h-s { cursor: ns-resize; }
+#psiINT-dge-guides .dge-handle.dge-h-e, #psiINT-dge-guides .dge-handle.dge-h-w { cursor: ew-resize; }
+#psiINT-dge-guides .dge-handle.dge-h-n, #psiINT-dge-guides .dge-handle.dge-h-s { cursor: ns-resize; }
 /* Round, because it does something different from the square ones: a corner
    handle changes a size, an end handle changes what the statement refers to. */
-#dge-guides .dge-handle.dge-h-end { cursor: crosshair; }
+#psiINT-dge-guides .dge-handle.dge-h-end { cursor: crosshair; }
 /* The four places a dragged element can be docked on whatever is under the
    pointer. Quiet until one is under the pointer, because they appear over a
    drawing that is still being read. */
-#dge-guides .dge-dock-host {
+#psiINT-dge-guides .dge-dock-host {
   fill: none;
   stroke: var(--emph);
   stroke-width: 1;
   stroke-dasharray: 3 3;
   opacity: 0.5;
 }
-#dge-guides .dge-dock {
+#psiINT-dge-guides .dge-dock {
   fill: var(--paper);
   stroke: var(--emph);
   stroke-width: 1.2;
   opacity: 0.55;
 }
-#dge-guides .dge-dock.dge-dock-on {
+#psiINT-dge-guides .dge-dock.dge-dock-on {
   fill: var(--emph);
   opacity: 1;
 }
 /* A waypoint moves a point, so it is square like the resize grips. Filled with
    the accent when it holds a reference: that one is not a pair of numbers, and
    a drag on it moves its nudge rather than replacing what it follows. */
-#dge-guides .dge-handle.dge-h-via { cursor: move; }
-#dge-guides .dge-handle.dge-h-via.dge-h-held { fill: var(--emph); }
+#psiINT-dge-guides .dge-handle.dge-h-via { cursor: move; }
+#psiINT-dge-guides .dge-handle.dge-h-via.dge-h-held { fill: var(--emph); }
 /* Where a waypoint can be added. Hollow and half the size, because it is an
    offer rather than a thing that is there. */
-#dge-guides .dge-handle.dge-h-add {
+#psiINT-dge-guides .dge-handle.dge-h-add {
   fill: none;
   stroke-dasharray: 2 2;
   opacity: 0.55;
   cursor: copy;
 }
-#dge-guides .dge-handle.dge-h-add:hover { opacity: 1; stroke-dasharray: none; }
+#psiINT-dge-guides .dge-handle.dge-h-add:hover { opacity: 1; stroke-dasharray: none; }
 /* A neighbour guide: the line a snap would write down (editor.md 9.2). Drawn
    in the same register as every other guide here - a hairline in --rule with
    its label in --ink-soft - because it is a statement being proposed rather
@@ -395,24 +395,24 @@
    the things that are already happening: the selection, the strained align
    axis, the armed dock chip. Dashed, because a relation that is not written
    down yet should not look like one that is. */
-#dge-guides .dge-nb {
+#psiINT-dge-guides .dge-nb {
   stroke: var(--rule);
   stroke-width: 1.2;
   stroke-dasharray: 5 3;
   fill: none;
 }
-#dge-guides .dge-nb-label { fill: var(--ink-soft); }
+#psiINT-dge-guides .dge-nb-label { fill: var(--ink-soft); }
 /* A tag is not geometric, so it must not be drawn as a line. A tinted halo
    behind the members says "these belong together" without saying anything
    false about where they are. */
-#dge-guides .dge-taghalo {
+#psiINT-dge-guides .dge-taghalo {
   fill: color-mix(in oklab, var(--emph) 20%, transparent);
   stroke: none;
 }
 
 /* ── the sidebar ──────────────────────────────────────────────────── */
 
-#dge-side {
+#psiINT-dge-side {
   grid-area: side;
   border-left: 1px solid var(--rule);
   overflow-y: auto;
@@ -421,7 +421,7 @@
   flex-direction: column;
   gap: 0.85rem;
 }
-#dge-side h3 {
+#psiINT-dge-side h3 {
   margin: 0 0 0.35rem;
   font-size: 10px;
   font-variant-caps: all-small-caps;
@@ -429,10 +429,10 @@
   font-weight: 600;
   color: var(--ink-soft);
 }
-#dge-side .dge-empty { color: var(--ink-soft); line-height: 1.5; }
-#dge-side label { display: block; margin-bottom: 0.3rem; }
-#dge-side input[type=text],
-#dge-side textarea {
+#psiINT-dge-side .dge-empty { color: var(--ink-soft); line-height: 1.5; }
+#psiINT-dge-side label { display: block; margin-bottom: 0.3rem; }
+#psiINT-dge-side input[type=text],
+#psiINT-dge-side textarea {
   width: 100%;
   font: inherit;
   font-family: var(--mono-font);
@@ -442,14 +442,14 @@
   background: var(--paper);
   color: var(--ink);
 }
-#dge-side textarea { resize: vertical; min-height: 3.2em; }
+#psiINT-dge-side textarea { resize: vertical; min-height: 3.2em; }
 /* Where a control needs a sentence rather than a label. Quiet enough that the
    panel still reads as controls, not as documentation. */
 .dge-chip.dge-chip-held {
   border-color: var(--emph);
   color: color-mix(in oklab, var(--emph) 70%, var(--ink));
 }
-#dge-side .dge-hint {
+#psiINT-dge-side .dge-hint {
   margin-top: 0.3rem;
   font-size: 11px;
   line-height: 1.45;
@@ -497,7 +497,7 @@
    quieter than the panel's other sentences because it belongs to one control
    rather than to the pane - a reason sitting flush left reads as a general
    remark, and there can be four of these on screen at once. */
-#dge-side .dge-slot-why {
+#psiINT-dge-side .dge-slot-why {
   margin-top: 0.25rem;
   padding-left: 0.4rem;
   border-left: 1px solid var(--rule);
@@ -590,7 +590,7 @@
    author keeps trusting the tool, and in a lecture tool it means a student
    learns the language by dragging things. */
 
-#dge-status {
+#psiINT-dge-status {
   grid-area: status;
   display: flex;
   align-items: center;
@@ -600,26 +600,26 @@
   min-height: 1.9rem;
   color: var(--ink-soft);
 }
-#dge-status .dge-line {
+#psiINT-dge-status .dge-line {
   font-family: var(--mono-font);
   color: var(--ink);
   white-space: pre;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-#dge-status .dge-line ins {
+#psiINT-dge-status .dge-line ins {
   text-decoration: none;
   background: color-mix(in oklab, var(--emph) 22%, var(--paper));
   border-radius: 2px;
   padding: 0 2px;
 }
-#dge-status .dge-note { font-style: italic; }
-#dge-status .dge-bad { color: oklch(0.55 0.18 25); font-style: normal; }
-#dge-status .dge-spacer { flex: 1; }
+#psiINT-dge-status .dge-note { font-style: italic; }
+#psiINT-dge-status .dge-bad { color: oklch(0.55 0.18 25); font-style: normal; }
+#psiINT-dge-status .dge-spacer { flex: 1; }
 
 /* ── the figure strip ─────────────────────────────────────────────── */
 
-#dge-strip {
+#psiINT-dge-strip {
   grid-area: strip;
   display: flex;
   gap: 0.6rem;
@@ -629,7 +629,7 @@
   overflow-y: hidden;
   scrollbar-width: thin;
 }
-#dge-root.dge-strip-right #dge-strip {
+#psiINT-dge-root.dge-strip-right #psiINT-dge-strip {
   flex-direction: column;
   border-top: 0;
   border-left: 1px solid var(--rule);
@@ -637,7 +637,7 @@
   overflow-y: auto;
   width: 11rem;
 }
-#dge-strip .dge-thumb {
+#psiINT-dge-strip .dge-thumb {
   flex: 0 0 auto;
   border: 1px solid var(--rule);
   border-radius: 3px;
@@ -650,9 +650,9 @@
   gap: 2px;
   align-items: stretch;
 }
-#dge-strip .dge-thumb[aria-current=true] { border-color: var(--emph); box-shadow: inset 0 0 0 1px var(--emph); }
-#dge-strip .dge-thumb svg { width: 100%; height: 3.2rem; display: block; }
-#dge-strip .dge-thumb b {
+#psiINT-dge-strip .dge-thumb[aria-current=true] { border-color: var(--emph); box-shadow: inset 0 0 0 1px var(--emph); }
+#psiINT-dge-strip .dge-thumb svg { width: 100%; height: 3.2rem; display: block; }
+#psiINT-dge-strip .dge-thumb b {
   font-weight: 400;
   font-size: 9.5px;
   color: var(--ink-soft);
@@ -664,7 +664,7 @@
 /* ── the figure board (O) ─────────────────────────────────────────── */
 /* Same idiom, same key, same mental model as the slide overview. */
 
-#dge-board {
+#psiINT-dge-board {
   position: absolute;
   inset: 0;
   z-index: 5;
@@ -676,8 +676,8 @@
   gap: 0.9rem;
   align-content: start;
 }
-#dge-board[hidden] { display: none; }
-#dge-board .dge-card {
+#psiINT-dge-board[hidden] { display: none; }
+#psiINT-dge-board .dge-card {
   border: 1px solid var(--rule);
   border-radius: 4px;
   background: var(--paper);
@@ -687,16 +687,16 @@
   flex-direction: column;
   gap: 0.3rem;
 }
-#dge-board .dge-card[aria-current=true] { border-color: var(--emph); box-shadow: inset 0 0 0 1px var(--emph); }
-#dge-board .dge-card svg { width: 100%; height: 6.5rem; display: block; }
-#dge-board .dge-card b { font-weight: 400; color: var(--ink-soft); }
+#psiINT-dge-board .dge-card[aria-current=true] { border-color: var(--emph); box-shadow: inset 0 0 0 1px var(--emph); }
+#psiINT-dge-board .dge-card svg { width: 100%; height: 6.5rem; display: block; }
+#psiINT-dge-board .dge-card b { font-weight: 400; color: var(--ink-soft); }
 
 /* ── the source pane ──────────────────────────────────────────────── */
 /* One way, for now: the canvas writes and the pane displays, with the
    changed token highlighted. Editing text *and* dragging at the same time is
    where round-tripping editors historically come apart. */
 
-#dge-source {
+#psiINT-dge-source {
   font-family: var(--mono-font);
   font-size: 10.5px;
   line-height: 1.45;
@@ -710,12 +710,12 @@
   background: color-mix(in oklab, var(--ink) 3%, var(--paper));
   user-select: text;
 }
-#dge-source mark {
+#psiINT-dge-source mark {
   background: color-mix(in oklab, var(--emph) 26%, var(--paper));
   color: var(--ink);
   border-radius: 2px;
 }
-#dge-source .dge-errline {
+#psiINT-dge-source .dge-errline {
   display: block;
   background: color-mix(in oklab, oklch(0.55 0.18 25) 16%, transparent);
   border-radius: 2px;
@@ -747,13 +747,13 @@ body[data-mode=dark] .dge-btn.dge-on,
 body[data-mode=dark] .dge-seg button[aria-pressed=true] {
   background: color-mix(in oklab, var(--emph) 26%, var(--paper));
 }
-body[data-mode=dark] #dge-frame { box-shadow: 0 1px 14px oklch(0 0 0 / 0.55); }
+body[data-mode=dark] #psiINT-dge-frame { box-shadow: 0 1px 14px oklch(0 0 0 / 0.55); }
 
 /* The slide underneath keeps running; the editor is simply on top of it.
    Nothing about the lecture's state changes while it is open - in
    particular revealed[chunkId], which the reveal, the sync, the freeze gate
    and the localStorage recovery all share. */
-body.dge-open #stage-viewport { filter: none; }
+body.dge-open #psiINT-stage-viewport { filter: none; }
 
 /* ── the entry point ──────────────────────────────────────────────── */
 /* Inside the focus card, not a bare key. The audience view is what a room is
@@ -799,24 +799,24 @@ body.dge-open #stage-viewport { filter: none; }
    rewrites the element's placement. That is the one place in this editor
    where the same gesture means two things, so it has to look like a mode. */
 
-#dge-beats { gap: 0.25rem; }
-#dge-beats[hidden] { display: none; }
+#psiINT-dge-beats { gap: 0.25rem; }
+#psiINT-dge-beats[hidden] { display: none; }
 .dge-beat { font-family: var(--mono-font); }
-#dge-root.dge-in-step #dge-frame {
+#psiINT-dge-root.dge-in-step #psiINT-dge-frame {
   outline: 2px solid color-mix(in oklab, var(--emph) 55%, var(--paper));
 }
-#dge-root.dge-in-step #dge-status { border-top-color: var(--emph); }
+#psiINT-dge-root.dge-in-step #psiINT-dge-status { border-top-color: var(--emph); }
 
 /* Where it was at the beat before, and the way it travelled. Both are drawn
    for now – §12 of editor.md is deciding between them by looking. */
-#dge-guides .dge-ghost {
+#psiINT-dge-guides .dge-ghost {
   fill: none;
   stroke: var(--ink-soft);
   stroke-width: 1;
   stroke-dasharray: 3 3;
   opacity: 0.55;
 }
-#dge-guides .dge-motion {
+#psiINT-dge-guides .dge-motion {
   stroke: var(--emph);
   stroke-width: 1.2;
   stroke-dasharray: 2 4;
@@ -825,21 +825,21 @@ body.dge-open #stage-viewport { filter: none; }
 
 /* The tool rail, locked. A mode announced once in the status bar is a mode
    nobody remembers being in, so it is drawn where the mode lives. */
-#dge-tools.dge-locked .dge-tool[aria-pressed=true] {
+#psiINT-dge-tools.dge-locked .dge-tool[aria-pressed=true] {
   box-shadow: inset 0 0 0 1px var(--emph);
 }
 
-/* The help sheet has to sit above the editor, not under it. #help-overlay is
+/* The help sheet has to sit above the editor, not under it. #psiINT-help-overlay is
    at z-index 60 and the modal at 240, so `?` inside the editor un-hid a panel
    nobody could see and left it toggled on – and it is exactly the sheet whose
    editor section renderHelpOverlay was extended to carry. Raised only while
    the modal is open, so the slide's own stacking is untouched. */
-body.dge-open #help-overlay { z-index: 260; }
+body.dge-open #psiINT-help-overlay { z-index: 260; }
 
 /* ── the asset picker (editor.md §15) ────────────────────────────────
    Same ground as the figure board, because it is the same kind of act:
    a full-canvas overlay you pick one thing out of and leave. */
-#dge-assets {
+#psiINT-dge-assets {
   position: absolute;
   inset: 0;
   z-index: 5;
@@ -848,8 +848,8 @@ body.dge-open #help-overlay { z-index: 260; }
   background: color-mix(in oklab, var(--paper) 88%, transparent);
   backdrop-filter: blur(2px);
 }
-#dge-assets[hidden] { display: none; }
-#dge-assets-inner {
+#psiINT-dge-assets[hidden] { display: none; }
+#psiINT-dge-assets-inner {
   width: min(46rem, 88%);
   max-height: 82%;
   overflow: auto;
@@ -859,13 +859,13 @@ body.dge-open #help-overlay { z-index: 260; }
   background: var(--paper);
   box-shadow: 0 10px 40px rgb(0 0 0 / 0.18);
 }
-#dge-assets-inner header {
+#psiINT-dge-assets-inner header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.8rem;
 }
-#dge-assets-list {
+#psiINT-dge-assets-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
   gap: 0.6rem;
@@ -897,14 +897,14 @@ body.dge-open #help-overlay { z-index: 260; }
 .dge-asset b { font-weight: 500; font-size: 0.86rem; word-break: break-all; }
 .dge-asset i { font-style: normal; font-size: 0.74rem; color: var(--ink-soft); }
 .dge-asset-file { border-style: dashed; }
-#dge-assets-note {
+#psiINT-dge-assets-note {
   margin: 0.9rem 0 0;
   font-size: 0.82rem;
   line-height: 1.45;
   color: var(--ink-soft);
 }
-#dge-assets-note .dge-btn { margin-left: 0.5rem; }
-body[data-mode=dark] #dge-assets-inner,
+#psiINT-dge-assets-note .dge-btn { margin-left: 0.5rem; }
+body[data-mode=dark] #psiINT-dge-assets-inner,
 body[data-mode=dark] .dge-asset { background: color-mix(in oklab, var(--paper) 86%, #fff 14%); }
 .dge-asset-thumb { display: block; width: 100%; height: 3.4rem; }
 .dge-asset-thumb > svg, .dge-asset-thumb > img { width: 100%; height: 100%; object-fit: contain; }

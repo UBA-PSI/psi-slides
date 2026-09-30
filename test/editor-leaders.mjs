@@ -35,17 +35,17 @@ export async function run({ page, report, walkTo, ed }) {
 
   // The stub is drawn, so it has a path in the canvas and a clickable line.
   const hasStub = await page.evaluate(() =>
-    !!document.querySelector('#dge-art-svg [id$="n--lead--p"]'));
+    !!document.querySelector('#psiINT-dge-art-svg [id$="n--lead--p"]'));
   ok(hasStub, 'and the stub is drawn');
 
   if (hasStub) {
-    await ed.clickPath('#dge-art-svg [id$="n--lead--p"]', 0.5);
+    await ed.clickPath('#psiINT-dge-art-svg [id$="n--lead--p"]', 0.5);
     const sel = await ed.selection();
     ok(sel !== 'edge n--lead', 'clicking the stub does not select it as an edge', sel);
   }
 
   const listed = await page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side .dge-list .dge-nm')].map(n => n.textContent));
+    [...document.querySelectorAll('#psiINT-dge-side .dge-list .dge-nm')].map(n => n.textContent));
   ok(!listed.includes('n--lead'), 'and it is not offered as a row in the element list',
     JSON.stringify(listed.filter(x => x.includes('lead'))));
 
@@ -73,7 +73,7 @@ export async function run({ page, report, walkTo, ed }) {
   // than by looking for arrow-shaped text: this block holds three edges and a
   // label with a `\n` in it, all of which a regex would have found.
   const leaderRow = () => page.evaluate(() => {
-    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+    const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
       .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'leader');
     if (!s) return null;
     return [...s.querySelectorAll('.dge-sw')].map((b) =>
@@ -82,7 +82,7 @@ export async function run({ page, report, walkTo, ed }) {
   });
   const clickLeader = async (text) => {
     await page.evaluate((t) => {
-      const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+      const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
         .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'leader');
       const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.textContent === t);
       if (b) b.click();
@@ -91,7 +91,7 @@ export async function run({ page, report, walkTo, ed }) {
   };
   const pickRow = async (name) => {
     await page.evaluate((n) => {
-      const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+      const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button .dge-nm')]
         .find((b) => b.textContent === n);
       if (row) row.closest('button').click();
     }, name);
@@ -110,7 +110,7 @@ export async function run({ page, report, walkTo, ed }) {
 
   const edgesBefore = (await ed.source()).split('\n').filter((l) => /^edge /.test(l));
   const stubClass = () => page.evaluate(() => {
-    const g = document.querySelector('#dge-art-svg [id$="n--lead"]');
+    const g = document.querySelector('#psiINT-dge-art-svg [id$="n--lead"]');
     return g ? (g.getAttribute('class') || '') : '(not found)';
   });
   ok(/\bno-head\b/.test(await stubClass()), 'and the stub is drawn without one', await stubClass());

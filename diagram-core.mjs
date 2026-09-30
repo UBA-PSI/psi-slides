@@ -9144,7 +9144,7 @@ export function createDiagramCompiler(env = {}) {
     // re-rendering a figure the build already named and the names have to
     // agree – element ids are what the runtime, the sync protocol and the
     // editor's own selection all address.
-    const prefix = opts.prefix || `dg${++dgCounter}-`;
+    const prefix = opts.prefix || `psiINT-dg${++dgCounter}-`;
     // Drawing order is fixed, and `.front` is the one way out of it. Read off
     // the resolved classes rather than the authored ones, so a `default edge
     // {.front}` counts too.

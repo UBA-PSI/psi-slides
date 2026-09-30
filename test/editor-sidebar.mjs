@@ -24,7 +24,7 @@ export async function run({ page, report, walkTo, ed }) {
   ok(await ed.open('primitives'), 'the editor is open on #primitives');
   await ed.beat(0);
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button')]
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button')]
       .find(b => b.textContent.includes('Mix'));
     if (row) row.click();
   });
@@ -32,7 +32,7 @@ export async function run({ page, report, walkTo, ed }) {
   ok(await ed.selection() === 'box b', 'box b is selected', await ed.selection());
 
   const slots = await page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side .dge-slot')].map(s => ({
+    [...document.querySelectorAll('#psiINT-dge-side .dge-slot')].map(s => ({
       slot: s.querySelector('b').textContent,
       // The closed class vocabulary, as opposed to the placement's own swatch
       // rows, which share the outer class and write a relation rather than a
@@ -45,7 +45,7 @@ export async function run({ page, report, walkTo, ed }) {
 
   const click = async (slot, title) => {
     await page.evaluate(([sl, t]) => {
-      const s = [...document.querySelectorAll('#dge-side .dge-slot')].find(x => x.querySelector('b').textContent === sl);
+      const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')].find(x => x.querySelector('b').textContent === sl);
       const b = s && [...s.querySelectorAll('.dge-sw')].find(x => x.title === t);
       if (b) b.click();
     }, [slot, title]);
@@ -63,11 +63,11 @@ export async function run({ page, report, walkTo, ed }) {
   // already pressed, the element's own group has to come back different, in
   // its class attribute or in its geometry. `outerHTML` is both at once.
   const sigOf = () => page.evaluate(() => {
-    const g = document.querySelector('#dge-art-svg [id$="-b"]');
+    const g = document.querySelector('#psiINT-dge-art-svg [id$="-b"]');
     return g ? g.outerHTML : '';
   });
   const pressedAt = (slot, title) => page.evaluate(([sl, t]) => {
-    const s = [...document.querySelectorAll('#dge-side .dge-slot')].find(x => x.querySelector('b').textContent === sl);
+    const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')].find(x => x.querySelector('b').textContent === sl);
     const b = s && [...s.querySelectorAll('.dge-sw')].find(x => x.title === t);
     return b ? b.getAttribute('aria-pressed') === 'true' : null;
   }, [slot, title]);
@@ -116,7 +116,7 @@ export async function run({ page, report, walkTo, ed }) {
   // text. "Nothing happens" was the symptom, and it was true of the picture.
   await click('line', '.dashed');
   const painted = await page.evaluate(() => {
-    const g = document.querySelector('#dge-art-svg [id$="-b"]');
+    const g = document.querySelector('#psiINT-dge-art-svg [id$="-b"]');
     return g ? (g.getAttribute('class') || '') : '(not found)';
   });
   ok(/\bdashed\b/.test(painted), 'clicking a swatch repaints the element', painted);
@@ -129,7 +129,7 @@ export async function run({ page, report, walkTo, ed }) {
   // has to do something.
   await click('type fits the box', '.fit');
   const fitted = await lineB();
-  const note2 = await page.evaluate(() => (document.querySelector('#dge-statusnote') || {}).textContent || '');
+  const note2 = await page.evaluate(() => (document.querySelector('#psiINT-dge-statusnote') || {}).textContent || '');
   ok(/\bw [\d.]+/.test(fitted || '') && /\.fit/.test(fitted || ''),
     '.fit writes the width it needs rather than refusing', fitted);
   ok(/wrote/.test(note2) && /w [\d.]+/.test(note2),
@@ -141,7 +141,7 @@ export async function run({ page, report, walkTo, ed }) {
   // block leaves the span table describing text that is gone and every later
   // edit splices at offsets that have moved.
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button')]
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button')]
       .find(b => b.textContent.includes('encrypted'));
     if (row) row.click();
   });
@@ -149,13 +149,13 @@ export async function run({ page, report, walkTo, ed }) {
   ok(await ed.selection() === 'edge edge-1', 'an edge is selected', await ed.selection());
   const edgeBefore = await ed.lineWith('"encrypted"');
   await page.evaluate(() => {
-    const input = [...document.querySelectorAll('#dge-side .dge-num')]
+    const input = [...document.querySelectorAll('#psiINT-dge-side .dge-num')]
       .find(n => n.querySelector('span').textContent === 'to').querySelector('input');
     input.value = 'nosuchbox';
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await page.waitForTimeout(450);
-  const note3 = await page.evaluate(() => (document.querySelector('#dge-statusnote') || {}).textContent || '');
+  const note3 = await page.evaluate(() => (document.querySelector('#psiINT-dge-statusnote') || {}).textContent || '');
   ok(await ed.lineWith('"encrypted"') === edgeBefore,
     'an endpoint that names nothing leaves the source exactly as it was',
     JSON.stringify(await ed.lineWith('"encrypted"')));
@@ -169,7 +169,7 @@ export async function run({ page, report, walkTo, ed }) {
 
   // Back to the box for what follows.
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button')].find(b => b.textContent.includes('Mix'));
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button')].find(b => b.textContent.includes('Mix'));
     if (row) row.click();
   });
   await page.waitForTimeout(300);
@@ -177,7 +177,7 @@ export async function run({ page, report, walkTo, ed }) {
   // Tags go through the same tail.
   const before = await lineB();
   await page.evaluate(() => {
-    const b = [...document.querySelectorAll('#dge-side .dge-chip')].find(x => x.textContent.includes('+ tag'));
+    const b = [...document.querySelectorAll('#psiINT-dge-side .dge-chip')].find(x => x.textContent.includes('+ tag'));
     if (b) { window.prompt = () => 'probe'; b.click(); }
   });
   await page.waitForTimeout(400);
@@ -207,14 +207,14 @@ export async function run({ page, report, walkTo, ed }) {
 
   const pickRow = async (name) => {
     await page.evaluate((n) => {
-      const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+      const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button .dge-nm')]
         .find((b) => b.textContent === n);
       if (row) row.closest('button').click();
     }, name);
     await page.waitForTimeout(320);
   };
   const sideRow = () => page.evaluate(() => {
-    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+    const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
       .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'side');
     if (!s) return null;
     return [...s.querySelectorAll('.dge-sw')].map((b) =>
@@ -222,7 +222,7 @@ export async function run({ page, report, walkTo, ed }) {
   });
   const clickSide = async (text) => {
     await page.evaluate((t) => {
-      const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+      const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
         .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'side');
       const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.textContent === t);
       if (b) b.click();
@@ -257,7 +257,7 @@ export async function run({ page, report, walkTo, ed }) {
   // `dot` and came back as the compiler's refusal.
   await pickRow('g');
   const names = await page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side .dge-num span')].map((x) => x.textContent));
+    [...document.querySelectorAll('#psiINT-dge-side .dge-num span')].map((x) => x.textContent));
   note('fields: ' + names.join(' '));
   const dupes = names.filter((n, i) => names.indexOf(n) !== i);
   ok(dupes.length === 0, 'no two fields in one panel answer to the same word',

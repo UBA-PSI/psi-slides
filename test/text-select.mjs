@@ -75,7 +75,7 @@ const look = (page) => page.evaluate(() => ({
   selecting: document.body.classList.contains('text-selecting'),
   selection: String(window.getSelection() || '').trim(),
   active: (document.querySelector('.chunk.active') || {}).id || '',
-  pan: (document.querySelector('#stage') || { style: {} }).style.transform || '',
+  pan: (document.querySelector('#psiINT-stage') || { style: {} }).style.transform || '',
 }));
 
 // A drag along one line. `alt` holds the modifier for the whole gesture,
@@ -122,7 +122,7 @@ async function headline(page, report, where) {
   await page.waitForTimeout(420);
   ok((await look(page)).focused, `a plain click still opens the card (${where})`);
 
-  const card = await boxWithLine(page, '#figure-overlay .figure-focus-target');
+  const card = await boxWithLine(page, '#psiINT-figure-overlay .figure-focus-target');
   if (ok(!!card && card.w > 40, `the card is measurable (${where})`, JSON.stringify(card))) {
     await dragAlong(page, card, { alt: true });
     s = await look(page);

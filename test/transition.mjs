@@ -75,7 +75,7 @@ ${Array.from({ length: 14 }, (_, i) => `Line ${i + 1} of a chunk that does not f
 // `to` is a chunk index to jump to, or null for one forward press on the
 // slide we are already on.
 const trace = (page, to, ms = 620) => page.evaluate(({ to, ms }) => new Promise((res) => {
-  const stage = document.getElementById('stage');
+  const stage = document.getElementById('psiINT-stage');
   const chunks = [...document.querySelectorAll('.chunk')];
   const frames = [];
   const t0 = performance.now();
@@ -230,7 +230,7 @@ export async function run({ page, report }) {
         window.jumpTo(i, 'forward');
       });
       await page.waitForTimeout(700);
-      const before = await page.evaluate(() => getComputedStyle(document.getElementById('stage')).transform);
+      const before = await page.evaluate(() => getComputedStyle(document.getElementById('psiINT-stage')).transform);
       const fr = await trace(page, null, 520);
       const after = fr[fr.length - 1].tf;
       ok(ty(after) !== ty(before),

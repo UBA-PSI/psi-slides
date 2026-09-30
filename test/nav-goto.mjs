@@ -25,7 +25,7 @@ export async function run({ page, report, at, press, restart }) {
   // What the prompt is showing, read through its own root the way the
   // runtime does - never getElementById on anything inside it.
   const prompt = () => page.evaluate(() => {
-    const r = document.getElementById('goto-prompt');
+    const r = document.getElementById('psiINT-goto-prompt');
     return {
       open: !!r && !r.classList.contains('hidden'),
       digits: r ? r.querySelector('.goto-digits').textContent : '',

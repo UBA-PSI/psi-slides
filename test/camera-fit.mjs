@@ -144,7 +144,7 @@ export async function run({ page, report }) {
         const el = flatChunks[i].el;
         const content = el.querySelector('.chunk-content') || el;
         const r = content.getBoundingClientRect();
-        const vp = document.getElementById('stage-viewport').getBoundingClientRect();
+        const vp = document.getElementById('psiINT-stage-viewport').getBoundingClientRect();
         res({
           box: Math.round(el.getBoundingClientRect().height),
           h: Math.round(r.height), vpH: Math.round(vp.height),
@@ -190,7 +190,7 @@ export async function run({ page, report }) {
       return new Promise((res) => setTimeout(() => {
         const el = flatChunks[i].el;
         const content = el.querySelector('.chunk-content');
-        const vp = document.getElementById('stage-viewport').getBoundingClientRect();
+        const vp = document.getElementById('psiINT-stage-viewport').getBoundingClientRect();
         const r = content.getBoundingClientRect();
         const sp = typeof paintedClientSpan === 'function' ? paintedClientSpan(content) : null;
         res({

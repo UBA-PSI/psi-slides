@@ -17,14 +17,14 @@ export const lecture = 'diagrams';
 export const view = 'audience';
 
 const chips = (page, after) => page.evaluate((a) => {
-  const h = [...document.querySelectorAll('#dge-side .dge-hint')]
+  const h = [...document.querySelectorAll('#psiINT-dge-side .dge-hint')]
     .find((x) => x.textContent === a);
   const row = h ? h.nextElementSibling : null;
   return row ? [...row.querySelectorAll('.dge-chip')].map((c) => c.textContent.replace('×', '').trim()) : [];
 }, after);
 
 const does = (page) => page.evaluate(() => {
-  const h = [...document.querySelectorAll('#dge-side h3')].find((x) => x.textContent === 'this step');
+  const h = [...document.querySelectorAll('#psiINT-dge-side h3')].find((x) => x.textContent === 'this step');
   if (!h) return null;
   // name row, then the effects row
   const row = h.nextElementSibling && h.nextElementSibling.nextElementSibling;
@@ -67,7 +67,7 @@ export async function run({ page, report, walkTo, ed }) {
 
   // Adding an op to the beat you are standing on.
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button .dge-nm')]
       .find((x) => x.textContent === 'm0');
     if (row) row.closest('button').click();
   });
@@ -79,13 +79,13 @@ export async function run({ page, report, walkTo, ed }) {
   // pane. It is the row alone now – standing on a beat it writes the step
   // verb, which is the same act as `style m0 {.emph}` one line shorter.
   const clickProminence = (text) => page.evaluate((t) => {
-    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+    const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
       .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'prominence');
     const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.textContent === t);
     if (b) b.click();
   }, text);
   ok(!(await page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side .dge-chip')].some((x) => x.textContent === 'emph'))),
+    [...document.querySelectorAll('#psiINT-dge-side .dge-chip')].some((x) => x.textContent === 'emph'))),
     'prominence is no longer an act chip of its own');
   await clickProminence('emph');
   await page.waitForTimeout(500);
@@ -99,7 +99,7 @@ export async function run({ page, report, walkTo, ed }) {
 
   // And off again, from the list of what is written.
   await page.evaluate(() => {
-    const h = [...document.querySelectorAll('#dge-side .dge-hint')]
+    const h = [...document.querySelectorAll('#psiINT-dge-side .dge-hint')]
       .find((x) => x.textContent === 'written here:');
     const row = h && h.nextElementSibling;
     const b = row && [...row.querySelectorAll('.dge-chip')].find((c) => c.textContent.includes('emph m0'));
@@ -112,7 +112,7 @@ export async function run({ page, report, walkTo, ed }) {
   // A whole new beat.
   const before = (await ed.source()).match(/^\s*step\b/gm).length;
   await page.evaluate(() => {
-    const b = document.querySelector('#dge-beats .dge-beat-add');
+    const b = document.querySelector('#psiINT-dge-beats .dge-beat-add');
     if (b) b.click();
   });
   await page.waitForTimeout(600);
@@ -154,7 +154,7 @@ export async function run({ page, report, walkTo, ed }) {
     d.innerHTML = res.html;
     const out = {};
     for (const g of d.querySelectorAll('g[data-base]')) {
-      out[g.id.split('-').slice(1).join('-')] = g.getAttribute('class');
+      out[g.id.replace(/^psiINT-dg\d+-/, '')] = g.getAttribute('class');
     }
     return out;
   });
@@ -168,7 +168,7 @@ export async function run({ page, report, walkTo, ed }) {
   }, id);
   const clickSw = async (label, want) => {
     const hit = await page.evaluate(([l, w]) => {
-      const slot = [...document.querySelectorAll('#dge-side .dge-slot')]
+      const slot = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
         .find((x) => x.querySelector('b') && x.querySelector('b').textContent === l);
       const b = slot && [...slot.querySelectorAll('.dge-sw')]
         .find((x) => x.title === w || x.textContent === w);
@@ -273,7 +273,7 @@ export async function run({ page, report, walkTo, ed }) {
   // outcome is a compiler refusal is not a control.
   await select(['m0']);
   const rowState = (label) => page.evaluate((l) => {
-    const slot = [...document.querySelectorAll('#dge-side .dge-slot')]
+    const slot = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
       .find((x) => x.querySelector('b') && x.querySelector('b').textContent === l);
     if (!slot) return null;
     return {
@@ -332,13 +332,13 @@ export async function run({ page, report, walkTo, ed }) {
   // while a beat is standing – a `label` op swaps pre-rendered variants, so the
   // panel has no step form for it – and it is what the status note is about now.
   await page.evaluate(() => {
-    const ta = [...document.querySelectorAll('#dge-side textarea')][0];
+    const ta = [...document.querySelectorAll('#psiINT-dge-side textarea')][0];
     if (!ta) return;
     ta.value = 'm_0!';
     ta.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await page.waitForTimeout(500);
-  const said = await page.evaluate(() => (document.querySelector('#dge-statusnote') || {}).textContent || '');
+  const said = await page.evaluate(() => (document.querySelector('#psiINT-dge-statusnote') || {}).textContent || '');
   note('status after a label edit at a beat: ' + said);
   ok(/opening picture/.test(said) && new RegExp(DGE_STEP_NAME_HINT).test(said),
     'a label edit at a beat still says where it went', JSON.stringify(said));

@@ -25,23 +25,23 @@ export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   const labels = () => page.evaluate(() =>
-    [...document.querySelectorAll('#dge-guides .dge-nb-label')].map((t) => t.textContent));
+    [...document.querySelectorAll('#psiINT-dge-guides .dge-nb-label')].map((t) => t.textContent));
   const statusNote = () => page.evaluate(() =>
-    (document.querySelector('#dge-statusnote') || {}).textContent || '');
+    (document.querySelector('#psiINT-dge-statusnote') || {}).textContent || '');
   const statusLine = () => page.evaluate(() =>
-    (document.querySelector('#dge-statusline') || {}).textContent || '');
+    (document.querySelector('#psiINT-dge-statusline') || {}).textContent || '');
   const cellPx = () => page.evaluate(() => {
-    const m = document.querySelector('#dge-art-svg').getScreenCTM();
+    const m = document.querySelector('#psiINT-dge-art-svg').getScreenCTM();
     return { x: m.a * DGE.model.unit[0], y: m.d * DGE.model.unit[1] };
   });
   const handleAt = (id, h) => page.evaluate(([i, hh]) => {
-    const el = document.querySelector(`#dge-guides [data-handle="${hh}"][data-id="${i}"]`);
+    const el = document.querySelector(`#psiINT-dge-guides [data-handle="${hh}"][data-id="${i}"]`);
     if (!el) return null;
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
   }, [id, h]);
   const pick = async (id) => {
-    const c = await ed.centreOf(`#dge-art-svg [id$="-${id}"]`);
+    const c = await ed.centreOf(`#psiINT-dge-art-svg [id$="-${id}"]`);
     await page.mouse.click(c.x, c.y);
     await page.waitForTimeout(320);
     return ed.selection();
@@ -178,13 +178,13 @@ export async function run({ page, report, walkTo, ed }) {
   await walkTo('ns-b63');
   ok(await ed.open('ns-b63'), 'the editor is open on #ns-b63');
   const beats = await page.evaluate(() =>
-    document.querySelectorAll('#dge-beats .dge-beat').length);
+    document.querySelectorAll('#psiINT-dge-beats .dge-beat').length);
   await ed.beat(beats - 1);
   ok(await pick('ask') === 'text ask', 'the handwritten question is selected', await ed.selection());
   const askBefore = await ed.lineWith('text ask ');
   ok(/below tlego gap 0\.55 flush left/.test(askBefore || ''),
     'it hangs below the legend at gap 0.55', askBefore);
-  seen = await dragCells(await ed.centreOf('#dge-art-svg [id$="-ask"]'), -0.25, -0.2);
+  seen = await dragCells(await ed.centreOf('#psiINT-dge-art-svg [id$="-ask"]'), -0.25, -0.2);
   note('labels : ' + JSON.stringify(seen.labels) + '  ·  ' + seen.note);
   ok(seen.labels.some((t) => /^gap [\d.]+$/.test(t)),
     'a sibling’s gap lights up on the sibling', JSON.stringify(seen.labels));
@@ -215,12 +215,12 @@ export async function run({ page, report, walkTo, ed }) {
   ok(/below ufw gap 5lh /.test(lfwBefore || ''), 'the firewall hangs 5lh below its twin', lfwBefore);
   ok(await pick('lfw') === 'box lfw', 'the lower firewall is selected', await ed.selection());
   const gapField = () => page.evaluate(() => {
-    const l = [...document.querySelectorAll('#dge-side .dge-num')]
+    const l = [...document.querySelectorAll('#psiINT-dge-side .dge-num')]
       .find((x) => x.textContent.trim().startsWith('gap'));
     return l ? l.querySelector('input').value : null;
   });
   ok(await gapField() === '5lh', 'the panel shows the gap as the line writes it', await gapField());
-  seen = await dragCells(await ed.centreOf('#dge-art-svg [id$="-lfw"]'), 0, 0.5);
+  seen = await dragCells(await ed.centreOf('#psiINT-dge-art-svg [id$="-lfw"]'), 0, 0.5);
   const lfwAfter = await ed.lineWith('box lfw ');
   const lfwGap = /below ufw gap ([\d.]+)lh /.exec(lfwAfter || '');
   ok(!!lfwGap && Number(lfwGap[1]) > 5, 'a drag writes the new gap in label heights', lfwAfter);
@@ -228,7 +228,7 @@ export async function run({ page, report, walkTo, ed }) {
   await undo();
   ok(await pick('lfw') === 'box lfw', 'the lower firewall is selected again', await ed.selection());
   await page.evaluate(() => {
-    const b = [...document.querySelectorAll('#dge-side button.dge-sw')].find((x) => x.textContent === 'above');
+    const b = [...document.querySelectorAll('#psiINT-dge-side button.dge-sw')].find((x) => x.textContent === 'above');
     if (b) b.click();
   });
   await page.waitForTimeout(450);
@@ -237,7 +237,7 @@ export async function run({ page, report, walkTo, ed }) {
   await undo();
   // A gap nobody wrote has no unit to keep, and is written in rows as before.
   ok(await pick('us') === 'box us', 'the upper ssh server is selected', await ed.selection());
-  await dragCells(await ed.centreOf('#dge-art-svg [id$="-us"]'), 0.5, 0);
+  await dragCells(await ed.centreOf('#psiINT-dge-art-svg [id$="-us"]'), 0.5, 0);
   ok(/right of ufw gap [\d.]+ /.test(await ed.lineWith('box us ') || ''),
     'an unwritten gap is written in rows', await ed.lineWith('box us '));
   ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());

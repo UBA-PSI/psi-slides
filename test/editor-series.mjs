@@ -23,11 +23,11 @@ export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
   const panes = () => page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side h3')].map((h) => h.textContent));
+    [...document.querySelectorAll('#psiINT-dge-side h3')].map((h) => h.textContent));
   const slots = () => page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side .dge-slot b')].map((b) => b.textContent));
+    [...document.querySelectorAll('#psiINT-dge-side .dge-slot b')].map((b) => b.textContent));
   const field = (label, value) => page.evaluate(([l, v]) => {
-    const h = [...document.querySelectorAll('#dge-side h3')].find((x) => x.textContent === l);
+    const h = [...document.querySelectorAll('#psiINT-dge-side h3')].find((x) => x.textContent === l);
     const i = h && h.parentElement.querySelector('input, textarea');
     if (!i) return false;
     i.value = v;
@@ -35,7 +35,7 @@ export async function run({ page, report, walkTo, ed }) {
     return true;
   }, [label, value]);
   const numField = (name_, value) => page.evaluate(([n, v]) => {
-    const l = [...document.querySelectorAll('#dge-side .dge-num')]
+    const l = [...document.querySelectorAll('#psiINT-dge-side .dge-num')]
       .find((x) => x.querySelector('span').textContent === n);
     if (!l) return false;
     const i = l.querySelector('input');
@@ -47,14 +47,14 @@ export async function run({ page, report, walkTo, ed }) {
   // its title – which is the class it writes – and everything else by its
   // label. One helper for both, or half the rows are unreachable from here.
   const swatch = (text) => page.evaluate((t) => {
-    const b = [...document.querySelectorAll('#dge-side .dge-sw')]
+    const b = [...document.querySelectorAll('#psiINT-dge-side .dge-sw')]
       .find((x) => x.textContent === t || x.title === t);
     if (!b) return false;
     b.click();
     return true;
   }, text);
   const pressed = (text) => page.evaluate((t) => {
-    const b = [...document.querySelectorAll('#dge-side .dge-sw')]
+    const b = [...document.querySelectorAll('#psiINT-dge-side .dge-sw')]
       .find((x) => x.textContent === t || x.title === t);
     return b ? b.getAttribute('aria-pressed') : null;
   }, text);
@@ -65,7 +65,7 @@ export async function run({ page, report, walkTo, ed }) {
 
   // Clicking a column selects the statement that drew it, not the column: a
   // generated name has no line of its own to rewrite.
-  const col = await ed.centreOf('#dge-art-svg [id$="-a2-1"]');
+  const col = await ed.centreOf('#psiINT-dge-art-svg [id$="-a2-1"]');
   await page.mouse.click(col.x, col.y);
   await page.waitForTimeout(360);
   ok(await ed.selection() === 'bars a2', 'clicking a column selects the series', await ed.selection());
@@ -83,12 +83,12 @@ export async function run({ page, report, walkTo, ed }) {
   note('slots  : ' + rows.join(' · '));
   ok(rows.includes('grouping'), 'the one word that is its own: side by side, or stacked');
   const said = await page.evaluate(() =>
-    (document.querySelector('#dge-side .dge-empty') || {}).textContent || '');
+    (document.querySelector('#psiINT-dge-side .dge-empty') || {}).textContent || '');
   ok(/no box of its own/.test(said) && /belong to the chart|belongs to the chart/.test(said)
     || /the width, the height and the spacing belong to the chart/.test(said),
   'and the sentence still says whose the geometry is', said.slice(0, 120));
   const sizeFields = await page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side .dge-num span')].map((s) => s.textContent));
+    [...document.querySelectorAll('#psiINT-dge-side .dge-num span')].map((s) => s.textContent));
   note('fields : ' + sizeFields.join(' · '));
   ok(!sizeFields.includes('w') && !sizeFields.includes('h') && !sizeFields.includes('space'),
     'no w, no h, no space – all three are the chart’s', sizeFields.join(' '));
@@ -105,7 +105,7 @@ export async function run({ page, report, walkTo, ed }) {
   ok(rows.includes('series of'), 'the chart it joined is a row, not a text field',
     rows.join(' · '));
   const chartRow = () => page.evaluate(() => {
-    const slot = [...document.querySelectorAll('#dge-side .dge-slot')]
+    const slot = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
       .find((s) => s.querySelector('b').textContent === 'series of');
     return slot ? [...slot.querySelectorAll('.dge-sw')]
       .map((b) => b.textContent + '=' + b.getAttribute('aria-pressed')) : null;
@@ -171,7 +171,7 @@ export async function run({ page, report, walkTo, ed }) {
   // ── tags ──
   await page.evaluate(() => { window.prompt = () => 'second'; });
   const added = await page.evaluate(() => {
-    const b = [...document.querySelectorAll('#dge-side .dge-chip')]
+    const b = [...document.querySelectorAll('#psiINT-dge-side .dge-chip')]
       .find((x) => x.textContent.startsWith('+ tag'));
     if (!b) return false;
     b.click();
@@ -187,7 +187,7 @@ export async function run({ page, report, walkTo, ed }) {
   // b2 sits below both `bars a` and `bars b`, so its row carries both, with
   // the one the line names pressed. Clicking the other replaces exactly one
   // token: the name after `of`.
-  const col2 = await ed.centreOf('#dge-art-svg [id$="-b2-1"]');
+  const col2 = await ed.centreOf('#psiINT-dge-art-svg [id$="-b2-1"]');
   await page.mouse.click(col2.x, col2.y);
   await page.waitForTimeout(360);
   ok(await ed.selection() === 'bars b2', 'the second series is selected', await ed.selection());
@@ -197,7 +197,7 @@ export async function run({ page, report, walkTo, ed }) {
   const b2Before = await ed.lineWith('bars b2');
   note('before : ' + b2Before);
   ok(await page.evaluate(() => {
-    const slot = [...document.querySelectorAll('#dge-side .dge-slot')]
+    const slot = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
       .find((s) => s.querySelector('b').textContent === 'series of');
     const b = [...slot.querySelectorAll('.dge-sw')].find((x) => x.textContent === 'a');
     if (!b) return false;

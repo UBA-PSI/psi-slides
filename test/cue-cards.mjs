@@ -164,7 +164,7 @@ Second.
 > note: from 5
 > **pinned past the end**
 
-## free: Named after the cockpit {#cue-panel}
+## free: Named after the cockpit {#psiINT-cue-panel}
 
 A lecture may name a chunk anything, including what the cockpit calls its
 own furniture. The chunks are in the cockpit's document too, inside the
@@ -351,13 +351,13 @@ export async function run({ page, report }) {
   await press('k', 400);
   ok(await spk.evaluate(() => document.body.classList.contains('cue-cards')), 'K turns the cue cards on');
   ok(await spk.evaluate(() => localStorage.getItem('psi-slides:cue-cards')) === 'on', 'and remembers it');
-  ok(await spk.evaluate(() => document.getElementById('clock').closest('#cue-where') !== null), 'the clock moved into the column header');
+  ok(await spk.evaluate(() => document.getElementById('psiINT-clock').closest('#psiINT-cue-where') !== null), 'the clock moved into the column header');
   ok(await spk.evaluate(() => {
-    const c = document.getElementById('clock').getBoundingClientRect();
-    const h = document.getElementById('cue-where').getBoundingClientRect();
+    const c = document.getElementById('psiINT-clock').getBoundingClientRect();
+    const h = document.getElementById('psiINT-cue-where').getBoundingClientRect();
     return c.top >= h.top - 0.5 && c.bottom <= h.bottom + 0.5 && c.height > 18;
   }), 'and stands inside that header rather than clipped by it');
-  ok(await spk.evaluate(() => document.getElementById('cue-btn').getAttribute('aria-pressed')) === 'true', 'the footer button shows pressed');
+  ok(await spk.evaluate(() => document.getElementById('psiINT-cue-btn').getAttribute('aria-pressed')) === 'true', 'the footer button shows pressed');
 
   let c = await cursor();
   ok(c.card === 0 && c.beat === 0 && /one.*two/.test(c.cur), 'the cursor opens on the first card of beat 1', JSON.stringify(c));
@@ -519,19 +519,19 @@ export async function run({ page, report }) {
      'and the footnote written under the same --- has arrived with it', trail);
 
   // the two buttons that scale the cards, persisted like the notes zoom
-  const size = () => spk.evaluate(() => parseFloat(getComputedStyle(document.getElementById('cue-rail')).fontSize));
+  const size = () => spk.evaluate(() => parseFloat(getComputedStyle(document.getElementById('psiINT-cue-rail')).fontSize));
   const s0 = await size();
-  await spk.click('#cue-zoom-in');
+  await spk.click('#psiINT-cue-zoom-in');
   await spk.waitForTimeout(150);
   const s1 = await size();
   ok(s1 > s0, 'the + button makes the cards larger', s0 + ' -> ' + s1);
   ok(await spk.evaluate(() => localStorage.getItem('psi-slides:cue-scale')) !== null, 'and remembers the size');
-  await spk.click('#cue-zoom-out');
+  await spk.click('#psiINT-cue-zoom-out');
   await spk.waitForTimeout(150);
   ok(Math.abs((await size()) - s0) < 0.5, 'the minus button takes it back', String(await size()));
 
   // ── the mirror is in the strip, and there is only one of it ──────
-  ok(await spk.evaluate(() => document.getElementById('stage-cell').parentElement.id === 'preview-strip'),
+  ok(await spk.evaluate(() => document.getElementById('psiINT-stage-cell').parentElement.id === 'psiINT-preview-strip'),
      'the mirror sits inside the preview strip, in the place of the current thumbnail');
   ok(await spk.evaluate(() => {
     const cur = document.querySelector('.preview-slot.current');
@@ -549,40 +549,40 @@ export async function run({ page, report }) {
     if ((await both()).s.id === 'three') break;
     await press('ArrowUp', 90);
   }
-  const drift = await spk.evaluate(() => ({ hidden: document.getElementById('drift').hidden, text: document.getElementById('drift').textContent }));
+  const drift = await spk.evaluate(() => ({ hidden: document.getElementById('psiINT-drift').hidden, text: document.getElementById('psiINT-drift').textContent }));
   ok(!drift.hidden && /^[+±−]\d+:\d\d$/.test(drift.text), 'on a card with a time mark the drift stands beside the clock', JSON.stringify(drift));
-  await spk.click('#clock');
+  await spk.click('#psiINT-clock');
   await spk.waitForTimeout(200);
-  ok(/^0:0[01]$/.test(await spk.evaluate(() => document.getElementById('timer').textContent)), 'a click on the clock restarts it');
+  ok(/^0:0[01]$/.test(await spk.evaluate(() => document.getElementById('psiINT-timer').textContent)), 'a click on the clock restarts it');
 
   // the laser pointer still travels from the small mirror
-  const vp = await spk.locator('#stage-viewport').boundingBox();
+  const vp = await spk.locator('#psiINT-stage-viewport').boundingBox();
   await spk.mouse.move(vp.x + vp.width * 0.5, vp.y + vp.height * 0.5);
   await spk.waitForTimeout(150);
   await spk.mouse.move(vp.x + vp.width * 0.55, vp.y + vp.height * 0.5);
   await spk.waitForTimeout(300);
-  const laser = await aud.evaluate(() => ({ on: document.getElementById('laser-pointer').classList.contains('visible'), left: document.getElementById('laser-pointer').style.left }));
+  const laser = await aud.evaluate(() => ({ on: document.getElementById('psiINT-laser-pointer').classList.contains('visible'), left: document.getElementById('psiINT-laser-pointer').style.left }));
   ok(laser.on, 'hovering the small mirror lights the laser on the projection', JSON.stringify(laser));
   await spk.mouse.move(vp.x + vp.width + 300, vp.y + vp.height + 300);
   await spk.waitForTimeout(400);
-  ok(!(await aud.evaluate(() => document.getElementById('laser-pointer').classList.contains('visible'))), 'and leaving it puts the laser out');
+  ok(!(await aud.evaluate(() => document.getElementById('psiINT-laser-pointer').classList.contains('visible'))), 'and leaving it puts the laser out');
 
   // Shift-N is the way back to the textarea
   await spk.keyboard.press('Shift+N');
   await spk.waitForTimeout(300);
-  ok(!(await spk.evaluate(() => document.body.classList.contains('cue-cards'))) && await spk.evaluate(() => document.activeElement === document.getElementById('notes-content')),
+  ok(!(await spk.evaluate(() => document.body.classList.contains('cue-cards'))) && await spk.evaluate(() => document.activeElement === document.getElementById('psiINT-notes-content')),
      'Shift-N leaves the cards and lands in the notes textarea');
-  ok(await spk.evaluate(() => document.getElementById('clock').closest('#stage-cell') !== null), 'the clock is back over the stage');
+  ok(await spk.evaluate(() => document.getElementById('psiINT-clock').closest('#psiINT-stage-cell') !== null), 'the clock is back over the stage');
   await spk.keyboard.press('Escape');
   await press('k', 300);
   ok(await spk.evaluate(() => document.body.classList.contains('cue-cards')), 'and K brings the cards back');
 
   // ── the strip is draggable here, and it takes the mirror with it ──
-  const stripW = () => spk.evaluate(() => Math.round(document.getElementById('preview-strip').getBoundingClientRect().width));
+  const stripW = () => spk.evaluate(() => Math.round(document.getElementById('psiINT-preview-strip').getBoundingClientRect().width));
   const before = await stripW();
-  const handle = await spk.locator('#preview-resizer').boundingBox();
+  const handle = await spk.locator('#psiINT-preview-resizer').boundingBox();
   ok(handle && handle.width < handle.height, 'the resizer stands on the seam as a vertical handle in this mode', JSON.stringify(handle));
-  const mirrorBefore = await spk.evaluate(() => Math.round(document.getElementById('stage-cell').getBoundingClientRect().width));
+  const mirrorBefore = await spk.evaluate(() => Math.round(document.getElementById('psiINT-stage-cell').getBoundingClientRect().width));
   await spk.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
   await spk.mouse.down();
   for (let d = 20; d <= 120; d += 20) { await spk.mouse.move(handle.x + handle.width / 2 + d, handle.y + handle.height / 2); await spk.waitForTimeout(40); }
@@ -590,24 +590,24 @@ export async function run({ page, report }) {
   await spk.waitForTimeout(300);
   const after = await stripW();
   ok(Math.abs((after - before) - 120) <= 4, 'dragging it right widens the strip by what the pointer moved', before + ' -> ' + after);
-  ok(await spk.evaluate(() => Math.round(document.getElementById('stage-cell').getBoundingClientRect().width)) > mirrorBefore,
+  ok(await spk.evaluate(() => Math.round(document.getElementById('psiINT-stage-cell').getBoundingClientRect().width)) > mirrorBefore,
      'and the mirror grows with it, because it is a child of the strip');
   ok(Number(await spk.evaluate(() => localStorage.getItem('psi-slides:cue-strip-width'))) === after, 'the width is remembered');
-  await spk.locator('#preview-resizer').dblclick();
+  await spk.locator('#psiINT-preview-resizer').dblclick();
   await spk.waitForTimeout(300);
   ok(await stripW() === before, 'and a double-click puts it back', String(await stripW()));
 
   // ── the cockpit's own ids are not the lecture's ──────────────────
-  ok(await spk.evaluate(() => document.querySelectorAll('body > #cue-panel').length === 1
-      && document.querySelector('body > #cue-panel').tagName === 'SECTION'),
+  ok(await spk.evaluate(() => document.querySelectorAll('body > #psiINT-cue-panel').length === 1
+      && document.querySelector('body > #psiINT-cue-panel').tagName === 'SECTION'),
      'the cue panel is the section, not a chunk that happens to share its name');
   ok(await spk.evaluate(() => {
-    const chunk = [...document.querySelectorAll('.chunk')].find(c => c.id === 'cue-panel');
+    const chunk = [...document.querySelectorAll('.chunk')].find(c => c.id === 'psiINT-cue-panel');
     return !!chunk && getComputedStyle(chunk).display !== 'none';
   }), 'and a chunk carrying that id is still drawn in the mirror');
 
   // ── the drift is measured against the deck, not the slide ────────
-  ok(await spk.evaluate(() => !document.getElementById('drift').hidden),
+  ok(await spk.evaluate(() => !document.getElementById('psiINT-drift').hidden),
      'the drift stands beside the clock on a slide that carries no mark of its own');
 
   // ── every note is reachable on a beat the slide has ────────────────
@@ -624,7 +624,7 @@ export async function run({ page, report }) {
     const audit = await spk.evaluate(() => {
       const out = [];
       let withNotes = 0;
-      // One element per id, first occurrence. Not a filter on #preview-strip:
+      // One element per id, first occurrence. Not a filter on #psiINT-preview-strip:
       // cuePlaceStage moves the stage, so which copy is "the stage one"
       // changes mid-session and the filter emptied the list - and an audit
       // over an empty list passes, which is how this check first shipped
@@ -691,7 +691,7 @@ export async function run({ page, report }) {
     const at = async () => {
       const w = await both();
       const c = await spk.evaluate(() => ({ card: cue.card,
-        onCard: !!document.querySelector('#cue-rail .cue-entry.cur .cue-card') }));
+        onCard: !!document.querySelector('#psiINT-cue-rail .cue-entry.cur .cue-card') }));
       return { key: w.s.idx + '/' + w.s.rev + '/' + c.card, idx: w.s.idx, rev: w.s.rev, card: c.card, onCard: c.onCard, same: w.same };
     };
     const fwd = [await at()];

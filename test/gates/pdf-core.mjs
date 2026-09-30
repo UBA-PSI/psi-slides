@@ -43,13 +43,13 @@ function fakeDriver({ failAt = null } = {}) {
     pageSetup: true,
     pageCollect: {
       pages: [
-        { chunkId: 'a', beat: 0, wrapperId: 'pdf-p1', zoom: 1 },
-        { chunkId: 'b', beat: 1, wrapperId: 'pdf-p2', zoom: 1 },
-        { chunkId: 'b', beat: 2, wrapperId: 'pdf-p3', zoom: 1 },
+        { chunkId: 'a', beat: 0, wrapperId: 'psiINT-pdf-p1', zoom: 1 },
+        { chunkId: 'b', beat: 1, wrapperId: 'psiINT-pdf-p2', zoom: 1 },
+        { chunkId: 'b', beat: 2, wrapperId: 'psiINT-pdf-p3', zoom: 1 },
       ],
       overflow: [],
       missingImages: [],
-      firstPageOf: { a: 'pdf-p1', b: 'pdf-p2', 'part-section': 'pdf-p2' },
+      firstPageOf: { a: 'psiINT-pdf-p1', b: 'psiINT-pdf-p2', 'part-section': 'psiINT-pdf-p2' },
       columns: [{ id: 'part', sectionChunk: 'part-section', firstChunk: 'b' }],
       viewportH: 900,
     },
@@ -172,7 +172,7 @@ export async function run({ report }) {
     ok(install && /--slide-w: 1600px !important/.test(install.arg.css)
       && /--slide-h: 900px !important/.test(install.arg.css) && !/%[WH]%/.test(install.arg.css),
       'the stylesheet reaches the page with the size filled in');
-    ok(install && install.arg.links.part === 'pdf-p2' && install.arg.links.a === 'pdf-p1',
+    ok(install && install.arg.links.part === 'psiINT-pdf-p2' && install.arg.links.a === 'psiINT-pdf-p1',
       'the link table carries chunks and columns');
     const how = calls.find(c => c.pdf);
     ok(how && how.pdf.media === 'screen' && how.pdf.w === 1600 && how.pdf.h === 900,
@@ -312,14 +312,14 @@ export async function run({ report }) {
 
   // ── the links ──────────────────────────────────────────────────────
   const links = linkTable({
-    firstPageOf: { x: 'pdf-p1', y: 'pdf-p4' },
+    firstPageOf: { x: 'psiINT-pdf-p1', y: 'psiINT-pdf-p4' },
     columns: [
       { id: 'withheading', sectionChunk: 'withheading-section', firstChunk: 'y' },
       { id: 'noheading', sectionChunk: 'noheading-section', firstChunk: 'x' },
       { id: 'empty', sectionChunk: 'empty-section', firstChunk: null },
     ],
   });
-  ok(links.noheading === 'pdf-p1' && links.withheading === 'pdf-p4' && !('empty' in links),
+  ok(links.noheading === 'psiINT-pdf-p1' && links.withheading === 'psiINT-pdf-p4' && !('empty' in links),
     'a column links to its divider, else its first chunk, else nowhere', JSON.stringify(links));
 
   // ── the report ─────────────────────────────────────────────────────

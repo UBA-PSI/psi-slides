@@ -213,7 +213,7 @@ export async function run({ page, report, press, walkTo }) {
       const r = (e) => { const b = e.getBoundingClientRect(); return [b.left, b.top, b.width, b.height].map(Math.round); };
       return {
         box: r(document.querySelector('.chunk.annot-visible .annot-box')),
-        stage: r(document.getElementById('stage-viewport')),
+        stage: r(document.getElementById('psiINT-stage-viewport')),
         qr: !!document.querySelector('.chunk.annot-visible .annot-qr svg'),
       };
     });

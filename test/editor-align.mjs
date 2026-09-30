@@ -32,7 +32,7 @@ export async function run({ page, report, press, walkTo, ed }) {
   note('the statement: ' + before);
   ok(/\bc0\b/.test(before || ''), 'c0 is in the align set', before);
 
-  const box = await ed.centreOf('#dge-art-svg [id$="c0--r"]');
+  const box = await ed.centreOf('#psiINT-dge-art-svg [id$="c0--r"]');
   await page.mouse.click(box.x, box.y);
   await page.waitForTimeout(320);
   ok(await ed.selection() === 'box c0', 'c0 is selected', await ed.selection());
@@ -43,10 +43,10 @@ export async function run({ page, report, press, walkTo, ed }) {
   await page.mouse.down();
   await page.mouse.move(box.x, box.y + 6, { steps: 4 });
   await page.waitForTimeout(200);
-  const note1 = await page.evaluate(() => (document.querySelector('#dge-statusnote') || {}).textContent || '');
+  const note1 = await page.evaluate(() => (document.querySelector('#psiINT-dge-statusnote') || {}).textContent || '');
   const marked = await page.evaluate(() =>
-    (document.querySelector('#dge-statusnote') || {}).className || '');
-  const strongGuides = await page.locator('#dge-guides .dge-rel-strong').count();
+    (document.querySelector('#psiINT-dge-statusnote') || {}).className || '');
+  const strongGuides = await page.locator('#psiINT-dge-guides .dge-rel-strong').count();
   await page.mouse.up();
   await page.waitForTimeout(350);
   note('held: ' + note1);
@@ -60,7 +60,7 @@ export async function run({ page, report, press, walkTo, ed }) {
   ok(await alignLine() === before, 'and the statement is untouched', await alignLine());
 
   // A long pull leaves the set.
-  const box2 = await ed.centreOf('#dge-art-svg [id$="c0--r"]');
+  const box2 = await ed.centreOf('#psiINT-dge-art-svg [id$="c0--r"]');
   await ed.drag(box2, 0, 220, 16);
   const after = await alignLine();
   note('after a long pull: ' + after);
@@ -74,7 +74,7 @@ export async function run({ page, report, press, walkTo, ed }) {
   ok(await alignLine() === before, 'undo puts c0 back in the set', await alignLine());
 
   // Alt leaves at once, without the distance.
-  const box3 = await ed.centreOf('#dge-art-svg [id$="c0--r"]');
+  const box3 = await ed.centreOf('#psiINT-dge-art-svg [id$="c0--r"]');
   await page.keyboard.down('Alt');
   await page.mouse.move(box3.x, box3.y);
   await page.mouse.down();

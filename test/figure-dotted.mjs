@@ -68,7 +68,7 @@ const strokes = (page, chunk) => page.evaluate((chunk) => {
     const s = g.querySelector('.dg-stroke') || g.querySelector(':scope > rect');
     if (!s) continue;
     const cs = getComputedStyle(s);
-    out[g.id.replace(/^dg\d+-/, '')] = cs.strokeWidth + ' ' + cs.strokeDasharray;
+    out[g.id.replace(/^psiINT-dg\d+-/, '')] = cs.strokeWidth + ' ' + cs.strokeDasharray;
   }
   return out;
 }, chunk);

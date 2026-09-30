@@ -40,7 +40,7 @@ const chunk = (tag, id, heading, segments, notes = [], from = [], segs = []) => 
   speakerNotes: notes, speakerNoteFrom: from, speakerNoteSegs: segs,
 });
 
-const FIGURE = '<figure class="figure-diagram"><svg id="psi-fig-1" class="psi-diagram" '
+const FIGURE = '<figure class="figure-diagram"><svg id="psiINT-fig-1" class="psi-diagram" '
   + 'data-steps="3" viewBox="0 0 10 10">Die Kette</svg>'
   + '<script type="application/json" class="psi-diagram-frames">[{"a":1}]</script></figure>';
 

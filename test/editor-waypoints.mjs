@@ -20,7 +20,7 @@ export async function run({ page, report, press, walkTo, ed }) {
   await walkTo('cbc');
   for (let i = 0; i < 3; i++) await press(' ');
   ok(await ed.open('cbc'), 'the editor is open');
-  ok(await ed.clickPath('#dge-art-svg [id$="feed0--p"]', 0.5) && await ed.selection() === 'edge feed0',
+  ok(await ed.clickPath('#psiINT-dge-art-svg [id$="feed0--p"]', 0.5) && await ed.selection() === 'edge feed0',
     'feed0 selected', await ed.selection());
 
   const before = await ed.lineWith('edge feed0 ');
@@ -33,19 +33,19 @@ export async function run({ page, report, press, walkTo, ed }) {
   const want = viaWords(before).length;
   note(want + ' waypoint(s), ' + held.length + ' of them holding a reference');
 
-  const nVia = () => page.locator('#dge-guides .dge-h-via').count();
+  const nVia = () => page.locator('#psiINT-dge-guides .dge-h-via').count();
   ok(await nVia() === want, 'a handle on every waypoint', String(await nVia()));
-  ok(await page.locator('#dge-guides .dge-h-via.dge-h-held').count() === held.length,
+  ok(await page.locator('#psiINT-dge-guides .dge-h-via.dge-h-held').count() === held.length,
     'and the ones holding a reference are marked as such');
-  ok(await page.locator('#dge-guides .dge-h-add').count() === want + 1,
+  ok(await page.locator('#psiINT-dge-guides .dge-h-add').count() === want + 1,
     'a hollow add-dot on every segment',
-    String(await page.locator('#dge-guides .dge-h-add').count()));
+    String(await page.locator('#psiINT-dge-guides .dge-h-add').count()));
   const headings = await page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side h3')].map(h => h.textContent));
+    [...document.querySelectorAll('#psiINT-dge-side h3')].map(h => h.textContent));
   ok(headings.includes('waypoints'), 'the panel lists them', JSON.stringify(headings));
 
   // ── the load-bearing assertion ──
-  await ed.drag(await ed.centreOf('#dge-guides .dge-h-via'), 70, 45);
+  await ed.drag(await ed.centreOf('#psiINT-dge-guides .dge-h-via'), 70, 45);
   const moved = await ed.lineWith('edge feed0 ');
   note('moved  : ' + moved);
   ok(moved !== before, 'the drag wrote something', moved);
@@ -62,7 +62,7 @@ export async function run({ page, report, press, walkTo, ed }) {
 
   // ── inserting, and what must survive it ──
   const addDot = await page.evaluate(() => {
-    const d = [...document.querySelectorAll('#dge-guides .dge-h-add')]
+    const d = [...document.querySelectorAll('#psiINT-dge-guides .dge-h-add')]
       .find(n => n.dataset.handle === 'add-0').getBoundingClientRect();
     return { x: d.x + d.width / 2, y: d.y + d.height / 2 };
   });
@@ -93,7 +93,7 @@ export async function run({ page, report, press, walkTo, ed }) {
   // pointerdown's own click counter. Both looked like working controls and
   // neither ever fired - which is how this shipped with no way at all to take
   // a waypoint off the canvas.
-  const firstVia = await ed.centreOf('#dge-guides .dge-h-via');
+  const firstVia = await ed.centreOf('#psiINT-dge-guides .dge-h-via');
   await page.mouse.dblclick(firstVia.x, firstVia.y);
   await page.waitForTimeout(450);
   ok(await nVia() === want, 'a double-click on a waypoint takes it out again',
@@ -103,7 +103,7 @@ export async function run({ page, report, press, walkTo, ed }) {
 
   // ── and removing, from the panel ──
   const removeFirstChip = () => page.evaluate(() => {
-    const chips = [...document.querySelectorAll('#dge-side .dge-chip-via')];
+    const chips = [...document.querySelectorAll('#psiINT-dge-side .dge-chip-via')];
     if (chips[0]) chips[0].click();
   });
   const wholeBefore = (await ed.source()).split('\n');
@@ -142,16 +142,16 @@ export async function run({ page, report, press, walkTo, ed }) {
   // figure, and on a wide diagram at its fit zoom it was a speck. Measured in
   // screen pixels now, the way dgeDockAt has always sized its chips.
   const gripPx = () => page.evaluate(() => {
-    const n = document.querySelector('#dge-guides .dge-h-end');
+    const n = document.querySelector('#psiINT-dge-guides .dge-h-end');
     if (!n) return null;
     const r = n.getBoundingClientRect();
     return Math.round(r.width * 10) / 10;
   });
   const gripUnits = () => page.evaluate(() => {
-    const n = document.querySelector('#dge-guides .dge-h-end');
+    const n = document.querySelector('#psiINT-dge-guides .dge-h-end');
     return n ? Math.round(Number(n.getAttribute('r')) * 100) / 100 : null;
   });
-  await ed.clickPath('#dge-art-svg [id$="feed0--p"]', 0.5);
+  await ed.clickPath('#psiINT-dge-art-svg [id$="feed0--p"]', 0.5);
   const px1 = await gripPx();
   const u1 = await gripUnits();
   await page.evaluate(() => dgeZoomBy(2));
@@ -182,16 +182,16 @@ export async function run({ page, report, press, walkTo, ed }) {
   });
   const handlesOn = (id) => page.evaluate((i) => {
     dgeSelect([i]);
-    return document.querySelectorAll('#dge-guides [data-id="' + i + '"]').length;
+    return document.querySelectorAll('#psiINT-dge-guides [data-id="' + i + '"]').length;
   }, smallest);
   await page.waitForTimeout(250);
   const zoomedIn = await page.evaluate(async (i) => {
     DGE.zoom = 4; dgeApplyView(); dgeSelect([i]);
-    return document.querySelectorAll('#dge-guides [data-id="' + i + '"]').length;
+    return document.querySelectorAll('#psiINT-dge-guides [data-id="' + i + '"]').length;
   }, smallest);
   const zoomedOut = await page.evaluate((i) => {
     DGE.zoom = 0.4; dgeApplyView(); dgeSelect([i]);
-    return document.querySelectorAll('#dge-guides [data-id="' + i + '"]').length;
+    return document.querySelectorAll('#psiINT-dge-guides [data-id="' + i + '"]').length;
   }, smallest);
   note(`${smallest}: ${zoomedIn} handle(s) at 4x, ${zoomedOut} at 0.4x`);
   ok(zoomedIn === 3, 'the smallest element has its three grips when there is room',

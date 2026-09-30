@@ -27,19 +27,19 @@ export async function run({ page, report, walkTo, ed }) {
 
   const pick = async (label) => {
     await page.evaluate((t) => {
-      const row = [...document.querySelectorAll('#dge-side .dge-list button')].find(b => b.textContent.includes(t));
+      const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button')].find(b => b.textContent.includes(t));
       if (row) row.click();
     }, label);
     await page.waitForTimeout(320);
   };
   const dotLine = () => ed.lineWith('dot  x');
   const pressed = (slot) => page.evaluate((sl) => {
-    const s = [...document.querySelectorAll('#dge-side .dge-slot')].find(x => x.querySelector('b').textContent === sl);
+    const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')].find(x => x.querySelector('b').textContent === sl);
     return s ? ([...s.querySelectorAll('.dge-sw')].find(b => b.getAttribute('aria-pressed') === 'true') || {}).textContent : null;
   }, slot);
   const clickChip = async (slot, text) => {
     await page.evaluate(([sl, t]) => {
-      const s = [...document.querySelectorAll('#dge-side .dge-slot')].find(x => x.querySelector('b').textContent === sl);
+      const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')].find(x => x.querySelector('b').textContent === sl);
       const b = s && [...s.querySelectorAll('.dge-sw')].find(x => x.textContent === t);
       if (b) b.click();
     }, [slot, text]);
@@ -47,7 +47,7 @@ export async function run({ page, report, walkTo, ed }) {
   };
   const setField = async (label, value) => {
     await page.evaluate(([l, v]) => {
-      const f = [...document.querySelectorAll('#dge-side .dge-num')].find(n => n.querySelector('span').textContent === l);
+      const f = [...document.querySelectorAll('#psiINT-dge-side .dge-num')].find(n => n.querySelector('span').textContent === l);
       const i = f && f.querySelector('input');
       if (i) { i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); }
     }, [label, value]);
@@ -78,7 +78,7 @@ export async function run({ page, report, walkTo, ed }) {
   // ── a reference that does not exist is refused, not written ──
   await setField('of', 'nosuchthing');
   ok(await dotLine() === reDocked, 'a reference that names nothing is refused', await dotLine());
-  const note1 = await page.evaluate(() => (document.querySelector('#dge-statusnote') || {}).textContent || '');
+  const note1 = await page.evaluate(() => (document.querySelector('#psiINT-dge-statusnote') || {}).textContent || '');
   ok(/not applied/.test(note1), 'and the status says so', JSON.stringify(note1));
 
   // ── halfway between two, which no drag can express ──
@@ -98,7 +98,7 @@ export async function run({ page, report, walkTo, ed }) {
   ok(/below b\b/.test(beforeDrag || ''), 'set up below b for the drag', beforeDrag);
 
   // ── the drag: push it through the reference and the side follows ──
-  const dot = await ed.centreOf('#dge-art-svg [id$="-x"]');
+  const dot = await ed.centreOf('#psiINT-dge-art-svg [id$="-x"]');
   await page.mouse.click(dot.x, dot.y);
   await page.waitForTimeout(300);
   await ed.drag(dot, 0, -260, 18);
@@ -123,7 +123,7 @@ export async function run({ page, report, walkTo, ed }) {
   ok(await ed.open('in-zone'), 'the editor is open on #in-zone');
   await ed.beat(0);
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button .dge-nm')]
       .find((b) => b.textContent === 'defence');
     if (row) row.closest('button').click();
   });
@@ -152,7 +152,7 @@ export async function run({ page, report, walkTo, ed }) {
 
   // The drag: an offset, and the band survives it.
   const inBefore = await inLine();
-  const stood = await ed.centreOf('#dge-art-svg [id$="-defence"]');
+  const stood = await ed.centreOf('#psiINT-dge-art-svg [id$="-defence"]');
   await ed.drag(stood, 30, 24);
   const inAfter = await inLine();
   note('dragged  : ' + inAfter);
@@ -184,12 +184,12 @@ export async function run({ page, report, walkTo, ed }) {
   ok(plotWaypoints(viaBefore).length >= 4,
     'the curve is written in the plot\u2019s own units', String(plotWaypoints(viaBefore).length));
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button .dge-nm')]
       .find((b) => b.textContent === 'good');
     if (row) row.closest('button').click();
   });
   await page.waitForTimeout(320);
-  const grip = await ed.centreOf('#dge-guides [data-id="good"][data-handle="via-1"]');
+  const grip = await ed.centreOf('#psiINT-dge-guides [data-id="good"][data-handle="via-1"]');
   ok(!!grip, 'a waypoint on the curve has a handle', JSON.stringify(grip));
   await ed.drag(grip, 40, -30);
   const viaAfter = await goodLine();
@@ -205,7 +205,7 @@ export async function run({ page, report, walkTo, ed }) {
   // a move op.
   await ed.beat(0);
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button .dge-nm')]
       .find((b) => b.textContent === 'nchance');
     if (row) row.closest('button').click();
   });
@@ -215,27 +215,27 @@ export async function run({ page, report, walkTo, ed }) {
   const chance = () => ed.lineWith('nchance');
   const atBefore = await chance();
   note('at     : ' + atBefore);
-  const spot = await ed.centreOf('#dge-art-svg [id$="-nchance"]');
+  const spot = await ed.centreOf('#psiINT-dge-art-svg [id$="-nchance"]');
   await ed.drag(spot, 45, -35);
   const atAfter = await chance();
   note('dragged: ' + atAfter);
   ok(atAfter !== atBefore, 'dragging it moves the coordinate', atAfter);
   ok(/at roc@[\d.-]+,roc@[\d.-]+/.test(atAfter || ''),
     'and both halves stay values in the plot', atAfter);
-  const note2 = await page.evaluate(() => (document.querySelector('#dge-statusnote') || {}).textContent || '');
+  const note2 = await page.evaluate(() => (document.querySelector('#psiINT-dge-statusnote') || {}).textContent || '');
   ok(!/Nothing in the source changed/.test(note2),
     'the status does not have to say nothing happened', JSON.stringify(note2));
 
   // The coordinate as a field, which is how anyone types one of these in the
   // first place. Every other placement kind had a control and `at` had none.
   const atField = () => page.evaluate(() => {
-    const f = [...document.querySelectorAll('#dge-side .dge-num')]
+    const f = [...document.querySelectorAll('#psiINT-dge-side .dge-num')]
       .find((n) => n.querySelector('span').textContent === 'at');
     return f ? f.querySelector('input').value : null;
   });
   ok((await atField()) !== null, 'the pane offers the coordinate as a field', String(await atField()));
   await page.evaluate(() => {
-    const f = [...document.querySelectorAll('#dge-side .dge-num')]
+    const f = [...document.querySelectorAll('#psiINT-dge-side .dge-num')]
       .find((n) => n.querySelector('span').textContent === 'at');
     const i = f.querySelector('input');
     i.value = 'roc@0.5,roc@0.5';
@@ -251,7 +251,7 @@ export async function run({ page, report, walkTo, ed }) {
   // first one out promotes the second into its place: the y title silently
   // became the x title, on a figure that went on compiling.
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button .dge-nm')]
       .find((b) => b.textContent === 'roc');
     if (row) row.closest('button').click();
   });
@@ -261,7 +261,7 @@ export async function run({ page, report, walkTo, ed }) {
   const titlesBefore = titlesOf(await plotLine());
   note('titles : ' + titlesBefore.join(' '));
   await page.evaluate(() => {
-    const f = [...document.querySelectorAll('#dge-side .dge-num')]
+    const f = [...document.querySelectorAll('#psiINT-dge-side .dge-num')]
       .find((n) => n.querySelector('span').textContent === 'x axis');
     const i = f && f.querySelector('input');
     if (i) { i.value = ''; i.dispatchEvent(new Event('change', { bubbles: true })); }

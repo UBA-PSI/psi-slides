@@ -40,7 +40,7 @@ export async function run({ page, report }) {
         try { bb = g.getBBox(); } catch (e) { continue; }
         if (!bb.width && !bb.height) continue;
         els.push({
-          name: (g.id || '').replace(/^dg\d+-/, ''),
+          name: (g.id || '').replace(/^psiINT-dg\d+-/, ''),
           cls: g.getAttribute('class') || '',
           x: bb.x, y: bb.y, w: bb.width, h: bb.height,
         });

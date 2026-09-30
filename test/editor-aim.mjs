@@ -19,14 +19,14 @@ export const lecture = 'diagrams';
 export const view = 'audience';
 
 const slotOpts = (page, label) => page.evaluate((l) => {
-  const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+  const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
     .find((x) => x.querySelector('b').textContent === l);
   return s ? [...s.querySelectorAll('.dge-sw')].map((b) => b.textContent) : null;
 }, label);
 
 const clickSlot = async (page, label, text) => {
   await page.evaluate(([l, t]) => {
-    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+    const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
       .find((x) => x.querySelector('b').textContent === l);
     const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.textContent === t);
     if (b) b.click();
@@ -44,7 +44,7 @@ export async function run({ page, report, walkTo, ed }) {
 
   // s2 is the plain chevron: a point, and no direction written yet.
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button')]
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button')]
       .find((b) => b.textContent.includes('chevron'));
     if (row) row.click();
   });
@@ -76,14 +76,14 @@ export async function run({ page, report, walkTo, ed }) {
   ok(!(await ed.problems()).includes('line '), 'clicking it twice changes nothing',
     await ed.problems());
   const note2 = await page.evaluate(() =>
-    (document.querySelector('#dge-statusnote') || {}).textContent || '');
+    (document.querySelector('#psiINT-dge-statusnote') || {}).textContent || '');
   ok(!/not applied/.test(note2), 'and says nothing was refused', JSON.stringify(note2));
 
   // A rectangle has no point, so it is not offered one. s8 is the one box in
   // this row carrying no outline class - it is here for `.turn`, and a turned
   // label is a reading direction rather than an aim.
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button')]
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button')]
       .find((b) => b.textContent.includes('turn'));
     if (row) row.click();
   });
@@ -98,7 +98,7 @@ export async function run({ page, report, walkTo, ed }) {
   ok(await ed.open('expand'), 'the editor is open on #expand');
   await ed.beat(0);
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button .dge-nm')]
       .find((b) => b.textContent === 'f');
     if (row) row.closest('button').click();
   });
@@ -106,7 +106,7 @@ export async function run({ page, report, walkTo, ed }) {
   ok(await ed.selection() === 'box f', 'the chart statement is selected', await ed.selection());
 
   const nums = await page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side .dge-num span')].map((s) => s.textContent));
+    [...document.querySelectorAll('#psiINT-dge-side .dge-num span')].map((s) => s.textContent));
   note('size row: ' + nums.join(' '));
   ok(nums.includes('space'), 'it offers the spacing its own statement takes', nums.join(' '));
   ok(!nums.includes('pad'), 'and not the one a box takes and it does not', nums.join(' '));
@@ -115,7 +115,7 @@ export async function run({ page, report, walkTo, ed }) {
   // its line is the chart's values. A label field here would have overwritten
   // them with whatever was typed, under a name that gave no warning.
   const labelled = await page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side h3')].some((h) => h.textContent === 'label'));
+    [...document.querySelectorAll('#psiINT-dge-side h3')].some((h) => h.textContent === 'label'));
   ok(!labelled, 'and offers no label field, because the frame has none', String(labelled));
 
   // An option whose value is a comma list, not a number. `emph 1,3` singles
@@ -126,7 +126,7 @@ export async function run({ page, report, walkTo, ed }) {
   const barsWas = await bars();
   ok(!/\bemph\b/.test(barsWas || ''), 'the chart says nothing about emphasis yet', barsWas);
   const typed = await page.evaluate(() => {
-    const lab = [...document.querySelectorAll('#dge-side .dge-num')]
+    const lab = [...document.querySelectorAll('#psiINT-dge-side .dge-num')]
       .find((x) => x.querySelector('span').textContent === 'emph');
     if (!lab) return false;
     const i = lab.querySelector('input');
@@ -142,7 +142,7 @@ export async function run({ page, report, walkTo, ed }) {
   ok(!(await ed.problems()).includes('line '), 'the block still parses', await ed.problems());
 
   await page.evaluate(() => {
-    const lab = [...document.querySelectorAll('#dge-side .dge-num')]
+    const lab = [...document.querySelectorAll('#psiINT-dge-side .dge-num')]
       .find((x) => x.querySelector('span').textContent === 'emph');
     const i = lab && lab.querySelector('input');
     if (i) { i.value = ''; i.dispatchEvent(new Event('change', { bubbles: true })); }

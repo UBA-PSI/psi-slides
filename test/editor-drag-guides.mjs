@@ -35,19 +35,19 @@ export const view = 'audience';
 export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
-  const marks = () => page.locator('#dge-guides .dge-nb').count();
+  const marks = () => page.locator('#psiINT-dge-guides .dge-nb').count();
   const labels = () => page.evaluate(() =>
-    [...document.querySelectorAll('#dge-guides .dge-nb-label')].map((t) => t.textContent));
+    [...document.querySelectorAll('#psiINT-dge-guides .dge-nb-label')].map((t) => t.textContent));
   const statusNote = () => page.evaluate(() =>
-    (document.querySelector('#dge-statusnote') || {}).textContent || '');
+    (document.querySelector('#psiINT-dge-statusnote') || {}).textContent || '');
   const statusLine = () => page.evaluate(() =>
-    (document.querySelector('#dge-statusline') || {}).textContent || '');
+    (document.querySelector('#psiINT-dge-statusline') || {}).textContent || '');
   const cellPx = () => page.evaluate(() => {
-    const m = document.querySelector('#dge-art-svg').getScreenCTM();
+    const m = document.querySelector('#psiINT-dge-art-svg').getScreenCTM();
     return { x: m.a * DGE.model.unit[0], y: m.d * DGE.model.unit[1] };
   });
   const pick = async (id) => {
-    const c = await ed.centreOf(`#dge-art-svg [id$="-${id}"]`);
+    const c = await ed.centreOf(`#psiINT-dge-art-svg [id$="-${id}"]`);
     await page.mouse.click(c.x, c.y);
     await page.waitForTimeout(320);
     return ed.selection();
@@ -57,7 +57,7 @@ export async function run({ page, report, walkTo, ed }) {
   // selected – and they are left off an element too small to carry them,
   // which is why every caller checks.
   const handleAt = (id, h) => page.evaluate(([i, hh]) => {
-    const el = document.querySelector(`#dge-guides [data-handle="${hh}"][data-id="${i}"]`);
+    const el = document.querySelector(`#psiINT-dge-guides [data-handle="${hh}"][data-id="${i}"]`);
     if (!el) return null;
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
@@ -81,7 +81,7 @@ export async function run({ page, report, walkTo, ed }) {
     return seen;
   };
   const dragOn = async (id, dx, dy, mods) =>
-    dragCells(await ed.centreOf(`#dge-art-svg [id$="-${id}"]`), dx, dy, mods);
+    dragCells(await ed.centreOf(`#psiINT-dge-art-svg [id$="-${id}"]`), dx, dy, mods);
   const undo = async () => { await page.evaluate(() => dgeUndo()); await page.waitForTimeout(400); };
   const stepLines = async (needle) =>
     (await ed.source()).split('\n').map((l) => l.trim()).filter((l) => l.startsWith(needle));
@@ -107,11 +107,11 @@ export async function run({ page, report, walkTo, ed }) {
   await walkTo('unsafety');
   ok(await ed.open('unsafety'), 'the editor is open on #unsafety');
   const beatsHere = await page.evaluate(() =>
-    document.querySelectorAll('#dge-beats .dge-beat').length);
+    document.querySelectorAll('#psiINT-dge-beats .dge-beat').length);
   ok(beatsHere > 1, 'and the figure has beats to stand on', String(beatsHere));
   await ed.beat(beatsHere - 1);
   ok(await pick('df') === 'box df', 'a box in the middle of a run is selected', await ed.selection());
-  seen = await dragCells(await ed.centreOf('#dge-art-svg [id$="-df"]'), -0.3, 0.5);
+  seen = await dragCells(await ed.centreOf('#psiINT-dge-art-svg [id$="-df"]'), -0.3, 0.5);
   note('status : ' + seen.note);
   ok(!(await ed.lineWith('spread ')),
     'no spread statement is appended at a beat', await ed.lineWith('spread '));
@@ -127,7 +127,7 @@ export async function run({ page, report, walkTo, ed }) {
   await walkTo('mac');
   ok(await ed.open('mac'), 'the editor is open on #mac');
   const beats = await page.evaluate(() =>
-    document.querySelectorAll('#dge-beats .dge-beat').length);
+    document.querySelectorAll('#psiINT-dge-beats .dge-beat').length);
 
   await ed.beat(0);
   ok(await pick('goals') === 'text goals', 'the free label is selected', await ed.selection());
@@ -322,7 +322,7 @@ export async function run({ page, report, walkTo, ed }) {
     for (let k = 1; k < 14; k++) {
       const p = { x: b.x - k * 0.4 * uw, y: b.y - 0.3 * uh };
       if (dgeHitTest(p, { edges: false })) continue;
-      const m = document.querySelector('#dge-art-svg').getScreenCTM();
+      const m = document.querySelector('#psiINT-dge-art-svg').getScreenCTM();
       return { x: p.x * m.a + p.y * m.c + m.e, y: p.x * m.b + p.y * m.d + m.f };
     }
     return null;

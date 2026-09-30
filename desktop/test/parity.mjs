@@ -83,7 +83,7 @@ export function beatTable(html) {
   const body = html.slice(html.lastIndexOf('</head>'));
   const rows = [];
   for (const m of body.matchAll(
-    /<div class="pdf-page" id="pdf-p\d+" style="--zoom: ([0-9.]+);">([\s\S]*?)(?=<div class="pdf-page"|<\/body>)/g)) {
+    /<div class="pdf-page" id="psiINT-pdf-p\d+" style="--zoom: ([0-9.]+);">([\s\S]*?)(?=<div class="pdf-page"|<\/body>)/g)) {
     const chunk = (/data-chunk-id="([^"]+)"/.exec(m[2]) || [, null])[1];
     const prev = rows[rows.length - 1];
     rows.push({

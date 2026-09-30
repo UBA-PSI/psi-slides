@@ -421,7 +421,7 @@ let addressSpansOn = false;
 const imgResolveCache = new Map();
 const dataUriCache = new Map();
 // Per-build counter for unique SVG ID prefixes. Reset in buildOnce so the
-// first inlined SVG of a build is always psi-fig-1-.
+// first inlined SVG of a build is always psiINT-fig-1-.
 let inlineSvgCounter = 0;
 function resolveFigId(figId) {
   if (!currentSourceDir) return null;
@@ -640,7 +640,7 @@ function inlineSvg(absPath, { alt = '', title = '', extraClass = '' } = {}) {
   let body = text.slice(rootBodyStart, rootEnd);
 
   inlineSvgCounter += 1;
-  const prefix = `psi-fig-${inlineSvgCounter}-`;
+  const prefix = `psiINT-fig-${inlineSvgCounter}-`;
   const rootId = `${prefix}root`;
 
   // Collect all internal IDs from id="X" attributes anywhere in the SVG
@@ -3317,7 +3317,7 @@ function dgAssetMarkup(node, id, geo, opts = {}) {
       // scope pointing at an id that no longer existed, which silently
       // killed the whole stylesheet – a line drawing arrived with no lines.
       // Rename the token everywhere instead.
-      const rootId = (spliced.match(/\bid="(psi-fig-\d+-root)"/) || [])[1];
+      const rootId = (spliced.match(/\bid="(psiINT-fig-\d+-root)"/) || [])[1];
       if (rootId) spliced = spliced.split(rootId).join(id);
       const tag = spliced.match(/^<svg\b([^>]*)>/i);
       let attrs = tag ? tag[1] : '';
@@ -3337,7 +3337,7 @@ function dgAssetMarkup(node, id, geo, opts = {}) {
       // pointers. `preserveAspectRatio` sits on the symbol, where it belongs:
       // it is a property of the drawing, not of where the drawing is put.
       if (!opts.standalone && dgSharableSvg(spliced)) {
-        const sym = { id: `psi-sym-${++dgSymbolCounter}`, emitted: true };
+        const sym = { id: `psiINT-sym-${++dgSymbolCounter}`, emitted: true };
         dgSymbols.set(asset.abs, sym);
         const alt = node.alt ? ` role="img" aria-label="${escapeHtml(node.alt)}"` : '';
         // The root's own id, role and label have to come off. This element is
@@ -4500,7 +4500,7 @@ function dgSwapFigure(oldSvg, html) {
   // actually looking at while a figure is zoomed – the very state an edit
   // is usually made in. dgMirrorIntoFocus can only repaint ids that
   // survived the edit, so a structural change replaces the clone whole.
-  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  const card = document.querySelector('#psiINT-figure-overlay .figure-focus-target');
   if (card) {
     const shown = card.querySelector('svg.psi-diagram');
     if (shown && shown.id === next.id) {
@@ -4515,7 +4515,7 @@ function dgSwapFigure(oldSvg, html) {
 // Repaint whatever diagram is currently zoomed into the focus card. Cheap and
 // unconditional: one querySelector when nothing is focused.
 function dgMirrorIntoFocus(d, step) {
-  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  const card = document.querySelector('#psiINT-figure-overlay .figure-focus-target');
   if (!card) return;
   const svg = card.querySelector('svg.psi-diagram');
   if (!svg || svg.id !== d.svg.id) return;
@@ -8661,7 +8661,7 @@ function renderReaderContents(columns, nums, S) {
       ? `<a class="rd-part" href="#${escapeHtml(col.id)}">${escapeHtml(col.heading)}</a>`
       : `<span class="rd-part">${escapeHtml(col.heading)}</span>`;
     if (!items) return `<li class="rd-group"><div class="rd-part-row">${head}</div></li>`;
-    const listId = `rd-part-${++part}`;
+    const listId = `psiINT-rd-part-${++part}`;
     const fold = `<button type="button" class="rd-fold" aria-expanded="false" aria-controls="${listId}" ` +
       `aria-label="${escapeHtml(S['reader-fold'])}: ${escapeHtml(col.heading)}">` +
       `<svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button>`;
@@ -8671,8 +8671,8 @@ function renderReaderContents(columns, nums, S) {
   // The foot is empty on purpose: it is where the reader's own tools go -
   // the menu and the list of highlights that could not be placed - and a
   // slot the build writes is one the script fills without guessing where.
-  return `<button type="button" class="rd-toggle" aria-controls="reader-contents" aria-expanded="false" hidden>${escapeHtml(S.contents)}</button>
-<nav id="reader-contents" class="rd-contents" aria-label="${escapeHtml(S.contents)}" hidden>
+  return `<button type="button" class="rd-toggle" aria-controls="psiINT-reader-contents" aria-expanded="false" hidden>${escapeHtml(S.contents)}</button>
+<nav id="psiINT-reader-contents" class="rd-contents" aria-label="${escapeHtml(S.contents)}" hidden>
   <div class="rd-head"><span class="rd-label">${escapeHtml(S.contents)}</span><button type="button" class="rd-close" aria-label="${escapeHtml(S['reader-close'])}">×</button></div>
   <ol class="rd-list">
 ${groups}
@@ -8789,7 +8789,7 @@ function renderDocument(lecture, opts = {}) {
   // stays one constant for every lecture; a less-than sign is escaped, which
   // is all it takes to keep a closing script tag out of a label.
   const readerData = readerOn
-    ? `<script type="application/json" id="reader-data">${JSON.stringify({
+    ? `<script type="application/json" id="psiINT-reader-data">${JSON.stringify({
         key: opts.lectureKey || 'lecture',
         title,
         s: Object.fromEntries(Object.entries(S).filter(([k]) => k.startsWith('reader-'))),
@@ -10679,12 +10679,12 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
   .rd-lb-bar button:hover, .rd-lb-bar button:focus-visible { background: rgb(255 255 255 / 0.24); }
   .rd-lb-bar .rd-lb-spot[aria-pressed=true] { color: #1a1a1a; background: var(--rd-hl-strong); border-color: transparent; }
   .rd-lb-bar .rd-lb-close { font-size: 1.15rem; padding: 0.3rem 0.65rem; }
-  body.rd-marking #lightbox, body.rd-marking #lightbox > .lb-card, body.rd-marking #lightbox > .lb-card * { cursor: crosshair; }
-  body.rd-marking #lightbox .rd-pin, body.rd-marking #lightbox .rd-pin * { cursor: pointer; }
+  body.rd-marking #psiINT-lightbox, body.rd-marking #psiINT-lightbox > .lb-card, body.rd-marking #psiINT-lightbox > .lb-card * { cursor: crosshair; }
+  body.rd-marking #psiINT-lightbox .rd-pin, body.rd-marking #psiINT-lightbox .rd-pin * { cursor: pointer; }
   body[data-reader=on] .psi-diagram .dg-el.rd-hover > :is(rect, circle, .dg-shape),
   body[data-reader=on] .psi-diagram .dg-el.rd-hover .dg-stroke { stroke: var(--rd-hl-strong); stroke-width: 4px; }
-  #lightbox > .rd-card { position: absolute; z-index: 4; width: 17rem; cursor: auto; }
-  #lightbox > .rd-card .rd-actions { display: flex; }
+  #psiINT-lightbox > .rd-card { position: absolute; z-index: 4; width: 17rem; cursor: auto; }
+  #psiINT-lightbox > .rd-card .rd-actions { display: flex; }
   .rd-card-what { margin: 0 0 0.3rem; font-size: 0.72rem; color: var(--ink-soft); }
   .rd-approx { font-style: italic; }
 }
@@ -10835,7 +10835,7 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
    paper. */
 @media screen {
   body.lb-ready :is(figure.figure-img, figure.figure-diagram, main pre, main .math-display) { cursor: zoom-in; }
-  #lightbox {
+  #psiINT-lightbox {
     position: fixed;
     inset: 0;
     display: none;
@@ -10847,12 +10847,12 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
     cursor: grab;
     touch-action: none;
   }
-  body.lb-open #lightbox { display: flex; }
+  body.lb-open #psiINT-lightbox { display: flex; }
   /* Focused so Esc reaches it at once; the ring would frame the window. */
-  #lightbox:focus { outline: none; }
+  #psiINT-lightbox:focus { outline: none; }
   body.lb-open { overflow: hidden; }
-  body.lb-dragging #lightbox, body.lb-dragging #lightbox * { cursor: grabbing !important; }
-  #lightbox > .lb-card {
+  body.lb-dragging #psiINT-lightbox, body.lb-dragging #psiINT-lightbox * { cursor: grabbing !important; }
+  #psiINT-lightbox > .lb-card {
     max-width: 96vw;
     max-height: 96vh;
     overflow: hidden;
@@ -10871,11 +10871,11 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
      so a zoomed screenshot stayed at the pixels of the unzoomed card and read
      soft – while the same data URL opened in a tab was sharp. When the class
      drops after the quiet period, the card is re-rasterised at its scale. */
-  body.lb-dragging #lightbox > .lb-card,
-  body.lb-zooming #lightbox > .lb-card { transition: none; will-change: transform; }
-  #lightbox > figure.lb-card { display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
-  #lightbox figure.figure-img img,
-  #lightbox figure.figure-img svg {
+  body.lb-dragging #psiINT-lightbox > .lb-card,
+  body.lb-zooming #psiINT-lightbox > .lb-card { transition: none; will-change: transform; }
+  #psiINT-lightbox > figure.lb-card { display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
+  #psiINT-lightbox figure.figure-img img,
+  #psiINT-lightbox figure.figure-img svg {
     width: 92vw;
     max-width: none;
     max-height: 88vh;
@@ -10885,29 +10885,29 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
   /* A diagram's box is derived from its type size in the document (main
      .psi-diagram); here the window decides, and --dg-ar turns the height
      budget into a width so a tall drawing is not letterboxed. */
-  #lightbox .psi-diagram {
+  #psiINT-lightbox .psi-diagram {
     width: min(92vw, calc(88vh * var(--dg-ar, 1)));
     max-width: none;
     max-height: 88vh;
     margin: 0;
   }
-  #lightbox figcaption {
+  #psiINT-lightbox figcaption {
     font-family: var(--sans);
     font-size: 0.9rem;
     color: var(--ink-soft);
     text-align: center;
   }
-  #lightbox > pre.lb-card {
+  #psiINT-lightbox > pre.lb-card {
     font-size: clamp(14px, 1.9vw, 30px);
     line-height: 1.5;
     white-space: pre;
     background: var(--paper) !important;
   }
-  #lightbox > .math-display.lb-card { font-size: clamp(22px, 3.2vw, 56px); }
+  #psiINT-lightbox > .math-display.lb-card { font-size: clamp(22px, 3.2vw, 56px); }
   body.lb-open main { filter: blur(2px); }
 }
 @media print {
-  #lightbox { display: none !important; }
+  #psiINT-lightbox { display: none !important; }
 }
 `;
 
@@ -10964,7 +10964,7 @@ const PRINT_JS = `
   const SEL = 'figure.figure-img, figure.figure-diagram, main pre, main .math-display';
   const MIN = 0.5, MAX = 8, K = 0.01, STEP = 12, QUIET = 160;
   const box = document.createElement('div');
-  box.id = 'lightbox';
+  box.id = 'psiINT-lightbox';
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-modal', 'true');
   document.body.appendChild(box);
@@ -11021,7 +11021,7 @@ const PRINT_JS = `
     const sel = window.getSelection && window.getSelection();
     if (sel && !sel.isCollapsed && String(sel).trim()) return;
     const el = e.target.closest(SEL);
-    if (!el || el.closest('#lightbox')) return;
+    if (!el || el.closest('#psiINT-lightbox')) return;
     e.preventDefault();
     open(el);
   });
@@ -11146,7 +11146,7 @@ const READER_EARLY_JS = `<script>document.body.classList.add('rd-ready');for (co
 const PRINT_READER_JS = `
 (() => {
   const body = document.body;
-  const nav = document.getElementById('reader-contents');
+  const nav = document.getElementById('psiINT-reader-contents');
   const main = document.querySelector('main');
   if (!nav || !main) return;
   const toggle = document.querySelector('.rd-toggle');
@@ -11254,7 +11254,7 @@ const PRINT_READER_JS = `
     if (isOpen() && e.target.closest('a')) setOpen(false, false);
   });
   document.addEventListener('click', (e) => {
-    if (!isOpen() || e.target.closest('#reader-contents, .rd-toggle')) return;
+    if (!isOpen() || e.target.closest('#psiINT-reader-contents, .rd-toggle')) return;
     e.preventDefault();
     e.stopPropagation();
     setOpen(false, true);
@@ -11326,7 +11326,7 @@ const PRINT_HIGHLIGHTS_JS = `
 (() => {
   const body = document.body;
   const main = document.querySelector('main');
-  const dataEl = document.getElementById('reader-data');
+  const dataEl = document.getElementById('psiINT-reader-data');
   if (!main || !dataEl) return;
   let data = {};
   try { data = JSON.parse(dataEl.textContent) || {}; } catch (e) { return; }
@@ -11506,7 +11506,7 @@ const PRINT_HIGHLIGHTS_JS = `
   // numbered on screen; on paper a figure with a note carries its number.
   const FIG = 'figure.figure-img:not(.figure-missing), figure.figure-diagram';
   const SVGNS = 'http://www.w3.org/2000/svg';
-  const figsIn = (root) => [...root.querySelectorAll(FIG)].filter(f => !f.closest('#lightbox, .speaker-note, ' + UI)
+  const figsIn = (root) => [...root.querySelectorAll(FIG)].filter(f => !f.closest('#psiINT-lightbox, .speaker-note, ' + UI)
     && (root.tagName !== 'SECTION' || !f.closest('article.chunk')));
   const figRoot = (fig) => fig.closest('article.chunk[id]') || fig.closest('section.column[id]');
   const drawingOf = (fig) => fig.querySelector(':scope > svg, :scope > img, :scope > .rd-fig-box > img');
@@ -11732,7 +11732,7 @@ const PRINT_HIGHLIGHTS_JS = `
   // no selection: KaTeX sets one glyph per box.
   const BLOCKS = { code: 'pre', formula: '.math-display' };
   const blocksIn = (root, kind) => [...root.querySelectorAll(BLOCKS[kind] || 'x-none')]
-    .filter(b => !b.closest('#lightbox, .speaker-note, pulse-question, pulse-deck, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
+    .filter(b => !b.closest('#psiINT-lightbox, .speaker-note, pulse-question, pulse-deck, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
   const blockKind = (el) => el.matches('pre') ? 'code' : 'formula';
   const codeTexts = (pre) => {
     const out = [];
@@ -12195,11 +12195,11 @@ const PRINT_HIGHLIGHTS_JS = `
   helpBtn.setAttribute('aria-label', S['reader-help'] || '');
   helpBtn.title = S['reader-help'] || '';
   helpBtn.setAttribute('aria-expanded', 'false');
-  helpBtn.setAttribute('aria-controls', 'rd-help');
+  helpBtn.setAttribute('aria-controls', 'psiINT-rd-help');
   menuActs.append(exportBtn, importBtn, deleteAllBtn, helpBtn);
   const helpEl = document.createElement('div');
   helpEl.className = 'rd-help';
-  helpEl.id = 'rd-help';
+  helpEl.id = 'psiINT-rd-help';
   helpEl.hidden = true;
   helpEl.tabIndex = -1;
   helpEl.setAttribute('role', 'group');
@@ -12249,7 +12249,7 @@ const PRINT_HIGHLIGHTS_JS = `
   // The count beside a contents entry: the slide's own highlights, and on a
   // part's heading those of its lede. Every highlight, whatever the filter
   // says - the filter is a way through the page, the count is what is in it.
-  const countLinks = [...document.querySelectorAll('#reader-contents a[data-rd], #reader-contents a.rd-part')];
+  const countLinks = [...document.querySelectorAll('#psiINT-reader-contents a[data-rd], #psiINT-reader-contents a.rd-part')];
   const counts = () => {
     const n = new Map();
     for (const h of store) if (marksOf.has(h.id)) n.set(h.chunk, (n.get(h.chunk) || 0) + 1);
@@ -12265,7 +12265,7 @@ const PRINT_HIGHLIGHTS_JS = `
     // A folded part says how many are in it, lede and slides together; the
     // stylesheet shows this sum while the part is closed and the slides'
     // own counts while it is open, so folding asks nothing of this script.
-    for (const g of document.querySelectorAll('#reader-contents .rd-group')) {
+    for (const g of document.querySelectorAll('#psiINT-reader-contents .rd-group')) {
       const head = g.querySelector('.rd-part');
       if (!head) continue;
       let k = 0;
@@ -12398,7 +12398,7 @@ const PRINT_HIGHLIGHTS_JS = `
     const root = document.getElementById(chunk);
     if (!root || !main.contains(root) || !root.matches('article.chunk, section.column')) return id;
     const esc = window.CSS && CSS.escape ? CSS.escape(chunk) : chunk;
-    let name = plain(document.querySelector('#reader-contents a[data-rd="' + esc + '"] .rd-text, #reader-contents a.rd-part[href="#' + esc + '"]'));
+    let name = plain(document.querySelector('#psiINT-reader-contents a[data-rd="' + esc + '"] .rd-text, #psiINT-reader-contents a.rd-part[href="#' + esc + '"]'));
     if (!name) name = plain(root.querySelector(root.tagName === 'SECTION' ? '.column-heading' : 'h1, h2, h3'));
     const num = body.dataset.slideNums !== 'off' && root.dataset.chunkNum ? root.dataset.chunkNum : '';
     return [num, name].filter(Boolean).join(' · ') + (num || name ? ' ' : '') + id;
@@ -12773,7 +12773,7 @@ const PRINT_HIGHLIGHTS_JS = `
   // itself, lent to the overlay while it is open, so typing there is typing
   // in the card the page shows when it closes. A drag still pans and the
   // wheel still zooms, marking or not.
-  const lb = document.getElementById('lightbox');
+  const lb = document.getElementById('psiINT-lightbox');
   let lbFig = null, lbCopy = null, marking = false, lbCard = null, bar = null, spotBtn = null, hover = null;
   const syncLb = () => {
     if (!lbCopy) return;
@@ -12954,11 +12954,11 @@ const PRINT_HIGHLIGHTS_JS = `
     if (card) {
       if (t.closest('.rd-remove')) remove(card.dataset.hl);
       // A figure's card shows where on the figure it is.
-      else if (!t.closest('textarea, button') && !card.closest('#lightbox')
+      else if (!t.closest('textarea, button') && !card.closest('#psiINT-lightbox')
                && (figs.has(card.dataset.hl) || blocks.has(card.dataset.hl))) pulse(card.dataset.hl);
       return;
     }
-    if (t.closest(UI + ', #reader-contents, .rd-toggle, #lightbox')) return;
+    if (t.closest(UI + ', #psiINT-reader-contents, .rd-toggle, #psiINT-lightbox')) return;
     const mark = t.closest('mark.rd-hl');
     const sel = window.getSelection && window.getSelection();
     const selecting = sel && !sel.isCollapsed && String(sel).trim();
@@ -13486,8 +13486,8 @@ ${chunks}
 // what you set once and leave. Every button calls the same function its key
 // calls - never a second code path, or the palette and the key map drift the
 // way build.js and lint.js do when nobody greps the other file.
-const TOUCH_CONTROLS_HTML = `<nav id="touch-controls" aria-label="Slide controls">
-  <div id="touch-palette" hidden>
+const TOUCH_CONTROLS_HTML = `<nav id="psiINT-touch-controls" aria-label="Slide controls">
+  <div id="psiINT-touch-palette" hidden>
     <button type="button" data-action="collapse" aria-label="Shorten or expand the text">C</button>
     <button type="button" data-action="font" aria-label="Change the font">F</button>
     <button type="button" data-action="theme" aria-label="Change the theme">A</button>
@@ -13496,7 +13496,7 @@ const TOUCH_CONTROLS_HTML = `<nav id="touch-controls" aria-label="Slide controls
     <button type="button" data-action="select" aria-label="Select text" aria-pressed="false">&#x2380;</button>
     <button type="button" data-action="fullscreen" aria-label="Fullscreen">&#x26F6;</button>
   </div>
-  <div id="touch-rail">
+  <div id="psiINT-touch-rail">
     <button type="button" data-action="prev" aria-label="Previous">&#x2039;</button>
     <button type="button" data-action="next" aria-label="Next">&#x203A;</button>
     <button type="button" data-action="overview" aria-label="Overview">&#x229E;</button>
@@ -13508,7 +13508,7 @@ const TOUCH_CONTROLS_HTML = `<nav id="touch-controls" aria-label="Slide controls
 
 // The overview badge + search input is identical in both live views;
 // keeping it a single constant means label/hotkey changes land once.
-const OVERVIEW_BADGE_HTML = `<div id="overview-badge">
+const OVERVIEW_BADGE_HTML = `<div id="psiINT-overview-badge">
   <span class="hint">overview · drag pans · wheel zooms · <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> selects · click or <kbd>O</kbd>/<kbd>Enter</kbd> lands · <kbd>/</kbd> search · <kbd>Esc</kbd> leaves</span>
 </div>`;
 
@@ -13518,7 +13518,7 @@ const OVERVIEW_BADGE_HTML = `<div id="overview-badge">
 // a board the reader may not be looking at. Same markup in both live views.
 // Shown while the projection is blanked. In the speaker window it is the
 // only sign that the room sees black, so it has to say how to undo that.
-const BLANK_BADGE_HTML = `<div id="blank-badge" class="cmd-badge hidden" role="status">BLANK<span> &middot; hit B to toggle</span></div>`;
+const BLANK_BADGE_HTML = `<div id="psiINT-blank-badge" class="cmd-badge hidden" role="status">BLANK<span> &middot; hit B to toggle</span></div>`;
 
 // W: the projection's own frame, with none of the browser round it. This one
 // line is the whole of what a *remote* request looks like on the wall.
@@ -13532,34 +13532,34 @@ const BLANK_BADGE_HTML = `<div id="blank-badge" class="cmd-badge hidden" role="s
 // affordance that spends the arming. See the fullscreen section of the
 // runtime for the rest of the reasoning.
 //
-// Its id is a word no slide would claim: the cockpit's chrome shares one id
-// namespace with the lecture's chunk ids (see CLAUDE.md on #cue-panel).
-const FULLSCREEN_HINT_HTML = `<button type="button" id="fullscreen-hint" class="hidden">fullscreen<span> &middot; click anywhere, or hit W on this screen</span></button>`;
+// Its id carries the psiINT- prefix every id the build invents carries, so
+// no author id can answer for it.
+const FULLSCREEN_HINT_HTML = `<button type="button" id="psiINT-fullscreen-hint" class="hidden">fullscreen<span> &middot; click anywhere, or hit W on this screen</span></button>`;
 
 // Shift-clicking a link puts its address on both screens, large enough to
 // copy down. See the runtime section for why the room gets the URL to read
 // rather than a browser tab to watch.
-const LINK_OVERLAY_HTML = `<div id="link-overlay" class="hidden" role="dialog" aria-label="Link address">
-  <div id="link-overlay-inner">
-    <div id="link-overlay-label"></div>
-    <a id="link-overlay-url" target="_blank" rel="noopener noreferrer"></a>
-    <div id="link-overlay-qr" class="qr-card" aria-hidden="true"></div>
-    <div id="link-overlay-hint">scan it, or click the address to open it &middot; Esc closes</div>
+const LINK_OVERLAY_HTML = `<div id="psiINT-link-overlay" class="hidden" role="dialog" aria-label="Link address">
+  <div id="psiINT-link-overlay-inner">
+    <div id="psiINT-link-overlay-label"></div>
+    <a id="psiINT-link-overlay-url" target="_blank" rel="noopener noreferrer"></a>
+    <div id="psiINT-link-overlay-qr" class="qr-card" aria-hidden="true"></div>
+    <div id="psiINT-link-overlay-hint">scan it, or click the address to open it &middot; Esc closes</div>
   </div>
 </div>`;
 
 // D puts a window or a screen of this machine on the projection as video.
 // Audience only: the cockpit never shows the picture (the lecturer is
 // looking at the real window), it shows the badge. See the runtime section.
-const DEMO_OVERLAY_HTML = `<div id="demo-overlay" class="hidden" role="region" aria-label="Live demo">
-  <video id="demo-video" autoplay muted playsinline></video>
+const DEMO_OVERLAY_HTML = `<div id="psiINT-demo-overlay" class="hidden" role="region" aria-label="Live demo">
+  <video id="psiINT-demo-video" autoplay muted playsinline></video>
 </div>`;
-const DEMO_BADGE_HTML = `<div id="demo-badge" class="cmd-badge hidden" role="status">DEMO<span> &middot; hit D to end it</span></div>`;
+const DEMO_BADGE_HTML = `<div id="psiINT-demo-badge" class="cmd-badge hidden" role="status">DEMO<span> &middot; hit D to end it</span></div>`;
 
-const SEARCH_PANEL_HTML = `<div id="search-panel" class="hidden" role="dialog" aria-label="Search slides">
-  <input id="search-input" type="text" placeholder="search the lecture..." autocomplete="off" spellcheck="false" aria-controls="search-results">
-  <ul id="search-results" role="listbox"></ul>
-  <div id="search-foot"><kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> go · <kbd>Esc</kbd> close</div>
+const SEARCH_PANEL_HTML = `<div id="psiINT-search-panel" class="hidden" role="dialog" aria-label="Search slides">
+  <input id="psiINT-search-input" type="text" placeholder="search the lecture..." autocomplete="off" spellcheck="false" aria-controls="psiINT-search-results">
+  <ul id="psiINT-search-results" role="listbox"></ul>
+  <div id="psiINT-search-foot"><kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> go · <kbd>Esc</kbd> close</div>
 </div>`;
 
 // G: the slide number in the corner, typed back. A lecturer who knows the
@@ -13568,11 +13568,9 @@ const SEARCH_PANEL_HTML = `<div id="search-panel" class="hidden" role="dialog" a
 // (which needs a word). The prompt reads back "N of M" while the digits are
 // typed, so a mistyped number is visible before Enter rather than after it.
 //
-// Its id is a word no slide would claim, because the cockpit's chrome shares
-// one id namespace with the lecture's chunks - see the note on #cue-panel in
-// CLAUDE.md. Everything inside it is reached through this element, never
-// through getElementById.
-const GOTO_PROMPT_HTML = `<div id="goto-prompt" class="hidden" role="dialog" aria-label="Go to slide">
+// Everything inside it is reached through this element, never through
+// getElementById.
+const GOTO_PROMPT_HTML = `<div id="psiINT-goto-prompt" class="hidden" role="dialog" aria-label="Go to slide">
   <span class="goto-label">go to</span>
   <span class="goto-digits" aria-live="polite"></span>
   <span class="goto-of"></span>
@@ -13741,8 +13739,8 @@ ${rows.map(([k, v]) => `        <dt>${k}</dt><dd>${v}</dd>`).join('\n')}
       </dl>
     </section>`).join('\n');
 
-  return `<div id="help-overlay" class="hidden" role="dialog" aria-label="Keyboard and mouse reference" aria-modal="false">
-  <div id="help-inner">
+  return `<div id="psiINT-help-overlay" class="hidden" role="dialog" aria-label="Keyboard and mouse reference" aria-modal="false">
+  <div id="psiINT-help-inner">
     <header>
       <h2>psi-slides · ${view === 'speaker' ? 'speaker cockpit' : 'audience view'}</h2>
       <span class="help-dismiss"><kbd>?</kbd> or <kbd>Esc</kbd> closes</span>
@@ -13752,7 +13750,7 @@ ${sections}
     </div>
   </div>
 </div>
-<button id="help-button" type="button" aria-label="Keyboard and mouse reference" title="Keyboard and mouse reference (?)">?</button>`;
+<button id="psiINT-help-button" type="button" aria-label="Keyboard and mouse reference" title="Keyboard and mouse reference (?)">?</button>`;
 }
 
 function renderTocNav(columns, S) {
@@ -13761,7 +13759,7 @@ function renderTocNav(columns, S) {
     .filter(x => x.c.heading)
     .map(x => `<li data-toc-col="${x.i}"><button type="button">${escapeHtml(x.c.heading)}</button></li>`)
     .join('\n    ');
-  return `<nav id="toc" aria-label="${escapeHtml(S.contents)}">
+  return `<nav id="psiINT-toc" aria-label="${escapeHtml(S.contents)}">
   <h2>${escapeHtml(S.contents)}</h2>
   <ol>
     ${items}
@@ -13834,16 +13832,16 @@ ${shipsEditor
 </head>
 <body ${viewBodyAttrs(defaults, styleBodyAttrs(styleOpts, frontmatter))}>
 ${themeBootScript(defaults)}
-<div id="stage-viewport">
-  <div id="stage">
+<div id="psiINT-stage-viewport">
+  <div id="psiINT-stage">
 ${columnsHtml}
   </div>
 </div>
-<div id="laser-pointer" aria-hidden="true"></div>
-<div id="figure-overlay" aria-hidden="true"></div>
+<div id="psiINT-laser-pointer" aria-hidden="true"></div>
+<div id="psiINT-figure-overlay" aria-hidden="true"></div>
 ${TOUCH_CONTROLS_HTML}
 ${renderHelpOverlay('audience', !!editorPayload(frontmatter, columnsHtml, 'audience'))}
-<div id="mode-badge"></div>
+<div id="psiINT-mode-badge"></div>
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
 ${GOTO_PROMPT_HTML}
@@ -14160,8 +14158,8 @@ body[data-theme^=terminal] .exp-body code { color: var(--emph); }
 /* Exp-body card gets a slightly lighter background than paper so it
    still reads as a frame in terminal mode. */
 body[data-theme^=terminal] .chunk.expanded .exp-body.on { background: var(--paper-warm); }
-body[data-theme^=terminal] #stage-viewport { background: var(--paper); }
-body[data-mode=dark] #stage-viewport { background: var(--paper); }
+body[data-theme^=terminal] #psiINT-stage-viewport { background: var(--paper); }
+body[data-mode=dark] #psiINT-stage-viewport { background: var(--paper); }
 
 /* ── Dark chrome ─────────────────────────────────────────────────
    The panels around the slide were written against paper: fixed
@@ -14169,14 +14167,14 @@ body[data-mode=dark] #stage-viewport { background: var(--paper); }
    cockpit footer. Keyed on data-mode rather than on the theme name, so
    the terminal modes inherit the fix – they had exactly the same problem
    and only the help-sheet kbd had ever been patched. */
-body[data-mode=dark] #help-inner kbd { background: var(--paper-warm); color: var(--ink); }
-body[data-mode=dark] #help-button {
+body[data-mode=dark] #psiINT-help-inner kbd { background: var(--paper-warm); color: var(--ink); }
+body[data-mode=dark] #psiINT-help-button {
   background: oklch(from var(--paper) calc(l + 0.08) c h / 0.85);
   color: var(--ink-soft);
 }
-body[data-mode=dark] nav#toc,
-body[data-mode=dark] #goto-prompt,
-body[data-mode=dark] #search-panel {
+body[data-mode=dark] #psiINT-toc,
+body[data-mode=dark] #psiINT-goto-prompt,
+body[data-mode=dark] #psiINT-search-panel {
   background: oklch(from var(--paper) calc(l + 0.04) c h / 0.97);
 }
 
@@ -14202,34 +14200,34 @@ textarea, input, [contenteditable=true] {
    why this is a held modifier rather than a mode. The cursor change is the
    only signal that it worked, so it is not optional.
 
-   #figure-overlay is named here beside #stage because it is not inside it.
-   The focus card is cloned into a sibling of #stage-viewport – that is the
+   #psiINT-figure-overlay is named here beside #psiINT-stage because it is not inside it.
+   The focus card is cloned into a sibling of #psiINT-stage-viewport – that is the
    one construct in the live views that deliberately escapes the stage – so a
-   rule written against #stage left the focused code block unselectable, and
+   rule written against #psiINT-stage left the focused code block unselectable, and
    a focused listing is the single thing on the screen a lecturer is most
    likely to want a line out of. The grab cursor the overlay and its card
    carry has to give way for the same reason the stage's does. */
-body.text-selecting #stage,
-body.text-selecting #stage *,
-body.text-selecting #figure-overlay,
-body.text-selecting #figure-overlay * {
+body.text-selecting #psiINT-stage,
+body.text-selecting #psiINT-stage *,
+body.text-selecting #psiINT-figure-overlay,
+body.text-selecting #psiINT-figure-overlay * {
   user-select: text;
   -webkit-user-select: text;
 }
-body.text-selecting #stage,
-body.text-selecting #figure-overlay,
-body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
+body.text-selecting #psiINT-stage,
+body.text-selecting #psiINT-figure-overlay,
+body.text-selecting #psiINT-figure-overlay > .figure-focus-target { cursor: text; }
 ::selection { background: color-mix(in oklch, var(--emph) 30%, transparent); }
 
 /* stage */
-#stage-viewport {
+#psiINT-stage-viewport {
   position: relative;
   width: var(--slide-w);
   height: var(--slide-h);
   overflow: hidden;
   background: var(--paper);
 }
-#stage {
+#psiINT-stage {
   position: absolute;
   top: 0; left: 0;
   display: flex;
@@ -14957,8 +14955,8 @@ figure.figure-missing {
 figure.figure-missing .figure-missing-placeholder { font-style: italic; }
 
 /* Focused figure / pre overlay --------------------------------------- */
-body.figure-focused #figure-overlay { display: flex; }
-#figure-overlay {
+body.figure-focused #psiINT-figure-overlay { display: flex; }
+#psiINT-figure-overlay {
   position: fixed;
   inset: 0;
   display: none;
@@ -14970,9 +14968,9 @@ body.figure-focused #figure-overlay { display: flex; }
   padding: 1vh 1vw;
   overflow: hidden;
 }
-body.figure-dragging #figure-overlay,
-body.figure-dragging #figure-overlay * { cursor: grabbing !important; }
-#figure-overlay > .figure-focus-target {
+body.figure-dragging #psiINT-figure-overlay,
+body.figure-dragging #psiINT-figure-overlay * { cursor: grabbing !important; }
+#psiINT-figure-overlay > .figure-focus-target {
   transform-origin: center center;
   transition: transform 80ms ease-out;
 }
@@ -14984,8 +14982,8 @@ body.figure-dragging #figure-overlay * { cursor: grabbing !important; }
    frame, independently of how big the zoom step was. Drag has had the rule
    from the start; the wheel path was simply never given it. Wheel has no end
    event, so figureZoomWheel ends the gesture on a quiet period. */
-body.figure-dragging #figure-overlay > .figure-focus-target,
-body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; will-change: transform; }
+body.figure-dragging #psiINT-figure-overlay > .figure-focus-target,
+body.figure-zooming #psiINT-figure-overlay > .figure-focus-target { transition: none; will-change: transform; }
 /* will-change only during the gesture, as in the print lightbox: a layer
    kept at rest is rasterised at its resting size and scaled as a bitmap, so
    a zoomed figure stayed soft. Without it the card is re-rasterised sharp at
@@ -14995,7 +14993,7 @@ body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; w
    loses legibility when translucent). !important wins over shiki's
    and the chunk-body override that set pre.shiki background to
    transparent for in-flow rendering. */
-#figure-overlay > .figure-focus-target {
+#psiINT-figure-overlay > .figure-focus-target {
   max-width: 98vw;
   max-height: 98vh;
   overflow: auto;
@@ -15006,8 +15004,8 @@ body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; w
   font-family: var(--body-font);
   color: var(--ink);
 }
-#figure-overlay > pre.figure-focus-target,
-#figure-overlay > pre.shiki.figure-focus-target {
+#psiINT-figure-overlay > pre.figure-focus-target,
+#psiINT-figure-overlay > pre.shiki.figure-focus-target {
   background: var(--paper) !important;
 }
 /* A display formula is focusable, and until this rule it was the one
@@ -15016,14 +15014,14 @@ body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; w
    clicking it laid it on a paper card at exactly the size it already had.
    Scaled the same way the code block is, so the two read alike, and off
    --slide-h rather than vh so audience and speaker agree. */
-#figure-overlay > .math-display.figure-focus-target {
+#psiINT-figure-overlay > .math-display.figure-focus-target {
   overflow-x: auto;
   overflow-y: hidden;
 }
-#figure-overlay > .math-display.figure-focus-target .katex {
+#psiINT-figure-overlay > .math-display.figure-focus-target .katex {
   font-size: clamp(30px, calc(var(--slide-h, 100vh) * 0.12), 150px);
 }
-#figure-overlay pre {
+#psiINT-figure-overlay pre {
   font-family: var(--mono-font);
   /* Overlay code should read LARGER than on-slide (where it's ~0.78em
      × zoom of body font). Scale off --slide-h so it stays consistent
@@ -15034,20 +15032,20 @@ body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; w
   margin: 0;
   background: transparent;
 }
-#figure-overlay figure.figure-img { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
+#psiINT-figure-overlay figure.figure-img { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
 /* Scale the image up to use the available overlay area. We drop the
    px cap so the figure consumes the viewport on big displays; the
    ~92vh ceiling leaves a sliver for the figcaption underneath.
    Inlined SVGs need the same constraints as <img> – they're spliced
    as <svg> elements and otherwise honor their intrinsic width="…". */
-#figure-overlay figure.figure-img img,
-#figure-overlay figure.figure-img svg {
+#psiINT-figure-overlay figure.figure-img img,
+#psiINT-figure-overlay figure.figure-img svg {
   width: 95vw;
   max-height: 92vh;
   height: auto;
   object-fit: contain;
 }
-#figure-overlay figcaption {
+#psiINT-figure-overlay figcaption {
   font-family: var(--sans-font);
   font-size: 0.9rem;
   color: var(--ink-soft);
@@ -15055,7 +15053,7 @@ body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; w
   text-align: center;
 }
 /* Dim the slide underneath so the overlay reads as a zoomed view. */
-body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
+body.figure-focused #psiINT-stage { filter: blur(2px) brightness(0.9); }
 
 /* Any figure/pre/marginalia inside an active chunk is pointer-targetable. */
 .chunk.active .chunk-body figure.figure-img,
@@ -17341,14 +17339,14 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    .bare - PRINT_CSS carries neither, so the document and its contents page
    are unchanged.
 
-   Prefixed #stage, and that is load-bearing: the beside layout above gives
+   Prefixed #psiINT-stage, and that is load-bearing: the beside layout above gives
    .section-lead a display of its own through a :not() and a :has(), and a
    :has() carries the specificity of its argument. Made of classes alone this
    rule loses to it, and a {.bare} divider whose body is nothing but a figure
-   would keep its heading. #stage is the element every chunk in both live
+   would keep its heading. #psiINT-stage is the element every chunk in both live
    views is inside, which is the honest way to buy the id the cascade asks
    for - the same trick the per-chunk wrap and blocks rules use. */
-#stage .chunk-section[data-section-bare] > .chunk-content > .section-lead { display: none; }
+#psiINT-stage .chunk-section[data-section-bare] > .chunk-content > .section-lead { display: none; }
 /* A divider with a picture behind it needs the full slide, like every other
    chunk that carries one - the shared rule keys on data-has-backdrop and is
    already there; this is the centring the divider itself needs so the
@@ -17991,25 +17989,25 @@ body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
    the line to the browser's plain greedy breaker rather than inventing a
    third behaviour.
 
-   #stage is load-bearing and not decoration. The heading rule above carries
+   #psiINT-stage is load-bearing and not decoration. The heading rule above carries
    an id (#toc-panel li rides in its :is list), so it sits at one id, and a
    chunk-scoped rule made of classes alone loses to it however many classes
-   it stacks. #stage is the element every chunk in both live views is inside,
+   it stacks. #psiINT-stage is the element every chunk in both live views is inside,
    which makes it the honest way to say "this is a slide, not the chrome" and
    buys the id the cascade is asking for. The rules keep the base sheet's own
    order and relative weights, so a .wrap-balance chunk under a deck-wide
    wrap: none breaks exactly the way the same chunk breaks in a deck that
    said nothing - collapsed slide lines balanced, cards pretty, and the
    collapsed rule winning over the card rule the way it already does. */
-#stage .chunk[data-wrap=none] :is(p, li, h1, h2, h3, h4, .chunk-heading,
+#psiINT-stage .chunk[data-wrap=none] :is(p, li, h1, h2, h3, h4, .chunk-heading,
   .hd-sub, .section-heading, figcaption, .tag-label, .sentence-rest strong,
   .cards > :not(ul):not(ol)) { text-wrap: wrap; }
-#stage .chunk[data-wrap=balance] :is(p, li) { text-wrap: pretty; }
-#stage .chunk[data-wrap=balance] .cards li,
-#stage .chunk[data-wrap=balance] .cards > :not(ul):not(ol) { text-wrap: pretty; }
-#stage .chunk[data-wrap=balance] :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
+#psiINT-stage .chunk[data-wrap=balance] :is(p, li) { text-wrap: pretty; }
+#psiINT-stage .chunk[data-wrap=balance] .cards li,
+#psiINT-stage .chunk[data-wrap=balance] .cards > :not(ul):not(ol) { text-wrap: pretty; }
+#psiINT-stage .chunk[data-wrap=balance] :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
   .section-heading, figcaption, .tag-label) { text-wrap: balance; }
-#stage .chunk[data-wrap=balance] :is(
+#psiINT-stage .chunk[data-wrap=balance] :is(
   [data-collapse=topic-bold] .reveal-segment p,
   [data-collapse=topic-bold] .reveal-segment li,
   [data-collapse=topic-bold] .reveal-segment .sentence-rest strong) { text-wrap: balance; }
@@ -18040,48 +18038,48 @@ body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
    max-width: 100%, so it fills the measure whatever the chunk width is and
    has no space beside it to sit in.
 
-   #stage for the same reason as the wrap rules above: it keeps every rule
+   #psiINT-stage for the same reason as the wrap rules above: it keeps every rule
    here off the focus overlay, whose clone of a figure is a modal card and
    is centred because a modal card is centred, not because the slide is. */
-body[data-blocks=left] #stage .reveal-segment > pre,
-body[data-blocks=left] #stage .reveal-segment > div > pre,
-body[data-blocks=left] #stage .chunk-content > .reveal-segment > pre,
-#stage .chunk[data-blocks=left] .reveal-segment > pre,
-#stage .chunk[data-blocks=left] .reveal-segment > div > pre,
-#stage .chunk[data-blocks=left] .chunk-content > .reveal-segment > pre {
+body[data-blocks=left] #psiINT-stage .reveal-segment > pre,
+body[data-blocks=left] #psiINT-stage .reveal-segment > div > pre,
+body[data-blocks=left] #psiINT-stage .chunk-content > .reveal-segment > pre,
+#psiINT-stage .chunk[data-blocks=left] .reveal-segment > pre,
+#psiINT-stage .chunk[data-blocks=left] .reveal-segment > div > pre,
+#psiINT-stage .chunk[data-blocks=left] .chunk-content > .reveal-segment > pre {
   left: 0;
   transform: none;
   max-width: calc(var(--slide-w) * 0.36 + 50%);
 }
-body[data-blocks=left] #stage figure.figure-img,
-body[data-blocks=left] #stage figure.figure-video,
-body[data-blocks=left] #stage figure.figure-embed,
-#stage .chunk[data-blocks=left] figure.figure-img,
-#stage .chunk[data-blocks=left] figure.figure-video,
-#stage .chunk[data-blocks=left] figure.figure-embed { align-items: flex-start; }
-body[data-blocks=left] #stage figure.figure-img figcaption,
-#stage .chunk[data-blocks=left] figure.figure-img figcaption { text-align: left; }
-body[data-blocks=left] #stage .math-display .katex-display,
-body[data-blocks=left] #stage .math-display .katex-display > .katex,
-#stage .chunk[data-blocks=left] .math-display .katex-display,
-#stage .chunk[data-blocks=left] .math-display .katex-display > .katex { text-align: left; }
+body[data-blocks=left] #psiINT-stage figure.figure-img,
+body[data-blocks=left] #psiINT-stage figure.figure-video,
+body[data-blocks=left] #psiINT-stage figure.figure-embed,
+#psiINT-stage .chunk[data-blocks=left] figure.figure-img,
+#psiINT-stage .chunk[data-blocks=left] figure.figure-video,
+#psiINT-stage .chunk[data-blocks=left] figure.figure-embed { align-items: flex-start; }
+body[data-blocks=left] #psiINT-stage figure.figure-img figcaption,
+#psiINT-stage .chunk[data-blocks=left] figure.figure-img figcaption { text-align: left; }
+body[data-blocks=left] #psiINT-stage .math-display .katex-display,
+body[data-blocks=left] #psiINT-stage .math-display .katex-display > .katex,
+#psiINT-stage .chunk[data-blocks=left] .math-display .katex-display,
+#psiINT-stage .chunk[data-blocks=left] .math-display .katex-display > .katex { text-align: left; }
 
 /* And back again, for one chunk in a deck that set blocks: left. Every
    declaration is the value the base sheet already gives an unset deck, so
    .blocks-center is a no-op wherever there is nothing to undo. */
-#stage .chunk[data-blocks=center] .reveal-segment > pre,
-#stage .chunk[data-blocks=center] .reveal-segment > div > pre,
-#stage .chunk[data-blocks=center] .chunk-content > .reveal-segment > pre {
+#psiINT-stage .chunk[data-blocks=center] .reveal-segment > pre,
+#psiINT-stage .chunk[data-blocks=center] .reveal-segment > div > pre,
+#psiINT-stage .chunk[data-blocks=center] .chunk-content > .reveal-segment > pre {
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(var(--slide-w) * 0.72);
 }
-#stage .chunk[data-blocks=center] figure.figure-img,
-#stage .chunk[data-blocks=center] figure.figure-video,
-#stage .chunk[data-blocks=center] figure.figure-embed { align-items: center; }
-#stage .chunk[data-blocks=center] figure.figure-img figcaption { text-align: center; }
-#stage .chunk[data-blocks=center] .math-display .katex-display,
-#stage .chunk[data-blocks=center] .math-display .katex-display > .katex { text-align: center; }
+#psiINT-stage .chunk[data-blocks=center] figure.figure-img,
+#psiINT-stage .chunk[data-blocks=center] figure.figure-video,
+#psiINT-stage .chunk[data-blocks=center] figure.figure-embed { align-items: center; }
+#psiINT-stage .chunk[data-blocks=center] figure.figure-img figcaption { text-align: center; }
+#psiINT-stage .chunk[data-blocks=center] .math-display .katex-display,
+#psiINT-stage .chunk[data-blocks=center] .math-display .katex-display > .katex { text-align: center; }
 /* Hyphenation on the projection, which is off unless the author asks.
    style: {hyphenate: all} is the ask, and the reason it is a key rather
    than a default is in PRINT_CSS: a broken word reads badly across a room
@@ -18105,7 +18103,7 @@ body[data-blocks=left] #stage .math-display .katex-display > .katex,
    the slash. Print keeps its hyphens - see PRINT_CSS - because there the
    note sits in a document at the document's measure and reads as the rest
    of the page does. */
-body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
+body[data-hyphenate=all] #psiINT-stage :is(p, li, blockquote, figcaption) {
   hyphens: auto;
   -webkit-hyphens: auto;
   /* 8 4 4 and not print's 6 3 3. A projection is read at ten metres from a
@@ -18115,11 +18113,11 @@ body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
      only where the word is long enough for the break to buy something. */
   hyphenate-limit-chars: 8 4 4;
 }
-body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
+body[data-hyphenate=all] #psiINT-stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
   .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]),
-body[data-hyphenate=all] #stage .chunk[data-tag=statement] .chunk-body p,
-body[data-hyphenate=all] #stage .margin-note,
-body[data-hyphenate=all] #stage .margin-note * {
+body[data-hyphenate=all] #psiINT-stage .chunk[data-tag=statement] .chunk-body p,
+body[data-hyphenate=all] #psiINT-stage .margin-note,
+body[data-hyphenate=all] #psiINT-stage .margin-note * {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
@@ -18141,11 +18139,11 @@ body[data-hyphenate=all] #stage .margin-note * {
    least one more class, so they win without an id of their own. The
    descendant star is free and reaches the footnote and the card inside a
    centred chunk, which are centred with it. */
-body[data-hyphenate=all] #stage .chunk[data-center],
-body[data-hyphenate=all] #stage .chunk[data-center] *,
-body[data-hyphenate=all] #stage .chunk-section,
-body[data-hyphenate=all] #stage .chunk-section *,
-body[data-hyphenate=all] #stage .nohy {
+body[data-hyphenate=all] #psiINT-stage .chunk[data-center],
+body[data-hyphenate=all] #psiINT-stage .chunk[data-center] *,
+body[data-hyphenate=all] #psiINT-stage .chunk-section,
+body[data-hyphenate=all] #psiINT-stage .chunk-section *,
+body[data-hyphenate=all] #psiINT-stage .nohy {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
@@ -18221,8 +18219,8 @@ ${boldLookCss('bold', 'plain', 'var(--bold-weight)')}
 /* Blanking is a projector action, not a global one. The speaker window
    keeps everything visible so the lecturer can change slide, read notes and
    line up what comes next while the room sees black. */
-body:not([data-view=speaker]).blanked #stage-viewport { background: oklch(0.06 0 0); }
-body:not([data-view=speaker]).blanked #stage { opacity: 0; }
+body:not([data-view=speaker]).blanked #psiINT-stage-viewport { background: oklch(0.06 0 0); }
+body:not([data-view=speaker]).blanked #psiINT-stage { opacity: 0; }
 
 /* The badge is the only feedback that the projection is off. In the speaker
    window it always shows while blanked; in the audience it shows only when
@@ -18252,8 +18250,8 @@ body:not([data-view=speaker]).blanked #stage { opacity: 0; }
 body[data-view=speaker] .cmd-badge { bottom: 3.4rem; }
 .cmd-badge span { font-weight: 400; opacity: 0.72; }
 /* Both up at once: the demo is still running behind a blanked projection. */
-body.blanked #demo-badge { bottom: 3.1rem; }
-body[data-view=speaker].blanked #demo-badge { bottom: 5.3rem; }
+body.blanked #psiINT-demo-badge { bottom: 3.1rem; }
+body[data-view=speaker].blanked #psiINT-demo-badge { bottom: 5.3rem; }
 
 /* The fullscreen hint (W, from the other window). Not a .cmd-badge: a badge
    reports, and this one is a control the lecturer has to be able to hit. It
@@ -18262,7 +18260,7 @@ body[data-view=speaker].blanked #demo-badge { bottom: 5.3rem; }
    bottom-centre, the badges are above it. Quiet, because it stands on a
    slide the room is reading: small caps at the size of the badges, at half
    opacity until a pointer is on it. */
-#fullscreen-hint {
+#psiINT-fullscreen-hint {
   position: fixed;
   bottom: 12px; right: 12px;
   z-index: 44;
@@ -18278,22 +18276,22 @@ body[data-view=speaker].blanked #demo-badge { bottom: 5.3rem; }
   opacity: 0.62;
   transition: opacity 140ms ease;
 }
-#fullscreen-hint:hover { opacity: 1; }
-#fullscreen-hint span { opacity: 0.75; }
-#fullscreen-hint.hidden { display: none; }
-body[data-mode=dark] #fullscreen-hint {
+#psiINT-fullscreen-hint:hover { opacity: 1; }
+#psiINT-fullscreen-hint span { opacity: 0.75; }
+#psiINT-fullscreen-hint.hidden { display: none; }
+body[data-mode=dark] #psiINT-fullscreen-hint {
   background: oklch(from var(--paper) calc(l + 0.08) c h / 0.88);
 }
 /* Nothing of the chrome survives a blanked projection or the board. */
-body.overview-mode #fullscreen-hint,
-body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
+body.overview-mode #psiINT-fullscreen-hint,
+body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
 
 /* overlays */
 
 /* Help overlay – the self-documentation surface for both live views.
    Grouped by task, not by key. Scrolls internally on short windows so a
    1280x800 laptop still reaches the last section. */
-#help-overlay {
+#psiINT-help-overlay {
   position: fixed;
   inset: 0;
   z-index: 60;
@@ -18302,8 +18300,8 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
   place-items: center;
   padding: 2.2vh 2vw;
 }
-#help-overlay.hidden { display: none; }
-#help-inner {
+#psiINT-help-overlay.hidden { display: none; }
+#psiINT-help-inner {
   background: var(--paper);
   border: 1px solid var(--rule);
   box-shadow: 0 18px 60px oklch(0 0 0 / 0.35);
@@ -18316,7 +18314,7 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
   padding: 1.4rem 1.7rem 1.7rem;
   font-family: var(--sans-font);
 }
-#help-inner header {
+#psiINT-help-inner header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -18325,7 +18323,7 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
   padding-bottom: 0.55rem;
   margin-bottom: 1rem;
 }
-#help-inner h2 {
+#psiINT-help-inner h2 {
   margin: 0;
   font-size: 0.95rem;
   font-variant-caps: all-small-caps;
@@ -18333,7 +18331,7 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
   color: var(--ink);
   font-weight: 600;
 }
-#help-inner .help-dismiss { font-size: 0.7rem; color: var(--ink-soft); letter-spacing: 0.06em; }
+#psiINT-help-inner .help-dismiss { font-size: 0.7rem; color: var(--ink-soft); letter-spacing: 0.06em; }
 .help-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
@@ -18362,7 +18360,7 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
 }
 .help-grid dt { color: var(--ink); text-wrap: balance; }
 .help-grid dd { margin: 0; color: var(--ink-soft); }
-#help-inner kbd {
+#psiINT-help-inner kbd {
   font-family: var(--mono-font);
   font-size: 0.9em;
   color: var(--ink);
@@ -18371,11 +18369,11 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
   border-radius: var(--radius-tight);
   padding: 0 0.32em;
 }
-body[data-theme^=terminal] #help-inner kbd { background: oklch(0.24 0.02 90); }
+body[data-theme^=terminal] #psiINT-help-inner kbd { background: oklch(0.24 0.02 90); }
 
 /* Persistent, unobtrusive way in. The overlay used to be reachable only by
    guessing that ? does something. */
-#help-button {
+#psiINT-help-button {
   position: fixed;
   bottom: 12px; left: 12px;
   z-index: 22;
@@ -18391,13 +18389,13 @@ body[data-theme^=terminal] #help-inner kbd { background: oklch(0.24 0.02 90); }
   opacity: 0.5;
   transition: opacity 140ms ease;
 }
-#help-button:hover { opacity: 1; }
-body.overview-mode #help-button,
-body:not([data-view=speaker]).blanked #help-button { display: none; }
+#psiINT-help-button:hover { opacity: 1; }
+body.overview-mode #psiINT-help-button,
+body:not([data-view=speaker]).blanked #psiINT-help-button { display: none; }
 /* The speaker cockpit has a labelled "? help" button in its footer, so the
    floating circle is a second door to the same room – and it sits bottom-left
    on top of the timer, which the lecturer reads far more often than the help. */
-body[data-view=speaker] #help-button { display: none; }
+body[data-view=speaker] #psiINT-help-button { display: none; }
 
 /* Link address overlay. Shift-click on a link shows the URL on both
    screens instead of opening it on either: a lecture wants the room to be
@@ -18441,7 +18439,7 @@ body[data-view=speaker] #help-button { display: none; }
 .link-code:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; border-radius: 2px; }
 body[data-link-codes=off] .link-code { display: none; }
 
-#link-overlay {
+#psiINT-link-overlay {
   position: fixed;
   inset: 0;
   z-index: 45;
@@ -18453,12 +18451,12 @@ body[data-link-codes=off] .link-code { display: none; }
   background: var(--paper);
   padding: 4vh 4vw;
 }
-#link-overlay.hidden { display: none; }
+#psiINT-link-overlay.hidden { display: none; }
 /* B means everything off the screen, now. The overlay sits above the stage,
    so blanking has to reach it too – the speaker keeps it, like the rest of
    the cockpit, because that window goes on working while the room is dark. */
-body:not([data-view=speaker]).blanked #link-overlay { display: none; }
-#link-overlay-inner { max-width: 46em; text-align: center; }
+body:not([data-view=speaker]).blanked #psiINT-link-overlay { display: none; }
+#psiINT-link-overlay-inner { max-width: 46em; text-align: center; }
 
 /* ── Live demo (hotkey D) ─────────────────────────────────────────
    A captured window or screen, letterboxed on black over the whole frame.
@@ -18468,7 +18466,7 @@ body:not([data-view=speaker]).blanked #link-overlay { display: none; }
    badges (45). Blank takes it off the projection like everything else;
    the capture itself keeps running in the cockpit. The stage under it is
    fully covered, so it stops painting while the demo is up. */
-#demo-overlay {
+#psiINT-demo-overlay {
   position: fixed;
   inset: 0;
   z-index: 32;
@@ -18477,11 +18475,11 @@ body:not([data-view=speaker]).blanked #link-overlay { display: none; }
   align-items: center;
   justify-content: center;
 }
-#demo-overlay.hidden { display: none; }
-#demo-overlay video { width: 100%; height: 100%; object-fit: contain; display: block; }
-body:not([data-view=speaker]).blanked #demo-overlay { display: none; }
-body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidden; }
-#link-overlay-label {
+#psiINT-demo-overlay.hidden { display: none; }
+#psiINT-demo-overlay video { width: 100%; height: 100%; object-fit: contain; display: block; }
+body:not([data-view=speaker]).blanked #psiINT-demo-overlay { display: none; }
+body:not([data-view=speaker]).demo-live:not(.blanked) #psiINT-stage { visibility: hidden; }
+#psiINT-link-overlay-label {
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.14em;
@@ -18489,7 +18487,7 @@ body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidde
   color: var(--ink-soft);
   margin-bottom: 0.9rem;
 }
-#link-overlay-url {
+#psiINT-link-overlay-url {
   display: block;
   font-family: var(--mono-font);
   font-size: clamp(1.1rem, 3.4vw, 2.6rem);
@@ -18504,15 +18502,15 @@ body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidde
   -webkit-user-select: text;
   cursor: pointer;
 }
-#link-overlay-url:hover { text-decoration: underline; text-underline-offset: 0.18em; }
+#psiINT-link-overlay-url:hover { text-decoration: underline; text-underline-offset: 0.18em; }
 /* The white ground is .qr-card, shared with the live annotation's code. */
-#link-overlay-qr {
+#psiINT-link-overlay-qr {
   margin: 1.6rem auto 0;
   width: min(38vh, 300px);
 }
-#link-overlay-qr:empty { display: none; }
+#psiINT-link-overlay-qr:empty { display: none; }
 
-#link-overlay-hint {
+#psiINT-link-overlay-hint {
   margin-top: 1.4rem;
   font-family: var(--sans-font);
   font-size: 0.85rem;
@@ -18526,7 +18524,7 @@ body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidde
    top-centre, sentence-sized, white on near-black. The white hairline in
    the box-shadow is what keeps it legible on the terminal themes, where a
    dark toast would otherwise sit on a dark slide. */
-#mode-badge {
+#psiINT-mode-badge {
   position: fixed;
   top: 18px; left: 50%;
   transform: translateX(-50%) translateY(-6px);
@@ -18542,16 +18540,16 @@ body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidde
   text-align: center;
   opacity: 0;
   transition: opacity 130ms ease, transform 130ms ease;
-  /* Above #figure-overlay (30) so a toggle pressed while a figure is
+  /* Above #psiINT-figure-overlay (30) so a toggle pressed while a figure is
      zoomed still reports back. */
   z-index: 40;
   pointer-events: none;
 }
-#mode-badge.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+#psiINT-mode-badge.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* Laser pointer – the audience's mirror of the speaker's cursor.
    Speaker view does not render this (the speaker has a real cursor). */
-#laser-pointer {
+#psiINT-laser-pointer {
   position: fixed;
   top: 0; left: 0;
   width: 18px; height: 18px;
@@ -18562,12 +18560,12 @@ body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidde
   pointer-events: none;
   opacity: 0;
   transition: opacity 180ms ease;
-  /* Above #figure-overlay (z 30) so the laser stays visible while the
+  /* Above #psiINT-figure-overlay (z 30) so the laser stays visible while the
      speaker hovers over a focused figure. */
   z-index: 40;
 }
-#laser-pointer.visible { opacity: 1; }
-body[data-view=speaker] #laser-pointer { display: none; }
+#psiINT-laser-pointer.visible { opacity: 1; }
+body[data-view=speaker] #psiINT-laser-pointer { display: none; }
 
 /* Touch control rail (audience only) – prev/next/overview/zoom shown
    only on coarse-pointer devices (phones, tablets without keyboards).
@@ -18584,7 +18582,7 @@ body[data-view=speaker] #laser-pointer { display: none; }
    column and moved a slide everywhere else, so a mark had a question to
    answer; Shift answers it the same way on every slide, and a mark for a key
    that never changes meaning is a mark nobody reads twice. */
-#nav-hints span {
+#psiINT-nav-hints span {
   position: absolute;
   color: var(--ink-soft);
   opacity: 0;
@@ -18593,17 +18591,17 @@ body[data-view=speaker] #laser-pointer { display: none; }
   pointer-events: none;
   transition: opacity 220ms ease;
 }
-#nav-hints span[data-on] { opacity: 0.22; }
-#nav-hints span[data-hint=down]  { bottom: 0.15em; left: 50%; transform: translateX(-50%); }
+#psiINT-nav-hints span[data-on] { opacity: 0.22; }
+#psiINT-nav-hints span[data-hint=down]  { bottom: 0.15em; left: 50%; transform: translateX(-50%); }
 /* On the cockpit the mirror is scaled down, so the marks would be shrunk to
    nothing beside chrome that is not. The speaker is also the person who has
    to plan against them, so they are a little louder there. */
-body[data-view=speaker] #nav-hints span[data-on] { opacity: 0.45; }
-body:not([data-view=speaker]).blanked #nav-hints span,
+body[data-view=speaker] #psiINT-nav-hints span[data-on] { opacity: 0.45; }
+body:not([data-view=speaker]).blanked #psiINT-nav-hints span,
 /* The board has its own 2D map and its own arrow meanings; a compass for the
    slide keys would be pointing at the wrong thing. Done in CSS because
    setOverviewMode does not always go through applyState. */
-body.overview-mode #nav-hints span { opacity: 0 !important; }
+body.overview-mode #psiINT-nav-hints span { opacity: 0 !important; }
 
 /* The controls a finger can reach, in both live views. Two pills, one above
    the other: the rail is what you press repeatedly, the palette behind the
@@ -18611,9 +18609,9 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
    is what you set once and leave. Splitting them is not decoration - eleven
    round buttons in one row do not fit a phone held upright, and the five that
    matter mid-talk should not shrink to make room for the six that do not. */
-#touch-controls { display: none; }
+#psiINT-touch-controls { display: none; }
 @media (pointer: coarse) {
-  #touch-controls {
+  #psiINT-touch-controls {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -18631,8 +18629,8 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
     z-index: 35;
     pointer-events: none;
   }
-  #touch-rail, #touch-palette { pointer-events: auto; }
-  #touch-rail, #touch-palette {
+  #psiINT-touch-rail, #psiINT-touch-palette { pointer-events: auto; }
+  #psiINT-touch-rail, #psiINT-touch-palette {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -18650,15 +18648,15 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
      the hidden attribute is still the right handle - it is what a screen
      reader reads -
      so the stylesheet has to say so at a specificity that wins. */
-  #touch-palette[hidden] { display: none; }
+  #psiINT-touch-palette[hidden] { display: none; }
   /* The palette's letters are the keys they stand for, so they are set in the
      typeface a key is written in everywhere else in this tool. */
-  #touch-palette button {
+  #psiINT-touch-palette button {
     font-family: var(--mono-font);
     font-size: clamp(14px, 4.2vw, 18px);
   }
-  #touch-palette button[aria-pressed=true],
-  #touch-rail button[aria-expanded=true] {
+  #psiINT-touch-palette button[aria-pressed=true],
+  #psiINT-touch-rail button[aria-expanded=true] {
     background: oklch(0.96 0 0);
     color: oklch(0.15 0 0);
   }
@@ -18673,7 +18671,7 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
      Between them the six fit one row at every width down to 320px, which is
      what the arithmetic in the max-width above is for. flex-wrap stays as the
      backstop for anything narrower than that. */
-  #touch-controls button {
+  #psiINT-touch-controls button {
     background: transparent;
     border: 0;
     color: oklch(0.96 0 0);
@@ -18688,12 +18686,12 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
-  #touch-controls button:active { background: oklch(0.30 0 0); }
+  #psiINT-touch-controls button:active { background: oklch(0.30 0 0); }
 
   /* Hide while the screen is blanked. Stay visible during figure-focus
      so the +/− buttons remain reachable for figure zoom; the rail is
      above the overlay (z-index 35 vs 30) so taps still land on it. */
-  body:not([data-view=speaker]).blanked #touch-controls { display: none; }
+  body:not([data-view=speaker]).blanked #psiINT-touch-controls { display: none; }
   /* In the cockpit the bottom edge is spoken for several times over - the
      notes pane, the thumbnail strip, the footer - and two of the three change
      size while the lecture is running. The rail used to clear them by summing
@@ -18709,10 +18707,10 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
      something that lives above it, whatever gets added there and however it is
      dragged. Both layouts put the stage in row 2 / column 1, so one rule
      serves them and the Shift-V special case goes with the arithmetic that
-     needed it. It shares the cell with #stage-cell rather than taking a row of
+     needed it. It shares the cell with #psiINT-stage-cell rather than taking a row of
      its own, so the stage keeps every pixel it had; z-index 35 still decides
      what is on top, which grid items honour without being positioned. */
-  body[data-view=speaker] #touch-controls {
+  body[data-view=speaker] #psiINT-touch-controls {
     position: static;
     grid-row: 2;
     grid-column: 1;
@@ -18728,7 +18726,7 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
 
    It was position: fixed, with the inset of a card pinned to the bottom of
    the window, and it was never pinned to anything of the sort. The pane
-   lives inside #stage, #stage carries the camera's transform, and a fixed
+   lives inside #psiINT-stage, #psiINT-stage carries the camera's transform, and a fixed
    descendant of a transformed element is positioned against that element
    rather than against the viewport. What made it look right was the other
    half of the same defect: getOffset walks offsetParent up to the stage, a
@@ -18737,7 +18735,7 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
    the card while leaving the slide behind it 37,000px away - a card floating
    on an empty page. The one construct here that really does escape to the
    window is the figure overlay, and it escapes by leaving the stage:
-   #figure-overlay is a sibling of it and the focused element is cloned in. */
+   #psiINT-figure-overlay is a sibling of it and the focused element is cloned in. */
 @media (max-width: 900px) {
   .chunk.expanded {
     grid-template-columns: minmax(0, 1fr);
@@ -18751,16 +18749,16 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
 }
 
 /* overview mode (PRD §5) ------------------------------------------- */
-body.overview-mode #stage-viewport { cursor: grab; }
-body.overview-mode #stage-viewport:active { cursor: grabbing; }
-body.overview-mode #stage { transition: transform var(--camera-duration) cubic-bezier(0.45, 0, 0.2, 1); }
+body.overview-mode #psiINT-stage-viewport { cursor: grab; }
+body.overview-mode #psiINT-stage-viewport:active { cursor: grabbing; }
+body.overview-mode #psiINT-stage { transition: transform var(--camera-duration) cubic-bezier(0.45, 0, 0.2, 1); }
 /* Same rule as the focus card's, and here it costs more: --camera-duration is
    250 ms, so at 8.4 ms between trackpad events the curve was re-aimed about
    thirty times before it could ever complete. */
-body.overview-mode.overview-dragging #stage,
-body.overview-mode.overview-zooming #stage { transition: none; }
+body.overview-mode.overview-dragging #psiINT-stage,
+body.overview-mode.overview-zooming #psiINT-stage { transition: none; }
 body.view-panning, body.view-panning * { cursor: grabbing !important; }
-body.view-panning #stage { transition: none; }
+body.view-panning #psiINT-stage { transition: none; }
 body.overview-mode .chunk {
   opacity: 1 !important;
   cursor: pointer;
@@ -18776,7 +18774,7 @@ body.overview-mode .exps,
 body.overview-mode .annot-box,
 body.overview-mode .margin-note { display: none !important; }
 
-#overview-badge {
+#psiINT-overview-badge {
   position: fixed;
   top: 14px; left: 14px;
   background: oklch(0.55 0.12 220);
@@ -18791,14 +18789,14 @@ body.overview-mode .margin-note { display: none !important; }
   z-index: 21;
   pointer-events: auto;
 }
-body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.7em; }
-#overview-badge .hint { pointer-events: none; }
+body.overview-mode #psiINT-overview-badge { display: flex; align-items: center; gap: 0.7em; }
+#psiINT-overview-badge .hint { pointer-events: none; }
 
 /* Search panel (PRD SS5). Fixed overlay rather than a strip inside the
    overview badge, because it opens from anywhere now, not only from the
    board. Sized so a hit list of a dozen entries is readable without
    covering the whole slide. */
-#search-panel {
+#psiINT-search-panel {
   position: fixed;
   top: 8vh;
   left: 50%;
@@ -18813,8 +18811,8 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
   z-index: 40;
   font-family: var(--sans-font);
 }
-#search-panel.hidden { display: none; }
-#search-panel #search-input {
+#psiINT-search-panel.hidden { display: none; }
+#psiINT-search-panel #psiINT-search-input {
   font: inherit;
   font-size: 1.05rem;
   color: var(--ink);
@@ -18824,51 +18822,51 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
   outline: 0;
   padding: 0.85rem 1.1rem;
 }
-#search-panel #search-input::placeholder { color: var(--ink-soft); font-style: italic; }
-#search-results {
+#psiINT-search-panel #psiINT-search-input::placeholder { color: var(--ink-soft); font-style: italic; }
+#psiINT-search-results {
   list-style: none;
   margin: 0;
   padding: 0;
   overflow-y: auto;
   flex: 1;
 }
-#search-results li {
+#psiINT-search-results li {
   padding: 0.6rem 1.1rem;
   border-bottom: 1px solid oklch(from var(--rule) l c h / 0.5);
   cursor: pointer;
 }
-#search-results li[aria-selected=true] { background: oklch(from var(--emph) l c h / 0.1); }
-#search-results .sr-title {
+#psiINT-search-results li[aria-selected=true] { background: oklch(from var(--emph) l c h / 0.1); }
+#psiINT-search-results .sr-title {
   font-weight: 600;
   font-size: 0.92rem;
   color: var(--ink);
 }
-#search-results .sr-tag {
+#psiINT-search-results .sr-tag {
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
   font-size: 0.72rem;
   color: var(--ink-soft);
   margin-inline-end: 0.5em;
 }
-#search-results .sr-sub {
+#psiINT-search-results .sr-sub {
   font-weight: 400;
   color: var(--ink-soft);
   margin-inline-start: 0.5em;
 }
-#search-results .sr-context {
+#psiINT-search-results .sr-context {
   display: block;
   font-size: 0.85rem;
   color: var(--ink-soft);
   margin-top: 0.15rem;
   line-height: 1.4;
 }
-#search-results mark {
+#psiINT-search-results mark {
   background: oklch(from var(--emph) l c h / 0.22);
   color: var(--emph);
   font-weight: 600;
 }
-#search-results .sr-empty { color: var(--ink-soft); font-style: italic; cursor: default; }
-#search-foot {
+#psiINT-search-results .sr-empty { color: var(--ink-soft); font-style: italic; cursor: default; }
+#psiINT-search-foot {
   padding: 0.45rem 1.1rem;
   border-top: 1px solid var(--rule);
   font-size: 0.72rem;
@@ -18876,7 +18874,7 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
 }
-#search-foot kbd { margin-inline-end: 0.15em; }
+#psiINT-search-foot kbd { margin-inline-end: 0.15em; }
 
 /* The go-to-slide prompt (G) --------------------------------------- */
 /* One line, low on the frame rather than in the middle of it: the number
@@ -18884,7 +18882,7 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
    thing to look at. It sits above the search panel in the stack for the
    same reason the badges do - nothing else may cover a prompt that is
    waiting for Enter. */
-#goto-prompt {
+#psiINT-goto-prompt {
   position: fixed;
   left: 50%;
   bottom: 12vh;
@@ -18900,22 +18898,22 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
   font-family: var(--sans-font);
   color: var(--ink);
 }
-#goto-prompt.hidden { display: none; }
-#goto-prompt .goto-label,
-#goto-prompt .goto-foot {
+#psiINT-goto-prompt.hidden { display: none; }
+#psiINT-goto-prompt .goto-label,
+#psiINT-goto-prompt .goto-foot {
   font-size: 0.72rem;
   color: var(--ink-soft);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
 }
-#goto-prompt .goto-digits {
+#psiINT-goto-prompt .goto-digits {
   font-size: 1.5rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   min-width: 2ch;
   color: var(--emph);
 }
-#goto-prompt .goto-of {
+#psiINT-goto-prompt .goto-of {
   font-size: 0.9rem;
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
@@ -18924,7 +18922,7 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
    open with the digits still in it, so the fix is a Backspace rather than
    a re-open. The shake is the whole of the refusal, which is why it has to
    be able to run twice in a row - the class is taken off on animationend. */
-#goto-prompt.goto-refused { animation: goto-shake 0.32s; }
+#psiINT-goto-prompt.goto-refused { animation: goto-shake 0.32s; }
 @keyframes goto-shake {
   0%, 100% { transform: translateX(-50%); }
   20% { transform: translateX(calc(-50% - 7px)); }
@@ -18933,11 +18931,7 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
 }
 
 /* TOC overlay (PRD §5) --------------------------------------------- */
-/* Scoped to the <nav> tag so author chunks that legitimately use
-   id="toc" (see lectures/tutorial – a chunk explaining the TOC
-   feature) don't inherit the overlay's fixed positioning and
-   collapse into a floating blob. */
-nav#toc {
+#psiINT-toc {
   position: fixed;
   top: 0; right: 0;
   height: 100vh;
@@ -18951,8 +18945,8 @@ nav#toc {
   transition: transform 220ms cubic-bezier(0.45, 0, 0.2, 1);
   z-index: 25;
 }
-body.toc-visible nav#toc { transform: translateX(0); }
-nav#toc h2 {
+body.toc-visible #psiINT-toc { transform: translateX(0); }
+#psiINT-toc h2 {
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.18em;
@@ -18961,9 +18955,9 @@ nav#toc h2 {
   font-weight: 500;
   margin: 0 0 1.2rem;
 }
-nav#toc ol { list-style: decimal outside; padding-left: 1.6em; margin: 0; }
-nav#toc li { margin: 0.5em 0; }
-nav#toc button {
+#psiINT-toc ol { list-style: decimal outside; padding-left: 1.6em; margin: 0; }
+#psiINT-toc li { margin: 0.5em 0; }
+#psiINT-toc button {
   background: transparent;
   border: 0;
   padding: 0.1em 0;
@@ -18974,8 +18968,8 @@ nav#toc button {
   letter-spacing: -0.005em;
   line-height: 1.3;
 }
-nav#toc button:hover { color: var(--emph); }
-nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
+#psiINT-toc button:hover { color: var(--emph); }
+#psiINT-toc li.toc-active button { font-weight: 600; color: var(--emph); }
 `;
 
 // ── audience runtime JS (inlined verbatim into the output HTML) ──────
@@ -19016,12 +19010,12 @@ const viewHooks = {
   escapePrompter: () => false,
 };
 
-const stage = document.getElementById('stage');
-const viewport = document.getElementById('stage-viewport');
-const modeBadge = document.getElementById('mode-badge');
+const stage = document.getElementById('psiINT-stage');
+const viewport = document.getElementById('psiINT-stage-viewport');
+const modeBadge = document.getElementById('psiINT-mode-badge');
 
 // The camera is the only thing allowed to decide what is on screen, and it
-// positions the deck with a transform on #stage. But #stage-viewport is a
+// positions the deck with a transform on #psiINT-stage. But #psiINT-stage-viewport is a
 // scroll container, and overflow: hidden does not make a box unscrollable -
 // it only hides the scrollbars. The browser still scrolls it to reveal
 // things, and then every chunk sits translated by an offset the camera math
@@ -19844,7 +19838,7 @@ window.addEventListener('message', (ev) => {
 // Laser pointer – audience-only mirror of the speaker's mouse position.
 // chunkIdx + percentage coords let the receiver position relative to
 // its own copy of the active chunk (so different zoom levels still align).
-const laserEl = document.getElementById('laser-pointer');
+const laserEl = document.getElementById('psiINT-laser-pointer');
 let laserHideTimer = null;
 function showLaserPointer(chunkIdx, px, py, target) {
   if (!laserEl) return;
@@ -19999,7 +19993,7 @@ function splitSentencesIn(root) {
 function lecturerScreen() {
   return VIEW === 'speaker' || !hasLivePeer();
 }
-const blankBadge = document.getElementById('blank-badge');
+const blankBadge = document.getElementById('psiINT-blank-badge');
 function applyBlankBadge() {
   if (!blankBadge) return;
   blankBadge.classList.toggle('hidden', !(state.blanked && lecturerScreen()));
@@ -20015,7 +20009,7 @@ let demoPending = false;
 let demoRemoteLive = false;
 let demoPc = null;
 let demoRemoteReady = null;
-const demoBadge = document.getElementById('demo-badge');
+const demoBadge = document.getElementById('psiINT-demo-badge');
 function demoOn() { return !!demoStream || demoRemoteLive; }
 function applyDemoBadge() {
   if (!demoBadge) return;
@@ -20229,7 +20223,7 @@ function getOffset(el, parent) {
 // two coordinate systems.
 // Split in two, and the client half is the one --check-fit needs. The camera
 // wants the span in the stage's layout coordinates; the probe compares
-// everything against #stage-viewport's client rect, and a probe that
+// everything against #psiINT-stage-viewport's client rect, and a probe that
 // re-derived "what is painted" from a selector list of its own would be a
 // second implementation of the exact rule the camera follows. One walk, two
 // coordinate systems.
@@ -20285,7 +20279,7 @@ function focusCamera(instant = false) {
   // and deliberately does not lift it out with position: fixed.
   //
   // That used to be the rule, and it was never fixed to the window. The pane
-  // lives inside #stage, #stage carries this very transform, and a fixed
+  // lives inside #psiINT-stage, #psiINT-stage carries this very transform, and a fixed
   // descendant of a transformed element is positioned against that element.
   // getOffset walks offsetParent up to the stage, of which such a box has
   // none, so the camera answered with translate(-4320px, -40850px) - the card
@@ -20624,7 +20618,7 @@ function toggleToc() {
 }
 function markTocActive() {
   const curColIdx = flatChunks[state.activeIdx]?.colIdx;
-  document.querySelectorAll('nav#toc li').forEach(li => {
+  document.querySelectorAll('#psiINT-toc li').forEach(li => {
     li.classList.toggle('toc-active', parseInt(li.dataset.tocCol, 10) === curColIdx);
   });
 }
@@ -20635,15 +20629,15 @@ function jumpToColumn(colIdx) {
 
 // Fulltext search (PRD §5) – active only in overview. Each keystroke filters
 // chunks: matches get a highlight outline, non-matches fade to 0.1 opacity.
-const searchInput = document.getElementById('search-input');
+const searchInput = document.getElementById('psiINT-search-input');
 // Search is a hit list, not only a highlight on the board. Highlighting
 // alone assumed the reader was looking at the overview and could see where
 // the match was; most matches are off screen, and in a long lecture the
 // useful question is "which slide says this", which a list answers and a
 // fade does not. It opens from anywhere for the same reason: needing to be
 // in overview first made it useless as the mid-lecture jump tool it is.
-const searchPanel = document.getElementById('search-panel');
-const searchResults = document.getElementById('search-results');
+const searchPanel = document.getElementById('psiINT-search-panel');
+const searchResults = document.getElementById('psiINT-search-results');
 let searchHits = [];
 let searchCursor = 0;
 let searchIndex = null;
@@ -20750,9 +20744,8 @@ function endSearch() {
 // than recomputing it is what keeps that true if the counting ever changes.
 //
 // Everything inside the prompt is reached through gotoRoot, never through
-// getElementById: in the cockpit the lecture's own chunks share the id
-// namespace with the chrome (see the note on the cue panel in CLAUDE.md).
-const gotoRoot = document.getElementById('goto-prompt');
+// getElementById.
+const gotoRoot = document.getElementById('psiINT-goto-prompt');
 const gotoDigitsEl = gotoRoot.querySelector('.goto-digits');
 const gotoOfEl = gotoRoot.querySelector('.goto-of');
 let gotoActive = false;
@@ -21462,7 +21455,7 @@ function wireClicks() {
     });
   });
   // TOC column buttons: jump camera + close TOC.
-  document.querySelectorAll('nav#toc li').forEach(li => {
+  document.querySelectorAll('#psiINT-toc li').forEach(li => {
     const btn = li.querySelector('button');
     if (!btn) return;
     const colIdx = parseInt(li.dataset.tocCol, 10);
@@ -21998,8 +21991,8 @@ function setZoom(z) {
 }
 
 // Help overlay – single toggle for the ? key and the corner button.
-const helpOverlay = document.getElementById('help-overlay');
-const helpButton = document.getElementById('help-button');
+const helpOverlay = document.getElementById('psiINT-help-overlay');
+const helpButton = document.getElementById('psiINT-help-button');
 function helpVisible() { return helpOverlay && !helpOverlay.classList.contains('hidden'); }
 function toggleHelp(force) {
   if (!helpOverlay) return;
@@ -22203,10 +22196,10 @@ function applyRemoteEmbed(m) {
 // actually needs from a link during a talk is to write it down. So the
 // projection gets the URL to read, not a page to watch, and the cockpit
 // shows the identical overlay so the lecturer knows exactly what went up.
-const linkOverlay = document.getElementById('link-overlay');
-const linkOverlayUrl = document.getElementById('link-overlay-url');
-const linkOverlayLabel = document.getElementById('link-overlay-label');
-const linkOverlayQr = document.getElementById('link-overlay-qr');
+const linkOverlay = document.getElementById('psiINT-link-overlay');
+const linkOverlayUrl = document.getElementById('psiINT-link-overlay-url');
+const linkOverlayLabel = document.getElementById('psiINT-link-overlay-label');
+const linkOverlayQr = document.getElementById('psiINT-link-overlay-qr');
 function linkOverlayVisible() {
   return !!linkOverlay && !linkOverlay.classList.contains('hidden');
 }
@@ -22237,7 +22230,7 @@ function dismissLinkOverlay() {
 // must not dismiss either, hence the collapsed-selection check.
 if (linkOverlay) {
   linkOverlay.addEventListener('click', (e) => {
-    if (e.target.closest('#link-overlay-url')) return;
+    if (e.target.closest('#psiINT-link-overlay-url')) return;
     const s = window.getSelection();
     if (s && !s.isCollapsed) return;
     dismissLinkOverlay();
@@ -22272,7 +22265,7 @@ document.addEventListener('click', (e) => {
   if (!e.shiftKey) return;
   // External only. A cross-reference resolves to a file:// path with a
   // fragment, which is noise on a projector and has no QR behind it.
-  const a = e.target.closest && e.target.closest('#stage a[href^="http"]');
+  const a = e.target.closest && e.target.closest('#psiINT-stage a[href^="http"]');
   if (!a) return;
   e.preventDefault();
   e.stopPropagation();
@@ -22322,8 +22315,8 @@ const DEMO_MAX_W = 2560, DEMO_MAX_H = 1600;
 // Same origin is known at boot, not probed: two file:// windows both report
 // the origin "null", and everything served reports a real one.
 const DEMO_DIRECT = SELF_ORIGIN !== 'null';
-const demoOverlay = document.getElementById('demo-overlay');
-const demoVideo = document.getElementById('demo-video');
+const demoOverlay = document.getElementById('psiINT-demo-overlay');
+const demoVideo = document.getElementById('psiINT-demo-video');
 // The showing side. The stream may belong to another realm (the direct
 // path) – srcObject takes it all the same.
 function attachDemo(stream) {
@@ -22665,7 +22658,7 @@ function flashMode(text) {
 // solved against it is then stale; the resize listener further down re-runs
 // the fit and re-sends slide-ref, which is why there is no re-measure here.
 const FULLSCREEN_ARM_MS = 20000;
-const fsHint = document.getElementById('fullscreen-hint');
+const fsHint = document.getElementById('psiINT-fullscreen-hint');
 let fsArmTimer = null;
 let fsArmedClick = null;
 let peerFullscreen = false;
@@ -22853,7 +22846,7 @@ document.addEventListener('keydown', (e) => {
       if (hasTextSelection() || touchSelectOn) {
         setTouchSelect(false);
         endSelecting();
-        const sb = document.querySelector('#touch-controls [data-action=select]');
+        const sb = document.querySelector('#psiINT-touch-controls [data-action=select]');
         if (sb) sb.setAttribute('aria-pressed', 'false');
         e.preventDefault(); break;
       }
@@ -23086,10 +23079,10 @@ viewport.addEventListener('wheel', (e) => {
     //
     //   pan' = pan + (1 - r) * (Q - viewportCentre - pan)
     //
-    // Two things about the units, and the second one is the trap. #stage has
+    // Two things about the units, and the second one is the trap. #psiINT-stage has
     // transform-origin: 0 0, which is what the camera's own tx/ty already
     // assume. And the arithmetic has to happen in LAYOUT space: in the
-    // cockpit #stage-viewport is itself drawn through scale(--stage-scale),
+    // cockpit #psiINT-stage-viewport is itself drawn through scale(--stage-scale),
     // so a clientX is a shrunken px while manualPan and the chunk offsets
     // the camera reads are full-size ones. focusCamera carries the same
     // warning for the same reason. The ratio is uniform, so one factor does
@@ -23111,7 +23104,7 @@ viewport.addEventListener('wheel', (e) => {
 
 viewport.addEventListener('pointerdown', (e) => {
   // Skip drag on interactive children so click-to-select still works.
-  if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, nav#toc')) return;
+  if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, #psiINT-toc')) return;
   // While Alt-selection is live the same gesture means "highlight this",
   // so the camera must keep its hands off it. The pointerdown-time question
   // is the stage's own selectability, not the modifier: a lingering
@@ -23177,7 +23170,7 @@ window.addEventListener('resize', () => {
 // dimmed underneath; .marginalia gets no overlay - it is in the slide's
 // layout rather than laid over it - and the camera slides right instead,
 // far enough to put the whole aside inside the frame. See setAsidePan.
-const figureOverlay = document.getElementById('figure-overlay');
+const figureOverlay = document.getElementById('psiINT-figure-overlay');
 let focusedFigure = null;
 // Per-focus zoom + pan: +/− keys (and wheel) scale; drag pans. Reset
 // every time a new figure gets focused so each one starts at 1x. Pan
@@ -23215,7 +23208,7 @@ function setFigureScale(next) {
 //
 // where visibleCentre is what getBoundingClientRect reports, since scaling
 // about the centre does not move it. Client px are the right unit:
-// #figure-overlay is position: fixed and a sibling of #stage-viewport, so the
+// #psiINT-figure-overlay is position: fixed and a sibling of #psiINT-stage-viewport, so the
 // cockpit's --stage-scale never composes into it.
 //
 // r must be the ratio actually achieved rather than the one asked for. At
@@ -23506,10 +23499,10 @@ function clearAsidePan() {
 // depending on where you stood. They mean one thing now, and Shift means the
 // other everywhere, so there is no longer a question for a mark to answer.
 function buildNavHints() {
-  const vp = document.getElementById('stage-viewport');
-  if (!vp || document.getElementById('nav-hints')) return;
+  const vp = document.getElementById('psiINT-stage-viewport');
+  if (!vp || document.getElementById('psiINT-nav-hints')) return;
   const wrap = document.createElement('div');
-  wrap.id = 'nav-hints';
+  wrap.id = 'psiINT-nav-hints';
   wrap.setAttribute('aria-hidden', 'true');
   const s = document.createElement('span');
   s.dataset.hint = 'down';
@@ -23519,7 +23512,7 @@ function buildNavHints() {
 }
 
 function updateNavHints() {
-  const wrap = document.getElementById('nav-hints');
+  const wrap = document.getElementById('psiINT-nav-hints');
   if (!wrap) return;
   const i = state.activeIdx;
   const c = flatChunks[i];
@@ -23549,9 +23542,9 @@ function updateNavHints() {
 // is how a palette comes to disagree with a key map, which is the same failure
 // build.js and lint.js have to be grepped against each other to avoid.
 function wireTouchControls() {
-  const bar = document.getElementById('touch-controls');
+  const bar = document.getElementById('psiINT-touch-controls');
   if (!bar) return;
-  const palette = document.getElementById('touch-palette');
+  const palette = document.getElementById('psiINT-touch-palette');
   const moreBtn = bar.querySelector('[data-action=more]');
   const selBtn = bar.querySelector('[data-action=select]');
   const setPalette = (open) => {
@@ -23793,8 +23786,7 @@ function renderSpeaker(lecture, opts = {}) {
   // editorPayload is, and for the same reason: 36 KB of runtime and
   // stylesheet that nothing in an ordinary cockpit could ever reach.
   // The visible word is `prompter`; `souffleuse` is the codename and survives
-  // in the ids, which is exactly what the cockpit's shared id namespace
-  // wants: no slide will ever want one.
+  // in the ids, under the psiINT- prefix every chrome id carries.
   const souffSettings = opts.souffleuse ? souffleuseSettings(frontmatter) : null;
   const souffleuseJs = souffSettings
     ? jsonForScript({
@@ -23805,7 +23797,7 @@ function renderSpeaker(lecture, opts = {}) {
     })
     : 'null';
   const souffleuseBtn = souffSettings
-    ? `\n  <button id="souffleuse-btn" type="button" aria-pressed="false" data-state="off" title="The live prompter: it listens and whispers back (Shift-S) · Shift-click for what it has said"><span class="souffleuse-dot">◌</span> prompter</button>`
+    ? `\n  <button id="psiINT-souffleuse-btn" type="button" aria-pressed="false" data-state="off" title="The live prompter: it listens and whispers back (Shift-S) · Shift-click for what it has said"><span class="souffleuse-dot">◌</span> prompter</button>`
     : '';
   // Opens with the newline rather than standing on a line of its own in the
   // template: an empty expression on its own line still emits the line, and
@@ -23817,23 +23809,23 @@ function renderSpeaker(lecture, opts = {}) {
     ? ' &nbsp; <kbd>Shift</kbd>-<kbd>S</kbd> prompter'
     : '';
   const souffleuseChrome = souffSettings
-    ? `\n<div id="souffleuse-badge" class="cmd-badge" role="status" hidden></div>
-<div id="souffleuse-log" hidden aria-label="What the prompter has said">
+    ? `\n<div id="psiINT-souffleuse-badge" class="cmd-badge" role="status" hidden></div>
+<div id="psiINT-souffleuse-log" hidden aria-label="What the prompter has said">
   <header>what the prompter has said<button class="souffleuse-x" type="button" aria-label="close">&times;</button></header>
-  <ol id="souffleuse-log-list"></ol>
+  <ol id="psiINT-souffleuse-log-list"></ol>
   <footer>
-    <label><input type="checkbox" id="souffleuse-heard-toggle"> show what it hears</label>
-    <label><input type="checkbox" id="souffleuse-cues-toggle"> cards into upcoming slides</label>
+    <label><input type="checkbox" id="psiINT-souffleuse-heard-toggle"> show what it hears</label>
+    <label><input type="checkbox" id="psiINT-souffleuse-cues-toggle"> cards into upcoming slides</label>
   </footer>
 </div>`
     : '';
-  // The strip and the line under it are emitted inside #stage-cell, because
+  // The strip and the line under it are emitted inside #psiINT-stage-cell, because
   // that is their classic home - absolutely positioned over its bottom edge,
   // the way the "+ note" button owns the other corner. In cue-card mode
   // cuePlaceStrip moves both into the head of the card column and back.
   const souffleuseStrip = souffSettings
-    ? `\n  <div id="souffleuse-strip" role="status" aria-live="polite" hidden><span class="souffleuse-glyph"></span><span class="souffleuse-text"></span><button class="souffleuse-x" type="button" aria-label="dismiss">&times;</button></div>
-  <div id="souffleuse-heard" hidden></div>`
+    ? `\n  <div id="psiINT-souffleuse-strip" role="status" aria-live="polite" hidden><span class="souffleuse-glyph"></span><span class="souffleuse-text"></span><button class="souffleuse-x" type="button" aria-label="dismiss">&times;</button></div>
+  <div id="psiINT-souffleuse-heard" hidden></div>`
     : '';
   // Spliced into the same style and script elements the cockpit's own CSS
   // and JS are in, so the runtime keeps SPEAKER_JS's scope and the rules keep
@@ -23865,57 +23857,57 @@ ${shipsEditor || souffSettings
 </head>
 <body ${viewBodyAttrs(defaults, 'data-view="speaker" ' + styleBodyAttrs(styleOpts, frontmatter))}>
 ${themeBootScript(defaults)}
-<div id="scrubber">
+<div id="psiINT-scrubber">
 ${scrubberHtml}
 </div>
-<div id="stage-cell">
-  <div id="stage-viewport">
-    <div id="stage">
+<div id="psiINT-stage-cell">
+  <div id="psiINT-stage-viewport">
+    <div id="psiINT-stage">
 ${columnsHtml}
     </div>
   </div>
-  <button id="add-note-btn" type="button" title="Open speaker notes (Shift-N)">+ note</button>
-  <button id="clock" type="button" title="Elapsed since the talk began · click to restart from 0:00"><span id="timer">0:00</span><span id="drift" hidden></span><span id="clock-hint" aria-hidden="true">reset</span></button>${souffleuseStrip}
+  <button id="psiINT-add-note-btn" type="button" title="Open speaker notes (Shift-N)">+ note</button>
+  <button id="psiINT-clock" type="button" title="Elapsed since the talk began · click to restart from 0:00"><span id="psiINT-timer">0:00</span><span id="psiINT-drift" hidden></span><span id="psiINT-clock-hint" aria-hidden="true">reset</span></button>${souffleuseStrip}
 </div>
-<section id="cue-panel" aria-label="Cue cards">
-  <header id="cue-where">
-    <span id="cue-crumb"></span>
-    <span id="cue-pos"></span>
-    <span id="cue-zoom">
-      <button id="cue-zoom-out" type="button" title="Smaller cards" aria-label="Smaller cards">&minus;</button>
-      <button id="cue-zoom-in" type="button" title="Larger cards" aria-label="Larger cards">+</button>
+<section id="psiINT-cue-panel" aria-label="Cue cards">
+  <header id="psiINT-cue-where">
+    <span id="psiINT-cue-crumb"></span>
+    <span id="psiINT-cue-pos"></span>
+    <span id="psiINT-cue-zoom">
+      <button id="psiINT-cue-zoom-out" type="button" title="Smaller cards" aria-label="Smaller cards">&minus;</button>
+      <button id="psiINT-cue-zoom-in" type="button" title="Larger cards" aria-label="Larger cards">+</button>
     </span>
   </header>
-  <div id="cue-rail"></div>
+  <div id="psiINT-cue-rail"></div>
 </section>
-<aside id="notes-pane">
-  <div id="notes-resizer" role="separator" aria-orientation="horizontal" title="Drag to resize notes · double-click to reset"></div>
-  <textarea id="notes-content" rows="1" spellcheck="false" placeholder=""></textarea>
-  <div id="notes-zoom">
-    <button id="notes-zoom-out" type="button" title="Smaller notes text" aria-label="Smaller notes text">&minus;</button>
-    <button id="notes-zoom-in" type="button" title="Larger notes text" aria-label="Larger notes text">+</button>
+<aside id="psiINT-notes-pane">
+  <div id="psiINT-notes-resizer" role="separator" aria-orientation="horizontal" title="Drag to resize notes · double-click to reset"></div>
+  <textarea id="psiINT-notes-content" rows="1" spellcheck="false" placeholder=""></textarea>
+  <div id="psiINT-notes-zoom">
+    <button id="psiINT-notes-zoom-out" type="button" title="Smaller notes text" aria-label="Smaller notes text">&minus;</button>
+    <button id="psiINT-notes-zoom-in" type="button" title="Larger notes text" aria-label="Larger notes text">+</button>
   </div>
 </aside>
-<div id="preview-strip"></div>
-<div id="preview-resizer" role="separator" title="Drag to resize the preview strip · double-click to reset"></div>
-<div id="figure-overlay" aria-hidden="true"></div>
-<footer id="speaker-footer">
-  <button id="freeze-btn" type="button" aria-pressed="false">● live</button>
-  <button id="preview-orient-btn" type="button" title="Preview strip: along the bottom or down the right edge (Shift-V)">⇄ layout</button>
-  <button id="cue-btn" type="button" aria-pressed="false" title="Cue cards: your notes as cards, the projection small in the corner (K)">▤ cards</button>${souffleuseBtn}
-  <button id="export-annot-btn" type="button" title="Copy live annotations as &gt; annot: Markdown (Shift-E)">export notes</button>
-  <button id="speaker-help-btn" type="button" title="Keyboard and mouse reference (?)">? help</button>
-  <span id="slug">${escapeHtml(slug)}</span>
+<div id="psiINT-preview-strip"></div>
+<div id="psiINT-preview-resizer" role="separator" title="Drag to resize the preview strip · double-click to reset"></div>
+<div id="psiINT-figure-overlay" aria-hidden="true"></div>
+<footer id="psiINT-speaker-footer">
+  <button id="psiINT-freeze-btn" type="button" aria-pressed="false">● live</button>
+  <button id="psiINT-preview-orient-btn" type="button" title="Preview strip: along the bottom or down the right edge (Shift-V)">⇄ layout</button>
+  <button id="psiINT-cue-btn" type="button" aria-pressed="false" title="Cue cards: your notes as cards, the projection small in the corner (K)">▤ cards</button>${souffleuseBtn}
+  <button id="psiINT-export-annot-btn" type="button" title="Copy live annotations as &gt; annot: Markdown (Shift-E)">export notes</button>
+  <button id="psiINT-speaker-help-btn" type="button" title="Keyboard and mouse reference (?)">? help</button>
+  <span id="psiINT-slug">${escapeHtml(slug)}</span>
   <span class="spacer"></span>
   <span class="kbd-hint"><kbd>V</kbd> freeze &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>W</kbd> full &nbsp; <kbd>D</kbd> demo &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export${souffleuseKbd}</span>
 </footer>
-<div id="note-templates">
+<div id="psiINT-note-templates">
 ${noteTemplates.join('\n')}
 </div>
 ${TOUCH_CONTROLS_HTML}
 ${renderHelpOverlay('speaker', !!editorPayload(frontmatter, columnsHtml, 'speaker'), !!souffSettings)}
-<div id="mode-badge"></div>
-<div id="center-toast" role="status" aria-live="polite"></div>${souffleuseChrome}
+<div id="psiINT-mode-badge"></div>
+<div id="psiINT-center-toast" role="status" aria-live="polite"></div>${souffleuseChrome}
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
 ${GOTO_PROMPT_HTML}
@@ -23958,11 +23950,11 @@ body[data-view=speaker] {
   grid-template-columns: 1fr;
   overflow: hidden;
 }
-body[data-view=speaker]:not(.has-notes) #notes-pane { display: none; }
-#note-templates { display: none; }
+body[data-view=speaker]:not(.has-notes) #psiINT-notes-pane { display: none; }
+#psiINT-note-templates { display: none; }
 
 /* scrubber: thin top strip with column buttons + chunk dots */
-#scrubber {
+#psiINT-scrubber {
   grid-row: 1;
   display: flex;
   align-items: center;
@@ -24004,7 +23996,7 @@ body[data-view=speaker]:not(.has-notes) #notes-pane { display: none; }
 
 /* row 2: stage – full width, letterbox bars left/right if audience
    aspect is narrower than the cell. */
-#stage-cell {
+#psiINT-stage-cell {
   grid-row: 2;
   position: relative;
   min-width: 0;
@@ -24014,9 +24006,9 @@ body[data-view=speaker]:not(.has-notes) #notes-pane { display: none; }
   background: oklch(from var(--paper) calc(l - 0.03) c h);
   overflow: hidden;
 }
-body[data-view=speaker] #stage-viewport {
+body[data-view=speaker] #psiINT-stage-viewport {
   /* Full audience-size rectangle (slide-w × slide-h), visually shrunk
-     by --stage-scale to fit #stage-cell. translate(-50%, -50%) centers
+     by --stage-scale to fit #psiINT-stage-cell. translate(-50%, -50%) centers
      it inside the cell; because translate percentages refer to the
      element's layout size (pre-scale), centering still lands correctly
      after the scale composes in. */
@@ -24032,7 +24024,7 @@ body[data-view=speaker] #stage-viewport {
 /* row 3: speaker notes below the slide. Collapses to 0 when empty
    (body lacks .has-notes). Auto-sizes 1→3 lines based on content,
    sans-serif for projector legibility at a glance. */
-#notes-pane {
+#psiINT-notes-pane {
   grid-row: 3;
   border-top: 1px solid var(--rule);
   background: var(--paper-warm);
@@ -24044,7 +24036,7 @@ body[data-view=speaker] #stage-viewport {
 /* Drag handle straddling the stage/notes seam. Visible only while the
    notes row is open (has-notes); ns-resize cursor invites the drag.
    Sits 3px above the border-top so the hit area straddles the seam. */
-#notes-resizer {
+#psiINT-notes-resizer {
   display: none;
   position: absolute;
   top: -4px;
@@ -24056,7 +24048,7 @@ body[data-view=speaker] #stage-viewport {
   background: transparent;
   touch-action: none;
 }
-#notes-resizer::before {
+#psiINT-notes-resizer::before {
   content: '';
   position: absolute;
   top: 3px;
@@ -24069,12 +24061,12 @@ body[data-view=speaker] #stage-viewport {
   border-radius: 1px;
   transition: opacity 0.15s, background-color 0.15s, width 0.15s;
 }
-#notes-resizer:hover::before { opacity: 0.8; width: 84px; }
-body.notes-resizing #notes-resizer::before { opacity: 1; background: var(--emph); width: 84px; }
+#psiINT-notes-resizer:hover::before { opacity: 0.8; width: 84px; }
+body.notes-resizing #psiINT-notes-resizer::before { opacity: 1; background: var(--emph); width: 84px; }
 /* A 2px hairline is not self-explanatory, and "how do I make the notes
    bigger" is exactly the question this pane kept failing to answer. Name
    the gesture on hover instead of relying on the title attribute's delay. */
-#notes-resizer::after {
+#psiINT-notes-resizer::after {
   content: 'drag to resize · double-click resets';
   position: absolute;
   top: -1.15rem;
@@ -24093,9 +24085,9 @@ body.notes-resizing #notes-resizer::before { opacity: 1; background: var(--emph)
   pointer-events: none;
   transition: opacity 0.15s;
 }
-#notes-resizer:hover::after,
-body.notes-resizing #notes-resizer::after { opacity: 1; }
-body.has-notes #notes-resizer { display: block; }
+#psiINT-notes-resizer:hover::after,
+body.notes-resizing #psiINT-notes-resizer::after { opacity: 1; }
+body.has-notes #psiINT-notes-resizer { display: block; }
 /* When the user has dragged the resizer, swap the auto row for a fixed
    pixel height; the 1fr stage row absorbs the delta and the
    stage-cell ResizeObserver re-fits --stage-scale automatically, so the
@@ -24103,12 +24095,12 @@ body.has-notes #notes-resizer { display: block; }
 body[data-view=speaker].notes-sized {
   grid-template-rows: 3vh 1fr var(--notes-height, auto) var(--preview-h, 22vh) 2.2rem;
 }
-body[data-view=speaker].notes-sized #notes-content {
+body[data-view=speaker].notes-sized #psiINT-notes-content {
   height: 100% !important;
   box-sizing: border-box;
   overflow: auto;
 }
-#notes-content {
+#psiINT-notes-content {
   flex: 1;
   width: 100%;
   border: 0;
@@ -24129,12 +24121,12 @@ body[data-view=speaker].notes-sized #notes-content {
   overflow: hidden;
   height: 1.35em;
 }
-#notes-content:focus {
+#psiINT-notes-content:focus {
   outline: 2px solid oklch(0.55 0.12 220);
   outline-offset: -2px;
   overflow: auto; /* allow scroll while editing if overflowing 3 lines */
 }
-#notes-content::placeholder {
+#psiINT-notes-content::placeholder {
   color: var(--ink-soft);
   font-style: italic;
 }
@@ -24142,7 +24134,7 @@ body[data-view=speaker].notes-sized #notes-content {
    is the surface the lecturer types into, and every free letter is already
    a navigation command. Sits below the resizer's 8px hit strip so the two
    affordances do not fight over the same pixels. */
-#notes-zoom {
+#psiINT-notes-zoom {
   position: absolute;
   top: 7px; right: 10px;
   display: flex;
@@ -24153,9 +24145,9 @@ body[data-view=speaker].notes-sized #notes-content {
   opacity: 0.55;
   transition: opacity 0.15s;
 }
-#notes-pane:hover #notes-zoom,
-#notes-zoom:focus-within { opacity: 1; }
-#notes-zoom button {
+#psiINT-notes-pane:hover #psiINT-notes-zoom,
+#psiINT-notes-zoom:focus-within { opacity: 1; }
+#psiINT-notes-zoom button {
   /* 32px square. These are pressed while talking to a room, so the target
      has to be hittable without looking at it – 20px was a fiddly aim. */
   width: 32px; height: 32px;
@@ -24169,14 +24161,14 @@ body[data-view=speaker].notes-sized #notes-content {
   color: var(--ink-soft);
   cursor: pointer;
 }
-#notes-zoom button:hover { color: var(--ink); border-color: var(--ink-soft); }
+#psiINT-notes-zoom button:hover { color: var(--ink); border-color: var(--ink-soft); }
 
 /* bottom: preview strip – horizontal scroll of all chunks, drag or
    wheel to pan, click to jump. The active slot is highlighted and
    automatically scrolled into view on chunk change. */
-#preview-strip {
+#psiINT-preview-strip {
   grid-row: 4;
-  /* Explicit, not auto: #preview-resizer shares this cell, and grid
+  /* Explicit, not auto: #psiINT-preview-resizer shares this cell, and grid
      auto-placement *avoids* an occupied cell instead of overlapping it –
      leaving the strip auto-placed pushed it into an implicit second column
      that grid-template-columns never declared. Overlap needs both items
@@ -24195,14 +24187,14 @@ body[data-view=speaker].notes-sized #notes-content {
   /* Firefox: thin scrollbar; Chrome/Safari: via -webkit-* below. */
   scrollbar-width: thin;
 }
-#preview-strip.dragging { cursor: grabbing; scroll-behavior: auto; }
-#preview-strip::-webkit-scrollbar { height: 6px; }
-#preview-strip::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
+#psiINT-preview-strip.dragging { cursor: grabbing; scroll-behavior: auto; }
+#psiINT-preview-strip::-webkit-scrollbar { height: 6px; }
+#psiINT-preview-strip::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
 /* Drag handle for the preview strip. It is a grid item of its own sharing
    the strip's cell and hugging the leading edge – it cannot live *inside*
    the strip, because the strip is a scroll container and the handle would
    scroll away with the thumbnails. Negative margin straddles the seam. */
-#preview-resizer {
+#psiINT-preview-resizer {
   grid-row: 4;
   grid-column: 1 / -1;
   align-self: start;
@@ -24213,7 +24205,7 @@ body[data-view=speaker].notes-sized #notes-content {
   touch-action: none;
   z-index: 6;
 }
-#preview-resizer::before {
+#psiINT-preview-resizer::before {
   content: '';
   position: absolute;
   top: 3px; left: 50%;
@@ -24224,11 +24216,11 @@ body[data-view=speaker].notes-sized #notes-content {
   border-radius: 1px;
   transition: opacity 0.15s, background-color 0.15s, width 0.15s, height 0.15s;
 }
-#preview-resizer:hover::before { opacity: 0.8; width: 84px; }
-body.preview-resizing #preview-resizer::before { opacity: 1; background: var(--emph); width: 84px; }
+#psiINT-preview-resizer:hover::before { opacity: 0.8; width: 84px; }
+body.preview-resizing #psiINT-preview-resizer::before { opacity: 1; background: var(--emph); width: 84px; }
 /* Same reasoning as the notes handle: a 2px hairline does not announce
    itself, and "can I make these bigger" is the question it has to answer. */
-#preview-resizer::after {
+#psiINT-preview-resizer::after {
   content: 'drag to resize · double-click resets';
   position: absolute;
   top: -1.15rem; left: 50%;
@@ -24246,8 +24238,8 @@ body.preview-resizing #preview-resizer::before { opacity: 1; background: var(--e
   pointer-events: none;
   transition: opacity 0.15s;
 }
-#preview-resizer:hover::after,
-body.preview-resizing #preview-resizer::after { opacity: 1; }
+#psiINT-preview-resizer:hover::after,
+body.preview-resizing #psiINT-preview-resizer::after { opacity: 1; }
 
 .preview-slot {
   flex: 0 0 auto;
@@ -24300,7 +24292,7 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
 .preview-slot .chunk-clone.chunk-title .chunk-content { padding-bottom: 0; }
 
 /* footer */
-#speaker-footer {
+#psiINT-speaker-footer {
   grid-row: 5;
   display: flex;
   align-items: center;
@@ -24319,7 +24311,7 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
    is pressed: tStart is the page load, ten minutes early when the cockpit
    is opened before the room fills, so a click restarts it at 0:00. The
    cue-card mode moves this same element into its header. */
-#clock {
+#psiINT-clock {
   position: absolute;
   right: 0.7rem;
   top: 0.6rem;
@@ -24340,13 +24332,13 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
   cursor: pointer;
   transition: border-color 120ms;
 }
-#clock:hover { border-color: var(--rule); }
-#clock:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; }
+#psiINT-clock:hover { border-color: var(--rule); }
+#psiINT-clock:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; }
 /* What the click does, said before it is clicked. A tooltip is not enough
    for a control whose one action is destructive-looking: a clock that
    jumps to 0:00 under a stray click reads as a fault unless the button
    announced it. In flow at zero opacity, so nothing shifts on hover. */
-#clock #clock-hint {
+#psiINT-clock #psiINT-clock-hint {
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
@@ -24355,13 +24347,13 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
   opacity: 0;
   transition: opacity 120ms;
 }
-#clock:hover #clock-hint,
-#clock:focus-visible #clock-hint { opacity: 1; }
-#clock #drift { font-size: 0.6em; color: var(--emph); }
-#clock #drift.ahead { color: var(--ink-soft); }
+#psiINT-clock:hover #psiINT-clock-hint,
+#psiINT-clock:focus-visible #psiINT-clock-hint { opacity: 1; }
+#psiINT-clock #psiINT-drift { font-size: 0.6em; color: var(--emph); }
+#psiINT-clock #psiINT-drift.ahead { color: var(--ink-soft); }
 /* Freeze state, and the control for it – one element, because a status light
    you cannot press is a question with no answer next to it. */
-#speaker-footer #freeze-btn {
+#psiINT-speaker-footer #psiINT-freeze-btn {
   font: inherit;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.14em;
@@ -24373,24 +24365,24 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
   background: transparent;
   color: oklch(0.55 0.16 150);
 }
-#speaker-footer #freeze-btn:hover { border-color: var(--rule); background: oklch(0.97 0 0); }
-#speaker-footer #freeze-btn.is-frozen {
+#psiINT-speaker-footer #psiINT-freeze-btn:hover { border-color: var(--rule); background: oklch(0.97 0 0); }
+#psiINT-speaker-footer #psiINT-freeze-btn.is-frozen {
   color: oklch(0.99 0 0);
   background: oklch(0.55 0.15 250);
   border-color: oklch(0.48 0.15 250);
 }
-#speaker-footer #freeze-btn.is-frozen:hover { background: oklch(0.50 0.15 250); }
-#speaker-footer #slug { color: var(--ink-soft); font-style: italic; }
-#speaker-footer .spacer { flex: 1; }
-#speaker-footer .kbd-hint { font-size: 10px; opacity: 0.7; }
-#speaker-footer kbd { padding: 0 3px; border: 1px solid var(--rule); background: oklch(0.96 0 0); color: var(--ink); font-family: var(--mono-font); font-size: 9px; }
+#psiINT-speaker-footer #psiINT-freeze-btn.is-frozen:hover { background: oklch(0.50 0.15 250); }
+#psiINT-speaker-footer #psiINT-slug { color: var(--ink-soft); font-style: italic; }
+#psiINT-speaker-footer .spacer { flex: 1; }
+#psiINT-speaker-footer .kbd-hint { font-size: 10px; opacity: 0.7; }
+#psiINT-speaker-footer kbd { padding: 0 3px; border: 1px solid var(--rule); background: oklch(0.96 0 0); color: var(--ink); font-family: var(--mono-font); font-size: 9px; }
 /* Footer buttons. These carry the three cockpit actions that are otherwise
    key-only – strip orientation, annotation export, and the help panel – so
    none of them depends on remembering a letter. */
-#speaker-footer #export-annot-btn,
-#speaker-footer #preview-orient-btn,
-#speaker-footer #cue-btn,
-#speaker-footer #speaker-help-btn {
+#psiINT-speaker-footer #psiINT-export-annot-btn,
+#psiINT-speaker-footer #psiINT-preview-orient-btn,
+#psiINT-speaker-footer #psiINT-cue-btn,
+#psiINT-speaker-footer #psiINT-speaker-help-btn {
   font: inherit;
   white-space: nowrap;
   padding: 2px 8px;
@@ -24400,16 +24392,16 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
   color: var(--ink);
   cursor: pointer;
 }
-#speaker-footer #export-annot-btn:hover,
-#speaker-footer #preview-orient-btn:hover,
-#speaker-footer #cue-btn:hover,
-#speaker-footer #speaker-help-btn:hover { background: oklch(0.93 0 0); }
-#speaker-footer #cue-btn[aria-pressed=true] { border-color: var(--emph); color: var(--emph); }
+#psiINT-speaker-footer #psiINT-export-annot-btn:hover,
+#psiINT-speaker-footer #psiINT-preview-orient-btn:hover,
+#psiINT-speaker-footer #psiINT-cue-btn:hover,
+#psiINT-speaker-footer #psiINT-speaker-help-btn:hover { background: oklch(0.93 0 0); }
+#psiINT-speaker-footer #psiINT-cue-btn[aria-pressed=true] { border-color: var(--emph); color: var(--emph); }
 
 /* Mode toast sits at the top of the *stage*, not the top of the window:
    row 1 is the scrubber, and a toast overlapping the column strip covers
    exactly the navigation the lecturer is checking against. */
-body[data-view=speaker] #mode-badge { top: calc(3vh + 14px); }
+body[data-view=speaker] #psiINT-mode-badge { top: calc(3vh + 14px); }
 
 /* A clip in the cockpit is the lecturer's control surface; the projection
    mirrors it. Nothing view-specific about the box itself. */
@@ -24511,12 +24503,12 @@ body[data-view=speaker].overview-mode .dg-hint { display: none; }
 /* Cockpit chrome on a dark theme – same reasoning as the dark-chrome block
    in AUDIENCE_CSS. The footer, its key crib and the export modal all carry
    fixed light backgrounds otherwise. */
-body[data-mode=dark] #speaker-footer kbd,
-body[data-mode=dark] #speaker-footer #export-annot-btn,
-body[data-mode=dark] #speaker-footer #preview-orient-btn,
-body[data-mode=dark] #speaker-footer #cue-btn,
-body[data-mode=dark] #speaker-footer #speaker-help-btn,
-body[data-mode=dark] #notes-zoom button,
+body[data-mode=dark] #psiINT-speaker-footer kbd,
+body[data-mode=dark] #psiINT-speaker-footer #psiINT-export-annot-btn,
+body[data-mode=dark] #psiINT-speaker-footer #psiINT-preview-orient-btn,
+body[data-mode=dark] #psiINT-speaker-footer #psiINT-cue-btn,
+body[data-mode=dark] #psiINT-speaker-footer #psiINT-speaker-help-btn,
+body[data-mode=dark] #psiINT-notes-zoom button,
 body[data-mode=dark] .export-modal-inner,
 body[data-mode=dark] .export-modal-code,
 body[data-mode=dark] .export-modal-copy,
@@ -24525,21 +24517,21 @@ body[data-mode=dark] .export-modal-keep {
   background: var(--paper-warm);
   color: var(--ink);
 }
-body[data-mode=dark] #speaker-footer #freeze-btn:hover,
-body[data-mode=dark] #speaker-footer #export-annot-btn:hover,
-body[data-mode=dark] #speaker-footer #preview-orient-btn:hover,
-body[data-mode=dark] #speaker-footer #speaker-help-btn:hover,
-body[data-mode=dark] #notes-zoom button:hover,
+body[data-mode=dark] #psiINT-speaker-footer #psiINT-freeze-btn:hover,
+body[data-mode=dark] #psiINT-speaker-footer #psiINT-export-annot-btn:hover,
+body[data-mode=dark] #psiINT-speaker-footer #psiINT-preview-orient-btn:hover,
+body[data-mode=dark] #psiINT-speaker-footer #psiINT-speaker-help-btn:hover,
+body[data-mode=dark] #psiINT-notes-zoom button:hover,
 body[data-mode=dark] .export-modal-copy:hover,
 body[data-mode=dark] .export-modal-keep:hover {
   background: oklch(from var(--paper) calc(l + 0.12) c h);
 }
 
 /* Center toast — prominent transient feedback for export-flow events.
-   Placed inside the stage viewing zone (bottom-centre of #stage-cell)
-   because the 10px #mode-badge in the top-right is too peripheral for
+   Placed inside the stage viewing zone (bottom-centre of #psiINT-stage-cell)
+   because the 10px #psiINT-mode-badge in the top-right is too peripheral for
    outcomes the lecturer actually needs to see. */
-#center-toast {
+#psiINT-center-toast {
   position: fixed;
   left: 50%;
   bottom: 22%;
@@ -24559,22 +24551,22 @@ body[data-mode=dark] .export-modal-keep:hover {
   max-width: 60vw;
   text-align: center;
 }
-#center-toast.visible { opacity: 1; }
-#center-toast.warn { background: oklch(0.55 0.16 25 / 0.92); }
+#psiINT-center-toast.visible { opacity: 1; }
+#psiINT-center-toast.warn { background: oklch(0.55 0.16 25 / 0.92); }
 
 /* Post-Shift-E modal: walks the lecturer through pasting the clipboard
    content back into source.md, running --integrate-annotations,
    rebuilding, and finally clearing the now-redundant localStorage
    drafts. The raw snippet stays in a <details> so a flaked clipboard
    copy can be recovered without re-triggering the export. */
-#export-modal {
+#psiINT-export-modal {
   position: fixed; inset: 0;
   background: oklch(0 0 0 / 0.45);
   display: flex; align-items: center; justify-content: center;
   z-index: 9999;
   font-family: var(--sans-font);
 }
-#export-modal .export-modal-inner {
+#psiINT-export-modal .export-modal-inner {
   background: var(--paper);
   border: 1px solid var(--rule);
   border-radius: 8px;
@@ -24679,7 +24671,7 @@ body[data-view=speaker] .annot-add { display: none !important; }
    Doubles as discoverability for the Shift-N hotkey – newcomers see the
    affordance and learn the shortcut from the tooltip. Hidden once notes
    are visible so it doesn't clutter the slide. */
-#add-note-btn {
+#psiINT-add-note-btn {
   position: absolute;
   right: 0.7rem;
   bottom: 0.7rem;
@@ -24697,12 +24689,12 @@ body[data-view=speaker] .annot-add { display: none !important; }
   opacity: 0.5;
   transition: opacity 120ms, color 120ms, border-color 120ms;
 }
-#add-note-btn:hover {
+#psiINT-add-note-btn:hover {
   opacity: 1;
   color: var(--ink);
   border-color: var(--ink-soft);
 }
-body.has-notes #add-note-btn { display: none; }
+body.has-notes #psiINT-add-note-btn { display: none; }
 
 /* ── cue cards ────────────────────────────────────────────────────────
    The third arrangement of the cockpit: the notes as cards in a column,
@@ -24714,7 +24706,7 @@ body.has-notes #add-note-btn { display: none; }
    glancing. No boxes: a line down the left with a dot per card and a
    diamond per click on the projector is the whole apparatus, and the red
    dot is the cursor. */
-#cue-panel { display: none; }
+#psiINT-cue-panel { display: none; }
 body[data-view=speaker].cue-cards {
   grid-template-rows: 3vh 1fr 2.2rem;
   /* The strip's width is a variable so the handle can write it. The clamp
@@ -24722,13 +24714,13 @@ body[data-view=speaker].cue-cards {
      session in localStorage. */
   grid-template-columns: var(--cue-strip-w, clamp(240px, 23vw, 400px)) 1fr;
 }
-body[data-view=speaker].cue-cards #scrubber { grid-column: 1 / -1; grid-row: 1; }
+body[data-view=speaker].cue-cards #psiINT-scrubber { grid-column: 1 / -1; grid-row: 1; }
 /* The mirror is a child of the strip here, in the place the current
    thumbnail would have taken - so the left column is one film strip with
    the real projection in the middle of it instead of a thumbnail beside a
    mirror of the same slide. Two of them was the confusing part, and only
    one of the two was laid out the way the room sees it. */
-body[data-view=speaker].cue-cards #stage-cell {
+body[data-view=speaker].cue-cards #psiINT-stage-cell {
   position: relative;
   flex: 0 0 auto;
   width: 100%;
@@ -24741,14 +24733,14 @@ body[data-view=speaker].cue-cards #stage-cell {
   box-shadow: 0 0 0 2px var(--emph);
 }
 body[data-view=speaker].cue-cards .preview-slot.current { display: none; }
-body[data-view=speaker].cue-cards #add-note-btn { display: none; }
-body[data-view=speaker].cue-cards #notes-pane { display: none; }
+body[data-view=speaker].cue-cards #psiINT-add-note-btn { display: none; }
+body[data-view=speaker].cue-cards #psiINT-notes-pane { display: none; }
 /* The handle is not switched off in this mode - it is the seam between the
    film strip and the cards, and it sizes both at once: the mirror is a
    child of the strip here, so a wider strip is a bigger projection. Third
    axis, third stored value; see the drag code for why one descriptor
    rather than a third branch. */
-body[data-view=speaker].cue-cards #preview-resizer {
+body[data-view=speaker].cue-cards #psiINT-preview-resizer {
   grid-column: 1;
   grid-row: 2;
   justify-self: end;
@@ -24759,19 +24751,19 @@ body[data-view=speaker].cue-cards #preview-resizer {
   margin-right: -4px;
   cursor: ew-resize;
 }
-body[data-view=speaker].cue-cards #preview-resizer::before {
+body[data-view=speaker].cue-cards #psiINT-preview-resizer::before {
   top: 50%; left: 3px;
   transform: translateY(-50%);
   width: 2px; height: 42px;
 }
-body[data-view=speaker].cue-cards #preview-resizer:hover::before,
-body.cue-cards.preview-resizing #preview-resizer::before { width: 2px; height: 84px; }
+body[data-view=speaker].cue-cards #psiINT-preview-resizer:hover::before,
+body.cue-cards.preview-resizing #psiINT-preview-resizer::before { width: 2px; height: 84px; }
 /* The label hangs into the strip: above the handle is the scrubber. */
-body[data-view=speaker].cue-cards #preview-resizer::after {
+body[data-view=speaker].cue-cards #psiINT-preview-resizer::after {
   top: 8px; right: 10px; left: auto;
   transform: none;
 }
-body[data-view=speaker].cue-cards #preview-strip {
+body[data-view=speaker].cue-cards #psiINT-preview-strip {
   grid-column: 1; grid-row: 2;
   flex-direction: column;
   gap: 0.5rem;
@@ -24781,10 +24773,10 @@ body[data-view=speaker].cue-cards #preview-strip {
   overflow-x: hidden;
   overflow-y: auto;
 }
-body[data-view=speaker].cue-cards #preview-strip::-webkit-scrollbar { width: 6px; height: auto; }
+body[data-view=speaker].cue-cards #psiINT-preview-strip::-webkit-scrollbar { width: 6px; height: auto; }
 body[data-view=speaker].cue-cards .preview-slot { height: auto; width: auto; }
-body[data-view=speaker].cue-cards #speaker-footer { grid-column: 1 / -1; grid-row: 3; }
-body[data-view=speaker].cue-cards #cue-panel {
+body[data-view=speaker].cue-cards #psiINT-speaker-footer { grid-column: 1 / -1; grid-row: 3; }
+body[data-view=speaker].cue-cards #psiINT-cue-panel {
   grid-column: 2; grid-row: 2;
   display: flex;
   flex-direction: column;
@@ -24795,7 +24787,7 @@ body[data-view=speaker].cue-cards #cue-panel {
 }
 /* The clock moves into this header while the cards are up, so it loses
    its corner position and its scrim. */
-body[data-view=speaker].cue-cards #clock {
+body[data-view=speaker].cue-cards #psiINT-clock {
   position: static;
   flex: 0 0 auto;
   background: transparent;
@@ -24806,7 +24798,7 @@ body[data-view=speaker].cue-cards #clock {
 /* No overflow: hidden here - the clock is two and a half times the size of
    this line's own type and sits on it, so a clipped box took the top off
    the digits. The two text children do their own truncating instead. */
-#cue-where {
+#psiINT-cue-where {
   display: flex;
   align-items: center;
   gap: 1em;
@@ -24815,12 +24807,12 @@ body[data-view=speaker].cue-cards #clock {
   color: var(--ink-soft);
   white-space: nowrap;
 }
-#cue-crumb { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink); font-weight: 500; }
-#cue-crumb .cue-col { color: var(--ink-soft); font-weight: 400; }
-#cue-crumb .cue-col::after { content: ' › '; }
-#cue-pos { flex: 0 0 auto; font-family: var(--mono-font); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
-#cue-pos b { font-weight: 500; color: var(--ink); }
-#cue-rail {
+#psiINT-cue-crumb { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink); font-weight: 500; }
+#psiINT-cue-crumb .cue-col { color: var(--ink-soft); font-weight: 400; }
+#psiINT-cue-crumb .cue-col::after { content: ' › '; }
+#psiINT-cue-pos { flex: 0 0 auto; font-family: var(--mono-font); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+#psiINT-cue-pos b { font-weight: 500; color: var(--ink); }
+#psiINT-cue-rail {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -24837,9 +24829,9 @@ body[data-view=speaker].cue-cards #clock {
 }
 /* Two buttons rather than a hotkey, for the reason the notes pane has two:
    every free letter is a navigation command that would fire mid-sentence. */
-#cue-zoom { flex: 0 0 auto; display: flex; gap: 2px; opacity: 0.35; transition: opacity 120ms; }
-#cue-where:hover #cue-zoom, #cue-zoom:focus-within { opacity: 1; }
-#cue-zoom button {
+#psiINT-cue-zoom { flex: 0 0 auto; display: flex; gap: 2px; opacity: 0.35; transition: opacity 120ms; }
+#psiINT-cue-where:hover #psiINT-cue-zoom, #psiINT-cue-zoom:focus-within { opacity: 1; }
+#psiINT-cue-zoom button {
   font: 500 0.95em var(--sans-font);
   line-height: 1;
   width: 1.9em; height: 1.6em;
@@ -24849,8 +24841,8 @@ body[data-view=speaker].cue-cards #clock {
   color: var(--ink-soft);
   cursor: pointer;
 }
-#cue-zoom button:hover { color: var(--ink); border-color: var(--ink-soft); }
-@media (prefers-reduced-motion: no-preference) { #cue-rail { scroll-behavior: smooth; } }
+#psiINT-cue-zoom button:hover { color: var(--ink); border-color: var(--ink-soft); }
+@media (prefers-reduced-motion: no-preference) { #psiINT-cue-rail { scroll-behavior: smooth; } }
 .cue-tick { position: relative; }
 .cue-tick::before {
   content: '';
@@ -24932,8 +24924,8 @@ body[data-view=speaker].cue-cards #clock {
 }
 .cue-entry.cur .cue-step .cue-what { white-space: normal; font-style: normal; }
 .cue-entry.cur .cue-step { font-size: 0.9em; }
-#cue-rail .cue-empty { grid-column: 1 / -1; color: var(--ink-soft); font-size: 0.9em; padding: 1em 0; }
-#cue-rail .cue-empty kbd { font-family: var(--mono-font); font-size: 0.85em; border: 1px solid var(--rule); border-radius: 3px; padding: 0 0.35em; }
+#psiINT-cue-rail .cue-empty { grid-column: 1 / -1; color: var(--ink-soft); font-size: 0.9em; padding: 1em 0; }
+#psiINT-cue-rail .cue-empty kbd { font-family: var(--mono-font); font-size: 0.85em; border: 1px solid var(--rule); border-radius: 3px; padding: 0 0.35em; }
 
 /* ── preview-strip: right-mode (vertical) ─────────────────────────────
    Toggled by V. Strip moves from row 4 into row 2 / col 2, stacks
@@ -24948,11 +24940,11 @@ body[data-view=speaker].preview-right:not(.cue-cards) {
 body[data-view=speaker].preview-right:not(.cue-cards).notes-sized {
   grid-template-rows: 3vh 1fr var(--notes-height, auto) 2.2rem;
 }
-body[data-view=speaker].preview-right:not(.cue-cards) #scrubber     { grid-column: 1 / -1; grid-row: 1; }
-body[data-view=speaker].preview-right:not(.cue-cards) #stage-cell   { grid-column: 1; grid-row: 2; }
-body[data-view=speaker].preview-right:not(.cue-cards) #notes-pane   { grid-column: 1 / -1; grid-row: 3; }
-body[data-view=speaker].preview-right:not(.cue-cards) #speaker-footer { grid-column: 1 / -1; grid-row: 4; }
-body[data-view=speaker].preview-right:not(.cue-cards) #preview-strip {
+body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-scrubber     { grid-column: 1 / -1; grid-row: 1; }
+body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-stage-cell   { grid-column: 1; grid-row: 2; }
+body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-notes-pane   { grid-column: 1 / -1; grid-row: 3; }
+body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-speaker-footer { grid-column: 1 / -1; grid-row: 4; }
+body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-preview-strip {
   grid-column: 2;
   grid-row: 2;
   flex-direction: column;
@@ -24962,7 +24954,7 @@ body[data-view=speaker].preview-right:not(.cue-cards) #preview-strip {
   overflow-x: hidden;
   overflow-y: auto;
 }
-body[data-view=speaker].preview-right:not(.cue-cards) #preview-strip::-webkit-scrollbar { width: 6px; height: auto; }
+body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-preview-strip::-webkit-scrollbar { width: 6px; height: auto; }
 body[data-view=speaker].preview-right:not(.cue-cards) .preview-slot {
   height: auto;
   width: auto;
@@ -24970,7 +24962,7 @@ body[data-view=speaker].preview-right:not(.cue-cards) .preview-slot {
 }
 /* The handle rotates with the strip: same cell, now hugging its left edge,
    and the drag axis becomes horizontal. */
-body[data-view=speaker].preview-right:not(.cue-cards) #preview-resizer {
+body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-preview-resizer {
   grid-row: 2;
   grid-column: 2;
   justify-self: start;
@@ -24981,16 +24973,16 @@ body[data-view=speaker].preview-right:not(.cue-cards) #preview-resizer {
   margin-left: -4px;
   cursor: ew-resize;
 }
-body[data-view=speaker].preview-right:not(.cue-cards) #preview-resizer::before {
+body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-preview-resizer::before {
   top: 50%; left: 3px;
   transform: translateY(-50%);
   width: 2px; height: 42px;
 }
-body[data-view=speaker].preview-right:not(.cue-cards) #preview-resizer:hover::before,
-body.preview-right:not(.cue-cards).preview-resizing #preview-resizer::before { width: 2px; height: 84px; }
+body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-preview-resizer:hover::before,
+body.preview-right:not(.cue-cards).preview-resizing #psiINT-preview-resizer::before { width: 2px; height: 84px; }
 /* Label hangs into the strip instead of above it – there is no room above
    in this orientation, that cell is the stage. */
-body[data-view=speaker].preview-right:not(.cue-cards) #preview-resizer::after {
+body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-preview-resizer::after {
   top: 8px; left: 10px;
   transform: none;
 }
@@ -24999,16 +24991,16 @@ body[data-view=speaker].preview-right:not(.cue-cards) #preview-resizer::after {
 // ── speaker-specific runtime (loaded after AUDIENCE_JS) ──────────────
 
 const SPEAKER_JS = `
-const notesContent = document.getElementById('notes-content');
-const notesPane = document.getElementById('notes-pane');
-const previewStrip = document.getElementById('preview-strip');
-const scrubberEl = document.getElementById('scrubber');
-const timerEl = document.getElementById('timer');
-const freezeBtn = document.getElementById('freeze-btn');
-const stageCell = document.getElementById('stage-cell');
+const notesContent = document.getElementById('psiINT-notes-content');
+const notesPane = document.getElementById('psiINT-notes-pane');
+const previewStrip = document.getElementById('psiINT-preview-strip');
+const scrubberEl = document.getElementById('psiINT-scrubber');
+const timerEl = document.getElementById('psiINT-timer');
+const freezeBtn = document.getElementById('psiINT-freeze-btn');
+const stageCell = document.getElementById('psiINT-stage-cell');
 
 // Compute --stage-scale so the audience-sized slide (slide-w × slide-h)
-// fits inside #stage-cell with letterbox bars. The viewport itself is
+// fits inside #psiINT-stage-cell with letterbox bars. The viewport itself is
 // laid out at the full reference size; scale is purely visual. This
 // guarantees identical content wrap + font size across audience and
 // speaker, which the laser-pointer geometry depends on.
@@ -25071,7 +25063,7 @@ freezeBtn.addEventListener('click', toggleFreeze);
 // then asks for explicit confirmation before clearing the draft buffer —
 // a failed copy or a cancelled confirm leaves localStorage untouched, so
 // nothing is lost if the lecturer aborts mid-workflow.
-const centerToast = document.getElementById('center-toast');
+const centerToast = document.getElementById('psiINT-center-toast');
 let centerToastTimer = null;
 function flashCenter(text, opts = {}) {
   if (!centerToast) return;
@@ -25117,10 +25109,10 @@ function sourcePathForCommand() {
 }
 
 function showExportModal({ drafts, snippet, clipboardOk }) {
-  let host = document.getElementById('export-modal');
+  let host = document.getElementById('psiINT-export-modal');
   if (host) host.remove();
   host = document.createElement('div');
-  host.id = 'export-modal';
+  host.id = 'psiINT-export-modal';
 
   const inner = document.createElement('div');
   inner.className = 'export-modal-inner';
@@ -25257,9 +25249,9 @@ async function exportAnnotations() {
   showExportModal({ drafts, snippet, clipboardOk: copied });
 }
 
-const exportAnnotBtn = document.getElementById('export-annot-btn');
+const exportAnnotBtn = document.getElementById('psiINT-export-annot-btn');
 if (exportAnnotBtn) exportAnnotBtn.addEventListener('click', exportAnnotations);
-document.getElementById('speaker-help-btn')?.addEventListener('click', () => toggleHelp(true));
+document.getElementById('psiINT-speaker-help-btn')?.addEventListener('click', () => toggleHelp(true));
 
 // N on the speaker opens the audience-visible annotation slot (PRD §2 –
 // the live marginalia channel that mirrors to the audience). The notes
@@ -25364,7 +25356,7 @@ flatChunks.forEach((c, i) => {
 // onActiveChange hook (every keystroke, every remote-state apply) doesn't
 // re-scan the document on each tick.
 const colEntryEls = Array.from(document.querySelectorAll('.col-entry'));
-const dotEls = Array.from(document.querySelectorAll('#scrubber .dot'));
+const dotEls = Array.from(document.querySelectorAll('#psiINT-scrubber .dot'));
 
 function updateScrubber() {
   const entry = flatChunks[state.activeIdx];
@@ -25563,7 +25555,7 @@ function renderTimer() {
 }
 setInterval(renderTimer, 1000);
 renderTimer();
-document.getElementById('clock').addEventListener('click', () => {
+document.getElementById('psiINT-clock').addEventListener('click', () => {
   tStart = Date.now();
   renderTimer();
   flashCenter('clock restarted');
@@ -25605,18 +25597,15 @@ const souffleuseCues = new Map();
 // revealed[chunkId] stays the only thing the two windows share.
 const CUE_MODE_KEY = 'psi-slides:cue-cards';
 const CUE_SCALE_KEY = 'psi-slides:cue-scale';
-// The cockpit's own ids share one namespace with the lecture's chunk ids -
-// the chunks are in this document too, inside the mirror - and
-// getElementById answers with whichever comes first in the DOM. The
-// tutorial has a chunk about this mode, so cue-cards was two elements and
-// the loser moved when cuePlaceStage reordered the body. Hence a name no
-// slide is likely to want, and a lookup scoped to the section for the rest.
-const cueRoot = document.querySelector('body > #cue-panel');
-const cueRail = cueRoot.querySelector('#cue-rail');
-const cueCrumb = cueRoot.querySelector('#cue-crumb');
-const cuePos = cueRoot.querySelector('#cue-pos');
-const cueBtn = document.getElementById('cue-btn');
-const clockEl = document.getElementById('clock');
+// The cockpit's own ids carry the psiINT- prefix, so no chunk id - the
+// chunks are in this document too, inside the mirror - can answer for one.
+// The pieces of the panel are still looked up through the panel.
+const cueRoot = document.querySelector('body > #psiINT-cue-panel');
+const cueRail = cueRoot.querySelector('#psiINT-cue-rail');
+const cueCrumb = cueRoot.querySelector('#psiINT-cue-crumb');
+const cuePos = cueRoot.querySelector('#psiINT-cue-pos');
+const cueBtn = document.getElementById('psiINT-cue-btn');
+const clockEl = document.getElementById('psiINT-clock');
 // Where the stage sits in the classic arrangement, so the cue-card mode can
 // put it back: it moves into the preview strip while the cards are up.
 const stageHome = stageCell.nextElementSibling;
@@ -25649,7 +25638,7 @@ function applyCueMode(on) {
   cueBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
   // The clock is one element in two places: over the stage's letterbox in
   // the classic arrangement, in the column's header here.
-  if (on) cueRoot.querySelector('#cue-where').appendChild(clockEl);
+  if (on) cueRoot.querySelector('#psiINT-cue-where').appendChild(clockEl);
   else stageCell.appendChild(clockEl);
   if (!on) document.body.insertBefore(stageCell, stageHome);
   populatePreviewStrip();
@@ -25675,8 +25664,8 @@ function cueScale() {
 function nudgeCueScale(d) {
   applyCueScale(Math.min(1.8, Math.max(0.7, Math.round((cueScale() + d) * 20) / 20)));
 }
-cueRoot.querySelector('#cue-zoom-in').addEventListener('click', () => nudgeCueScale(0.1));
-cueRoot.querySelector('#cue-zoom-out').addEventListener('click', () => nudgeCueScale(-0.1));
+cueRoot.querySelector('#psiINT-cue-zoom-in').addEventListener('click', () => nudgeCueScale(0.1));
+cueRoot.querySelector('#psiINT-cue-zoom-out').addEventListener('click', () => nudgeCueScale(-0.1));
 try {
   const saved = Number(localStorage.getItem(CUE_SCALE_KEY));
   if (saved > 0) applyCueScale(saved);
@@ -25958,7 +25947,7 @@ function cueDriftValue() {
 // a signed zero rather than nothing, because a blank where a number
 // belongs is read as a broken clock, not as good timekeeping. A minute
 // is not worth a number, so the display is coarse to the ten seconds.
-const driftEl = document.getElementById('drift');
+const driftEl = document.getElementById('psiINT-drift');
 function renderDrift() {
   const d = cueDriftValue();
   if (d == null || !cueOn()) { driftEl.hidden = true; return; }
@@ -26062,12 +26051,12 @@ function togglePreviewOrientation() {
   flashMode('viewer layout · preview ' + (next === 'right' ? 'down the right edge' : 'along the bottom'));
   populatePreviewStrip();
 }
-document.getElementById('preview-orient-btn')?.addEventListener('click', togglePreviewOrientation);
+document.getElementById('psiINT-preview-orient-btn')?.addEventListener('click', togglePreviewOrientation);
 
 // The in-stage "+ note" overlay is an alternative entry point to
 // Shift-N. Visible only while the notes pane is collapsed; the CSS
 // hides it once has-notes lands on body.
-document.getElementById('add-note-btn')?.addEventListener('click', () => {
+document.getElementById('psiINT-add-note-btn')?.addEventListener('click', () => {
   focusNotesPane();
 });
 
@@ -26076,7 +26065,7 @@ document.getElementById('add-note-btn')?.addEventListener('click', () => {
 // the 1fr stage row shrinks correspondingly and stageCell's
 // ResizeObserver re-runs sizeStageViewport(), so the audience preview
 // rescales ratio-proportional. Persisted per-user; double-click resets.
-const notesResizer = document.getElementById('notes-resizer');
+const notesResizer = document.getElementById('psiINT-notes-resizer');
 const NOTES_HEIGHT_KEY = 'psi-slides:notes-height';
 const NOTES_MIN_PX = 60;
 const STAGE_MIN_PX = 140;
@@ -26159,7 +26148,7 @@ function stepNotesFont(dir) {
   try { localStorage.setItem(NOTES_FONT_KEY, String(notesFontRem)); } catch (e) {}
   flashMode('notes text · ' + Math.round((notesFontRem / NOTES_FONT_BASE) * 100) + '%');
 }
-['notes-zoom-in', 'notes-zoom-out'].forEach((id, i) => {
+['psiINT-notes-zoom-in', 'psiINT-notes-zoom-out'].forEach((id, i) => {
   const btn = document.getElementById(id);
   if (!btn) return;
   // Keep the caret where it is: a click that stole focus would blur the
@@ -26172,10 +26161,10 @@ function stepNotesFont(dir) {
 // Drag-to-resize for the preview strip, in both orientations. Two persisted
 // values rather than one: the bottom strip is a height and the right strip a
 // width, and someone who flips orientation wants each to come back the way
-// they left it. The stage keeps its letterbox either way – #stage-cell's
+// they left it. The stage keeps its letterbox either way – #psiINT-stage-cell's
 // ResizeObserver re-runs sizeStageViewport, so the mirror stays at the
 // audience aspect instead of stretching into whatever room is left.
-const previewResizer = document.getElementById('preview-resizer');
+const previewResizer = document.getElementById('psiINT-preview-resizer');
 const PREVIEW_MIN_PX = 70;
 // What has to be left of the cue column for it to still be a cue column:
 // the cards are the thing being read, and a strip dragged over them is a
@@ -26366,7 +26355,7 @@ const SOUFFLEUSE_CSS = `
    cannot be a name in the stylesheet every cockpit carries. So the shape is
    repeated here for the one selector; the declarations are the same
    declarations, and they have to stay so. */
-#speaker-footer #souffleuse-btn {
+#psiINT-speaker-footer #psiINT-souffleuse-btn {
   font: inherit;
   white-space: nowrap;
   padding: 2px 8px;
@@ -26376,13 +26365,13 @@ const SOUFFLEUSE_CSS = `
   color: var(--ink);
   cursor: pointer;
 }
-#speaker-footer #souffleuse-btn:hover { background: oklch(0.93 0 0); }
-#speaker-footer #souffleuse-btn[aria-pressed=true] { border-color: var(--emph); color: var(--emph); }
-body[data-mode=dark] #speaker-footer #souffleuse-btn {
+#psiINT-speaker-footer #psiINT-souffleuse-btn:hover { background: oklch(0.93 0 0); }
+#psiINT-speaker-footer #psiINT-souffleuse-btn[aria-pressed=true] { border-color: var(--emph); color: var(--emph); }
+body[data-mode=dark] #psiINT-speaker-footer #psiINT-souffleuse-btn {
   background: var(--paper-warm);
   color: var(--ink);
 }
-body[data-mode=dark] #speaker-footer #souffleuse-btn:hover {
+body[data-mode=dark] #psiINT-speaker-footer #psiINT-souffleuse-btn:hover {
   background: oklch(from var(--paper) calc(l + 0.12) c h);
 }
 /* The prompter's switch says what it is doing with the one glyph in front of
@@ -26390,12 +26379,12 @@ body[data-mode=dark] #speaker-footer #souffleuse-btn:hover {
    a hollow ring is off, a filled red dot is a microphone that is open, and
    the dot breathing is a call in flight. The word itself stays ink - a
    coloured label in the corner of the eye reads as an alarm. */
-#speaker-footer #souffleuse-btn .souffleuse-dot { color: var(--ink-soft); }
-#speaker-footer #souffleuse-btn[data-state=listening] .souffleuse-dot,
-#speaker-footer #souffleuse-btn[data-state=thinking] .souffleuse-dot { color: oklch(0.56 0.20 25); }
-#speaker-footer #souffleuse-btn[data-state=error] .souffleuse-dot { color: oklch(0.63 0.15 70); }
+#psiINT-speaker-footer #psiINT-souffleuse-btn .souffleuse-dot { color: var(--ink-soft); }
+#psiINT-speaker-footer #psiINT-souffleuse-btn[data-state=listening] .souffleuse-dot,
+#psiINT-speaker-footer #psiINT-souffleuse-btn[data-state=thinking] .souffleuse-dot { color: oklch(0.56 0.20 25); }
+#psiINT-speaker-footer #psiINT-souffleuse-btn[data-state=error] .souffleuse-dot { color: oklch(0.63 0.15 70); }
 @media (prefers-reduced-motion: no-preference) {
-  #speaker-footer #souffleuse-btn[data-state=thinking] .souffleuse-dot {
+  #psiINT-speaker-footer #psiINT-souffleuse-btn[data-state=thinking] .souffleuse-dot {
     animation: souffleuse-breathe 1.1s ease-in-out infinite;
   }
 }
@@ -26403,20 +26392,20 @@ body[data-mode=dark] #speaker-footer #souffleuse-btn:hover {
 /* Degraded states only - server recognition instead of on-device, a refused
    key, a microphone that was denied. Stacked clear of BLANK and DEMO, which
    own the two rows below it. */
-body[data-view=speaker] #souffleuse-badge { bottom: 5.3rem; }
-body[data-view=speaker].blanked #souffleuse-badge { bottom: 7.2rem; }
+body[data-view=speaker] #psiINT-souffleuse-badge { bottom: 5.3rem; }
+body[data-view=speaker].blanked #psiINT-souffleuse-badge { bottom: 7.2rem; }
 
 /* ── the prompter's strip ─────────────────────────────────────────────
    One line in two homes, like the clock: over the bottom edge of the stage
    in the classic arrangement, at the head of the card column in cue-card
-   mode. Deliberately not #center-toast - that lies over the middle of the
+   mode. Deliberately not #psiINT-center-toast - that lies over the middle of the
    stage, is built for 1.8 seconds and cannot be taken away, and a hint a
    lecturer cannot dismiss is a hint that stands there for the rest of the
    sentence. In 150ms, out in 400: arriving should be noticed, leaving
    should not.
    Both of these set display, so both need the [hidden] rule of their own -
    an author stylesheet that sets display beats the browser's. */
-#souffleuse-strip {
+#psiINT-souffleuse-strip {
   position: absolute;
   left: 50%;
   bottom: 2.3rem;
@@ -26438,18 +26427,18 @@ body[data-view=speaker].blanked #souffleuse-badge { bottom: 7.2rem; }
   opacity: 0;
   transition: opacity 400ms ease;
 }
-#souffleuse-strip[hidden] { display: none; }
-#souffleuse-strip.visible { opacity: 1; transition-duration: 150ms; }
+#psiINT-souffleuse-strip[hidden] { display: none; }
+#psiINT-souffleuse-strip.visible { opacity: 1; transition-duration: 150ms; }
 /* The red of the warning toast, and for the same reason: high is the one
    that may interrupt a sentence. */
-#souffleuse-strip[data-severity=high] {
+#psiINT-souffleuse-strip[data-severity=high] {
   background: oklch(0.55 0.16 25 / 0.94);
   border-color: oklch(0.46 0.16 25);
   color: oklch(0.99 0 0);
   box-shadow: 0 4px 16px oklch(0.55 0.16 25 / 0.3);
 }
-#souffleuse-strip .souffleuse-glyph { flex: 0 0 auto; opacity: 0.7; }
-#souffleuse-strip .souffleuse-text { flex: 1 1 auto; min-width: 0; }
+#psiINT-souffleuse-strip .souffleuse-glyph { flex: 0 0 auto; opacity: 0.7; }
+#psiINT-souffleuse-strip .souffleuse-text { flex: 1 1 auto; min-width: 0; }
 .souffleuse-x {
   flex: 0 0 auto;
   font: inherit;
@@ -26466,7 +26455,7 @@ body[data-view=speaker].blanked #souffleuse-badge { bottom: 7.2rem; }
    rehearsal, one moving line too many in a talk. */
 /* The heartbeat is not something anybody said, so it drops the italic and
    loses a little more contrast: it is there to be found, not read. */
-#souffleuse-heard.beat {
+#psiINT-souffleuse-heard.beat {
   font-style: normal;
   font-family: var(--mono-font, var(--mono));
   font-size: clamp(10px, 1.25vh, 13px);
@@ -26474,7 +26463,7 @@ body[data-view=speaker].blanked #souffleuse-badge { bottom: 7.2rem; }
   color: var(--ink-faint, var(--ink-soft));
   opacity: 0.75;
 }
-#souffleuse-heard {
+#psiINT-souffleuse-heard {
   position: absolute;
   left: 50%;
   bottom: 0.7rem;
@@ -26490,24 +26479,24 @@ body[data-view=speaker].blanked #souffleuse-badge { bottom: 7.2rem; }
   text-overflow: ellipsis;
   pointer-events: none;
 }
-#souffleuse-heard[hidden] { display: none; }
+#psiINT-souffleuse-heard[hidden] { display: none; }
 /* In the card column both are ordinary block children at the head of it,
    under the crumb line - the cards are what is being read there, and a
    floating box over them would cover the current one. */
-body[data-view=speaker].cue-cards #souffleuse-strip,
-body[data-view=speaker].cue-cards #souffleuse-heard {
+body[data-view=speaker].cue-cards #psiINT-souffleuse-strip,
+body[data-view=speaker].cue-cards #psiINT-souffleuse-heard {
   position: static;
   transform: none;
   flex: 0 0 auto;
   max-width: none;
   margin: 0.8vh 2.4vw 0;
 }
-body[data-view=speaker].cue-cards #souffleuse-heard { margin-top: 0.4vh; white-space: normal; }
+body[data-view=speaker].cue-cards #psiINT-souffleuse-heard { margin-top: 0.4vh; white-space: normal; }
 
 /* The history, opened by Shift-clicking the switch. The export modal's
    shape without its scrim: this one is read beside the talk, not instead
    of it, so nothing behind it is dimmed and nothing is blocked. */
-#souffleuse-log {
+#psiINT-souffleuse-log {
   position: fixed;
   right: 0.8rem;
   bottom: 3.2rem;
@@ -26524,8 +26513,8 @@ body[data-view=speaker].cue-cards #souffleuse-heard { margin-top: 0.4vh; white-s
   font-size: 13px;
   color: var(--ink);
 }
-#souffleuse-log[hidden] { display: none; }
-#souffleuse-log header {
+#psiINT-souffleuse-log[hidden] { display: none; }
+#psiINT-souffleuse-log header {
   display: flex;
   align-items: baseline;
   gap: 0.5em;
@@ -26535,8 +26524,8 @@ body[data-view=speaker].cue-cards #souffleuse-heard { margin-top: 0.4vh; white-s
   letter-spacing: 0.08em;
   color: var(--ink-soft);
 }
-#souffleuse-log header .souffleuse-x { margin-left: auto; font-size: 15px; }
-#souffleuse-log-list {
+#psiINT-souffleuse-log header .souffleuse-x { margin-left: auto; font-size: 15px; }
+#psiINT-souffleuse-log-list {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -26544,7 +26533,7 @@ body[data-view=speaker].cue-cards #souffleuse-heard { margin-top: 0.4vh; white-s
   margin: 0;
   padding: 0.3em 0;
 }
-#souffleuse-log-list li {
+#psiINT-souffleuse-log-list li {
   display: grid;
   grid-template-columns: 3.2em 1.3em 1fr auto;
   gap: 0.5em;
@@ -26552,11 +26541,11 @@ body[data-view=speaker].cue-cards #souffleuse-heard { margin-top: 0.4vh; white-s
   padding: 0.35em 0.7em;
   line-height: 1.3;
 }
-#souffleuse-log-list li + li { border-top: 1px solid color-mix(in oklab, var(--rule) 55%, transparent); }
-#souffleuse-log-list .souffleuse-log-at { font-family: var(--mono-font); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
-#souffleuse-log-list .souffleuse-log-gone { font-size: 0.82em; color: var(--ink-soft); }
-#souffleuse-log-list .souffleuse-log-empty { display: block; padding: 1em 0.8em; color: var(--ink-soft); font-style: italic; }
-#souffleuse-log footer {
+#psiINT-souffleuse-log-list li + li { border-top: 1px solid color-mix(in oklab, var(--rule) 55%, transparent); }
+#psiINT-souffleuse-log-list .souffleuse-log-at { font-family: var(--mono-font); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+#psiINT-souffleuse-log-list .souffleuse-log-gone { font-size: 0.82em; color: var(--ink-soft); }
+#psiINT-souffleuse-log-list .souffleuse-log-empty { display: block; padding: 1em 0.8em; color: var(--ink-soft); font-style: italic; }
+#psiINT-souffleuse-log footer {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4em 1.1em;
@@ -26564,10 +26553,10 @@ body[data-view=speaker].cue-cards #souffleuse-heard { margin-top: 0.4vh; white-s
   border-top: 1px solid var(--rule);
   color: var(--ink-soft);
 }
-#souffleuse-log footer label { display: flex; align-items: center; gap: 0.4em; cursor: pointer; }
-body[data-mode=dark] #souffleuse-strip,
-body[data-mode=dark] #souffleuse-log { background: var(--paper-warm); }
-body[data-mode=dark] #souffleuse-strip[data-severity=high] { background: oklch(0.55 0.16 25 / 0.94); }
+#psiINT-souffleuse-log footer label { display: flex; align-items: center; gap: 0.4em; cursor: pointer; }
+body[data-mode=dark] #psiINT-souffleuse-strip,
+body[data-mode=dark] #psiINT-souffleuse-log { background: var(--paper-warm); }
+body[data-mode=dark] #psiINT-souffleuse-strip[data-severity=high] { background: oklch(0.55 0.16 25 / 0.94); }
 /* A card the prompter laid in rather than one the author wrote: the track
    goes dashed, the ring goes dashed, and the words are italic behind the
    same hollow ring the switch wears. Nothing else changes - it is read in
@@ -26611,7 +26600,7 @@ body[data-mode=dark] #souffleuse-strip[data-severity=high] { background: oklch(0
    the rail moved every card by its own height. The strip is the only thing
    that ever grows there, which is why the line is here and not in
    SPEAKER_CSS: a cockpit with no prompter has nothing to correct for. */
-#cue-rail { position: relative; }
+#psiINT-cue-rail { position: relative; }
 `;
 
 const SOUFFLEUSE_JS = `
@@ -26630,13 +26619,13 @@ const SOUFFLEUSE_JS = `
 // exactly what it saw before the flag existed.
 if (SOUFFLEUSE && window.psiWatch) {
   const souffWatch = window.psiWatch;
-  const souffBtn = document.getElementById('souffleuse-btn');
-  const souffBadgeEl = document.getElementById('souffleuse-badge');
-  const souffStrip = document.getElementById('souffleuse-strip');
+  const souffBtn = document.getElementById('psiINT-souffleuse-btn');
+  const souffBadgeEl = document.getElementById('psiINT-souffleuse-badge');
+  const souffStrip = document.getElementById('psiINT-souffleuse-strip');
   const souffStripGlyph = souffStrip && souffStrip.querySelector('.souffleuse-glyph');
   const souffStripText = souffStrip && souffStrip.querySelector('.souffleuse-text');
-  const souffHeardEl = document.getElementById('souffleuse-heard');
-  const souffLogEl = document.getElementById('souffleuse-log');
+  const souffHeardEl = document.getElementById('psiINT-souffleuse-heard');
+  const souffLogEl = document.getElementById('psiINT-souffleuse-log');
   // sessionStorage, never local: a microphone is an act of consent and the
   // button is where it is given, so the answer lasts as long as this tab
   // and no longer. A rebuild reloads the page on every save, and a
@@ -26669,7 +26658,7 @@ if (SOUFFLEUSE && window.psiWatch) {
   // after that. What a toast is for is telling somebody something they do not
   // already know.
   const SOUFF_TOLD_KEY = 'psi-slides:souffleuse-told';
-  const souffClockBtn = document.getElementById('clock');
+  const souffClockBtn = document.getElementById('psiINT-clock');
   let souffShowHeard = false;
   // The frontmatter is a ceiling, not a default: a deck whose prompter
   // block switched cues off does not get cards because a preference in this
@@ -27317,8 +27306,8 @@ if (SOUFFLEUSE && window.psiWatch) {
   // to be run once: the cue section restored the saved arrangement while this
   // text did not yet exist.
   function cuePlaceStrip(on) {
-    const strip = document.getElementById('souffleuse-strip');
-    const heard = document.getElementById('souffleuse-heard');
+    const strip = document.getElementById('psiINT-souffleuse-strip');
+    const heard = document.getElementById('psiINT-souffleuse-heard');
     if (!strip) return;
     if (on) {
       cueRoot.insertBefore(strip, cueRail);
@@ -27446,7 +27435,7 @@ if (SOUFFLEUSE && window.psiWatch) {
   }
   function souffRenderLog() {
     if (!souffLogEl || souffLogEl.hidden) return;
-    const list = souffLogEl.querySelector('#souffleuse-log-list');
+    const list = souffLogEl.querySelector('#psiINT-souffleuse-log-list');
     if (!list) return;
     list.innerHTML = souffHistory.length
       ? souffHistory.map(souffLogRow).join('')
@@ -27460,8 +27449,8 @@ if (SOUFFLEUSE && window.psiWatch) {
   if (souffLogEl) {
     souffLogEl.querySelector('header .souffleuse-x')
       .addEventListener('click', () => souffShowLog(false));
-    const heardBox = souffLogEl.querySelector('#souffleuse-heard-toggle');
-    const cuesBox = souffLogEl.querySelector('#souffleuse-cues-toggle');
+    const heardBox = souffLogEl.querySelector('#psiINT-souffleuse-heard-toggle');
+    const cuesBox = souffLogEl.querySelector('#psiINT-souffleuse-cues-toggle');
     heardBox.checked = souffShowHeard;
     cuesBox.checked = souffCuesOn;
     cuesBox.disabled = !SOUFFLEUSE.cues;
@@ -29661,8 +29650,8 @@ function buildOnce(absIn, only, opts = {}) {
   // failure whole: either all four files are the new one, or none of them is.
   // Each view is its own document, and an inlined SVG's id prefix only has to
   // be unique inside one. Resetting per build instead made a view's bytes
-  // depend on the flags that produced it: --audience-only wrote psi-fig-6-
-  // where a full build wrote psi-fig-8- for the same figure, so a tracked view
+  // depend on the flags that produced it: --audience-only wrote psiINT-fig-6-
+  // where a full build wrote psiINT-fig-8- for the same figure, so a tracked view
   // rebuilt with a partial flag reads as stale to release.yml and the diff is
   // pure id churn. Measured, not inferred.
   //
@@ -30544,7 +30533,7 @@ async function runFrames(absIn, viewport, outDir) {
 //     1440x810 are 835 and 836 px tall in a 900 px 16:9 one.
 //   * **Against the stage, not a threshold.** The question is whether any
 //     of the content is off the frame, so the comparison is the content box
-//     against #stage-viewport's box - not the content height against a
+//     against #psiINT-stage-viewport's box - not the content height against a
 //     guessed number with a fudge factor for chrome.
 //   * **Per state, not per chunk.** A slide can fit at beat 0 and overflow
 //     at beat 2, when a later reveal or figure step re-centres the stage.
@@ -30561,7 +30550,7 @@ async function runCheckFit(absIn, viewport) {
     const act = document.querySelector('.chunk.active');
     if (!act) return null;
     const content = act.querySelector('.chunk-content') || act;
-    const vp = document.getElementById('stage-viewport').getBoundingClientRect();
+    const vp = document.getElementById('psiINT-stage-viewport').getBoundingClientRect();
     // The box the CAMERA framed, not a box of this probe's own choosing.
     // focusCamera measures `.chunk-content` for an ordinary chunk, the chunk
     // itself where a dock or a panel takes a grid row, and – on a `.middle`

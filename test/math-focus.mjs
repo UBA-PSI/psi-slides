@@ -64,7 +64,7 @@ const onSlide = (page, id) => page.evaluate((id) => {
 }, id);
 
 const focused = (page) => page.evaluate(() => {
-  const t = document.querySelector('#figure-overlay .figure-focus-target');
+  const t = document.querySelector('#psiINT-figure-overlay .figure-focus-target');
   if (!t) return null;
   const cs = getComputedStyle(t);
   const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);

@@ -38,8 +38,8 @@ import { DG_THEMES, dgSpans, dgMeasure, dgTokenize, DG_QUIET_SCALE,
 export const name = 'the emitted drawing means what the source says';
 
 // ── reading the SVG back ────────────────────────────────────────────
-// One figure per render, so the id prefix is always `dg1-`.
-const P = 'dg1-';
+// One figure per render, so the id prefix is always `psiINT-dg1-`.
+const P = 'psiINT-dg1-';
 const attrOf = (out, id, attr) => {
   const m = out.match(new RegExp(`id="${P}${id}"[^>]*\\b${attr}="([^"]*)"`));
   return m ? m[1] : null;
@@ -1144,7 +1144,7 @@ export async function run({ report }) {
     // The block is still centred on its origin, so the split moves itself: the
     // same spelling on a two-line question needs no different numbers.
     const box = (out) => {
-      const m = String(out).match(/id="dg1-t--l0"[\s\S]*?<\/g>/);
+      const m = String(out).match(/id="psiINT-dg1-t--l0"[\s\S]*?<\/g>/);
       const ys = [...String(m && m[0]).matchAll(/<tspan x="0" y="(-?[\d.]+)"/g)].map(x => +x[1]);
       return ys;
     };
@@ -1201,7 +1201,7 @@ export async function run({ report }) {
     const boxOf = (body, id) => {
       const r = render(body);
       if (!r.ok) return null;
-      const m = r.out.match(new RegExp(`id="dg1-${id}--lw0"[^>]*transform="translate\\((-?[\\d.]+),(-?[\\d.]+)\\)"`));
+      const m = r.out.match(new RegExp(`id="psiINT-dg1-${id}--lw0"[^>]*transform="translate\\((-?[\\d.]+),(-?[\\d.]+)\\)"`));
       return m ? { x: +m[1], y: +m[2] } : null;
     };
     const plain = { a: boxOf(ROW('{.left}'), 'a'), b: boxOf(ROW('{.left}'), 'b') };
@@ -1265,7 +1265,7 @@ export async function run({ report }) {
       const r = render(body, head);
       if (!r.ok) return { msg: r.msg.split('\n').slice(0, 2).join(' / ') };
       const f = frames(r.out);
-      const m = r.out.match(new RegExp(`id="dg1-${id}--lw0"[\\s\\S]{0,400}?text-anchor="([a-z]+)"`));
+      const m = r.out.match(new RegExp(`id="psiINT-dg1-${id}--lw0"[\\s\\S]{0,400}?text-anchor="([a-z]+)"`));
       if (!f || !m) return { msg: 'no payload or no label' };
       return { xs: f.frames.map(fr => (fr.geom[id + '--l'] || [])[0]), anchor: m[1] };
     };
@@ -1330,7 +1330,7 @@ export async function run({ report }) {
   {
     const T = (tail) => `table t "A|B" at 0,0 col 1,1 ${tail}\n  "1|2"\n  "3|4"`;
     const rowH = (out) => {
-      const m = out.match(/id="dg1-t-0-0--r"[^>]*height="([\d.]+)"/);
+      const m = out.match(/id="psiINT-dg1-t-0-0--r"[^>]*height="([\d.]+)"/);
       return m ? +m[1] : null;
     };
     const plain = fig('a plain table', T(''), 'unit=150x52');
@@ -1593,7 +1593,7 @@ export async function run({ report }) {
     const late = fig('a zone declared after its contents',
       'box a "A" at 0,0\nzone z at a.cx,a.cy w 3 h 2 "At home"');
     if (late) {
-      const iz = late.indexOf('id="dg1-z"'), ia = late.indexOf('id="dg1-a"');
+      const iz = late.indexOf('id="psiINT-dg1-z"'), ia = late.indexOf('id="psiINT-dg1-a"');
       ok(iz >= 0 && ia >= 0 && iz < ia, 'a zone is painted before what it holds, whatever line it is on',
         `zone at ${iz}, box at ${ia}`);
     }

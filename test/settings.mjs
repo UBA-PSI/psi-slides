@@ -2203,7 +2203,7 @@ console.log('\nlayout generations');
     // between .bare and deleting the line.
     ok(/<h1 class="section-heading">Hidden<\/h1>/.test(st.html || ''),
        'the heading is still written, so the contents page and search still have it');
-    ok(/#stage \.chunk-section\[data-section-bare\] > \.chunk-content > \.section-lead \{ display: none; \}/
+    ok(/#psiINT-stage \.chunk-section\[data-section-bare\] > \.chunk-content > \.section-lead \{ display: none; \}/
        .test(st.html || ''),
        'and a stylesheet takes the whole lead off the slide, id-prefixed so the beside grid cannot outrank it');
     // Audience-only, exactly like a chunk's .bare: the printed document keeps
@@ -2792,12 +2792,12 @@ console.log('\nlayout generations');
   // formula, and nothing else here would notice.
   {
     const plain = chunkCls('');
-    ok(/#stage \.chunk\[data-wrap=none\][\s\S]{0,260}?text-wrap: wrap/.test(plain.html),
+    ok(/#psiINT-stage \.chunk\[data-wrap=none\][\s\S]{0,260}?text-wrap: wrap/.test(plain.html),
        'the per-chunk wrap override ships in AUDIENCE_CSS, keyed on the attribute');
     ok(/\.chunk\[data-wrap=none\][\s\S]{0,220}?text-wrap: wrap/.test(plain.print),
        'and in PRINT_CSS, which is a separate copy');
-    ok(/body\[data-blocks=left\] #stage \.reveal-segment > pre/.test(plain.html)
-       && /#stage \.chunk\[data-blocks=center\][\s\S]{0,300}?translateX\(-50%\)/.test(plain.html),
+    ok(/body\[data-blocks=left\] #psiINT-stage \.reveal-segment > pre/.test(plain.html)
+       && /#psiINT-stage \.chunk\[data-blocks=center\][\s\S]{0,300}?translateX\(-50%\)/.test(plain.html),
        'and the blocks rules ship in both directions, deck-wide and per chunk');
     ok(/body\[data-blocks=left\] figure\.figure-img/.test(plain.print),
        'with print carrying the two families it has - figure and formula');
@@ -3035,14 +3035,14 @@ console.log('\nlayout generations');
   ok(/body:not\(\[data-hyphenate=none\]\) :is\(p, li, blockquote, figcaption, \.speaker-note\)/
        .test(dflt.print),
      'the print rule is guarded, or none would be a key that does nothing');
-  ok(/body\[data-hyphenate=all\] #stage :is\(p, li, blockquote, figcaption\)/.test(dflt.html),
+  ok(/body\[data-hyphenate=all\] #psiINT-stage :is\(p, li, blockquote, figcaption\)/.test(dflt.html),
      'and the live rule is both gated on all and scoped to the stage, so the chrome never breaks a word');
-  ok(/body\[data-hyphenate=all\] #stage :is\(h1[\s\S]{0,400}hyphens: manual/.test(dflt.html),
+  ok(/body\[data-hyphenate=all\] #psiINT-stage :is\(h1[\s\S]{0,400}hyphens: manual/.test(dflt.html),
      'with the same manual reset print carries, since hyphens inherits into code and URLs');
   // A footnote is in that reset, and it is the one entry that is prose. One
   // or two lines of small type have no measure for a hyphen to rescue, and a
   // keynote at hyphenate: all broke two consecutive ones mid-word.
-  ok(/body\[data-hyphenate=all\] #stage \.margin-note,\s*\n\s*body\[data-hyphenate=all\] #stage \.margin-note \*/
+  ok(/body\[data-hyphenate=all\] #psiINT-stage \.margin-note,\s*\n\s*body\[data-hyphenate=all\] #psiINT-stage \.margin-note \*/
        .test(dflt.html),
      'and a ::: footnote never hyphenates in the live views, descendants included');
   // Print is deliberately the other way: there the note sits in a document at
@@ -3066,13 +3066,13 @@ console.log('\nlayout generations');
   // the other six. Two are selectors; the third could not be one.
   ok(/hyphenate-limit-chars: 8 4 4/.test(dflt.html) && /hyphenate-limit-chars: 6 3 3/.test(dflt.print),
      'the projection needs a longer word than the page before a break buys anything');
-  ok(/body\[data-hyphenate=all\] #stage \.chunk\[data-center\],\s*\n\s*body\[data-hyphenate=all\] #stage \.chunk\[data-center\] \*/
+  ok(/body\[data-hyphenate=all\] #psiINT-stage \.chunk\[data-center\],\s*\n\s*body\[data-hyphenate=all\] #psiINT-stage \.chunk\[data-center\] \*/
        .test(dflt.html),
      'a centred chunk is out of the dictionary, descendants included - a hyphen on a centre axis is a spike on a diamond');
-  ok(/body\[data-hyphenate=all\] #stage \.chunk-section,\s*\n\s*body\[data-hyphenate=all\] #stage \.chunk-section \*/
+  ok(/body\[data-hyphenate=all\] #psiINT-stage \.chunk-section,\s*\n\s*body\[data-hyphenate=all\] #psiINT-stage \.chunk-section \*/
        .test(dflt.html),
      'and so is a divider, whose heading and lede sit on the slide axis whatever variant it wears');
-  ok(/body\[data-hyphenate=all\] #stage \.nohy \{/.test(dflt.html),
+  ok(/body\[data-hyphenate=all\] #psiINT-stage \.nohy \{/.test(dflt.html),
      'and the span the build writes round an address');
   // The address half, which is a build-time mark because no selector can name
   // a run of characters. Three shapes and three defects: a dot between word

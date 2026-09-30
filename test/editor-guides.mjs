@@ -91,21 +91,21 @@ function buildFixture() {
 export async function run({ page, report, walkTo, ed }) {
   const { ok, note } = report;
 
-  const marks = () => page.locator('#dge-guides .dge-nb').count();
+  const marks = () => page.locator('#psiINT-dge-guides .dge-nb').count();
   const labels = () => page.evaluate(() =>
-    [...document.querySelectorAll('#dge-guides .dge-nb-label')].map((t) => t.textContent));
+    [...document.querySelectorAll('#psiINT-dge-guides .dge-nb-label')].map((t) => t.textContent));
   const statusNote = () => page.evaluate(() =>
-    (document.querySelector('#dge-statusnote') || {}).textContent || '');
+    (document.querySelector('#psiINT-dge-statusnote') || {}).textContent || '');
   const statusLine = () => page.evaluate(() =>
-    (document.querySelector('#dge-statusline') || {}).textContent || '');
+    (document.querySelector('#psiINT-dge-statusline') || {}).textContent || '');
   // Screen pixels per grid cell, off the canvas transform. Everything below is
   // expressed in cells, which is the unit the source is written in.
   const cellPx = () => page.evaluate(() => {
-    const m = document.querySelector('#dge-art-svg').getScreenCTM();
+    const m = document.querySelector('#psiINT-dge-art-svg').getScreenCTM();
     return { x: m.a * DGE.model.unit[0], y: m.d * DGE.model.unit[1] };
   });
   const pick = async (id) => {
-    const c = await ed.centreOf(`#dge-art-svg [id$="-${id}"]`);
+    const c = await ed.centreOf(`#psiINT-dge-art-svg [id$="-${id}"]`);
     await page.mouse.click(c.x, c.y);
     await page.waitForTimeout(320);
     return ed.selection();
@@ -114,7 +114,7 @@ export async function run({ page, report, walkTo, ed }) {
   // the button was still down – the panel is not re-rendered during a gesture,
   // so the preview is read where the editor puts it.
   const dragCells = async (id, dx, dy, mods = {}) => {
-    const c = await ed.centreOf(`#dge-art-svg [id$="-${id}"]`);
+    const c = await ed.centreOf(`#psiINT-dge-art-svg [id$="-${id}"]`);
     const u = await cellPx();
     if (mods.ctrl) await page.keyboard.down('Control');
     await page.mouse.move(c.x, c.y);

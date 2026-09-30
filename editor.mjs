@@ -728,7 +728,7 @@ let dgeRoot = null;
 function dgeBuildChrome() {
   if (dgeRoot) return dgeRoot;
 
-  const tools = dgeEl('nav', { id: 'dge-tools', 'aria-label': 'Tools' });
+  const tools = dgeEl('nav', { id: 'psiINT-dge-tools', 'aria-label': 'Tools' });
   for (const t of DGE_TOOLS) {
     if (t.sep) { tools.appendChild(dgeEl('hr', {})); continue; }
     const icon = dgeEl('svg', { viewBox: '0 0 15 15', 'aria-hidden': 'true' }, [
@@ -743,7 +743,7 @@ function dgeBuildChrome() {
     tools.appendChild(btn);
   }
 
-  const seg = dgeEl('div', { class: 'dge-seg', id: 'dge-frames', role: 'group', 'aria-label': 'Frame' });
+  const seg = dgeEl('div', { class: 'dge-seg', id: 'psiINT-dge-frames', role: 'group', 'aria-label': 'Frame' });
   for (const f of ['slide', 'column', 'print']) {
     seg.appendChild(dgeEl('button', {
       type: 'button', 'data-frame': f, 'aria-pressed': String(f === DGE.frame),
@@ -751,8 +751,8 @@ function dgeBuildChrome() {
     }, [document.createTextNode(f[0].toUpperCase() + f.slice(1)), dgeEl('i', { text: '' })]));
   }
 
-  const top = dgeEl('header', { id: 'dge-top' }, [
-    dgeEl('span', { class: 'dge-name', id: 'dge-name' }),
+  const top = dgeEl('header', { id: 'psiINT-dge-top' }, [
+    dgeEl('span', { class: 'dge-name', id: 'psiINT-dge-name' }),
     dgeEl('span', {
       class: 'dge-experimental',
       text: 'experimental',
@@ -760,64 +760,64 @@ function dgeBuildChrome() {
     }),
     dgeEl('div', { class: 'dge-group' }, [
       dgeEl('button', { type: 'button', class: 'dge-btn', 'data-act': 'prev', title: 'previous figure (, or PageUp)', text: '‹', onclick: () => dgeGoFigure(-1) }),
-      dgeEl('span', { id: 'dge-figpos' }),
+      dgeEl('span', { id: 'psiINT-dge-figpos' }),
       dgeEl('button', { type: 'button', class: 'dge-btn', 'data-act': 'next', title: 'next figure (. or PageDown)', text: '›', onclick: () => dgeGoFigure(1) }),
-      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-board-btn', title: 'the figure board', html: 'Board <kbd>O</kbd>', onclick: () => dgeToggleBoard() }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'psiINT-dge-board-btn', title: 'the figure board', html: 'Board <kbd>O</kbd>', onclick: () => dgeToggleBoard() }),
       dgeEl('button', { type: 'button', class: 'dge-btn', text: 'New figure…', title: 'put a whole figure chunk on the clipboard, for source.md', onclick: () => dgeNewFigure() }),
     ]),
     dgeEl('div', { class: 'dge-group' }, [dgeEl('span', { class: 'dge-cap', text: 'frame' }), seg]),
     dgeEl('div', { class: 'dge-group' }, [
       dgeEl('button', { type: 'button', class: 'dge-btn', text: '−', title: 'zoom out', onclick: () => dgeZoomBy(1 / 1.2) }),
-      dgeEl('span', { id: 'dge-zoom' }),
+      dgeEl('span', { id: 'psiINT-dge-zoom' }),
       dgeEl('button', { type: 'button', class: 'dge-btn', text: '+', title: 'zoom in', onclick: () => dgeZoomBy(1.2) }),
       dgeEl('button', { type: 'button', class: 'dge-btn', text: 'Fit', title: 'fit the frame in the canvas', onclick: () => dgeZoomFit() }),
     ]),
     dgeEl('span', { class: 'dge-spacer' }),
-    dgeEl('span', { id: 'dge-room' }),
+    dgeEl('span', { id: 'psiINT-dge-room' }),
     dgeEl('div', { class: 'dge-group' }, [
-      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-undo-btn', title: 'undo (⌘Z)', text: '↶', onclick: () => dgeUndo() }),
-      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-redo-btn', title: 'redo (⇧⌘Z)', text: '↷', onclick: () => dgeRedo() }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'psiINT-dge-undo-btn', title: 'undo (⌘Z)', text: '↶', onclick: () => dgeUndo() }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'psiINT-dge-redo-btn', title: 'redo (⇧⌘Z)', text: '↷', onclick: () => dgeRedo() }),
     ]),
-    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-file-btn', text: 'Open source.md…', title: 'write back straight into the file (Chromium only)', onclick: () => dgePickSourceFile() }),
-    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-revert-btn', text: 'Revert', title: 'discard your edits to this figure', onclick: () => dgeRevertLocal() }),
-    dgeEl('button', { type: 'button', class: 'dge-btn dge-on', id: 'dge-copy-btn', html: 'Copy source <kbd>⌘S</kbd>', onclick: () => dgeCommit() }),
+    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'psiINT-dge-file-btn', text: 'Open source.md…', title: 'write back straight into the file (Chromium only)', onclick: () => dgePickSourceFile() }),
+    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'psiINT-dge-revert-btn', text: 'Revert', title: 'discard your edits to this figure', onclick: () => dgeRevertLocal() }),
+    dgeEl('button', { type: 'button', class: 'dge-btn dge-on', id: 'psiINT-dge-copy-btn', html: 'Copy source <kbd>⌘S</kbd>', onclick: () => dgeCommit() }),
     dgeEl('button', { type: 'button', class: 'dge-btn', html: 'Close <kbd>Esc</kbd>', onclick: () => dgeClose() }),
   ]);
 
-  // The guide layer is a sibling of the drawing *inside* #dge-art, not of the
+  // The guide layer is a sibling of the drawing *inside* #psiINT-dge-art, not of the
   // frame: the frame has padding, so guides pinned to it would be offset by
   // that padding from the picture they annotate. Sharing the drawing's own
   // box and its viewBox is what makes a guide drawn at 3.2,1 land at 3.2,1.
-  const guides = dgeEl('svg', { id: 'dge-guides', 'aria-hidden': 'true' });
-  const art = dgeEl('div', { id: 'dge-art' }, [guides]);
-  const frame = dgeEl('div', { id: 'dge-frame' }, [art]);
-  const stage = dgeEl('div', { id: 'dge-stage' }, [frame]);
-  const board = dgeEl('div', { id: 'dge-board', hidden: true });
-  const assets = dgeEl('div', { id: 'dge-assets', hidden: true }, [
-    dgeEl('div', { id: 'dge-assets-inner' }, [
+  const guides = dgeEl('svg', { id: 'psiINT-dge-guides', 'aria-hidden': 'true' });
+  const art = dgeEl('div', { id: 'psiINT-dge-art' }, [guides]);
+  const frame = dgeEl('div', { id: 'psiINT-dge-frame' }, [art]);
+  const stage = dgeEl('div', { id: 'psiINT-dge-stage' }, [frame]);
+  const board = dgeEl('div', { id: 'psiINT-dge-board', hidden: true });
+  const assets = dgeEl('div', { id: 'psiINT-dge-assets', hidden: true }, [
+    dgeEl('div', { id: 'psiINT-dge-assets-inner' }, [
       dgeEl('header', {}, [
         dgeEl('b', { text: 'Place a picture' }),
         dgeEl('button', { type: 'button', class: 'dge-btn', text: 'Cancel', onclick: () => dgeCloseAssetPicker() }),
       ]),
-      dgeEl('div', { id: 'dge-assets-list' }),
-      dgeEl('p', { id: 'dge-assets-note' }),
+      dgeEl('div', { id: 'psiINT-dge-assets-list' }),
+      dgeEl('p', { id: 'psiINT-dge-assets-note' }),
     ]),
   ]);
-  const canvas = dgeEl('main', { id: 'dge-canvas' }, [stage, board, assets]);
+  const canvas = dgeEl('main', { id: 'psiINT-dge-canvas' }, [stage, board, assets]);
 
-  const side = dgeEl('aside', { id: 'dge-side' });
-  const status = dgeEl('footer', { id: 'dge-status' }, [
-    dgeEl('span', { class: 'dge-group', id: 'dge-beats', hidden: true }),
-    dgeEl('span', { class: 'dge-line', id: 'dge-statusline' }),
-    dgeEl('span', { class: 'dge-note', id: 'dge-statusnote' }),
+  const side = dgeEl('aside', { id: 'psiINT-dge-side' });
+  const status = dgeEl('footer', { id: 'psiINT-dge-status' }, [
+    dgeEl('span', { class: 'dge-group', id: 'psiINT-dge-beats', hidden: true }),
+    dgeEl('span', { class: 'dge-line', id: 'psiINT-dge-statusline' }),
+    dgeEl('span', { class: 'dge-note', id: 'psiINT-dge-statusnote' }),
     dgeEl('span', { class: 'dge-spacer' }),
-    dgeEl('span', { id: 'dge-counts' }),
+    dgeEl('span', { id: 'psiINT-dge-counts' }),
   ]);
-  const strip = dgeEl('section', { id: 'dge-strip', 'aria-label': 'Figures' });
+  const strip = dgeEl('section', { id: 'psiINT-dge-strip', 'aria-label': 'Figures' });
 
   tools.appendChild(dgeEl('hr', {}));
   tools.appendChild(dgeEl('button', {
-    type: 'button', class: 'dge-btn dge-tool', id: 'dge-lock', 'aria-pressed': 'false',
+    type: 'button', class: 'dge-btn dge-tool', id: 'psiINT-dge-lock', 'aria-pressed': 'false',
     title: 'keep the current tool active instead of falling back to select  (Q)',
     onclick: () => { DGE.toolLocked = !DGE.toolLocked; dgeRenderTools(); },
   }, [
@@ -828,7 +828,7 @@ function dgeBuildChrome() {
   ]));
 
   dgeRoot = dgeEl('div', {
-    id: 'dge-root', role: 'dialog', 'aria-modal': 'true',
+    id: 'psiINT-dge-root', role: 'dialog', 'aria-modal': 'true',
     'aria-label': 'Diagram editor, experimental', hidden: true,
   }, [top, tools, canvas, side, status, strip]);
   document.body.appendChild(dgeRoot);
@@ -960,7 +960,7 @@ function dgeBoxesAt(model, beat) {
 }
 
 function dgePaintArt(html) {
-  const art = dgeQ('#dge-art');
+  const art = dgeQ('#psiINT-dge-art');
   const holder = document.createElement('div');
   holder.innerHTML = html;
   const fig = holder.querySelector('figure');
@@ -980,12 +980,12 @@ function dgePaintArt(html) {
   else if (svg.dataset.liveViewbox) svg.setAttribute('viewBox', svg.dataset.liveViewbox);
   svg.removeAttribute('width');
   svg.removeAttribute('height');
-  // The compiler prefixes every id inside the figure (dg3-mix, dg3-edge-1--p)
+  // The compiler prefixes every id inside the figure (psiINT-dg3-mix, psiINT-dg3-edge-1--p)
   // and the root carries the prefix too, so keep it before overwriting the id.
   // It is the only way back from a model id to the node the compiler drew for
   // it, and searching by suffix instead would match my-edge-1--p for edge-1--p.
   DGE.prefix = /root$/.test(svg.id || '') ? svg.id.replace(/root$/, '') : '';
-  svg.id = 'dge-art-svg';
+  svg.id = 'psiINT-dge-art-svg';
   // Paint the beat on screen into it, using the runtime the build already
   // ships – no second implementation of "what does step k look like".
   const payload = fig ? fig.querySelector('script.psi-diagram-frames') : null;
@@ -1002,7 +1002,7 @@ function dgePaintArt(html) {
   } else {
     DGE.frames = null;
   }
-  const guides = dgeQ('#dge-guides');
+  const guides = dgeQ('#psiINT-dge-guides');
   art.replaceChildren(svg, guides);
   guides.setAttribute('viewBox', svg.getAttribute('viewBox'));
   guides.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -1012,9 +1012,9 @@ function dgePaintArt(html) {
 
 function dgeApplyFrame() {
   const m = dgeFrameMetrics();
-  const frame = dgeQ('#dge-frame');
-  const art = dgeQ('#dge-art');
-  const svg = dgeQ('#dge-art-svg');
+  const frame = dgeQ('#psiINT-dge-frame');
+  const art = dgeQ('#psiINT-dge-art');
+  const svg = dgeQ('#psiINT-dge-art-svg');
   if (!frame || !svg) return;
   frame.style.width = (m.px * DGE.zoom) + 'px';
   frame.style.padding = (14 * DGE.zoom) + 'px';
@@ -1079,7 +1079,7 @@ function dgeApplyFrame() {
       : ` · fills ${Math.round(100 * (cv[2] * cv[3]) / (cv[0] * cv[1]))}% of its canvas`;
   }
   frame.dataset.measure = note;
-  dgeQ('#dge-frames').querySelectorAll('button').forEach((b) => {
+  dgeQ('#psiINT-dge-frames').querySelectorAll('button').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.frame === DGE.frame));
     const em = DGE_FRAME_EM[b.dataset.frame][m.width];
     b.querySelector('i').textContent = b.dataset.frame === 'print' ? em + 'em' : em + 'em';
@@ -1093,11 +1093,11 @@ function dgeApplyFrame() {
 // stays a transform, because pan is exactly a thing that should not affect
 // layout.
 function dgeApplyView() {
-  const stage = dgeQ('#dge-stage');
+  const stage = dgeQ('#psiINT-dge-stage');
   if (!stage) return;
   stage.style.transform = `translate(${DGE.pan.x}px, ${DGE.pan.y}px)`;
   dgeApplyFrame();
-  const z = dgeQ('#dge-zoom');
+  const z = dgeQ('#psiINT-dge-zoom');
   if (z) z.textContent = Math.round(DGE.zoom * 100) + '%';
 }
 
@@ -1122,8 +1122,8 @@ function dgeZoomBy(k) {
 
 function dgeZoomFit() {
   dgeApplyFrame();
-  const canvas = dgeQ('#dge-canvas');
-  const frame = dgeQ('#dge-frame');
+  const canvas = dgeQ('#psiINT-dge-canvas');
+  const frame = dgeQ('#psiINT-dge-frame');
   if (!canvas || !frame) return;
   DGE.zoom = 1;
   DGE.pan = { x: 0, y: 0 };
@@ -1141,7 +1141,7 @@ function dgeZoomFit() {
 // number in the block is written in. getScreenCTM does the whole transform
 // chain, so zoom, pan and the frame's own scaling are all accounted for.
 function dgePointToDiagram(ev) {
-  const guides = dgeQ('#dge-guides');
+  const guides = dgeQ('#psiINT-dge-guides');
   const ctm = guides.getScreenCTM();
   if (!ctm) return { x: 0, y: 0 };
   const inv = ctm.inverse();
@@ -1172,7 +1172,7 @@ function dgeUnits(model) {
 let dgeSnapGuides = [];   // live during a drag, cleared on pointerup
 
 function dgeDrawGuides() {
-  const g = dgeQ('#dge-guides');
+  const g = dgeQ('#psiINT-dge-guides');
   if (!g || !DGE.model) return;
   g.replaceChildren();
   const { uw, uh } = dgeUnits();
@@ -3301,7 +3301,7 @@ function dgeRedo() {
 // block to learn what the DOM already knows. Coupled to dgPathD and
 // dgSplineD, the two texts that ever write this attribute.
 function dgeEdgePts(id) {
-  const svg = dgeQ('#dge-art-svg');
+  const svg = dgeQ('#psiINT-dge-art-svg');
   if (!svg) return null;
   // Scoped to the editor's own copy. The slide behind the modal holds the
   // same figure with the same prefixed ids, and getElementById would answer
@@ -3330,7 +3330,7 @@ function dgeEdgePts(id) {
 // Seven CSS pixels, in the diagram's own units, so a hairline is exactly as
 // easy to hit at 4x as at 1x.
 function dgeGrabTolerance(px = 7) {
-  const guides = dgeQ('#dge-guides');
+  const guides = dgeQ('#psiINT-dge-guides');
   const ctm = guides && guides.getScreenCTM();
   const s = ctm ? Math.hypot(ctm.a, ctm.b) : 1;
   return px / (s || 1);
@@ -3350,7 +3350,7 @@ function dgeSegDist(p, a, b) {
 // time. Boxes are deliberately not filtered this way: a hidden box still
 // occupies the area you clicked, where a hidden hairline occupies nothing.
 function dgeEdgeVisible(id) {
-  const svg = dgeQ('#dge-art-svg');
+  const svg = dgeQ('#psiINT-dge-art-svg');
   const g = svg && svg.querySelector('[id="' + DGE.prefix + id + '"]');
   if (!g) return true;
   return parseFloat(getComputedStyle(g).opacity || '1') > 0.02;
@@ -3579,7 +3579,7 @@ function dgeGestureBase() {
     return null;
   }
   dgeInGesture = true;
-  const svg = dgeQ('#dge-art-svg');
+  const svg = dgeQ('#psiINT-dge-art-svg');
   if (svg) DGE.pinnedViewBox = svg.getAttribute('viewBox');
   return { source: DGE.source, model: DGE.model, boxes: DGE.boxes, spans: DGE.spans };
 }
@@ -4320,9 +4320,9 @@ function dgePlace(tool, pt) {
 const DGE_IMG_EXTS = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
 
 function dgeOpenAssetPicker(onPick) {
-  const box = dgeQ('#dge-assets');
-  const list = dgeQ('#dge-assets-list');
-  const note = dgeQ('#dge-assets-note');
+  const box = dgeQ('#psiINT-dge-assets');
+  const list = dgeQ('#psiINT-dge-assets-list');
+  const note = dgeQ('#psiINT-dge-assets-note');
   const inlined = DGE.fig.images || {};
   box.hidden = false;
   note.textContent = '';
@@ -4401,7 +4401,7 @@ function dgeAssetThumb(entry) {
 let dgeAssetThumbSeq = 0;
 
 function dgeCloseAssetPicker() {
-  const box = dgeQ('#dge-assets');
+  const box = dgeQ('#psiINT-dge-assets');
   if (box) box.hidden = true;
 }
 
@@ -4676,7 +4676,7 @@ function dgeSelect(ids) {
 }
 
 function dgeRenderSide() {
-  const side = dgeQ('#dge-side');
+  const side = dgeQ('#psiINT-dge-side');
   if (!side || !DGE.model) return;
   side.replaceChildren();
 
@@ -6686,7 +6686,7 @@ function dgePlacementPane(el) {
       dgeEl('label', { class: 'dge-num' }, [
         dgeEl('span', { text: 'of' }),
         dgeEl('input', {
-          type: 'text', value: p.ref, list: 'dge-elids',
+          type: 'text', value: p.ref, list: 'psiINT-dge-elids',
           onchange: (e) => {
             const v = e.target.value.trim();
             if (v && v !== p.ref) write(dgePlaceText(p.dir, v, dgeGapWritten(p))); else dgeRenderSide();
@@ -6739,7 +6739,7 @@ function dgePlacementPane(el) {
       row.appendChild(dgeEl('label', { class: 'dge-num' }, [
         dgeEl('span', { text: i ? 'and' : 'between' }),
         dgeEl('input', {
-          type: 'text', value: (p.refs[i] || {}).ref || '', list: 'dge-elids',
+          type: 'text', value: (p.refs[i] || {}).ref || '', list: 'psiINT-dge-elids',
           onchange: (e) => {
             const v = e.target.value.trim();
             const a = i === 0 ? v : (p.refs[0] || {}).ref;
@@ -6805,7 +6805,7 @@ function dgePlacementPane(el) {
       dgeEl('label', { class: 'dge-num' }, [
         dgeEl('span', { text: 'in' }),
         dgeEl('input', {
-          type: 'text', value: p.ref, list: 'dge-elids',
+          type: 'text', value: p.ref, list: 'psiINT-dge-elids',
           onchange: (e) => {
             const v = e.target.value.trim();
             if (v && v !== p.ref) write(text(p.ax, p.ay, dgeGapWritten(p)).replace('in ' + p.ref, 'in ' + v));
@@ -6836,7 +6836,7 @@ function dgePlacementPane(el) {
 
   // One list for every id in the block, so the reference fields complete
   // rather than having to be remembered.
-  const dl = dgeEl('datalist', { id: 'dge-elids' });
+  const dl = dgeEl('datalist', { id: 'psiINT-dge-elids' });
   for (const o of others) dl.appendChild(dgeEl('option', { value: o }));
   wrap.appendChild(dl);
   wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
@@ -6878,7 +6878,7 @@ function dgeElementList() {
 function dgeSourcePane() {
   const wrap = dgeEl('div', {});
   wrap.appendChild(dgeEl('h3', { text: 'source' }));
-  const pane = dgeEl('div', { id: 'dge-source' });
+  const pane = dgeEl('div', { id: 'psiINT-dge-source' });
   const errLines = new Set((DGE.problems || []).map((p) => p.line).filter(Boolean));
   DGE.source.split('\n').forEach((line, i) => {
     const sel = DGE.selection.some((id) => {
@@ -6935,8 +6935,8 @@ function dgeNote(note, bad) {
 
 function dgeStatus(line, note, bad) {
   DGE.status = { line: line || '', note: note || '', bad: !!bad };
-  const l = dgeQ('#dge-statusline');
-  const n = dgeQ('#dge-statusnote');
+  const l = dgeQ('#psiINT-dge-statusline');
+  const n = dgeQ('#psiINT-dge-statusnote');
   if (l) l.textContent = DGE.status.line;
   if (n) {
     n.textContent = DGE.status.note;
@@ -6987,7 +6987,7 @@ function dgeThumbFor(fig) {
   clone.querySelectorAll('[id]').forEach((n) => ids.add(n.id));
   if (!ids.size) return clone;
   // One pass with a longest-first alternation, never a loop of replacements.
-  // The ids in a diagram nest – `dg6-alice` is a prefix of `dg6-alice--i` –
+  // The ids in a diagram nest – `psiINT-dg6-alice` is a prefix of `psiINT-dg6-alice--i` –
   // so a second pass rewrites what the first one just inserted, and the
   // result was `dgt6-dgt6-dg6-alice--i`. A single `replace` never re-scans
   // its own output, and the longest alternative wins at each position.
@@ -7002,7 +7002,7 @@ function dgeThumbFor(fig) {
 }
 
 function dgeRenderStrip() {
-  const strip = dgeQ('#dge-strip');
+  const strip = dgeQ('#psiINT-dge-strip');
   if (!strip) return;
   strip.replaceChildren();
   DGE_FIGURES.forEach((fig, i) => {
@@ -7015,7 +7015,7 @@ function dgeRenderStrip() {
 
 function dgeToggleBoard(force) {
   DGE.boardOpen = force === undefined ? !DGE.boardOpen : force;
-  const board = dgeQ('#dge-board');
+  const board = dgeQ('#psiINT-dge-board');
   board.hidden = !DGE.boardOpen;
   if (!DGE.boardOpen) return;
   board.replaceChildren();
@@ -7061,7 +7061,7 @@ function dgeSetBeat(k) {
 }
 
 function dgeRenderBeats() {
-  const host = dgeQ('#dge-beats');
+  const host = dgeQ('#psiINT-dge-beats');
   if (!host) return;
   host.replaceChildren();
   const steps = DGE.model ? DGE.model.steps : [];
@@ -7363,12 +7363,12 @@ function dgePickTool(id) {
   if (t && t.wrapper) { dgeWrap(id); return; }
   DGE.tool = id;
   dgeRenderTools();
-  const canvas = dgeQ('#dge-canvas');
+  const canvas = dgeQ('#psiINT-dge-canvas');
   canvas.classList.toggle('dge-placing', id !== 'select');
 }
 
 function dgeRenderTools() {
-  const rail = dgeQ('#dge-tools');
+  const rail = dgeQ('#psiINT-dge-tools');
   if (!rail) return;
   rail.querySelectorAll('.dge-tool').forEach((b) => {
     const t = DGE_TOOLS.find((x) => x.id === b.dataset.tool);
@@ -7378,7 +7378,7 @@ function dgeRenderTools() {
   // Locked is a state of the rail, so it is drawn on the rail. A mode
   // announced once in the status bar is a mode nobody remembers being in.
   rail.classList.toggle('dge-locked', DGE.toolLocked);
-  const lock = dgeQ('#dge-lock');
+  const lock = dgeQ('#psiINT-dge-lock');
   if (lock) lock.setAttribute('aria-pressed', String(DGE.toolLocked));
 }
 
@@ -7417,11 +7417,11 @@ function dgeKeydown(ev) {
     if (k.toLowerCase() === 's') { ev.preventDefault(); dgeCommit(); return; }
     return;
   }
-  if (k === ' ') { DGE.spaceDown = true; dgeQ('#dge-canvas').classList.add('dge-pannable'); ev.preventDefault(); return; }
+  if (k === ' ') { DGE.spaceDown = true; dgeQ('#psiINT-dge-canvas').classList.add('dge-pannable'); ev.preventDefault(); return; }
   if (k === 'Escape') {
     ev.preventDefault();
     // One rung at a time, identical to the ladder on the slide.
-    if (!dgeQ('#dge-assets').hidden) return dgeCloseAssetPicker();
+    if (!dgeQ('#psiINT-dge-assets').hidden) return dgeCloseAssetPicker();
     if (DGE.boardOpen) return dgeToggleBoard(false);
     if (DGE.selection.length) return dgeSelect([]);
     if (DGE.tool !== 'select') return dgePickTool('select');
@@ -7463,7 +7463,7 @@ function dgeKeydown(ev) {
 function dgeKeyup(ev) {
   if (ev.key === ' ') {
     DGE.spaceDown = false;
-    const c = dgeQ('#dge-canvas');
+    const c = dgeQ('#psiINT-dge-canvas');
     if (c) c.classList.remove('dge-pannable');
   }
 }
@@ -7960,7 +7960,7 @@ function dgeNewFigure() {
 }
 
 function dgeHelp() {
-  const help = document.getElementById('help-overlay');
+  const help = document.getElementById('psiINT-help-overlay');
   if (help) help.classList.toggle('hidden');
 }
 
@@ -7968,11 +7968,11 @@ function dgeHelp() {
 
 function dgeRenderAll() {
   if (!DGE.open) return;
-  const name = dgeQ('#dge-name');
+  const name = dgeQ('#psiINT-dge-name');
   if (name) name.textContent = DGE.fig.chunk ? '#' + DGE.fig.chunk : 'figure ' + (DGE.index + 1);
-  const pos = dgeQ('#dge-figpos');
+  const pos = dgeQ('#psiINT-dge-figpos');
   if (pos) pos.textContent = `${DGE.index + 1} / ${DGE_FIGURES.length}`;
-  const counts = dgeQ('#dge-counts');
+  const counts = dgeQ('#psiINT-dge-counts');
   if (counts && DGE.model) {
     counts.textContent = `${DGE.model.nodes.length + DGE.model.edges.length
       + DGE.model.containers.length + DGE.model.braces.length} elements`
@@ -7982,12 +7982,12 @@ function dgeRenderAll() {
   // One line of chrome saying which of the two situations this is. A private
   // editor mode is not a separate feature – it is the cockpit's existing
   // freeze, and saying so beats growing a second concept for the same thing.
-  const room = dgeQ('#dge-room');
+  const room = dgeQ('#psiINT-dge-room');
   if (room) {
     // Read off the cockpit's own control rather than a variable: `frozen` is
     // a top-level `let` in a classic script, which is not a property of
     // window, and the button is the state made visible anyway.
-    const btn = document.getElementById('freeze-btn');
+    const btn = document.getElementById('psiINT-freeze-btn');
     const frozen = !!(btn && btn.getAttribute('aria-pressed') === 'true');
     const isSpeaker = document.body.dataset.view === 'speaker';
     room.textContent = isSpeaker
@@ -7997,7 +7997,7 @@ function dgeRenderAll() {
   }
   // The commit button names the tier it will actually use, so "where does
   // this go?" is answered before it is pressed rather than after.
-  const copy = dgeQ('#dge-copy-btn');
+  const copy = dgeQ('#psiINT-dge-copy-btn');
   if (copy) {
     copy.disabled = !!(DGE.problems && DGE.problems.length);
     const live = window.psiWatch && window.psiWatch.ready() && DGE.fig.range;
@@ -8011,7 +8011,7 @@ function dgeRenderAll() {
   }
   // Tier 3 is opportunistic and never load-bearing: offered where the
   // picker exists and there is no watch socket already doing the job.
-  const fileBtn = dgeQ('#dge-file-btn');
+  const fileBtn = dgeQ('#psiINT-dge-file-btn');
   if (fileBtn) {
     const useful = dgeCanPickFile() && !(window.psiWatch && window.psiWatch.ready());
     fileBtn.hidden = !useful || !!DGE.fileHandle;
@@ -8019,18 +8019,18 @@ function dgeRenderAll() {
   // A reader's edits live in localStorage and nowhere else, so the way back
   // has to be visible. Shown only when this figure is actually showing
   // something other than what the author wrote.
-  const revert = dgeQ('#dge-revert-btn');
+  const revert = dgeQ('#psiINT-dge-revert-btn');
   if (revert) revert.hidden = DGE.source === DGE.fig.body;
   // Every mechanism in here has to have a visible control with its key printed
   // on it – editor.md §4.2. Undo was the one that had only the key, and how
   // deep the stack is is a thing the author can otherwise only find out by
   // pressing it.
-  const undoBtn = dgeQ('#dge-undo-btn');
+  const undoBtn = dgeQ('#psiINT-dge-undo-btn');
   if (undoBtn) {
     undoBtn.disabled = !DGE.undo.length;
     undoBtn.title = DGE.undo.length ? `undo (⌘Z) – ${DGE.undo.length} change(s) back` : 'nothing to undo';
   }
-  const redoBtn = dgeQ('#dge-redo-btn');
+  const redoBtn = dgeQ('#psiINT-dge-redo-btn');
   if (redoBtn) {
     redoBtn.disabled = !DGE.redo.length;
     redoBtn.title = DGE.redo.length ? `redo (⇧⌘Z) – ${DGE.redo.length} change(s) forward` : 'nothing to redo';
@@ -8042,7 +8042,7 @@ function dgeRenderAll() {
   dgeRenderSide();
   dgeDrawGuides();
   dgeRoot.classList.toggle('dge-in-step', DGE.beat > 0);
-  const strip = dgeQ('#dge-strip');
+  const strip = dgeQ('#psiINT-dge-strip');
   if (strip) strip.querySelectorAll('.dge-thumb').forEach((b, i) => {
     b.setAttribute('aria-current', String(i === DGE.index));
   });
@@ -8067,7 +8067,7 @@ function dgeFigureForNode(node) {
 }
 
 function dgeMountEntryPoint() {
-  const overlay = document.getElementById('figure-overlay');
+  const overlay = document.getElementById('psiINT-figure-overlay');
   if (!overlay) return;
   const sync = () => {
     const card = overlay.querySelector('.figure-focus-target');
@@ -8092,7 +8092,7 @@ function dgeMountEntryPoint() {
 }
 
 function dgeOpenFromCard() {
-  const overlay = document.getElementById('figure-overlay');
+  const overlay = document.getElementById('psiINT-figure-overlay');
   const card = overlay ? overlay.querySelector('.figure-focus-target') : null;
   const i = dgeFigureForNode(card);
   if (i < 0) return false;

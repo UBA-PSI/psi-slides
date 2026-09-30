@@ -221,9 +221,9 @@ try {
   const active = await page.evaluate(() => (document.querySelector('.chunk.active') || {}).id);
   if (active !== TARGET) throw new Error(`the cockpit stands on #${active}, not #${TARGET}`);
 
-  await page.click('#souffleuse-btn');
+  await page.click('#psiINT-souffleuse-btn');
   if (!(await until(() => page.evaluate(() =>
-    document.getElementById('souffleuse-btn').dataset.state === 'listening'), 8000))) {
+    document.getElementById('psiINT-souffleuse-btn').dataset.state === 'listening'), 8000))) {
     throw new Error('the prompter did not start listening');
   }
   const answers = () => logOf(dir).filter((l) => l.type === 'answer').length;
@@ -251,7 +251,7 @@ try {
     await page.waitForTimeout(400);
     const hint = logOf(dir).filter((l) => l.type === 'hint').pop();
     const shown = await page.evaluate(() => {
-      const el = document.getElementById('souffleuse-strip');
+      const el = document.getElementById('psiINT-souffleuse-strip');
       return el && !el.hidden && el.classList.contains('visible')
         ? { text: el.querySelector('.souffleuse-text').textContent, sev: el.dataset.severity } : null;
     });

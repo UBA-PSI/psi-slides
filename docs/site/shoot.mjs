@@ -49,7 +49,7 @@
  *
  * The audience view is walked to the target chunk with the arrow keys rather
  * than addressed by fragment. That was a workaround for the bug where the
- * browser scrolled #stage-viewport to the fragment target and left the camera
+ * browser scrolled #psiINT-stage-viewport to the fragment target and left the camera
  * framing empty space; the runtime resets that scroll now (see
  * resetViewportScroll in build.js), and the walk stays because it is also
  * what a lecturer does, and because the assertion below is worth keeping
@@ -89,7 +89,7 @@ main { padding-top: 0 !important; margin-top: 0 !important; }
 // slide. Same rig shoot-gallery.mjs uses on its tiles, and for the same
 // reason - the two sets stand on one page.
 const LIVE_RIG = `
-<style>#help-button, #nav-hints, .annot-add { display: none !important; }</style>
+<style>#psiINT-help-button, #psiINT-nav-hints, .annot-add { display: none !important; }</style>
 `;
 
 // ── when these shots are stale ───────────────────────────────────────────
@@ -174,7 +174,7 @@ const SHOTS = [
   { name: 'search', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true,
     act: async (p) => {
       await p.keyboard.press('/');
-      await p.fill('#search-input', 'async');
+      await p.fill('#psiINT-search-input', 'async');
       await p.waitForTimeout(500);
     } },
   { name: 'cockpit', src: 'speaker.html', w: 1440, h: 900, dsf: 1.5, frag: true },
@@ -333,11 +333,11 @@ const CUE_STRIP_PX = 620;
 async function cueFrame(p, presses) {
   await p.keyboard.press('k');
   await p.waitForTimeout(1200);
-  if (!(await p.locator('body.cue-cards #cue-rail .cue-card').count())) {
+  if (!(await p.locator('body.cue-cards #psiINT-cue-rail .cue-card').count())) {
     throw new Error('cue cards: the rail is empty');
   }
 
-  const seam = await p.locator('#preview-resizer').boundingBox();
+  const seam = await p.locator('#psiINT-preview-resizer').boundingBox();
   if (!seam) throw new Error('cue cards: no resize handle');
   await p.mouse.move(seam.x + seam.width / 2, seam.y + seam.height / 2);
   await p.mouse.down();
@@ -356,7 +356,7 @@ async function cueFrame(p, presses) {
   // when a beat carries no card - a sequence photographed there would show
   // the rail moving and the figure standing still.
   const cur = await p.evaluate(() => {
-    const e = document.querySelector('#cue-rail .cue-entry.cur');
+    const e = document.querySelector('#psiINT-cue-rail .cue-entry.cur');
     return e ? (e.querySelector('.cue-card') ? 'card' : 'click') : 'none';
   });
   if (cur !== 'card') throw new Error(`cue-cards: after ${presses} presses the cursor is on a ${cur}`);
@@ -406,18 +406,18 @@ async function openEditor(p) {
   await p.waitForTimeout(400);
   await p.keyboard.press('e');
   await p.waitForTimeout(900);
-  if (!(await p.locator('#dge-root').count())) throw new Error('editor: did not open');
+  if (!(await p.locator('#psiINT-dge-root').count())) throw new Error('editor: did not open');
   await p.evaluate(() => {
-    const beats = [...document.querySelectorAll('#dge-beats .dge-beat')];
+    const beats = [...document.querySelectorAll('#psiINT-dge-beats .dge-beat')];
     if (beats.length) beats[beats.length - 1].click();
   });
   await p.waitForTimeout(500);
-  const fit = p.locator('#dge-root button', { hasText: /^Fit$/ }).first();
+  const fit = p.locator('#psiINT-dge-root button', { hasText: /^Fit$/ }).first();
   if (!(await fit.count())) throw new Error('editor: no Fit button');
   await fit.click();
   await p.waitForTimeout(600);
   const at = await p.evaluate(() => {
-    const el = document.querySelector('#dge-art-svg [id$="-c1"] rect');
+    const el = document.querySelector('#psiINT-dge-art-svg [id$="-c1"] rect');
     if (!el) return null;
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
@@ -426,7 +426,7 @@ async function openEditor(p) {
   await p.mouse.click(at.x, at.y);
   await p.waitForTimeout(600);
   const sel = await p.evaluate(() =>
-    ((document.querySelector('#dge-side .dge-sel-head') || {}).textContent || '').trim());
+    ((document.querySelector('#psiINT-dge-side .dge-sel-head') || {}).textContent || '').trim());
   if (!/c1/.test(sel)) throw new Error(`editor: selected "${sel}", expected box c1`);
 }
 
@@ -539,7 +539,7 @@ async function walkTo(p, target) {
 async function assertOnScreen(p, name, target) {
   const r = await p.evaluate((id) => {
     const b = document.getElementById(id).getBoundingClientRect();
-    const v = document.getElementById('stage-viewport').getBoundingClientRect();
+    const v = document.getElementById('psiINT-stage-viewport').getBoundingClientRect();
     return {
       on: b.x < v.right && b.y < v.bottom && b.x + b.width > v.left && b.y + b.height > v.top,
       x: Math.round(b.x), y: Math.round(b.y),

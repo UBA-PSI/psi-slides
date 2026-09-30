@@ -37,7 +37,7 @@
  *  - **The print DOM is built by inclusion, never by exclusion.** Only cloned
  *    chunks go in, and document.body's children are then replaced wholesale.
  *    Help, search, TOC, the mode badge, the laser dot and the figure overlay
- *    are siblings of #stage and vanish without anyone naming them - which
+ *    are siblings of #psiINT-stage and vanish without anyone naming them - which
  *    matters, because all eleven `position: fixed` rules in AUDIENCE_CSS sit on
  *    id-selected chrome, and a fixed element in a paginated document repeats on
  *    *every* page. A strike list could miss one. Inclusion cannot.
@@ -322,7 +322,7 @@ function pagePrepare() {
     return src.split('/').pop().split('?')[0] || 'video';
   };
 
-  // Only a clip inside a chunk. The live view also carries #demo-video, the
+  // Only a clip inside a chunk. The live view also carries #psiINT-demo-video, the
   // element a screen capture plays into under `D`, which sits outside every
   // chunk, never has a source here and is left out of the print DOM anyway -
   // counting it made every deck report a placeholder it never printed.
@@ -397,7 +397,7 @@ function pageSetup(cfg) {
 function pageCollect(cfg) {
   const P = window.psiExport;
   const chunks = P.chunks();
-  const viewport = document.getElementById('stage-viewport');
+  const viewport = document.getElementById('psiINT-stage-viewport');
 
   const twoFrames = () => new Promise(r =>
     requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -429,7 +429,7 @@ function pageCollect(cfg) {
     clone.querySelectorAll(DROP).forEach(node => node.remove());
     const wrap = document.createElement('div');
     wrap.className = 'pdf-page';
-    wrap.id = 'pdf-p' + (++n);
+    wrap.id = 'psiINT-pdf-p' + (++n);
     wrap.style.setProperty('--zoom', zoomShown);
     const slide = document.createElement('div');
     slide.className = 'pdf-slide';

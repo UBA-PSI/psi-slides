@@ -31,7 +31,7 @@ export async function run({ page, report, walkTo, ed }) {
   // between them twelve columns, twelve ticks, a baseline and forty-eight
   // cells. Read the row count off the panel, not the model.
   const rows = await page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')].map(r => r.textContent));
+    [...document.querySelectorAll('#psiINT-dge-side .dge-list button .dge-nm')].map(r => r.textContent));
   note(rows.length + ' rows: ' + rows.join(' '));
   ok(rows.includes('f') && rows.includes('g'),
     'both statements have a row', rows.join(' '));
@@ -42,7 +42,7 @@ export async function run({ page, report, walkTo, ed }) {
   // Clicking a column has to land on the statement. The third bar is a real
   // element with a real box on the canvas, so this is a genuine hit, not a
   // miss that happens to fall through to the frame.
-  const bar = await ed.centreOf('#dge-art-svg [id$="f-2--r"]');
+  const bar = await ed.centreOf('#psiINT-dge-art-svg [id$="f-2--r"]');
   ok(!!bar, 'the third column is on the canvas', JSON.stringify(bar));
   await page.mouse.click(bar.x, bar.y);
   await page.waitForTimeout(320);
@@ -54,7 +54,7 @@ export async function run({ page, report, walkTo, ed }) {
   const lineOf = async () => (await ed.source()).split('\n').find(l => l.startsWith('bars f'));
   const before = await lineOf();
   await page.evaluate(() => {
-    const slot = [...document.querySelectorAll('#dge-side .dge-slot')]
+    const slot = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
       .find(x => x.querySelector('b').textContent === 'fill');
     const b = slot && [...slot.querySelectorAll('.dge-sw')].find(x => x.title === '.tone-1');
     if (b) b.click();
@@ -92,7 +92,7 @@ export async function run({ page, report, walkTo, ed }) {
   const rowTag = tags.find((t) => /-row-1$/.test(t));
   ok(!!rowTag, 'a table generates a tag per row', tags.join(' '));
   const clicked = await page.evaluate((t) => {
-    const b = [...document.querySelectorAll('#dge-side .dge-chip')]
+    const b = [...document.querySelectorAll('#psiINT-dge-side .dge-chip')]
       .find((x) => (x.title || '').endsWith('@' + t));
     if (!b) return false;
     b.click();
@@ -108,7 +108,7 @@ export async function run({ page, report, walkTo, ed }) {
   // The marquee, over the whole table and a margin either side.
   const box = await page.evaluate(() => {
     const b = DGE.boxes.get('t');
-    const m = document.querySelector('#dge-guides').getScreenCTM();
+    const m = document.querySelector('#psiINT-dge-guides').getScreenCTM();
     const at = (x, y) => ({ x: x * m.a + y * m.c + m.e, y: x * m.b + y * m.d + m.f });
     return { a: at(b.x - 30, b.y - 30), z: at(b.x + b.w + 30, b.y + b.h + 30) };
   });

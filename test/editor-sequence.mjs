@@ -35,7 +35,7 @@ export async function run({ page, report, walkTo, ed }) {
   ok(await ed.open('sequence'), 'the editor is open on #sequence');
   await ed.beat(0);
 
-  const g = (name) => `#dge-art-svg g[id$="-${name}"]`;
+  const g = (name) => `#psiINT-dge-art-svg g[id$="-${name}"]`;
   const clickBox = async (name) => {
     const pt = await ed.centreOf(`${g(name)} rect`);
     if (!pt) return false;
@@ -47,10 +47,10 @@ export async function run({ page, report, walkTo, ed }) {
   // swatch row. Reading only one of them says a control is missing when it is
   // simply the other shape.
   const panes = () => page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side h3, #dge-side .dge-slot > b')]
+    [...document.querySelectorAll('#psiINT-dge-side h3, #psiINT-dge-side .dge-slot > b')]
       .map(h => h.textContent.trim()));
   const setField = (label, value) => page.evaluate(([l, v]) => {
-    const lab = [...document.querySelectorAll('#dge-side label')]
+    const lab = [...document.querySelectorAll('#psiINT-dge-side label')]
       .find(x => (x.querySelector('span') || {}).textContent === l);
     const input = lab && lab.querySelector('input');
     if (!input) return false;
@@ -59,7 +59,7 @@ export async function run({ page, report, walkTo, ed }) {
     return true;
   }, [label, value]);
   const setLabel = (value) => page.evaluate((v) => {
-    const t = document.querySelector('#dge-side textarea');
+    const t = document.querySelector('#psiINT-dge-side textarea');
     if (!t) return false;
     t.value = v;
     t.dispatchEvent(new Event('change', { bubbles: true }));
@@ -121,7 +121,7 @@ export async function run({ page, report, walkTo, ed }) {
   // dead on the first swatch click. `autoClasses` is what stops it, and this
   // is the assertion that it is set on a message and not only on an edge.
   const clickSlot = (slot, text) => page.evaluate(([sl, t]) => {
-    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+    const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
       .find((x) => x.querySelector('b') && x.querySelector('b').textContent === sl);
     const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.textContent === t);
     if (b) b.click();
@@ -147,7 +147,7 @@ export async function run({ page, report, walkTo, ed }) {
   // is nothing in it. The refusal is in the status note, which is where every
   // rolled-back edit says what it would have cost. This assertion read
   // `.length > 0 || true` and passed on any software at all.
-  const said = await page.evaluate(() => (document.querySelector('#dge-statusnote') || {}).textContent || '');
+  const said = await page.evaluate(() => (document.querySelector('#psiINT-dge-statusnote') || {}).textContent || '');
   ok(/not applied/.test(said) && /nobody/.test(said),
     'and the status note says it was refused, and names the endpoint', JSON.stringify(said));
 
@@ -165,7 +165,7 @@ export async function run({ page, report, walkTo, ed }) {
   const lifePt = await page.evaluate((sel) => {
     const p = document.querySelector(sel);
     if (!p) return null;
-    const svg = document.querySelector('#dge-art-svg');
+    const svg = document.querySelector('#psiINT-dge-art-svg');
     const m = svg.getScreenCTM();
     const len = p.getTotalLength();
     for (let f = 0.02; f < 0.99; f += 0.01) {
@@ -198,7 +198,7 @@ export async function run({ page, report, walkTo, ed }) {
   // ── back from an entry to the statement ───────────────────────────
   ok(await clickBox('au'), 'select the actor again');
   const chip = await page.evaluate(() => {
-    const b = document.querySelector('#dge-side .dge-chip-owner');
+    const b = document.querySelector('#psiINT-dge-side .dge-chip-owner');
     if (!b) return null;
     const t = b.textContent;
     b.click();
@@ -218,14 +218,14 @@ export async function run({ page, report, walkTo, ed }) {
   // happened; now the risk is the leading name slot, and the rule the panel
   // follows is the compiler's `named` flag rather than the shape of the id.
   const nameField = () => page.evaluate(() => {
-    const h = [...document.querySelectorAll('#dge-side h3')]
+    const h = [...document.querySelectorAll('#psiINT-dge-side h3')]
       .find((x) => x.textContent.trim() === 'name');
     const i = h && h.parentElement.querySelector('input');
     return i ? { value: i.value, placeholder: i.getAttribute('placeholder') || '' } : null;
   });
   const setName = async (v) => {
     await page.evaluate((val) => {
-      const h = [...document.querySelectorAll('#dge-side h3')]
+      const h = [...document.querySelectorAll('#psiINT-dge-side h3')]
         .find((x) => x.textContent.trim() === 'name');
       const i = h && h.parentElement.querySelector('input');
       if (!i) return;
@@ -245,7 +245,7 @@ export async function run({ page, report, walkTo, ed }) {
 
   // A tail edit, which is the act that used to pin a name into the line.
   await page.evaluate(() => {
-    const b = [...document.querySelectorAll('#dge-side .dge-chip')].find((x) => x.textContent.includes('+ tag'));
+    const b = [...document.querySelectorAll('#psiINT-dge-side .dge-chip')].find((x) => x.textContent.includes('+ tag'));
     if (b) { window.prompt = () => 'probe'; b.click(); }
   });
   await page.waitForTimeout(430);
@@ -290,7 +290,7 @@ export async function run({ page, report, walkTo, ed }) {
   await walkTo('seqmore');
   ok(await ed.open('seqmore'), 'the editor is open on #seqmore');
   await ed.beat(0);
-  ok(await ed.clickPath('#dge-art-svg [id$="-tunnel"] path.dg-stroke'),
+  ok(await ed.clickPath('#psiINT-dge-art-svg [id$="-tunnel"] path.dg-stroke'),
     'the named message is on the canvas');
   ok(await ed.selection() === 'message tunnel', 'and selects as itself', await ed.selection());
   const named = await nameField();

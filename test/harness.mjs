@@ -126,7 +126,7 @@ function deckHelpers(page) {
   const at = () => page.evaluate(() => {
     const a = document.querySelector('.chunk.active');
     if (!a) return { id: null, colIdx: -1, hints: '-' };
-    const w = document.getElementById('nav-hints');
+    const w = document.getElementById('psiINT-nav-hints');
     const on = (d) => !!(w && w.querySelector('[data-hint="' + d + '"]').hasAttribute('data-on'));
     return {
       id: a.dataset.chunkId || '(section)',
@@ -183,22 +183,22 @@ export function editorHelpers(page) {
     // stroke to aim at, and a spec that clicked one would be testing the hit
     // test against something the author cannot see either.
     await page.evaluate(() => {
-      const b = [...document.querySelectorAll('#dge-beats .dge-beat')];
+      const b = [...document.querySelectorAll('#psiINT-dge-beats .dge-beat')];
       if (b.length) b[b.length - 1].click();
     });
     await page.waitForTimeout(400);
-    return page.locator('#dge-root').count().then(n => n > 0);
+    return page.locator('#psiINT-dge-root').count().then(n => n > 0);
   };
 
   const source = () => page.evaluate(() =>
-    (document.querySelector('#dge-source') || {}).textContent || '');
+    (document.querySelector('#psiINT-dge-source') || {}).textContent || '');
   const lineWith = async (needle) =>
     (await source()).split('\n').find(l => l.includes(needle));
   // The head of the *selection* pane by name, not the first h3 in the panel.
   // The step pane sits above it whenever a beat is standing, and "this step"
   // is not what is selected.
   const selection = () => page.evaluate(() =>
-    ((document.querySelector('#dge-side .dge-sel-head') || {}).textContent || '').trim());
+    ((document.querySelector('#psiINT-dge-side .dge-sel-head') || {}).textContent || '').trim());
 
   // A point that is genuinely on the stroke. A bounding-box centre is not:
   // for a diagonal or dog-legged arrow it is usually empty paper, which is
@@ -206,7 +206,7 @@ export function editorHelpers(page) {
   const pointOnPath = (selector, frac = 0.5) => page.evaluate(([s, f]) => {
     const p = document.querySelector(s);
     if (!p) return null;
-    const svg = document.querySelector('#dge-art-svg');
+    const svg = document.querySelector('#psiINT-dge-art-svg');
     const at = p.getPointAtLength(p.getTotalLength() * f);
     const m = svg.getScreenCTM();
     return { x: at.x * m.a + at.y * m.c + m.e, y: at.x * m.b + at.y * m.d + m.f };
@@ -241,7 +241,7 @@ export function editorHelpers(page) {
   // placement alone, so a spec about placement has to say beat 0 out loud.
   const beat = async (k) => {
     await page.evaluate((i) => {
-      const b = [...document.querySelectorAll('#dge-beats .dge-beat')];
+      const b = [...document.querySelectorAll('#psiINT-dge-beats .dge-beat')];
       if (b[i]) b[i].click();
     }, k);
     await page.waitForTimeout(350);

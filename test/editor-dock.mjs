@@ -25,9 +25,9 @@ export async function run({ page, report, walkTo, ed }) {
   await ed.beat(0);
 
   const dotLine = () => ed.lineWith('dot  x');
-  const boxOf = (id) => ed.centreOf(`#dge-art-svg [id$="-${id}"]`);
-  const chips = () => page.locator('#dge-guides .dge-dock').count();
-  const armed = () => page.locator('#dge-guides .dge-dock.dge-dock-on').count();
+  const boxOf = (id) => ed.centreOf(`#psiINT-dge-art-svg [id$="-${id}"]`);
+  const chips = () => page.locator('#psiINT-dge-guides .dge-dock').count();
+  const armed = () => page.locator('#psiINT-dge-guides .dge-dock.dge-dock-on').count();
 
   await page.mouse.click((await boxOf('x')).x, (await boxOf('x')).y);
   await page.waitForTimeout(320);
@@ -70,7 +70,7 @@ export async function run({ page, report, walkTo, ed }) {
   await page.waitForTimeout(200);
   // walk out to the chip below the target
   const below = await page.evaluate(() => {
-    const n = [...document.querySelectorAll('#dge-guides .dge-dock')]
+    const n = [...document.querySelectorAll('#psiINT-dge-guides .dge-dock')]
       .map(el => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })
       .sort((a, b) => b.y - a.y)[0];
     return n;
@@ -83,13 +83,13 @@ export async function run({ page, report, walkTo, ed }) {
   // preview is read where the editor puts it: the status bar always carries
   // the line it is about to write, and the canvas carries the picture.
   const previewLine = await page.evaluate(() =>
-    (document.querySelector('#dge-statusline') || {}).textContent || '');
+    (document.querySelector('#psiINT-dge-statusline') || {}).textContent || '');
   note('preview: ' + previewLine);
   ok(/below c\b/.test(previewLine),
     'the status bar already shows the line, before the button comes up', previewLine);
   const movedTo = await page.evaluate(() => {
-    const d = document.querySelector('#dge-art-svg [id$="-x"]');
-    const c = document.querySelector('#dge-art-svg [id$="-c"]');
+    const d = document.querySelector('#psiINT-dge-art-svg [id$="-x"]');
+    const c = document.querySelector('#psiINT-dge-art-svg [id$="-c"]');
     if (!d || !c) return null;
     const a = d.getBoundingClientRect(), b = c.getBoundingClientRect();
     return { below: a.top > b.bottom - 4, alignedX: Math.abs((a.x + a.width / 2) - (b.x + b.width / 2)) < 30 };
@@ -109,13 +109,13 @@ export async function run({ page, report, walkTo, ed }) {
   // `left of c gap 0.4` into a line that cannot hold it, the block would stop
   // compiling and the edit would be reverted – after the chip had promised it.
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('#dge-side .dge-list button')]
+    const row = [...document.querySelectorAll('#psiINT-dge-side .dge-list button')]
       .find(b => b.textContent.includes('encrypted'));
     if (row) row.click();
   });
   await page.waitForTimeout(320);
   ok(await ed.selection() === 'edge edge-1', 'an edge is selected', await ed.selection());
-  const onEdge = await ed.pointOnPath('#dge-art-svg [id$="edge-1--p"]', 0.5);
+  const onEdge = await ed.pointOnPath('#psiINT-dge-art-svg [id$="edge-1--p"]', 0.5);
   const box3 = await boxOf('c');
   await page.mouse.move(onEdge.x, onEdge.y);
   await page.mouse.down();
@@ -137,7 +137,7 @@ export async function run({ page, report, walkTo, ed }) {
   await walkTo('grouping');
   ok(await ed.open('grouping'), 'the editor is open on #grouping');
   await ed.beat(0);
-  const member = await ed.centreOf('#dge-art-svg [id$="-r1"]');
+  const member = await ed.centreOf('#psiINT-dge-art-svg [id$="-r1"]');
   await page.mouse.click(member.x, member.y);
   await page.waitForTimeout(300);
   ok(await ed.selection() === 'box r1', 'a container member is selected', await ed.selection());

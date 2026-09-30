@@ -110,7 +110,7 @@ const EVIL_SVG = '<svg class="psi-diagram" id="ID" xmlns="http://www.w3.org/2000
   + '<img src="x" onerror="window.__pwn=4">';
 
 const projection = (page) => page.evaluate(() => {
-  const o = document.getElementById('link-overlay');
+  const o = document.getElementById('psiINT-link-overlay');
   return {
     idx: state.activeIdx,
     blanked: document.body.classList.contains('blanked'),

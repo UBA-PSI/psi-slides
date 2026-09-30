@@ -177,7 +177,7 @@ function buildDecks(tiles, dir) {
 // drops its slide number by design, and a divider is auto-inserted and never
 // carried one.
 const RIG = `
-<style>#help-button, #nav-hints { display: none !important; }</style>
+<style>#psiINT-help-button, #psiINT-nav-hints { display: none !important; }</style>
 `;
 
 const argv = process.argv.slice(2);

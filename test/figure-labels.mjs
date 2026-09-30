@@ -32,7 +32,7 @@ export async function run({ page, report, walkTo }) {
       const tb = t.getBoundingClientRect();
       const sb = shape ? shape.getBoundingClientRect() : null;
       out.push({
-        id: g.id.replace(/^dg\d+-/, ''),
+        id: g.id.replace(/^psiINT-dg\d+-/, ''),
         kind: g.getAttribute('class').includes('dg-text') ? 'text' : 'box',
         left: sb ? +(tb.left - sb.left).toFixed(1) : null,
         right: sb ? +(sb.right - tb.right).toFixed(1) : null,

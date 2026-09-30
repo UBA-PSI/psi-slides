@@ -419,7 +419,7 @@ export async function run({ page, report }) {
        && !plain.includes('souffleuse-log'),
        'an ordinary cockpit has none of the prompter\'s chrome');
     ok(!plain.includes('souffStart') && !plain.includes('webSpeechAdapter')
-       && !plain.includes('#souffleuse-badge'),
+       && !plain.includes('#psiINT-souffleuse-badge'),
        'and neither its runtime nor its stylesheet');
     ok(plain.includes('const SOUFFLEUSE = null;'),
        'the one line that survives says there is no prompter');
@@ -493,19 +493,19 @@ export async function run({ page, report }) {
     // - walked straight past the guard and opened a second recogniser, whose
     // finals all arrived twice.
     await page.evaluate(() => {
-      const b = document.getElementById('souffleuse-btn');
+      const b = document.getElementById('psiINT-souffleuse-btn');
       b.click();
       b.click();
     });
     await page.waitForTimeout(500);
     const sw = await page.evaluate(() => ({
-      pressed: document.getElementById('souffleuse-btn').getAttribute('aria-pressed'),
-      state: document.getElementById('souffleuse-btn').dataset.state,
+      pressed: document.getElementById('psiINT-souffleuse-btn').getAttribute('aria-pressed'),
+      state: document.getElementById('psiINT-souffleuse-btn').dataset.state,
       stored: sessionStorage.getItem('psi-slides:souffleuse'),
-      badge: document.getElementById('souffleuse-badge').hidden,
+      badge: document.getElementById('psiINT-souffleuse-badge').hidden,
       starts: window.__stt.starts,
-      title: document.getElementById('souffleuse-btn').title,
-      toast: document.getElementById('mode-badge').textContent,
+      title: document.getElementById('psiINT-souffleuse-btn').title,
+      toast: document.getElementById('psiINT-mode-badge').textContent,
     }));
     ok(sw.pressed === 'true' && sw.state === 'listening',
        'the switch reads pressed and listening', JSON.stringify(sw));
@@ -536,13 +536,13 @@ export async function run({ page, report }) {
     // for the whole talk.
     await page.evaluate(() => window.__stt.interim('checking whether this ear hears anything at all'));
     const opening = await until(() => page.evaluate(() => {
-      const e = document.getElementById('souffleuse-heard');
+      const e = document.getElementById('psiINT-souffleuse-heard');
       return e && !e.hidden ? { beat: e.classList.contains('beat'), text: e.textContent } : null;
     }), 3000);
     ok(opening && !opening.beat && /ear hears/.test(opening.text),
        'in the opening quiet the line carries what it heard, with no box ticked',
        JSON.stringify(opening));
-    ok(await page.evaluate(() => document.getElementById('souffleuse-heard-toggle').checked === false),
+    ok(await page.evaluate(() => document.getElementById('psiINT-souffleuse-heard-toggle').checked === false),
        'and the box that would keep them up for the whole talk is still off');
 
     // ── one whisper, the whole way ──────────────────────────────────
@@ -551,7 +551,7 @@ export async function run({ page, report }) {
     await page.evaluate(() => window.__stt.final(
       'the thing about a shared cache is that it remembers what somebody else asked for', 70));
     const strip = await until(() => page.evaluate(() => {
-      const el = document.getElementById('souffleuse-strip');
+      const el = document.getElementById('psiINT-souffleuse-strip');
       if (!el || el.hidden) return null;
       return {
         text: el.querySelector('.souffleuse-text').textContent,
@@ -571,7 +571,7 @@ export async function run({ page, report }) {
     // broken prompter. So the line stops carrying speech and starts carrying
     // the one fact that says the chain is alive: when it last asked.
     const beat = await until(() => page.evaluate(() => {
-      const e = document.getElementById('souffleuse-heard');
+      const e = document.getElementById('psiINT-souffleuse-heard');
       return e && !e.hidden && e.classList.contains('beat') ? e.textContent : null;
     }), 6000);
     ok(beat && /asked|asking/.test(beat),
@@ -633,7 +633,7 @@ export async function run({ page, report }) {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(600);
     ok(await page.evaluate(() => {
-      const el = document.getElementById('souffleuse-strip');
+      const el = document.getElementById('psiINT-souffleuse-strip');
       return el.hidden || !el.classList.contains('visible');
     }), 'Escape takes the strip away');
     const dismissed = await until(() => logLines(dir)
@@ -666,17 +666,17 @@ export async function run({ page, report }) {
     // that anything happened was a card in a slide the speaker has not reached
     // - and the rehearsal checklist told them to look for it here.
     const laid = await until(() => page.evaluate(() => {
-      const el = document.getElementById('souffleuse-strip');
+      const el = document.getElementById('psiINT-souffleuse-strip');
       return el && !el.hidden ? el.querySelector('.souffleuse-text').textContent : null;
     }), 5000);
     ok(!!laid && /^card for /.test(laid) && /card is for|board/.test(laid),
        'the strip says a card was laid, and which slide it went into', JSON.stringify(laid));
     const logged = await page.evaluate(() => {
-      const b = document.getElementById('souffleuse-btn');
+      const b = document.getElementById('psiINT-souffleuse-btn');
       b.dispatchEvent(new MouseEvent('click', { shiftKey: true, bubbles: true }));
-      const rows = [...document.querySelectorAll('#souffleuse-log-list li')]
+      const rows = [...document.querySelectorAll('#psiINT-souffleuse-log-list li')]
         .map((li) => li.textContent);
-      document.querySelector('#souffleuse-log header .souffleuse-x').click();
+      document.querySelector('#psiINT-souffleuse-log header .souffleuse-x').click();
       return rows;
     });
     ok(logged.some((r) => /pick up the front-row question/.test(r) && /for /.test(r)),
@@ -692,7 +692,7 @@ export async function run({ page, report }) {
        'the cockpit is still in the classic layout');
     await page.keyboard.press('ArrowDown');
     const onBoard = await until(() => page.evaluate(() => {
-      const el = document.getElementById('souffleuse-strip');
+      const el = document.getElementById('psiINT-souffleuse-strip');
       if (!el || el.hidden) return null;
       return {
         id: flatChunks[state.activeIdx].id,
@@ -708,14 +708,14 @@ export async function run({ page, report }) {
     await page.keyboard.press('k');
     await page.waitForTimeout(600);
     const card = await page.evaluate(() => {
-      const c = document.querySelector('#cue-rail .cue-card.souffleuse');
+      const c = document.querySelector('#psiINT-cue-rail .cue-card.souffleuse');
       if (!c) return null;
       return {
         text: c.textContent.replace(/\s+/g, ' ').trim(),
         label: (c.querySelector('.cue-added') || {}).textContent || null,
         italic: getComputedStyle(c).fontStyle,
         dashed: (() => {
-          const t = document.querySelector('#cue-rail .cue-tick.souffleuse');
+          const t = document.querySelector('#psiINT-cue-rail .cue-tick.souffleuse');
           return t ? getComputedStyle(t, '::before').borderLeftStyle : null;
         })(),
       };
@@ -746,7 +746,7 @@ export async function run({ page, report }) {
     await page.evaluate(() => window.__stt.final(
       'and the figure on the slide there is three, said out loud as four', 15));
     const factHint = await until(() => page.evaluate(() => {
-      const el = document.getElementById('souffleuse-strip');
+      const el = document.getElementById('psiINT-souffleuse-strip');
       if (!el || el.hidden) return null;
       return { text: el.querySelector('.souffleuse-text').textContent };
     }), 6000);
@@ -762,12 +762,12 @@ export async function run({ page, report }) {
     // back on behind the speaker.
     child.stdin.write('{"type":"prompter","enabled":false}\n');
     const idled = await until(() => page.evaluate(() => {
-      const b = document.getElementById('souffleuse-btn');
+      const b = document.getElementById('psiINT-souffleuse-btn');
       return b.getAttribute('aria-pressed') === 'false' ? {
         state: b.dataset.state,
         rec: window.__stt.rec,
         stored: sessionStorage.getItem('psi-slides:souffleuse'),
-        strip: document.getElementById('souffleuse-strip').hidden,
+        strip: document.getElementById('psiINT-souffleuse-strip').hidden,
       } : null;
     }), 6000);
     ok(!!idled, 'a driver switching the prompter off on stdin switches the cockpit off too',
@@ -781,8 +781,8 @@ export async function run({ page, report }) {
        'and no dismissal was sent for a hint the switch took away',
        JSON.stringify(logLines(dir).filter((l) => l.type === 'dismiss')));
 
-    await page.click('#souffleuse-btn');
-    ok(await until(() => page.evaluate(() => document.getElementById('souffleuse-btn')
+    await page.click('#psiINT-souffleuse-btn');
+    ok(await until(() => page.evaluate(() => document.getElementById('psiINT-souffleuse-btn')
        .getAttribute('aria-pressed') === 'true'), 6000),
        'one press brings it back – not two');
 
@@ -795,7 +795,7 @@ export async function run({ page, report }) {
     // A hello clears the slot, because a fresh page holds no hint.
     const clockBefore = await page.evaluate(() => elapsedSeconds());
     await page.reload({ waitUntil: 'load' });
-    ok(await until(() => page.evaluate(() => document.getElementById('souffleuse-btn')
+    ok(await until(() => page.evaluate(() => document.getElementById('psiINT-souffleuse-btn')
        .getAttribute('aria-pressed') === 'true'), 12000),
        'the reloaded cockpit picks the microphone back up by itself');
     ok(await until(() => page.evaluate(() => souffleuseCues.has('board')), 5000),
@@ -814,7 +814,7 @@ export async function run({ page, report }) {
     await page.evaluate(() => window.__stt.final(
        'so that is the whole of the first half, and there is the second one to come', 200));
     const third = await until(() => page.evaluate(() => {
-      const el = document.getElementById('souffleuse-strip');
+      const el = document.getElementById('psiINT-souffleuse-strip');
       if (!el || el.hidden) return null;
       return { text: el.querySelector('.souffleuse-text').textContent, sev: el.dataset.severity };
     }), 8000);
@@ -840,7 +840,7 @@ export async function run({ page, report }) {
     const fastTalk = new Array(118).fill('quickly').join(' ') + ' um um';
     await page.evaluate((t) => window.__stt.final(t, 25), fastTalk);
     const paced = await until(() => page.evaluate(() => {
-      const el = document.getElementById('souffleuse-strip');
+      const el = document.getElementById('psiINT-souffleuse-strip');
       if (!el || el.hidden) return null;
       return {
         text: el.querySelector('.souffleuse-text').textContent,
@@ -927,14 +927,14 @@ export async function run({ page, report }) {
     // time. One card, one row, and the row keeps the time the card was
     // actually laid.
     const historyRows = () => page.evaluate(() => {
-      const b = document.getElementById('souffleuse-btn');
+      const b = document.getElementById('psiINT-souffleuse-btn');
       b.dispatchEvent(new MouseEvent('click', { shiftKey: true, bubbles: true }));
-      const rows = [...document.querySelectorAll('#souffleuse-log-list li')].map((li) => ({
+      const rows = [...document.querySelectorAll('#psiINT-souffleuse-log-list li')].map((li) => ({
         at: (li.querySelector('.souffleuse-log-at') || { textContent: '' }).textContent,
         text: (li.querySelector('.souffleuse-log-text') || { textContent: '' }).textContent,
         gone: (li.querySelector('.souffleuse-log-gone') || { textContent: '' }).textContent,
       }));
-      document.querySelector('#souffleuse-log header .souffleuse-x').click();
+      document.querySelector('#psiINT-souffleuse-log header .souffleuse-x').click();
       return rows;
     });
     const laidAt = Math.round(Number(endCue ? endCue.at : 0));
@@ -971,7 +971,7 @@ export async function run({ page, report }) {
        'and the speaker walks onto the slide that card is being written for');
     walkedOn = true;
     const lateCard = await until(() => page.evaluate(() => {
-      const el = document.getElementById('souffleuse-strip');
+      const el = document.getElementById('psiINT-souffleuse-strip');
       if (!el || el.hidden) return null;
       return {
         text: el.querySelector('.souffleuse-text').textContent,
@@ -998,7 +998,7 @@ export async function run({ page, report }) {
     // nothing is judged, no slide is locked against a second card and nothing
     // enters the duplicate rule.
     await page.evaluate(() => {
-      const box = document.getElementById('souffleuse-cues-toggle');
+      const box = document.getElementById('psiINT-souffleuse-cues-toggle');
       box.checked = false;
       box.dispatchEvent(new Event('change'));
     });
@@ -1019,7 +1019,7 @@ export async function run({ page, report }) {
     // holds them - the second way the same card came to be in the panel
     // twice, and the one that needs no reload.
     await page.evaluate(() => {
-      const box = document.getElementById('souffleuse-cues-toggle');
+      const box = document.getElementById('psiINT-souffleuse-cues-toggle');
       box.checked = true;
       box.dispatchEvent(new Event('change'));
     });
@@ -1037,14 +1037,14 @@ export async function run({ page, report }) {
     // switch was thrown twice.
     await page.evaluate(() => window.__stt.fault('network'));
     const stumbled = await until(() => page.evaluate(() => {
-      const el = document.getElementById('souffleuse-badge');
+      const el = document.getElementById('psiINT-souffleuse-badge');
       return el && !el.hidden ? el.textContent : null;
     }), 3000);
     ok(!!stumbled && /network/i.test(stumbled),
        'a recogniser that loses the network says so on the badge', String(stumbled));
     await page.evaluate(() => window.__stt.final('and we are back in the room', 2));
     const recovered = await until(() => page.evaluate(() => {
-      const el = document.getElementById('souffleuse-badge');
+      const el = document.getElementById('psiINT-souffleuse-badge');
       return el && el.hidden ? true : null;
     }), 3000);
     ok(recovered === true,
@@ -1079,14 +1079,14 @@ export async function run({ page, report }) {
       .find((l) => l.type === 'suppressed' && l.reason === 'nothing'), 6000);
     ok(!!quiet, 'a "nothing" is logged as what it is and reaches no screen',
        JSON.stringify(logLines(dir).filter((l) => l.type === 'suppressed')));
-    ok(await page.evaluate(() => document.getElementById('souffleuse-strip').hidden
-       || !document.getElementById('souffleuse-strip').classList.contains('visible')),
+    ok(await page.evaluate(() => document.getElementById('psiINT-souffleuse-strip').hidden
+       || !document.getElementById('psiINT-souffleuse-strip').classList.contains('visible')),
        'and the strip stays empty');
 
     await page.evaluate(() => window.__stt.final(
       'and that is the whole of it, said once more for the people at the back', 15));
     const badge = await until(() => page.evaluate(() => {
-      const el = document.getElementById('souffleuse-badge');
+      const el = document.getElementById('psiINT-souffleuse-badge');
       return el && !el.hidden ? el.textContent : null;
     }), 6000);
     ok(!!badge && /upstream is out of credits/.test(badge),
@@ -1102,7 +1102,7 @@ export async function run({ page, report }) {
     ok(!logLines(dir).some((l) => l.type === 'suppressed' && l.reason === 'garbage'),
        'the answer never reached the policy, so nothing counted it as nonsense');
     ok(dialogs.length === 0, 'and never a dialog', dialogs.join(' | '));
-    ok(await page.evaluate(() => document.getElementById('souffleuse-btn').getAttribute('aria-pressed')) === 'true',
+    ok(await page.evaluate(() => document.getElementById('psiINT-souffleuse-btn').getAttribute('aria-pressed')) === 'true',
        'the switch is still on: one failed call is not a reason to stop listening');
 
     // ── the prefix was the same text every time ─────────────────────
@@ -1129,12 +1129,12 @@ export async function run({ page, report }) {
     await spk.waitForLoadState();
     await spk.waitForTimeout(900);
 
-    ok(await aud.evaluate(() => document.getElementById('souffleuse-strip') === null),
+    ok(await aud.evaluate(() => document.getElementById('psiINT-souffleuse-strip') === null),
        'the projection has no strip');
-    ok(await aud.evaluate(() => document.getElementById('souffleuse-btn') === null
-       && document.getElementById('souffleuse-badge') === null),
+    ok(await aud.evaluate(() => document.getElementById('psiINT-souffleuse-btn') === null
+       && document.getElementById('psiINT-souffleuse-badge') === null),
        'nor a switch, nor a badge');
-    ok(await spk.evaluate(() => document.getElementById('souffleuse-strip') !== null),
+    ok(await spk.evaluate(() => document.getElementById('psiINT-souffleuse-strip') !== null),
        'the cockpit does – it is chrome of one window');
     const snapKeys = await aud.evaluate(() => Object.keys(snapshot()));
     ok(!snapKeys.some((k) => /souffleuse|prompter|hint|cue/i.test(k)),
@@ -1157,11 +1157,11 @@ export async function run({ page, report }) {
     // the hints over. It used to do that in silence: the first window kept its
     // switch pressed and its microphone open for the rest of the talk, sending
     // a transcript nothing would answer. It is told, with the reason.
-    await spk.evaluate(() => document.getElementById('souffleuse-btn').click());
-    ok(await until(() => spk.evaluate(() => document.getElementById('souffleuse-btn')
+    await spk.evaluate(() => document.getElementById('psiINT-souffleuse-btn').click());
+    ok(await until(() => spk.evaluate(() => document.getElementById('psiINT-souffleuse-btn')
        .getAttribute('aria-pressed') === 'true'), 8000),
        'the second cockpit switches its own prompter on');
-    ok(await until(() => page.evaluate(() => document.getElementById('souffleuse-btn')
+    ok(await until(() => page.evaluate(() => document.getElementById('psiINT-souffleuse-btn')
        .getAttribute('aria-pressed') === 'false'), 8000),
        'and the first one is switched off rather than left listening into nothing',
        JSON.stringify(logLines(dir).filter((l) => l.type === 'status').slice(-2)));
@@ -1289,11 +1289,11 @@ export async function run({ page, report }) {
          'the dry-run cockpit has its socket');
       // Chrome answering that it has no on-device model: the server ear.
       await dry.evaluate(() => { window.webkitSpeechRecognition.available = async () => 'unavailable'; });
-      await dry.evaluate(() => document.getElementById('souffleuse-btn').click());
-      ok(await until(() => dry.evaluate(() => document.getElementById('souffleuse-btn')
+      await dry.evaluate(() => document.getElementById('psiINT-souffleuse-btn').click());
+      ok(await until(() => dry.evaluate(() => document.getElementById('psiINT-souffleuse-btn')
          .getAttribute('aria-pressed') === 'true'), 8000),
          'and switches on without a key');
-      const toast = await dry.evaluate(() => document.getElementById('mode-badge').textContent);
+      const toast = await dry.evaluate(() => document.getElementById('psiINT-mode-badge').textContent);
       ok(/dry run/.test(toast) && /audio to Google/.test(toast) && !/nothing leaves/.test(toast),
          'its toast says the audio goes to Google for recognition and nothing to a model', toast);
       await dry.evaluate(() => window.__stt.final('the words of a dry run reach the log', 3));

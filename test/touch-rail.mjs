@@ -25,9 +25,9 @@ export const name = 'touch rail · cockpit';
 export const lecture = 'tutorial';
 export const view = 'speaker';
 
-// Below the stage, and therefore never to be painted over. #stage-cell is
+// Below the stage, and therefore never to be painted over. #psiINT-stage-cell is
 // left out on purpose: the rail shares that cell by design.
-const BELOW = ['#notes-pane', '#preview-strip', '#speaker-footer'];
+const BELOW = ['#psiINT-notes-pane', '#psiINT-preview-strip', '#psiINT-speaker-footer'];
 
 const measure = (page) => page.evaluate((below) => {
   const R = (s) => {
@@ -36,7 +36,7 @@ const measure = (page) => page.evaluate((below) => {
     const b = e.getBoundingClientRect();
     return { s, x: b.left, y: b.top, r: b.right, b: b.bottom, w: b.width, h: b.height };
   };
-  const rail = R('#touch-controls');
+  const rail = R('#psiINT-touch-controls');
   if (!rail || !rail.w) return { rail: null };
   const covers = [];
   for (const sel of below) {
@@ -46,7 +46,7 @@ const measure = (page) => page.evaluate((below) => {
     const dx = Math.min(o.r, rail.r) - Math.max(o.x, rail.x);
     if (dy > 0.5 && dx > 0.5) covers.push(`${sel} by ${Math.round(dy)}px (${Math.round(100 * dy / o.h)}% of it)`);
   }
-  const btns = [...document.querySelectorAll('#touch-controls button')]
+  const btns = [...document.querySelectorAll('#psiINT-touch-controls button')]
     .map(b => b.getBoundingClientRect()).filter(b => b.width);
   return {
     rail,
@@ -54,7 +54,7 @@ const measure = (page) => page.evaluate((below) => {
     buttons: btns.length,
     small: btns.filter(b => b.width < 44 || b.height < 44).length,
     off: btns.filter(b => b.top < 0 || b.bottom > innerHeight || b.left < 0 || b.right > innerWidth).length,
-    stageH: Math.round((R('#stage-cell') || { h: 0 }).h),
+    stageH: Math.round((R('#psiINT-stage-cell') || { h: 0 }).h),
   };
 }, BELOW);
 
@@ -86,7 +86,7 @@ export async function run({ page, report }) {
 
       for (const paletteOpen of [false, true]) {
         if (paletteOpen) {
-          await p.evaluate(() => document.querySelector('#touch-controls [data-action=more]').click());
+          await p.evaluate(() => document.querySelector('#psiINT-touch-controls [data-action=more]').click());
           await p.waitForTimeout(300);
         }
         const m = await measure(p);
@@ -96,7 +96,7 @@ export async function run({ page, report }) {
         ok(m.small === 0, `and big enough to hit (${where})`, String(m.small));
         if (paletteOpen) {
           note(`${where}: ${m.buttons} buttons, rail ${Math.round(m.rail.y)}..${Math.round(m.rail.b)}, stage ${m.stageH}px tall`);
-          await p.evaluate(() => document.querySelector('#touch-controls [data-action=more]').click());
+          await p.evaluate(() => document.querySelector('#psiINT-touch-controls [data-action=more]').click());
           await p.waitForTimeout(250);
         }
       }

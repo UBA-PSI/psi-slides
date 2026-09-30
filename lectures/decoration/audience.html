@@ -294,8 +294,8 @@ body[data-theme^=terminal] .exp-body code { color: var(--emph); }
 /* Exp-body card gets a slightly lighter background than paper so it
    still reads as a frame in terminal mode. */
 body[data-theme^=terminal] .chunk.expanded .exp-body.on { background: var(--paper-warm); }
-body[data-theme^=terminal] #stage-viewport { background: var(--paper); }
-body[data-mode=dark] #stage-viewport { background: var(--paper); }
+body[data-theme^=terminal] #psiINT-stage-viewport { background: var(--paper); }
+body[data-mode=dark] #psiINT-stage-viewport { background: var(--paper); }
 
 /* ── Dark chrome ─────────────────────────────────────────────────
    The panels around the slide were written against paper: fixed
@@ -303,14 +303,14 @@ body[data-mode=dark] #stage-viewport { background: var(--paper); }
    cockpit footer. Keyed on data-mode rather than on the theme name, so
    the terminal modes inherit the fix – they had exactly the same problem
    and only the help-sheet kbd had ever been patched. */
-body[data-mode=dark] #help-inner kbd { background: var(--paper-warm); color: var(--ink); }
-body[data-mode=dark] #help-button {
+body[data-mode=dark] #psiINT-help-inner kbd { background: var(--paper-warm); color: var(--ink); }
+body[data-mode=dark] #psiINT-help-button {
   background: oklch(from var(--paper) calc(l + 0.08) c h / 0.85);
   color: var(--ink-soft);
 }
-body[data-mode=dark] nav#toc,
-body[data-mode=dark] #goto-prompt,
-body[data-mode=dark] #search-panel {
+body[data-mode=dark] #psiINT-toc,
+body[data-mode=dark] #psiINT-goto-prompt,
+body[data-mode=dark] #psiINT-search-panel {
   background: oklch(from var(--paper) calc(l + 0.04) c h / 0.97);
 }
 
@@ -336,34 +336,34 @@ textarea, input, [contenteditable=true] {
    why this is a held modifier rather than a mode. The cursor change is the
    only signal that it worked, so it is not optional.
 
-   #figure-overlay is named here beside #stage because it is not inside it.
-   The focus card is cloned into a sibling of #stage-viewport – that is the
+   #psiINT-figure-overlay is named here beside #psiINT-stage because it is not inside it.
+   The focus card is cloned into a sibling of #psiINT-stage-viewport – that is the
    one construct in the live views that deliberately escapes the stage – so a
-   rule written against #stage left the focused code block unselectable, and
+   rule written against #psiINT-stage left the focused code block unselectable, and
    a focused listing is the single thing on the screen a lecturer is most
    likely to want a line out of. The grab cursor the overlay and its card
    carry has to give way for the same reason the stage's does. */
-body.text-selecting #stage,
-body.text-selecting #stage *,
-body.text-selecting #figure-overlay,
-body.text-selecting #figure-overlay * {
+body.text-selecting #psiINT-stage,
+body.text-selecting #psiINT-stage *,
+body.text-selecting #psiINT-figure-overlay,
+body.text-selecting #psiINT-figure-overlay * {
   user-select: text;
   -webkit-user-select: text;
 }
-body.text-selecting #stage,
-body.text-selecting #figure-overlay,
-body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
+body.text-selecting #psiINT-stage,
+body.text-selecting #psiINT-figure-overlay,
+body.text-selecting #psiINT-figure-overlay > .figure-focus-target { cursor: text; }
 ::selection { background: color-mix(in oklch, var(--emph) 30%, transparent); }
 
 /* stage */
-#stage-viewport {
+#psiINT-stage-viewport {
   position: relative;
   width: var(--slide-w);
   height: var(--slide-h);
   overflow: hidden;
   background: var(--paper);
 }
-#stage {
+#psiINT-stage {
   position: absolute;
   top: 0; left: 0;
   display: flex;
@@ -1103,8 +1103,8 @@ figure.figure-missing {
 figure.figure-missing .figure-missing-placeholder { font-style: italic; }
 
 /* Focused figure / pre overlay --------------------------------------- */
-body.figure-focused #figure-overlay { display: flex; }
-#figure-overlay {
+body.figure-focused #psiINT-figure-overlay { display: flex; }
+#psiINT-figure-overlay {
   position: fixed;
   inset: 0;
   display: none;
@@ -1116,9 +1116,9 @@ body.figure-focused #figure-overlay { display: flex; }
   padding: 1vh 1vw;
   overflow: hidden;
 }
-body.figure-dragging #figure-overlay,
-body.figure-dragging #figure-overlay * { cursor: grabbing !important; }
-#figure-overlay > .figure-focus-target {
+body.figure-dragging #psiINT-figure-overlay,
+body.figure-dragging #psiINT-figure-overlay * { cursor: grabbing !important; }
+#psiINT-figure-overlay > .figure-focus-target {
   transform-origin: center center;
   transition: transform 80ms ease-out;
 }
@@ -1130,8 +1130,8 @@ body.figure-dragging #figure-overlay * { cursor: grabbing !important; }
    frame, independently of how big the zoom step was. Drag has had the rule
    from the start; the wheel path was simply never given it. Wheel has no end
    event, so figureZoomWheel ends the gesture on a quiet period. */
-body.figure-dragging #figure-overlay > .figure-focus-target,
-body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; will-change: transform; }
+body.figure-dragging #psiINT-figure-overlay > .figure-focus-target,
+body.figure-zooming #psiINT-figure-overlay > .figure-focus-target { transition: none; will-change: transform; }
 /* will-change only during the gesture, as in the print lightbox: a layer
    kept at rest is rasterised at its resting size and scaled as a bitmap, so
    a zoomed figure stayed soft. Without it the card is re-rasterised sharp at
@@ -1141,7 +1141,7 @@ body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; w
    loses legibility when translucent). !important wins over shiki's
    and the chunk-body override that set pre.shiki background to
    transparent for in-flow rendering. */
-#figure-overlay > .figure-focus-target {
+#psiINT-figure-overlay > .figure-focus-target {
   max-width: 98vw;
   max-height: 98vh;
   overflow: auto;
@@ -1152,8 +1152,8 @@ body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; w
   font-family: var(--body-font);
   color: var(--ink);
 }
-#figure-overlay > pre.figure-focus-target,
-#figure-overlay > pre.shiki.figure-focus-target {
+#psiINT-figure-overlay > pre.figure-focus-target,
+#psiINT-figure-overlay > pre.shiki.figure-focus-target {
   background: var(--paper) !important;
 }
 /* A display formula is focusable, and until this rule it was the one
@@ -1162,14 +1162,14 @@ body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; w
    clicking it laid it on a paper card at exactly the size it already had.
    Scaled the same way the code block is, so the two read alike, and off
    --slide-h rather than vh so audience and speaker agree. */
-#figure-overlay > .math-display.figure-focus-target {
+#psiINT-figure-overlay > .math-display.figure-focus-target {
   overflow-x: auto;
   overflow-y: hidden;
 }
-#figure-overlay > .math-display.figure-focus-target .katex {
+#psiINT-figure-overlay > .math-display.figure-focus-target .katex {
   font-size: clamp(30px, calc(var(--slide-h, 100vh) * 0.12), 150px);
 }
-#figure-overlay pre {
+#psiINT-figure-overlay pre {
   font-family: var(--mono-font);
   /* Overlay code should read LARGER than on-slide (where it's ~0.78em
      × zoom of body font). Scale off --slide-h so it stays consistent
@@ -1180,20 +1180,20 @@ body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; w
   margin: 0;
   background: transparent;
 }
-#figure-overlay figure.figure-img { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
+#psiINT-figure-overlay figure.figure-img { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
 /* Scale the image up to use the available overlay area. We drop the
    px cap so the figure consumes the viewport on big displays; the
    ~92vh ceiling leaves a sliver for the figcaption underneath.
    Inlined SVGs need the same constraints as <img> – they're spliced
    as <svg> elements and otherwise honor their intrinsic width="…". */
-#figure-overlay figure.figure-img img,
-#figure-overlay figure.figure-img svg {
+#psiINT-figure-overlay figure.figure-img img,
+#psiINT-figure-overlay figure.figure-img svg {
   width: 95vw;
   max-height: 92vh;
   height: auto;
   object-fit: contain;
 }
-#figure-overlay figcaption {
+#psiINT-figure-overlay figcaption {
   font-family: var(--sans-font);
   font-size: 0.9rem;
   color: var(--ink-soft);
@@ -1201,7 +1201,7 @@ body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; w
   text-align: center;
 }
 /* Dim the slide underneath so the overlay reads as a zoomed view. */
-body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
+body.figure-focused #psiINT-stage { filter: blur(2px) brightness(0.9); }
 
 /* Any figure/pre/marginalia inside an active chunk is pointer-targetable. */
 .chunk.active .chunk-body figure.figure-img,
@@ -3487,14 +3487,14 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    .bare - PRINT_CSS carries neither, so the document and its contents page
    are unchanged.
 
-   Prefixed #stage, and that is load-bearing: the beside layout above gives
+   Prefixed #psiINT-stage, and that is load-bearing: the beside layout above gives
    .section-lead a display of its own through a :not() and a :has(), and a
    :has() carries the specificity of its argument. Made of classes alone this
    rule loses to it, and a {.bare} divider whose body is nothing but a figure
-   would keep its heading. #stage is the element every chunk in both live
+   would keep its heading. #psiINT-stage is the element every chunk in both live
    views is inside, which is the honest way to buy the id the cascade asks
    for - the same trick the per-chunk wrap and blocks rules use. */
-#stage .chunk-section[data-section-bare] > .chunk-content > .section-lead { display: none; }
+#psiINT-stage .chunk-section[data-section-bare] > .chunk-content > .section-lead { display: none; }
 /* A divider with a picture behind it needs the full slide, like every other
    chunk that carries one - the shared rule keys on data-has-backdrop and is
    already there; this is the centring the divider itself needs so the
@@ -4137,25 +4137,25 @@ body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
    the line to the browser's plain greedy breaker rather than inventing a
    third behaviour.
 
-   #stage is load-bearing and not decoration. The heading rule above carries
+   #psiINT-stage is load-bearing and not decoration. The heading rule above carries
    an id (#toc-panel li rides in its :is list), so it sits at one id, and a
    chunk-scoped rule made of classes alone loses to it however many classes
-   it stacks. #stage is the element every chunk in both live views is inside,
+   it stacks. #psiINT-stage is the element every chunk in both live views is inside,
    which makes it the honest way to say "this is a slide, not the chrome" and
    buys the id the cascade is asking for. The rules keep the base sheet's own
    order and relative weights, so a .wrap-balance chunk under a deck-wide
    wrap: none breaks exactly the way the same chunk breaks in a deck that
    said nothing - collapsed slide lines balanced, cards pretty, and the
    collapsed rule winning over the card rule the way it already does. */
-#stage .chunk[data-wrap=none] :is(p, li, h1, h2, h3, h4, .chunk-heading,
+#psiINT-stage .chunk[data-wrap=none] :is(p, li, h1, h2, h3, h4, .chunk-heading,
   .hd-sub, .section-heading, figcaption, .tag-label, .sentence-rest strong,
   .cards > :not(ul):not(ol)) { text-wrap: wrap; }
-#stage .chunk[data-wrap=balance] :is(p, li) { text-wrap: pretty; }
-#stage .chunk[data-wrap=balance] .cards li,
-#stage .chunk[data-wrap=balance] .cards > :not(ul):not(ol) { text-wrap: pretty; }
-#stage .chunk[data-wrap=balance] :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
+#psiINT-stage .chunk[data-wrap=balance] :is(p, li) { text-wrap: pretty; }
+#psiINT-stage .chunk[data-wrap=balance] .cards li,
+#psiINT-stage .chunk[data-wrap=balance] .cards > :not(ul):not(ol) { text-wrap: pretty; }
+#psiINT-stage .chunk[data-wrap=balance] :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
   .section-heading, figcaption, .tag-label) { text-wrap: balance; }
-#stage .chunk[data-wrap=balance] :is(
+#psiINT-stage .chunk[data-wrap=balance] :is(
   [data-collapse=topic-bold] .reveal-segment p,
   [data-collapse=topic-bold] .reveal-segment li,
   [data-collapse=topic-bold] .reveal-segment .sentence-rest strong) { text-wrap: balance; }
@@ -4186,48 +4186,48 @@ body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
    max-width: 100%, so it fills the measure whatever the chunk width is and
    has no space beside it to sit in.
 
-   #stage for the same reason as the wrap rules above: it keeps every rule
+   #psiINT-stage for the same reason as the wrap rules above: it keeps every rule
    here off the focus overlay, whose clone of a figure is a modal card and
    is centred because a modal card is centred, not because the slide is. */
-body[data-blocks=left] #stage .reveal-segment > pre,
-body[data-blocks=left] #stage .reveal-segment > div > pre,
-body[data-blocks=left] #stage .chunk-content > .reveal-segment > pre,
-#stage .chunk[data-blocks=left] .reveal-segment > pre,
-#stage .chunk[data-blocks=left] .reveal-segment > div > pre,
-#stage .chunk[data-blocks=left] .chunk-content > .reveal-segment > pre {
+body[data-blocks=left] #psiINT-stage .reveal-segment > pre,
+body[data-blocks=left] #psiINT-stage .reveal-segment > div > pre,
+body[data-blocks=left] #psiINT-stage .chunk-content > .reveal-segment > pre,
+#psiINT-stage .chunk[data-blocks=left] .reveal-segment > pre,
+#psiINT-stage .chunk[data-blocks=left] .reveal-segment > div > pre,
+#psiINT-stage .chunk[data-blocks=left] .chunk-content > .reveal-segment > pre {
   left: 0;
   transform: none;
   max-width: calc(var(--slide-w) * 0.36 + 50%);
 }
-body[data-blocks=left] #stage figure.figure-img,
-body[data-blocks=left] #stage figure.figure-video,
-body[data-blocks=left] #stage figure.figure-embed,
-#stage .chunk[data-blocks=left] figure.figure-img,
-#stage .chunk[data-blocks=left] figure.figure-video,
-#stage .chunk[data-blocks=left] figure.figure-embed { align-items: flex-start; }
-body[data-blocks=left] #stage figure.figure-img figcaption,
-#stage .chunk[data-blocks=left] figure.figure-img figcaption { text-align: left; }
-body[data-blocks=left] #stage .math-display .katex-display,
-body[data-blocks=left] #stage .math-display .katex-display > .katex,
-#stage .chunk[data-blocks=left] .math-display .katex-display,
-#stage .chunk[data-blocks=left] .math-display .katex-display > .katex { text-align: left; }
+body[data-blocks=left] #psiINT-stage figure.figure-img,
+body[data-blocks=left] #psiINT-stage figure.figure-video,
+body[data-blocks=left] #psiINT-stage figure.figure-embed,
+#psiINT-stage .chunk[data-blocks=left] figure.figure-img,
+#psiINT-stage .chunk[data-blocks=left] figure.figure-video,
+#psiINT-stage .chunk[data-blocks=left] figure.figure-embed { align-items: flex-start; }
+body[data-blocks=left] #psiINT-stage figure.figure-img figcaption,
+#psiINT-stage .chunk[data-blocks=left] figure.figure-img figcaption { text-align: left; }
+body[data-blocks=left] #psiINT-stage .math-display .katex-display,
+body[data-blocks=left] #psiINT-stage .math-display .katex-display > .katex,
+#psiINT-stage .chunk[data-blocks=left] .math-display .katex-display,
+#psiINT-stage .chunk[data-blocks=left] .math-display .katex-display > .katex { text-align: left; }
 
 /* And back again, for one chunk in a deck that set blocks: left. Every
    declaration is the value the base sheet already gives an unset deck, so
    .blocks-center is a no-op wherever there is nothing to undo. */
-#stage .chunk[data-blocks=center] .reveal-segment > pre,
-#stage .chunk[data-blocks=center] .reveal-segment > div > pre,
-#stage .chunk[data-blocks=center] .chunk-content > .reveal-segment > pre {
+#psiINT-stage .chunk[data-blocks=center] .reveal-segment > pre,
+#psiINT-stage .chunk[data-blocks=center] .reveal-segment > div > pre,
+#psiINT-stage .chunk[data-blocks=center] .chunk-content > .reveal-segment > pre {
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(var(--slide-w) * 0.72);
 }
-#stage .chunk[data-blocks=center] figure.figure-img,
-#stage .chunk[data-blocks=center] figure.figure-video,
-#stage .chunk[data-blocks=center] figure.figure-embed { align-items: center; }
-#stage .chunk[data-blocks=center] figure.figure-img figcaption { text-align: center; }
-#stage .chunk[data-blocks=center] .math-display .katex-display,
-#stage .chunk[data-blocks=center] .math-display .katex-display > .katex { text-align: center; }
+#psiINT-stage .chunk[data-blocks=center] figure.figure-img,
+#psiINT-stage .chunk[data-blocks=center] figure.figure-video,
+#psiINT-stage .chunk[data-blocks=center] figure.figure-embed { align-items: center; }
+#psiINT-stage .chunk[data-blocks=center] figure.figure-img figcaption { text-align: center; }
+#psiINT-stage .chunk[data-blocks=center] .math-display .katex-display,
+#psiINT-stage .chunk[data-blocks=center] .math-display .katex-display > .katex { text-align: center; }
 /* Hyphenation on the projection, which is off unless the author asks.
    style: {hyphenate: all} is the ask, and the reason it is a key rather
    than a default is in PRINT_CSS: a broken word reads badly across a room
@@ -4251,7 +4251,7 @@ body[data-blocks=left] #stage .math-display .katex-display > .katex,
    the slash. Print keeps its hyphens - see PRINT_CSS - because there the
    note sits in a document at the document's measure and reads as the rest
    of the page does. */
-body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
+body[data-hyphenate=all] #psiINT-stage :is(p, li, blockquote, figcaption) {
   hyphens: auto;
   -webkit-hyphens: auto;
   /* 8 4 4 and not print's 6 3 3. A projection is read at ten metres from a
@@ -4261,11 +4261,11 @@ body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
      only where the word is long enough for the break to buy something. */
   hyphenate-limit-chars: 8 4 4;
 }
-body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
+body[data-hyphenate=all] #psiINT-stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
   .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]),
-body[data-hyphenate=all] #stage .chunk[data-tag=statement] .chunk-body p,
-body[data-hyphenate=all] #stage .margin-note,
-body[data-hyphenate=all] #stage .margin-note * {
+body[data-hyphenate=all] #psiINT-stage .chunk[data-tag=statement] .chunk-body p,
+body[data-hyphenate=all] #psiINT-stage .margin-note,
+body[data-hyphenate=all] #psiINT-stage .margin-note * {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
@@ -4287,11 +4287,11 @@ body[data-hyphenate=all] #stage .margin-note * {
    least one more class, so they win without an id of their own. The
    descendant star is free and reaches the footnote and the card inside a
    centred chunk, which are centred with it. */
-body[data-hyphenate=all] #stage .chunk[data-center],
-body[data-hyphenate=all] #stage .chunk[data-center] *,
-body[data-hyphenate=all] #stage .chunk-section,
-body[data-hyphenate=all] #stage .chunk-section *,
-body[data-hyphenate=all] #stage .nohy {
+body[data-hyphenate=all] #psiINT-stage .chunk[data-center],
+body[data-hyphenate=all] #psiINT-stage .chunk[data-center] *,
+body[data-hyphenate=all] #psiINT-stage .chunk-section,
+body[data-hyphenate=all] #psiINT-stage .chunk-section *,
+body[data-hyphenate=all] #psiINT-stage .nohy {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
@@ -4373,8 +4373,8 @@ body:not([data-bold=accent-bold]) .chunk:not(.chunk-title, .chunk-section) p:not
 /* Blanking is a projector action, not a global one. The speaker window
    keeps everything visible so the lecturer can change slide, read notes and
    line up what comes next while the room sees black. */
-body:not([data-view=speaker]).blanked #stage-viewport { background: oklch(0.06 0 0); }
-body:not([data-view=speaker]).blanked #stage { opacity: 0; }
+body:not([data-view=speaker]).blanked #psiINT-stage-viewport { background: oklch(0.06 0 0); }
+body:not([data-view=speaker]).blanked #psiINT-stage { opacity: 0; }
 
 /* The badge is the only feedback that the projection is off. In the speaker
    window it always shows while blanked; in the audience it shows only when
@@ -4404,8 +4404,8 @@ body:not([data-view=speaker]).blanked #stage { opacity: 0; }
 body[data-view=speaker] .cmd-badge { bottom: 3.4rem; }
 .cmd-badge span { font-weight: 400; opacity: 0.72; }
 /* Both up at once: the demo is still running behind a blanked projection. */
-body.blanked #demo-badge { bottom: 3.1rem; }
-body[data-view=speaker].blanked #demo-badge { bottom: 5.3rem; }
+body.blanked #psiINT-demo-badge { bottom: 3.1rem; }
+body[data-view=speaker].blanked #psiINT-demo-badge { bottom: 5.3rem; }
 
 /* The fullscreen hint (W, from the other window). Not a .cmd-badge: a badge
    reports, and this one is a control the lecturer has to be able to hit. It
@@ -4414,7 +4414,7 @@ body[data-view=speaker].blanked #demo-badge { bottom: 5.3rem; }
    bottom-centre, the badges are above it. Quiet, because it stands on a
    slide the room is reading: small caps at the size of the badges, at half
    opacity until a pointer is on it. */
-#fullscreen-hint {
+#psiINT-fullscreen-hint {
   position: fixed;
   bottom: 12px; right: 12px;
   z-index: 44;
@@ -4430,22 +4430,22 @@ body[data-view=speaker].blanked #demo-badge { bottom: 5.3rem; }
   opacity: 0.62;
   transition: opacity 140ms ease;
 }
-#fullscreen-hint:hover { opacity: 1; }
-#fullscreen-hint span { opacity: 0.75; }
-#fullscreen-hint.hidden { display: none; }
-body[data-mode=dark] #fullscreen-hint {
+#psiINT-fullscreen-hint:hover { opacity: 1; }
+#psiINT-fullscreen-hint span { opacity: 0.75; }
+#psiINT-fullscreen-hint.hidden { display: none; }
+body[data-mode=dark] #psiINT-fullscreen-hint {
   background: oklch(from var(--paper) calc(l + 0.08) c h / 0.88);
 }
 /* Nothing of the chrome survives a blanked projection or the board. */
-body.overview-mode #fullscreen-hint,
-body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
+body.overview-mode #psiINT-fullscreen-hint,
+body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
 
 /* overlays */
 
 /* Help overlay – the self-documentation surface for both live views.
    Grouped by task, not by key. Scrolls internally on short windows so a
    1280x800 laptop still reaches the last section. */
-#help-overlay {
+#psiINT-help-overlay {
   position: fixed;
   inset: 0;
   z-index: 60;
@@ -4454,8 +4454,8 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
   place-items: center;
   padding: 2.2vh 2vw;
 }
-#help-overlay.hidden { display: none; }
-#help-inner {
+#psiINT-help-overlay.hidden { display: none; }
+#psiINT-help-inner {
   background: var(--paper);
   border: 1px solid var(--rule);
   box-shadow: 0 18px 60px oklch(0 0 0 / 0.35);
@@ -4468,7 +4468,7 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
   padding: 1.4rem 1.7rem 1.7rem;
   font-family: var(--sans-font);
 }
-#help-inner header {
+#psiINT-help-inner header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -4477,7 +4477,7 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
   padding-bottom: 0.55rem;
   margin-bottom: 1rem;
 }
-#help-inner h2 {
+#psiINT-help-inner h2 {
   margin: 0;
   font-size: 0.95rem;
   font-variant-caps: all-small-caps;
@@ -4485,7 +4485,7 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
   color: var(--ink);
   font-weight: 600;
 }
-#help-inner .help-dismiss { font-size: 0.7rem; color: var(--ink-soft); letter-spacing: 0.06em; }
+#psiINT-help-inner .help-dismiss { font-size: 0.7rem; color: var(--ink-soft); letter-spacing: 0.06em; }
 .help-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
@@ -4514,7 +4514,7 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
 }
 .help-grid dt { color: var(--ink); text-wrap: balance; }
 .help-grid dd { margin: 0; color: var(--ink-soft); }
-#help-inner kbd {
+#psiINT-help-inner kbd {
   font-family: var(--mono-font);
   font-size: 0.9em;
   color: var(--ink);
@@ -4523,11 +4523,11 @@ body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
   border-radius: var(--radius-tight);
   padding: 0 0.32em;
 }
-body[data-theme^=terminal] #help-inner kbd { background: oklch(0.24 0.02 90); }
+body[data-theme^=terminal] #psiINT-help-inner kbd { background: oklch(0.24 0.02 90); }
 
 /* Persistent, unobtrusive way in. The overlay used to be reachable only by
    guessing that ? does something. */
-#help-button {
+#psiINT-help-button {
   position: fixed;
   bottom: 12px; left: 12px;
   z-index: 22;
@@ -4543,13 +4543,13 @@ body[data-theme^=terminal] #help-inner kbd { background: oklch(0.24 0.02 90); }
   opacity: 0.5;
   transition: opacity 140ms ease;
 }
-#help-button:hover { opacity: 1; }
-body.overview-mode #help-button,
-body:not([data-view=speaker]).blanked #help-button { display: none; }
+#psiINT-help-button:hover { opacity: 1; }
+body.overview-mode #psiINT-help-button,
+body:not([data-view=speaker]).blanked #psiINT-help-button { display: none; }
 /* The speaker cockpit has a labelled "? help" button in its footer, so the
    floating circle is a second door to the same room – and it sits bottom-left
    on top of the timer, which the lecturer reads far more often than the help. */
-body[data-view=speaker] #help-button { display: none; }
+body[data-view=speaker] #psiINT-help-button { display: none; }
 
 /* Link address overlay. Shift-click on a link shows the URL on both
    screens instead of opening it on either: a lecture wants the room to be
@@ -4593,7 +4593,7 @@ body[data-view=speaker] #help-button { display: none; }
 .link-code:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; border-radius: 2px; }
 body[data-link-codes=off] .link-code { display: none; }
 
-#link-overlay {
+#psiINT-link-overlay {
   position: fixed;
   inset: 0;
   z-index: 45;
@@ -4605,12 +4605,12 @@ body[data-link-codes=off] .link-code { display: none; }
   background: var(--paper);
   padding: 4vh 4vw;
 }
-#link-overlay.hidden { display: none; }
+#psiINT-link-overlay.hidden { display: none; }
 /* B means everything off the screen, now. The overlay sits above the stage,
    so blanking has to reach it too – the speaker keeps it, like the rest of
    the cockpit, because that window goes on working while the room is dark. */
-body:not([data-view=speaker]).blanked #link-overlay { display: none; }
-#link-overlay-inner { max-width: 46em; text-align: center; }
+body:not([data-view=speaker]).blanked #psiINT-link-overlay { display: none; }
+#psiINT-link-overlay-inner { max-width: 46em; text-align: center; }
 
 /* ── Live demo (hotkey D) ─────────────────────────────────────────
    A captured window or screen, letterboxed on black over the whole frame.
@@ -4620,7 +4620,7 @@ body:not([data-view=speaker]).blanked #link-overlay { display: none; }
    badges (45). Blank takes it off the projection like everything else;
    the capture itself keeps running in the cockpit. The stage under it is
    fully covered, so it stops painting while the demo is up. */
-#demo-overlay {
+#psiINT-demo-overlay {
   position: fixed;
   inset: 0;
   z-index: 32;
@@ -4629,11 +4629,11 @@ body:not([data-view=speaker]).blanked #link-overlay { display: none; }
   align-items: center;
   justify-content: center;
 }
-#demo-overlay.hidden { display: none; }
-#demo-overlay video { width: 100%; height: 100%; object-fit: contain; display: block; }
-body:not([data-view=speaker]).blanked #demo-overlay { display: none; }
-body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidden; }
-#link-overlay-label {
+#psiINT-demo-overlay.hidden { display: none; }
+#psiINT-demo-overlay video { width: 100%; height: 100%; object-fit: contain; display: block; }
+body:not([data-view=speaker]).blanked #psiINT-demo-overlay { display: none; }
+body:not([data-view=speaker]).demo-live:not(.blanked) #psiINT-stage { visibility: hidden; }
+#psiINT-link-overlay-label {
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.14em;
@@ -4641,7 +4641,7 @@ body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidde
   color: var(--ink-soft);
   margin-bottom: 0.9rem;
 }
-#link-overlay-url {
+#psiINT-link-overlay-url {
   display: block;
   font-family: var(--mono-font);
   font-size: clamp(1.1rem, 3.4vw, 2.6rem);
@@ -4656,15 +4656,15 @@ body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidde
   -webkit-user-select: text;
   cursor: pointer;
 }
-#link-overlay-url:hover { text-decoration: underline; text-underline-offset: 0.18em; }
+#psiINT-link-overlay-url:hover { text-decoration: underline; text-underline-offset: 0.18em; }
 /* The white ground is .qr-card, shared with the live annotation's code. */
-#link-overlay-qr {
+#psiINT-link-overlay-qr {
   margin: 1.6rem auto 0;
   width: min(38vh, 300px);
 }
-#link-overlay-qr:empty { display: none; }
+#psiINT-link-overlay-qr:empty { display: none; }
 
-#link-overlay-hint {
+#psiINT-link-overlay-hint {
   margin-top: 1.4rem;
   font-family: var(--sans-font);
   font-size: 0.85rem;
@@ -4678,7 +4678,7 @@ body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidde
    top-centre, sentence-sized, white on near-black. The white hairline in
    the box-shadow is what keeps it legible on the terminal themes, where a
    dark toast would otherwise sit on a dark slide. */
-#mode-badge {
+#psiINT-mode-badge {
   position: fixed;
   top: 18px; left: 50%;
   transform: translateX(-50%) translateY(-6px);
@@ -4694,16 +4694,16 @@ body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidde
   text-align: center;
   opacity: 0;
   transition: opacity 130ms ease, transform 130ms ease;
-  /* Above #figure-overlay (30) so a toggle pressed while a figure is
+  /* Above #psiINT-figure-overlay (30) so a toggle pressed while a figure is
      zoomed still reports back. */
   z-index: 40;
   pointer-events: none;
 }
-#mode-badge.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+#psiINT-mode-badge.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* Laser pointer – the audience's mirror of the speaker's cursor.
    Speaker view does not render this (the speaker has a real cursor). */
-#laser-pointer {
+#psiINT-laser-pointer {
   position: fixed;
   top: 0; left: 0;
   width: 18px; height: 18px;
@@ -4714,12 +4714,12 @@ body:not([data-view=speaker]).demo-live:not(.blanked) #stage { visibility: hidde
   pointer-events: none;
   opacity: 0;
   transition: opacity 180ms ease;
-  /* Above #figure-overlay (z 30) so the laser stays visible while the
+  /* Above #psiINT-figure-overlay (z 30) so the laser stays visible while the
      speaker hovers over a focused figure. */
   z-index: 40;
 }
-#laser-pointer.visible { opacity: 1; }
-body[data-view=speaker] #laser-pointer { display: none; }
+#psiINT-laser-pointer.visible { opacity: 1; }
+body[data-view=speaker] #psiINT-laser-pointer { display: none; }
 
 /* Touch control rail (audience only) – prev/next/overview/zoom shown
    only on coarse-pointer devices (phones, tablets without keyboards).
@@ -4736,7 +4736,7 @@ body[data-view=speaker] #laser-pointer { display: none; }
    column and moved a slide everywhere else, so a mark had a question to
    answer; Shift answers it the same way on every slide, and a mark for a key
    that never changes meaning is a mark nobody reads twice. */
-#nav-hints span {
+#psiINT-nav-hints span {
   position: absolute;
   color: var(--ink-soft);
   opacity: 0;
@@ -4745,17 +4745,17 @@ body[data-view=speaker] #laser-pointer { display: none; }
   pointer-events: none;
   transition: opacity 220ms ease;
 }
-#nav-hints span[data-on] { opacity: 0.22; }
-#nav-hints span[data-hint=down]  { bottom: 0.15em; left: 50%; transform: translateX(-50%); }
+#psiINT-nav-hints span[data-on] { opacity: 0.22; }
+#psiINT-nav-hints span[data-hint=down]  { bottom: 0.15em; left: 50%; transform: translateX(-50%); }
 /* On the cockpit the mirror is scaled down, so the marks would be shrunk to
    nothing beside chrome that is not. The speaker is also the person who has
    to plan against them, so they are a little louder there. */
-body[data-view=speaker] #nav-hints span[data-on] { opacity: 0.45; }
-body:not([data-view=speaker]).blanked #nav-hints span,
+body[data-view=speaker] #psiINT-nav-hints span[data-on] { opacity: 0.45; }
+body:not([data-view=speaker]).blanked #psiINT-nav-hints span,
 /* The board has its own 2D map and its own arrow meanings; a compass for the
    slide keys would be pointing at the wrong thing. Done in CSS because
    setOverviewMode does not always go through applyState. */
-body.overview-mode #nav-hints span { opacity: 0 !important; }
+body.overview-mode #psiINT-nav-hints span { opacity: 0 !important; }
 
 /* The controls a finger can reach, in both live views. Two pills, one above
    the other: the rail is what you press repeatedly, the palette behind the
@@ -4763,9 +4763,9 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
    is what you set once and leave. Splitting them is not decoration - eleven
    round buttons in one row do not fit a phone held upright, and the five that
    matter mid-talk should not shrink to make room for the six that do not. */
-#touch-controls { display: none; }
+#psiINT-touch-controls { display: none; }
 @media (pointer: coarse) {
-  #touch-controls {
+  #psiINT-touch-controls {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -4783,8 +4783,8 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
     z-index: 35;
     pointer-events: none;
   }
-  #touch-rail, #touch-palette { pointer-events: auto; }
-  #touch-rail, #touch-palette {
+  #psiINT-touch-rail, #psiINT-touch-palette { pointer-events: auto; }
+  #psiINT-touch-rail, #psiINT-touch-palette {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -4802,15 +4802,15 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
      the hidden attribute is still the right handle - it is what a screen
      reader reads -
      so the stylesheet has to say so at a specificity that wins. */
-  #touch-palette[hidden] { display: none; }
+  #psiINT-touch-palette[hidden] { display: none; }
   /* The palette's letters are the keys they stand for, so they are set in the
      typeface a key is written in everywhere else in this tool. */
-  #touch-palette button {
+  #psiINT-touch-palette button {
     font-family: var(--mono-font);
     font-size: clamp(14px, 4.2vw, 18px);
   }
-  #touch-palette button[aria-pressed=true],
-  #touch-rail button[aria-expanded=true] {
+  #psiINT-touch-palette button[aria-pressed=true],
+  #psiINT-touch-rail button[aria-expanded=true] {
     background: oklch(0.96 0 0);
     color: oklch(0.15 0 0);
   }
@@ -4825,7 +4825,7 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
      Between them the six fit one row at every width down to 320px, which is
      what the arithmetic in the max-width above is for. flex-wrap stays as the
      backstop for anything narrower than that. */
-  #touch-controls button {
+  #psiINT-touch-controls button {
     background: transparent;
     border: 0;
     color: oklch(0.96 0 0);
@@ -4840,12 +4840,12 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
-  #touch-controls button:active { background: oklch(0.30 0 0); }
+  #psiINT-touch-controls button:active { background: oklch(0.30 0 0); }
 
   /* Hide while the screen is blanked. Stay visible during figure-focus
      so the +/− buttons remain reachable for figure zoom; the rail is
      above the overlay (z-index 35 vs 30) so taps still land on it. */
-  body:not([data-view=speaker]).blanked #touch-controls { display: none; }
+  body:not([data-view=speaker]).blanked #psiINT-touch-controls { display: none; }
   /* In the cockpit the bottom edge is spoken for several times over - the
      notes pane, the thumbnail strip, the footer - and two of the three change
      size while the lecture is running. The rail used to clear them by summing
@@ -4861,10 +4861,10 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
      something that lives above it, whatever gets added there and however it is
      dragged. Both layouts put the stage in row 2 / column 1, so one rule
      serves them and the Shift-V special case goes with the arithmetic that
-     needed it. It shares the cell with #stage-cell rather than taking a row of
+     needed it. It shares the cell with #psiINT-stage-cell rather than taking a row of
      its own, so the stage keeps every pixel it had; z-index 35 still decides
      what is on top, which grid items honour without being positioned. */
-  body[data-view=speaker] #touch-controls {
+  body[data-view=speaker] #psiINT-touch-controls {
     position: static;
     grid-row: 2;
     grid-column: 1;
@@ -4880,7 +4880,7 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
 
    It was position: fixed, with the inset of a card pinned to the bottom of
    the window, and it was never pinned to anything of the sort. The pane
-   lives inside #stage, #stage carries the camera's transform, and a fixed
+   lives inside #psiINT-stage, #psiINT-stage carries the camera's transform, and a fixed
    descendant of a transformed element is positioned against that element
    rather than against the viewport. What made it look right was the other
    half of the same defect: getOffset walks offsetParent up to the stage, a
@@ -4889,7 +4889,7 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
    the card while leaving the slide behind it 37,000px away - a card floating
    on an empty page. The one construct here that really does escape to the
    window is the figure overlay, and it escapes by leaving the stage:
-   #figure-overlay is a sibling of it and the focused element is cloned in. */
+   #psiINT-figure-overlay is a sibling of it and the focused element is cloned in. */
 @media (max-width: 900px) {
   .chunk.expanded {
     grid-template-columns: minmax(0, 1fr);
@@ -4903,16 +4903,16 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
 }
 
 /* overview mode (PRD §5) ------------------------------------------- */
-body.overview-mode #stage-viewport { cursor: grab; }
-body.overview-mode #stage-viewport:active { cursor: grabbing; }
-body.overview-mode #stage { transition: transform var(--camera-duration) cubic-bezier(0.45, 0, 0.2, 1); }
+body.overview-mode #psiINT-stage-viewport { cursor: grab; }
+body.overview-mode #psiINT-stage-viewport:active { cursor: grabbing; }
+body.overview-mode #psiINT-stage { transition: transform var(--camera-duration) cubic-bezier(0.45, 0, 0.2, 1); }
 /* Same rule as the focus card's, and here it costs more: --camera-duration is
    250 ms, so at 8.4 ms between trackpad events the curve was re-aimed about
    thirty times before it could ever complete. */
-body.overview-mode.overview-dragging #stage,
-body.overview-mode.overview-zooming #stage { transition: none; }
+body.overview-mode.overview-dragging #psiINT-stage,
+body.overview-mode.overview-zooming #psiINT-stage { transition: none; }
 body.view-panning, body.view-panning * { cursor: grabbing !important; }
-body.view-panning #stage { transition: none; }
+body.view-panning #psiINT-stage { transition: none; }
 body.overview-mode .chunk {
   opacity: 1 !important;
   cursor: pointer;
@@ -4928,7 +4928,7 @@ body.overview-mode .exps,
 body.overview-mode .annot-box,
 body.overview-mode .margin-note { display: none !important; }
 
-#overview-badge {
+#psiINT-overview-badge {
   position: fixed;
   top: 14px; left: 14px;
   background: oklch(0.55 0.12 220);
@@ -4943,14 +4943,14 @@ body.overview-mode .margin-note { display: none !important; }
   z-index: 21;
   pointer-events: auto;
 }
-body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.7em; }
-#overview-badge .hint { pointer-events: none; }
+body.overview-mode #psiINT-overview-badge { display: flex; align-items: center; gap: 0.7em; }
+#psiINT-overview-badge .hint { pointer-events: none; }
 
 /* Search panel (PRD SS5). Fixed overlay rather than a strip inside the
    overview badge, because it opens from anywhere now, not only from the
    board. Sized so a hit list of a dozen entries is readable without
    covering the whole slide. */
-#search-panel {
+#psiINT-search-panel {
   position: fixed;
   top: 8vh;
   left: 50%;
@@ -4965,8 +4965,8 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
   z-index: 40;
   font-family: var(--sans-font);
 }
-#search-panel.hidden { display: none; }
-#search-panel #search-input {
+#psiINT-search-panel.hidden { display: none; }
+#psiINT-search-panel #psiINT-search-input {
   font: inherit;
   font-size: 1.05rem;
   color: var(--ink);
@@ -4976,51 +4976,51 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
   outline: 0;
   padding: 0.85rem 1.1rem;
 }
-#search-panel #search-input::placeholder { color: var(--ink-soft); font-style: italic; }
-#search-results {
+#psiINT-search-panel #psiINT-search-input::placeholder { color: var(--ink-soft); font-style: italic; }
+#psiINT-search-results {
   list-style: none;
   margin: 0;
   padding: 0;
   overflow-y: auto;
   flex: 1;
 }
-#search-results li {
+#psiINT-search-results li {
   padding: 0.6rem 1.1rem;
   border-bottom: 1px solid oklch(from var(--rule) l c h / 0.5);
   cursor: pointer;
 }
-#search-results li[aria-selected=true] { background: oklch(from var(--emph) l c h / 0.1); }
-#search-results .sr-title {
+#psiINT-search-results li[aria-selected=true] { background: oklch(from var(--emph) l c h / 0.1); }
+#psiINT-search-results .sr-title {
   font-weight: 600;
   font-size: 0.92rem;
   color: var(--ink);
 }
-#search-results .sr-tag {
+#psiINT-search-results .sr-tag {
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
   font-size: 0.72rem;
   color: var(--ink-soft);
   margin-inline-end: 0.5em;
 }
-#search-results .sr-sub {
+#psiINT-search-results .sr-sub {
   font-weight: 400;
   color: var(--ink-soft);
   margin-inline-start: 0.5em;
 }
-#search-results .sr-context {
+#psiINT-search-results .sr-context {
   display: block;
   font-size: 0.85rem;
   color: var(--ink-soft);
   margin-top: 0.15rem;
   line-height: 1.4;
 }
-#search-results mark {
+#psiINT-search-results mark {
   background: oklch(from var(--emph) l c h / 0.22);
   color: var(--emph);
   font-weight: 600;
 }
-#search-results .sr-empty { color: var(--ink-soft); font-style: italic; cursor: default; }
-#search-foot {
+#psiINT-search-results .sr-empty { color: var(--ink-soft); font-style: italic; cursor: default; }
+#psiINT-search-foot {
   padding: 0.45rem 1.1rem;
   border-top: 1px solid var(--rule);
   font-size: 0.72rem;
@@ -5028,7 +5028,7 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
 }
-#search-foot kbd { margin-inline-end: 0.15em; }
+#psiINT-search-foot kbd { margin-inline-end: 0.15em; }
 
 /* The go-to-slide prompt (G) --------------------------------------- */
 /* One line, low on the frame rather than in the middle of it: the number
@@ -5036,7 +5036,7 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
    thing to look at. It sits above the search panel in the stack for the
    same reason the badges do - nothing else may cover a prompt that is
    waiting for Enter. */
-#goto-prompt {
+#psiINT-goto-prompt {
   position: fixed;
   left: 50%;
   bottom: 12vh;
@@ -5052,22 +5052,22 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
   font-family: var(--sans-font);
   color: var(--ink);
 }
-#goto-prompt.hidden { display: none; }
-#goto-prompt .goto-label,
-#goto-prompt .goto-foot {
+#psiINT-goto-prompt.hidden { display: none; }
+#psiINT-goto-prompt .goto-label,
+#psiINT-goto-prompt .goto-foot {
   font-size: 0.72rem;
   color: var(--ink-soft);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
 }
-#goto-prompt .goto-digits {
+#psiINT-goto-prompt .goto-digits {
   font-size: 1.5rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   min-width: 2ch;
   color: var(--emph);
 }
-#goto-prompt .goto-of {
+#psiINT-goto-prompt .goto-of {
   font-size: 0.9rem;
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
@@ -5076,7 +5076,7 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
    open with the digits still in it, so the fix is a Backspace rather than
    a re-open. The shake is the whole of the refusal, which is why it has to
    be able to run twice in a row - the class is taken off on animationend. */
-#goto-prompt.goto-refused { animation: goto-shake 0.32s; }
+#psiINT-goto-prompt.goto-refused { animation: goto-shake 0.32s; }
 @keyframes goto-shake {
   0%, 100% { transform: translateX(-50%); }
   20% { transform: translateX(calc(-50% - 7px)); }
@@ -5085,11 +5085,7 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
 }
 
 /* TOC overlay (PRD §5) --------------------------------------------- */
-/* Scoped to the <nav> tag so author chunks that legitimately use
-   id="toc" (see lectures/tutorial – a chunk explaining the TOC
-   feature) don't inherit the overlay's fixed positioning and
-   collapse into a floating blob. */
-nav#toc {
+#psiINT-toc {
   position: fixed;
   top: 0; right: 0;
   height: 100vh;
@@ -5103,8 +5099,8 @@ nav#toc {
   transition: transform 220ms cubic-bezier(0.45, 0, 0.2, 1);
   z-index: 25;
 }
-body.toc-visible nav#toc { transform: translateX(0); }
-nav#toc h2 {
+body.toc-visible #psiINT-toc { transform: translateX(0); }
+#psiINT-toc h2 {
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.18em;
@@ -5113,9 +5109,9 @@ nav#toc h2 {
   font-weight: 500;
   margin: 0 0 1.2rem;
 }
-nav#toc ol { list-style: decimal outside; padding-left: 1.6em; margin: 0; }
-nav#toc li { margin: 0.5em 0; }
-nav#toc button {
+#psiINT-toc ol { list-style: decimal outside; padding-left: 1.6em; margin: 0; }
+#psiINT-toc li { margin: 0.5em 0; }
+#psiINT-toc button {
   background: transparent;
   border: 0;
   padding: 0.1em 0;
@@ -5126,8 +5122,8 @@ nav#toc button {
   letter-spacing: -0.005em;
   line-height: 1.3;
 }
-nav#toc button:hover { color: var(--emph); }
-nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
+#psiINT-toc button:hover { color: var(--emph); }
+#psiINT-toc li.toc-active button { font-weight: 600; color: var(--emph); }
 
 
 .figure-diagram { margin: 0.7em 0; }
@@ -5511,8 +5507,8 @@ body[data-font=mono] .exp-body code:not(pre code) { font-size: 0.96em; }
 </head>
 <body data-collapse="none" data-font="serif" data-theme="light-blue" data-mode="light" data-slide-nums="horizontal">
 
-<div id="stage-viewport">
-  <div id="stage">
+<div id="psiINT-stage-viewport">
+  <div id="psiINT-stage">
 <section class="column" data-col="0">
 
 <article class="chunk chunk-title" data-tag="title" data-width="full" data-cover="quote" data-cover-align="middle" data-chunk-id="cover" data-chunk-num="1" id="cover">
@@ -5954,13 +5950,13 @@ is refused.</p>
       <div class="section-mark">Part</div>
       <ol class="section-outline"><li data-state="done"><span class="so-num">1</span><span class="so-text">The cover, and the slide that closes it</span></li><li data-state="done"><span class="so-num">2</span><span class="so-text">Dividers carry their own slide</span></li><li data-state="now" aria-current="step"><span class="so-num">3</span><span class="so-text">Cards, rows and panes</span></li><li data-state="next"><span class="so-num">4</span><span class="so-text">Revealing a picture</span></li><li data-state="next"><span class="so-num">5</span><span class="so-text">Panels: the card grown to the frame</span></li><li data-state="next"><span class="so-num">6</span><span class="so-text">A dock at the frame's edge</span></li><li data-state="next"><span class="so-num">7</span><span class="so-text">Beats below the top level</span></li><li data-state="next"><span class="so-num">8</span><span class="so-text">A heading that stays off the slide</span></li></ol>
     </div>
-    <div class="section-body"><figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-89.00 -25.50 338.56 159.00" style="--dg-type-w:22.571;--dg-ar:2.1293;--dg-ink-x:0.03544" width="2000" height="939" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
-<g id="dg1-note--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg1-note--lead--p" class="dg-stroke" d="M130.46 54.00L77.00 54.00" fill="none"/><path id="dg1-note--lead--h" class="dg-head" d="M77.00 54.00L77.00 54.00L77.00 54.00Z"/></g>
-<g id="dg1-cards" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg1-cards--r" x="-77.00" y="-13.50" width="154.00" height="27.00" rx="4"/><g id="dg1-cards--lw0" data-lab="cards--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg1-cards--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">cards 3</tspan></text></g></g></g>
-<g id="dg1-rows" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg1-rows--r" x="-77.00" y="40.50" width="154.00" height="27.00" rx="4"/><g id="dg1-rows--lw0" data-lab="rows--l" class="dg-lwrap" transform="translate(0.00,54.00)"><g id="dg1-rows--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">rows</tspan></text></g></g></g>
-<g id="dg1-side" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg1-side--r" x="-77.00" y="94.50" width="154.00" height="27.00" rx="4"/><g id="dg1-side--lw0" data-lab="side--l" class="dg-lwrap" transform="translate(0.00,108.00)"><g id="dg1-side--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">side 2:1</tspan></text></g></g></g>
-<g id="dg1-note" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg1-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(136.40,54.00)"><g id="dg1-note--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">three containers,</tspan><tspan x="0" y="11.58">three jobs</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  cards \"cards 3\"  at 0,0 w 1.1 h 0.5 {.tone-2}\nbox  rows  \"rows\"     below cards gap 0.5 same as cards {.tone-3}\nbox  side  \"side 2:1\" below rows  gap 0.5 same as cards {.tone-1}\ntext note  \"three containers,\\nthree jobs\" right of rows gap 1.1 -- rows {.small .muted .left}","attrs":"unit=140x54","opener":"::: draw 140x54","range":[8854,9131],"chunk":null,"width":null,"canvas":null,"alt":""}</script></figure></div>
+    <div class="section-body"><figure class="figure-diagram"><svg id="psiINT-dg1-root" class="psi-diagram" viewBox="-89.00 -25.50 338.56 159.00" style="--dg-type-w:22.571;--dg-ar:2.1293;--dg-ink-x:0.03544" width="2000" height="939" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
+<g id="psiINT-dg1-note--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="psiINT-dg1-note--lead--p" class="dg-stroke" d="M130.46 54.00L77.00 54.00" fill="none"/><path id="psiINT-dg1-note--lead--h" class="dg-head" d="M77.00 54.00L77.00 54.00L77.00 54.00Z"/></g>
+<g id="psiINT-dg1-cards" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="psiINT-dg1-cards--r" x="-77.00" y="-13.50" width="154.00" height="27.00" rx="4"/><g id="psiINT-dg1-cards--lw0" data-lab="cards--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="psiINT-dg1-cards--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">cards 3</tspan></text></g></g></g>
+<g id="psiINT-dg1-rows" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="psiINT-dg1-rows--r" x="-77.00" y="40.50" width="154.00" height="27.00" rx="4"/><g id="psiINT-dg1-rows--lw0" data-lab="rows--l" class="dg-lwrap" transform="translate(0.00,54.00)"><g id="psiINT-dg1-rows--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">rows</tspan></text></g></g></g>
+<g id="psiINT-dg1-side" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="psiINT-dg1-side--r" x="-77.00" y="94.50" width="154.00" height="27.00" rx="4"/><g id="psiINT-dg1-side--lw0" data-lab="side--l" class="dg-lwrap" transform="translate(0.00,108.00)"><g id="psiINT-dg1-side--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">side 2:1</tspan></text></g></g></g>
+<g id="psiINT-dg1-note" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="psiINT-dg1-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(136.40,54.00)"><g id="psiINT-dg1-note--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">three containers,</tspan><tspan x="0" y="11.58">three jobs</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-source" data-for="psiINT-dg1-root">{"body":"box  cards \"cards 3\"  at 0,0 w 1.1 h 0.5 {.tone-2}\nbox  rows  \"rows\"     below cards gap 0.5 same as cards {.tone-3}\nbox  side  \"side 2:1\" below rows  gap 0.5 same as cards {.tone-1}\ntext note  \"three containers,\\nthree jobs\" right of rows gap 1.1 -- rows {.small .muted .left}","attrs":"unit=140x54","opener":"::: draw 140x54","range":[8854,9131],"chunk":null,"width":null,"canvas":null,"alt":""}</script></figure></div>
   </div>
   
   
@@ -6171,10 +6167,10 @@ second one. Any two numbers work.</p>
 </div><div class="side-b">
 
 
-<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" style="--dg-type-w:30.980;--dg-ar:3.3674;--dg-ink-x:0.02582" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
-<g id="dg2-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg2-a--r" x="-142.50" y="-57.00" width="285.00" height="114.00" rx="4"/><g id="dg2-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">2fr</tspan></text></g></g></g>
-<g id="dg2-b" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg2-b--r" x="155.70" y="-57.00" width="142.50" height="114.00" rx="4"/><g id="dg2-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(226.95,0.00)"><g id="dg2-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">1fr</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"box a \"2fr\" at 0,0 w 1.9 h 1.9 {.tone-2}\nbox b \"1fr\" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}","attrs":"unit=150x60","opener":"::: draw 150x60","range":[12615,12710],"chunk":"side","width":"wide","canvas":null,"alt":"`::: side` takes a ratio"}</script></figure>
+<figure class="figure-diagram"><svg id="psiINT-dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" style="--dg-type-w:30.980;--dg-ar:3.3674;--dg-ink-x:0.02582" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
+<g id="psiINT-dg2-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="psiINT-dg2-a--r" x="-142.50" y="-57.00" width="285.00" height="114.00" rx="4"/><g id="psiINT-dg2-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="psiINT-dg2-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">2fr</tspan></text></g></g></g>
+<g id="psiINT-dg2-b" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="psiINT-dg2-b--r" x="155.70" y="-57.00" width="142.50" height="114.00" rx="4"/><g id="psiINT-dg2-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(226.95,0.00)"><g id="psiINT-dg2-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">1fr</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-source" data-for="psiINT-dg2-root">{"body":"box a \"2fr\" at 0,0 w 1.9 h 1.9 {.tone-2}\nbox b \"1fr\" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}","attrs":"unit=150x60","opener":"::: draw 150x60","range":[12615,12710],"chunk":"side","width":"wide","canvas":null,"alt":"`::: side` takes a ratio"}</script></figure>
 
 
 </div></div></div></div>
@@ -6721,17 +6717,17 @@ dock per slide; a <code class="nb">#id</code> link in the body is the live marke
       <div class="section-mark">Part</div>
       <ol class="section-outline"><li data-state="done"><span class="so-num">1</span><span class="so-text">The cover, and the slide that closes it</span></li><li data-state="done"><span class="so-num">2</span><span class="so-text">Dividers carry their own slide</span></li><li data-state="done"><span class="so-num">3</span><span class="so-text">Cards, rows and panes</span></li><li data-state="done"><span class="so-num">4</span><span class="so-text">Revealing a picture</span></li><li data-state="done"><span class="so-num">5</span><span class="so-text">Panels: the card grown to the frame</span></li><li data-state="done"><span class="so-num">6</span><span class="so-text">A dock at the frame's edge</span></li><li data-state="now" aria-current="step"><span class="so-num">7</span><span class="so-text">Beats below the top level</span></li><li data-state="next"><span class="so-num">8</span><span class="so-text">A heading that stays off the slide</span></li></ol>
     </div>
-    <div class="section-body"><figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-59.20 -22.20 634.60 79.97" style="--dg-type-w:42.307;--dg-ar:7.9350;--dg-ink-x:0.01891" width="2000" height="252" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
-<g id="dg3-p1" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p1--p" class="dg-stroke" d="M-47.20 20.40L-47.20 27.40L150.44 27.40L150.44 20.40" fill="none"/><g id="dg3-p1--lw0" data-lab="p1--l" class="dg-lwrap" transform="translate(51.62,36.40)"><g id="dg3-p1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">left pane</tspan></text></g></g></g>
-<g id="dg3-p2" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p2--p" class="dg-stroke" d="M159.28 20.40L159.28 27.40L356.92 27.40L356.92 20.40" fill="none"/><g id="dg3-p2--lw0" data-lab="p2--l" class="dg-lwrap" transform="translate(258.10,36.40)"><g id="dg3-p2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">right pane</tspan></text></g></g></g>
-<g id="dg3-p3" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p3--p" class="dg-stroke" d="M365.76 20.40L365.76 27.40L563.40 27.40L563.40 20.40" fill="none"/><g id="dg3-p3--lw0" data-lab="p3--l" class="dg-lwrap" transform="translate(464.58,36.40)"><g id="dg3-p3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">the card row</tspan></text></g></g></g>
-<g id="dg3-b1" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg3-b1--r" x="-47.20" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b1--lw0" data-lab="b1--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg3-b1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 1</tspan></text></g></g></g>
-<g id="dg3-b2" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg3-b2--r" x="56.04" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b2--lw0" data-lab="b2--l" class="dg-lwrap" transform="translate(103.24,0.00)"><g id="dg3-b2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 2</tspan></text></g></g></g>
-<g id="dg3-b3" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg3-b3--r" x="159.28" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b3--lw0" data-lab="b3--l" class="dg-lwrap" transform="translate(206.48,0.00)"><g id="dg3-b3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 3</tspan></text></g></g></g>
-<g id="dg3-b4" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg3-b4--r" x="262.52" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b4--lw0" data-lab="b4--l" class="dg-lwrap" transform="translate(309.72,0.00)"><g id="dg3-b4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 4</tspan></text></g></g></g>
-<g id="dg3-b5" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg3-b5--r" x="365.76" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b5--lw0" data-lab="b5--l" class="dg-lwrap" transform="translate(412.96,0.00)"><g id="dg3-b5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 5</tspan></text></g></g></g>
-<g id="dg3-b6" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg3-b6--r" x="469.00" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b6--lw0" data-lab="b6--l" class="dg-lwrap" transform="translate(516.20,0.00)"><g id="dg3-b6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 6</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"default box {.tone-2} w 0.8 h 0.6 pad 0.12\n\nbox b1 \"beat 1\" at 0,0\nbox b2 \"beat 2\" right of b1 gap 0.26\nbox b3 \"beat 3\" right of b2 gap 0.26 {.tone-3}\nbox b4 \"beat 4\" right of b3 gap 0.26 {.tone-3}\nbox b5 \"beat 5\" right of b4 gap 0.26 {.tone-1}\nbox b6 \"beat 6\" right of b5 gap 0.26 {.tone-1}\nbrace p1 over b1,b2 \"left pane\" side bottom pad 0.3 {.muted}\nbrace p2 over b3,b4 \"right pane\" side bottom pad 0.3 {.muted}\nbrace p3 over b5,b6 \"the card row\" side bottom pad 0.3 {.muted}","attrs":"unit=118x34","opener":"::: draw 118x34","range":[21459,21937],"chunk":null,"width":null,"canvas":null,"alt":""}</script></figure></div>
+    <div class="section-body"><figure class="figure-diagram"><svg id="psiINT-dg3-root" class="psi-diagram" viewBox="-59.20 -22.20 634.60 79.97" style="--dg-type-w:42.307;--dg-ar:7.9350;--dg-ink-x:0.01891" width="2000" height="252" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
+<g id="psiINT-dg3-p1" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="psiINT-dg3-p1--p" class="dg-stroke" d="M-47.20 20.40L-47.20 27.40L150.44 27.40L150.44 20.40" fill="none"/><g id="psiINT-dg3-p1--lw0" data-lab="p1--l" class="dg-lwrap" transform="translate(51.62,36.40)"><g id="psiINT-dg3-p1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">left pane</tspan></text></g></g></g>
+<g id="psiINT-dg3-p2" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="psiINT-dg3-p2--p" class="dg-stroke" d="M159.28 20.40L159.28 27.40L356.92 27.40L356.92 20.40" fill="none"/><g id="psiINT-dg3-p2--lw0" data-lab="p2--l" class="dg-lwrap" transform="translate(258.10,36.40)"><g id="psiINT-dg3-p2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">right pane</tspan></text></g></g></g>
+<g id="psiINT-dg3-p3" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="psiINT-dg3-p3--p" class="dg-stroke" d="M365.76 20.40L365.76 27.40L563.40 27.40L563.40 20.40" fill="none"/><g id="psiINT-dg3-p3--lw0" data-lab="p3--l" class="dg-lwrap" transform="translate(464.58,36.40)"><g id="psiINT-dg3-p3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">the card row</tspan></text></g></g></g>
+<g id="psiINT-dg3-b1" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="psiINT-dg3-b1--r" x="-47.20" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b1--lw0" data-lab="b1--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="psiINT-dg3-b1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 1</tspan></text></g></g></g>
+<g id="psiINT-dg3-b2" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="psiINT-dg3-b2--r" x="56.04" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b2--lw0" data-lab="b2--l" class="dg-lwrap" transform="translate(103.24,0.00)"><g id="psiINT-dg3-b2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 2</tspan></text></g></g></g>
+<g id="psiINT-dg3-b3" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="psiINT-dg3-b3--r" x="159.28" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b3--lw0" data-lab="b3--l" class="dg-lwrap" transform="translate(206.48,0.00)"><g id="psiINT-dg3-b3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 3</tspan></text></g></g></g>
+<g id="psiINT-dg3-b4" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="psiINT-dg3-b4--r" x="262.52" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b4--lw0" data-lab="b4--l" class="dg-lwrap" transform="translate(309.72,0.00)"><g id="psiINT-dg3-b4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 4</tspan></text></g></g></g>
+<g id="psiINT-dg3-b5" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="psiINT-dg3-b5--r" x="365.76" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b5--lw0" data-lab="b5--l" class="dg-lwrap" transform="translate(412.96,0.00)"><g id="psiINT-dg3-b5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 5</tspan></text></g></g></g>
+<g id="psiINT-dg3-b6" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="psiINT-dg3-b6--r" x="469.00" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b6--lw0" data-lab="b6--l" class="dg-lwrap" transform="translate(516.20,0.00)"><g id="psiINT-dg3-b6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 6</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-source" data-for="psiINT-dg3-root">{"body":"default box {.tone-2} w 0.8 h 0.6 pad 0.12\n\nbox b1 \"beat 1\" at 0,0\nbox b2 \"beat 2\" right of b1 gap 0.26\nbox b3 \"beat 3\" right of b2 gap 0.26 {.tone-3}\nbox b4 \"beat 4\" right of b3 gap 0.26 {.tone-3}\nbox b5 \"beat 5\" right of b4 gap 0.26 {.tone-1}\nbox b6 \"beat 6\" right of b5 gap 0.26 {.tone-1}\nbrace p1 over b1,b2 \"left pane\" side bottom pad 0.3 {.muted}\nbrace p2 over b3,b4 \"right pane\" side bottom pad 0.3 {.muted}\nbrace p3 over b5,b6 \"the card row\" side bottom pad 0.3 {.muted}","attrs":"unit=118x34","opener":"::: draw 118x34","range":[21459,21937],"chunk":null,"width":null,"canvas":null,"alt":""}</script></figure></div>
   </div>
   
   
@@ -6876,14 +6872,14 @@ type above it, and each is still a row in the search index.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The measurement loop</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 367.55 180.03" style="--dg-type-w:24.503;--dg-ar:2.0417;--dg-ink-x:0.03265" width="2000" height="980" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
-<g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="dg4-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="dg4-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
-<g id="dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="dg4-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="dg4-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="dg4-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
-<g id="dg4-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg4-edge-3--p" class="dg-stroke" d="M227.78 18.38L227.78 83.52" fill="none"/><path id="dg4-edge-3--h" class="dg-head" d="M227.78 91.17L223.82 82.17L231.74 82.17Z"/></g>
-<g id="dg4-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg4-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
-<g id="dg4-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-site--r" x="156.35" y="-18.38" width="142.85" height="36.75" rx="4"/><g id="dg4-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(227.78,0.00)"><g id="dg4-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
-<g id="dg4-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-score--r" x="156.35" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg4-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(227.78,109.55)"><g id="dg4-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","opener":"::: draw 150x56","range":[24425,24710],"chunk":"bare-loop","width":"full","canvas":null,"alt":"The measurement loop"}</script></figure></div></div>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="psiINT-dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 367.55 180.03" style="--dg-type-w:24.503;--dg-ar:2.0417;--dg-ink-x:0.03265" width="2000" height="980" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
+<g id="psiINT-dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="psiINT-dg4-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="psiINT-dg4-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="psiINT-dg4-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="psiINT-dg4-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
+<g id="psiINT-dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="psiINT-dg4-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="psiINT-dg4-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="psiINT-dg4-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="psiINT-dg4-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
+<g id="psiINT-dg4-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="psiINT-dg4-edge-3--p" class="dg-stroke" d="M227.78 18.38L227.78 83.52" fill="none"/><path id="psiINT-dg4-edge-3--h" class="dg-head" d="M227.78 91.17L223.82 82.17L231.74 82.17Z"/></g>
+<g id="psiINT-dg4-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="psiINT-dg4-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="psiINT-dg4-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="psiINT-dg4-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
+<g id="psiINT-dg4-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="psiINT-dg4-site--r" x="156.35" y="-18.38" width="142.85" height="36.75" rx="4"/><g id="psiINT-dg4-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(227.78,0.00)"><g id="psiINT-dg4-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
+<g id="psiINT-dg4-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="psiINT-dg4-score--r" x="156.35" y="91.17" width="142.85" height="36.75" rx="4"/><g id="psiINT-dg4-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(227.78,109.55)"><g id="psiINT-dg4-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-source" data-for="psiINT-dg4-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","opener":"::: draw 150x56","range":[24425,24710],"chunk":"bare-loop","width":"full","canvas":null,"alt":"The measurement loop"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="bare-loop">
       <div class="annot-box-label">annotation · bare-loop</div>
@@ -6903,15 +6899,15 @@ type above it, and each is still a row in the search index.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">A figure that walks itself</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206;--dg-ink-x:0.01944;--dg-live-type-w:41.144;--dg-live-ar:4.0206;--dg-live-ink-x:0.01944" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
-<g id="dg5-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-1--p" class="dg-stroke" d="M75.00 0.00L145.75 0.00" fill="none"/><path id="dg5-edge-1--h" class="dg-head" d="M153.40 0.00L144.40 3.96L144.40 -3.96Z"/></g>
-<g id="dg5-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-2--p" class="dg-stroke" d="M228.40 18.38L228.40 66.72" fill="none"/><path id="dg5-edge-2--h" class="dg-head" d="M228.40 74.38L224.44 65.38L232.36 65.38Z"/></g>
-<g id="dg5-n--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg5-n--lead--p" class="dg-stroke" d="M353.24 92.75L303.40 92.75" fill="none"/><path id="dg5-n--lead--h" class="dg-head" d="M303.40 92.75L303.40 92.75L303.40 92.75Z"/></g>
-<g id="dg5-raw" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg5-raw--r" x="-75.00" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg5-raw--lw0" data-lab="raw--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg5-raw--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">raw crawl</tspan></text></g></g></g>
-<g id="dg5-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg5-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg5-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="dg5-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
-<g id="dg5-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg5-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="dg5-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="dg5-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
-<g id="dg5-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg5-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="dg5-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg5-root">{"p":"dg5-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg5-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","opener":"::: draw 150x56 autoplay 1400 cycle","range":[25115,25493],"chunk":"autoplay","width":"full","canvas":null,"alt":"A figure that walks itself"}</script></figure></div></div>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="psiINT-dg5-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206;--dg-ink-x:0.01944;--dg-live-type-w:41.144;--dg-live-ar:4.0206;--dg-live-ink-x:0.01944" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
+<g id="psiINT-dg5-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="psiINT-dg5-edge-1--p" class="dg-stroke" d="M75.00 0.00L145.75 0.00" fill="none"/><path id="psiINT-dg5-edge-1--h" class="dg-head" d="M153.40 0.00L144.40 3.96L144.40 -3.96Z"/></g>
+<g id="psiINT-dg5-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="psiINT-dg5-edge-2--p" class="dg-stroke" d="M228.40 18.38L228.40 66.72" fill="none"/><path id="psiINT-dg5-edge-2--h" class="dg-head" d="M228.40 74.38L224.44 65.38L232.36 65.38Z"/></g>
+<g id="psiINT-dg5-n--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="psiINT-dg5-n--lead--p" class="dg-stroke" d="M353.24 92.75L303.40 92.75" fill="none"/><path id="psiINT-dg5-n--lead--h" class="dg-head" d="M303.40 92.75L303.40 92.75L303.40 92.75Z"/></g>
+<g id="psiINT-dg5-raw" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="psiINT-dg5-raw--r" x="-75.00" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="psiINT-dg5-raw--lw0" data-lab="raw--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="psiINT-dg5-raw--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">raw crawl</tspan></text></g></g></g>
+<g id="psiINT-dg5-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="psiINT-dg5-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="psiINT-dg5-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="psiINT-dg5-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
+<g id="psiINT-dg5-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="psiINT-dg5-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="psiINT-dg5-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="psiINT-dg5-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
+<g id="psiINT-dg5-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="psiINT-dg5-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="psiINT-dg5-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="psiINT-dg5-root">{"p":"psiINT-dg5-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="psiINT-dg5-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","opener":"::: draw 150x56 autoplay 1400 cycle","range":[25115,25493],"chunk":"autoplay","width":"full","canvas":null,"alt":"A figure that walks itself"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="autoplay">
       <div class="annot-box-label">annotation · autoplay</div>
@@ -6942,10 +6938,10 @@ did before.</p>
 </section>
   </div>
 </div>
-<div id="laser-pointer" aria-hidden="true"></div>
-<div id="figure-overlay" aria-hidden="true"></div>
-<nav id="touch-controls" aria-label="Slide controls">
-  <div id="touch-palette" hidden>
+<div id="psiINT-laser-pointer" aria-hidden="true"></div>
+<div id="psiINT-figure-overlay" aria-hidden="true"></div>
+<nav id="psiINT-touch-controls" aria-label="Slide controls">
+  <div id="psiINT-touch-palette" hidden>
     <button type="button" data-action="collapse" aria-label="Shorten or expand the text">C</button>
     <button type="button" data-action="font" aria-label="Change the font">F</button>
     <button type="button" data-action="theme" aria-label="Change the theme">A</button>
@@ -6954,7 +6950,7 @@ did before.</p>
     <button type="button" data-action="select" aria-label="Select text" aria-pressed="false">&#x2380;</button>
     <button type="button" data-action="fullscreen" aria-label="Fullscreen">&#x26F6;</button>
   </div>
-  <div id="touch-rail">
+  <div id="psiINT-touch-rail">
     <button type="button" data-action="prev" aria-label="Previous">&#x2039;</button>
     <button type="button" data-action="next" aria-label="Next">&#x203A;</button>
     <button type="button" data-action="overview" aria-label="Overview">&#x229E;</button>
@@ -6963,8 +6959,8 @@ did before.</p>
     <button type="button" data-action="more" aria-label="More controls" aria-expanded="false">&#x22EF;</button>
   </div>
 </nav>
-<div id="help-overlay" class="hidden" role="dialog" aria-label="Keyboard and mouse reference" aria-modal="false">
-  <div id="help-inner">
+<div id="psiINT-help-overlay" class="hidden" role="dialog" aria-label="Keyboard and mouse reference" aria-modal="false">
+  <div id="psiINT-help-inner">
     <header>
       <h2>psi-slides · audience view</h2>
       <span class="help-dismiss"><kbd>?</kbd> or <kbd>Esc</kbd> closes</span>
@@ -7078,37 +7074,37 @@ did before.</p>
     </div>
   </div>
 </div>
-<button id="help-button" type="button" aria-label="Keyboard and mouse reference" title="Keyboard and mouse reference (?)">?</button>
-<div id="mode-badge"></div>
-<div id="overview-badge">
+<button id="psiINT-help-button" type="button" aria-label="Keyboard and mouse reference" title="Keyboard and mouse reference (?)">?</button>
+<div id="psiINT-mode-badge"></div>
+<div id="psiINT-overview-badge">
   <span class="hint">overview · drag pans · wheel zooms · <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> selects · click or <kbd>O</kbd>/<kbd>Enter</kbd> lands · <kbd>/</kbd> search · <kbd>Esc</kbd> leaves</span>
 </div>
-<div id="search-panel" class="hidden" role="dialog" aria-label="Search slides">
-  <input id="search-input" type="text" placeholder="search the lecture..." autocomplete="off" spellcheck="false" aria-controls="search-results">
-  <ul id="search-results" role="listbox"></ul>
-  <div id="search-foot"><kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> go · <kbd>Esc</kbd> close</div>
+<div id="psiINT-search-panel" class="hidden" role="dialog" aria-label="Search slides">
+  <input id="psiINT-search-input" type="text" placeholder="search the lecture..." autocomplete="off" spellcheck="false" aria-controls="psiINT-search-results">
+  <ul id="psiINT-search-results" role="listbox"></ul>
+  <div id="psiINT-search-foot"><kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> go · <kbd>Esc</kbd> close</div>
 </div>
-<div id="goto-prompt" class="hidden" role="dialog" aria-label="Go to slide">
+<div id="psiINT-goto-prompt" class="hidden" role="dialog" aria-label="Go to slide">
   <span class="goto-label">go to</span>
   <span class="goto-digits" aria-live="polite"></span>
   <span class="goto-of"></span>
   <span class="goto-foot"><kbd>Enter</kbd> go · <kbd>Esc</kbd> cancel</span>
 </div>
-<div id="blank-badge" class="cmd-badge hidden" role="status">BLANK<span> &middot; hit B to toggle</span></div>
-<button type="button" id="fullscreen-hint" class="hidden">fullscreen<span> &middot; click anywhere, or hit W on this screen</span></button>
-<div id="demo-badge" class="cmd-badge hidden" role="status">DEMO<span> &middot; hit D to end it</span></div>
-<div id="link-overlay" class="hidden" role="dialog" aria-label="Link address">
-  <div id="link-overlay-inner">
-    <div id="link-overlay-label"></div>
-    <a id="link-overlay-url" target="_blank" rel="noopener noreferrer"></a>
-    <div id="link-overlay-qr" class="qr-card" aria-hidden="true"></div>
-    <div id="link-overlay-hint">scan it, or click the address to open it &middot; Esc closes</div>
+<div id="psiINT-blank-badge" class="cmd-badge hidden" role="status">BLANK<span> &middot; hit B to toggle</span></div>
+<button type="button" id="psiINT-fullscreen-hint" class="hidden">fullscreen<span> &middot; click anywhere, or hit W on this screen</span></button>
+<div id="psiINT-demo-badge" class="cmd-badge hidden" role="status">DEMO<span> &middot; hit D to end it</span></div>
+<div id="psiINT-link-overlay" class="hidden" role="dialog" aria-label="Link address">
+  <div id="psiINT-link-overlay-inner">
+    <div id="psiINT-link-overlay-label"></div>
+    <a id="psiINT-link-overlay-url" target="_blank" rel="noopener noreferrer"></a>
+    <div id="psiINT-link-overlay-qr" class="qr-card" aria-hidden="true"></div>
+    <div id="psiINT-link-overlay-hint">scan it, or click the address to open it &middot; Esc closes</div>
   </div>
 </div>
-<div id="demo-overlay" class="hidden" role="region" aria-label="Live demo">
-  <video id="demo-video" autoplay muted playsinline></video>
+<div id="psiINT-demo-overlay" class="hidden" role="region" aria-label="Live demo">
+  <video id="psiINT-demo-video" autoplay muted playsinline></video>
 </div>
-<nav id="toc" aria-label="Contents">
+<nav id="psiINT-toc" aria-label="Contents">
   <h2>Contents</h2>
   <ol>
     <li data-toc-col="1"><button type="button">The cover, and the slide that closes it</button></li>
@@ -9856,7 +9852,7 @@ function dgSwapFigure(oldSvg, html) {
   // actually looking at while a figure is zoomed – the very state an edit
   // is usually made in. dgMirrorIntoFocus can only repaint ids that
   // survived the edit, so a structural change replaces the clone whole.
-  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  const card = document.querySelector('#psiINT-figure-overlay .figure-focus-target');
   if (card) {
     const shown = card.querySelector('svg.psi-diagram');
     if (shown && shown.id === next.id) {
@@ -9871,7 +9867,7 @@ function dgSwapFigure(oldSvg, html) {
 // Repaint whatever diagram is currently zoomed into the focus card. Cheap and
 // unconditional: one querySelector when nothing is focused.
 function dgMirrorIntoFocus(d, step) {
-  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  const card = document.querySelector('#psiINT-figure-overlay .figure-focus-target');
   if (!card) return;
   const svg = card.querySelector('svg.psi-diagram');
   if (!svg || svg.id !== d.svg.id) return;
@@ -9952,12 +9948,12 @@ const viewHooks = {
   escapePrompter: () => false,
 };
 
-const stage = document.getElementById('stage');
-const viewport = document.getElementById('stage-viewport');
-const modeBadge = document.getElementById('mode-badge');
+const stage = document.getElementById('psiINT-stage');
+const viewport = document.getElementById('psiINT-stage-viewport');
+const modeBadge = document.getElementById('psiINT-mode-badge');
 
 // The camera is the only thing allowed to decide what is on screen, and it
-// positions the deck with a transform on #stage. But #stage-viewport is a
+// positions the deck with a transform on #psiINT-stage. But #psiINT-stage-viewport is a
 // scroll container, and overflow: hidden does not make a box unscrollable -
 // it only hides the scrollbars. The browser still scrolls it to reveal
 // things, and then every chunk sits translated by an offset the camera math
@@ -10780,7 +10776,7 @@ window.addEventListener('message', (ev) => {
 // Laser pointer – audience-only mirror of the speaker's mouse position.
 // chunkIdx + percentage coords let the receiver position relative to
 // its own copy of the active chunk (so different zoom levels still align).
-const laserEl = document.getElementById('laser-pointer');
+const laserEl = document.getElementById('psiINT-laser-pointer');
 let laserHideTimer = null;
 function showLaserPointer(chunkIdx, px, py, target) {
   if (!laserEl) return;
@@ -10935,7 +10931,7 @@ function splitSentencesIn(root) {
 function lecturerScreen() {
   return VIEW === 'speaker' || !hasLivePeer();
 }
-const blankBadge = document.getElementById('blank-badge');
+const blankBadge = document.getElementById('psiINT-blank-badge');
 function applyBlankBadge() {
   if (!blankBadge) return;
   blankBadge.classList.toggle('hidden', !(state.blanked && lecturerScreen()));
@@ -10951,7 +10947,7 @@ let demoPending = false;
 let demoRemoteLive = false;
 let demoPc = null;
 let demoRemoteReady = null;
-const demoBadge = document.getElementById('demo-badge');
+const demoBadge = document.getElementById('psiINT-demo-badge');
 function demoOn() { return !!demoStream || demoRemoteLive; }
 function applyDemoBadge() {
   if (!demoBadge) return;
@@ -11165,7 +11161,7 @@ function getOffset(el, parent) {
 // two coordinate systems.
 // Split in two, and the client half is the one --check-fit needs. The camera
 // wants the span in the stage's layout coordinates; the probe compares
-// everything against #stage-viewport's client rect, and a probe that
+// everything against #psiINT-stage-viewport's client rect, and a probe that
 // re-derived "what is painted" from a selector list of its own would be a
 // second implementation of the exact rule the camera follows. One walk, two
 // coordinate systems.
@@ -11221,7 +11217,7 @@ function focusCamera(instant = false) {
   // and deliberately does not lift it out with position: fixed.
   //
   // That used to be the rule, and it was never fixed to the window. The pane
-  // lives inside #stage, #stage carries this very transform, and a fixed
+  // lives inside #psiINT-stage, #psiINT-stage carries this very transform, and a fixed
   // descendant of a transformed element is positioned against that element.
   // getOffset walks offsetParent up to the stage, of which such a box has
   // none, so the camera answered with translate(-4320px, -40850px) - the card
@@ -11560,7 +11556,7 @@ function toggleToc() {
 }
 function markTocActive() {
   const curColIdx = flatChunks[state.activeIdx]?.colIdx;
-  document.querySelectorAll('nav#toc li').forEach(li => {
+  document.querySelectorAll('#psiINT-toc li').forEach(li => {
     li.classList.toggle('toc-active', parseInt(li.dataset.tocCol, 10) === curColIdx);
   });
 }
@@ -11571,15 +11567,15 @@ function jumpToColumn(colIdx) {
 
 // Fulltext search (PRD §5) – active only in overview. Each keystroke filters
 // chunks: matches get a highlight outline, non-matches fade to 0.1 opacity.
-const searchInput = document.getElementById('search-input');
+const searchInput = document.getElementById('psiINT-search-input');
 // Search is a hit list, not only a highlight on the board. Highlighting
 // alone assumed the reader was looking at the overview and could see where
 // the match was; most matches are off screen, and in a long lecture the
 // useful question is "which slide says this", which a list answers and a
 // fade does not. It opens from anywhere for the same reason: needing to be
 // in overview first made it useless as the mid-lecture jump tool it is.
-const searchPanel = document.getElementById('search-panel');
-const searchResults = document.getElementById('search-results');
+const searchPanel = document.getElementById('psiINT-search-panel');
+const searchResults = document.getElementById('psiINT-search-results');
 let searchHits = [];
 let searchCursor = 0;
 let searchIndex = null;
@@ -11686,9 +11682,8 @@ function endSearch() {
 // than recomputing it is what keeps that true if the counting ever changes.
 //
 // Everything inside the prompt is reached through gotoRoot, never through
-// getElementById: in the cockpit the lecture's own chunks share the id
-// namespace with the chrome (see the note on the cue panel in CLAUDE.md).
-const gotoRoot = document.getElementById('goto-prompt');
+// getElementById.
+const gotoRoot = document.getElementById('psiINT-goto-prompt');
 const gotoDigitsEl = gotoRoot.querySelector('.goto-digits');
 const gotoOfEl = gotoRoot.querySelector('.goto-of');
 let gotoActive = false;
@@ -12398,7 +12393,7 @@ function wireClicks() {
     });
   });
   // TOC column buttons: jump camera + close TOC.
-  document.querySelectorAll('nav#toc li').forEach(li => {
+  document.querySelectorAll('#psiINT-toc li').forEach(li => {
     const btn = li.querySelector('button');
     if (!btn) return;
     const colIdx = parseInt(li.dataset.tocCol, 10);
@@ -12934,8 +12929,8 @@ function setZoom(z) {
 }
 
 // Help overlay – single toggle for the ? key and the corner button.
-const helpOverlay = document.getElementById('help-overlay');
-const helpButton = document.getElementById('help-button');
+const helpOverlay = document.getElementById('psiINT-help-overlay');
+const helpButton = document.getElementById('psiINT-help-button');
 function helpVisible() { return helpOverlay && !helpOverlay.classList.contains('hidden'); }
 function toggleHelp(force) {
   if (!helpOverlay) return;
@@ -13139,10 +13134,10 @@ function applyRemoteEmbed(m) {
 // actually needs from a link during a talk is to write it down. So the
 // projection gets the URL to read, not a page to watch, and the cockpit
 // shows the identical overlay so the lecturer knows exactly what went up.
-const linkOverlay = document.getElementById('link-overlay');
-const linkOverlayUrl = document.getElementById('link-overlay-url');
-const linkOverlayLabel = document.getElementById('link-overlay-label');
-const linkOverlayQr = document.getElementById('link-overlay-qr');
+const linkOverlay = document.getElementById('psiINT-link-overlay');
+const linkOverlayUrl = document.getElementById('psiINT-link-overlay-url');
+const linkOverlayLabel = document.getElementById('psiINT-link-overlay-label');
+const linkOverlayQr = document.getElementById('psiINT-link-overlay-qr');
 function linkOverlayVisible() {
   return !!linkOverlay && !linkOverlay.classList.contains('hidden');
 }
@@ -13173,7 +13168,7 @@ function dismissLinkOverlay() {
 // must not dismiss either, hence the collapsed-selection check.
 if (linkOverlay) {
   linkOverlay.addEventListener('click', (e) => {
-    if (e.target.closest('#link-overlay-url')) return;
+    if (e.target.closest('#psiINT-link-overlay-url')) return;
     const s = window.getSelection();
     if (s && !s.isCollapsed) return;
     dismissLinkOverlay();
@@ -13208,7 +13203,7 @@ document.addEventListener('click', (e) => {
   if (!e.shiftKey) return;
   // External only. A cross-reference resolves to a file:// path with a
   // fragment, which is noise on a projector and has no QR behind it.
-  const a = e.target.closest && e.target.closest('#stage a[href^="http"]');
+  const a = e.target.closest && e.target.closest('#psiINT-stage a[href^="http"]');
   if (!a) return;
   e.preventDefault();
   e.stopPropagation();
@@ -13258,8 +13253,8 @@ const DEMO_MAX_W = 2560, DEMO_MAX_H = 1600;
 // Same origin is known at boot, not probed: two file:// windows both report
 // the origin "null", and everything served reports a real one.
 const DEMO_DIRECT = SELF_ORIGIN !== 'null';
-const demoOverlay = document.getElementById('demo-overlay');
-const demoVideo = document.getElementById('demo-video');
+const demoOverlay = document.getElementById('psiINT-demo-overlay');
+const demoVideo = document.getElementById('psiINT-demo-video');
 // The showing side. The stream may belong to another realm (the direct
 // path) – srcObject takes it all the same.
 function attachDemo(stream) {
@@ -13601,7 +13596,7 @@ function flashMode(text) {
 // solved against it is then stale; the resize listener further down re-runs
 // the fit and re-sends slide-ref, which is why there is no re-measure here.
 const FULLSCREEN_ARM_MS = 20000;
-const fsHint = document.getElementById('fullscreen-hint');
+const fsHint = document.getElementById('psiINT-fullscreen-hint');
 let fsArmTimer = null;
 let fsArmedClick = null;
 let peerFullscreen = false;
@@ -13789,7 +13784,7 @@ document.addEventListener('keydown', (e) => {
       if (hasTextSelection() || touchSelectOn) {
         setTouchSelect(false);
         endSelecting();
-        const sb = document.querySelector('#touch-controls [data-action=select]');
+        const sb = document.querySelector('#psiINT-touch-controls [data-action=select]');
         if (sb) sb.setAttribute('aria-pressed', 'false');
         e.preventDefault(); break;
       }
@@ -14022,10 +14017,10 @@ viewport.addEventListener('wheel', (e) => {
     //
     //   pan' = pan + (1 - r) * (Q - viewportCentre - pan)
     //
-    // Two things about the units, and the second one is the trap. #stage has
+    // Two things about the units, and the second one is the trap. #psiINT-stage has
     // transform-origin: 0 0, which is what the camera's own tx/ty already
     // assume. And the arithmetic has to happen in LAYOUT space: in the
-    // cockpit #stage-viewport is itself drawn through scale(--stage-scale),
+    // cockpit #psiINT-stage-viewport is itself drawn through scale(--stage-scale),
     // so a clientX is a shrunken px while manualPan and the chunk offsets
     // the camera reads are full-size ones. focusCamera carries the same
     // warning for the same reason. The ratio is uniform, so one factor does
@@ -14047,7 +14042,7 @@ viewport.addEventListener('wheel', (e) => {
 
 viewport.addEventListener('pointerdown', (e) => {
   // Skip drag on interactive children so click-to-select still works.
-  if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, nav#toc')) return;
+  if (e.target.closest('button, textarea, input, .annot-box, .exp-chev, .annot-add, #psiINT-toc')) return;
   // While Alt-selection is live the same gesture means "highlight this",
   // so the camera must keep its hands off it. The pointerdown-time question
   // is the stage's own selectability, not the modifier: a lingering
@@ -14113,7 +14108,7 @@ window.addEventListener('resize', () => {
 // dimmed underneath; .marginalia gets no overlay - it is in the slide's
 // layout rather than laid over it - and the camera slides right instead,
 // far enough to put the whole aside inside the frame. See setAsidePan.
-const figureOverlay = document.getElementById('figure-overlay');
+const figureOverlay = document.getElementById('psiINT-figure-overlay');
 let focusedFigure = null;
 // Per-focus zoom + pan: +/− keys (and wheel) scale; drag pans. Reset
 // every time a new figure gets focused so each one starts at 1x. Pan
@@ -14151,7 +14146,7 @@ function setFigureScale(next) {
 //
 // where visibleCentre is what getBoundingClientRect reports, since scaling
 // about the centre does not move it. Client px are the right unit:
-// #figure-overlay is position: fixed and a sibling of #stage-viewport, so the
+// #psiINT-figure-overlay is position: fixed and a sibling of #psiINT-stage-viewport, so the
 // cockpit's --stage-scale never composes into it.
 //
 // r must be the ratio actually achieved rather than the one asked for. At
@@ -14442,10 +14437,10 @@ function clearAsidePan() {
 // depending on where you stood. They mean one thing now, and Shift means the
 // other everywhere, so there is no longer a question for a mark to answer.
 function buildNavHints() {
-  const vp = document.getElementById('stage-viewport');
-  if (!vp || document.getElementById('nav-hints')) return;
+  const vp = document.getElementById('psiINT-stage-viewport');
+  if (!vp || document.getElementById('psiINT-nav-hints')) return;
   const wrap = document.createElement('div');
-  wrap.id = 'nav-hints';
+  wrap.id = 'psiINT-nav-hints';
   wrap.setAttribute('aria-hidden', 'true');
   const s = document.createElement('span');
   s.dataset.hint = 'down';
@@ -14455,7 +14450,7 @@ function buildNavHints() {
 }
 
 function updateNavHints() {
-  const wrap = document.getElementById('nav-hints');
+  const wrap = document.getElementById('psiINT-nav-hints');
   if (!wrap) return;
   const i = state.activeIdx;
   const c = flatChunks[i];
@@ -14485,9 +14480,9 @@ function updateNavHints() {
 // is how a palette comes to disagree with a key map, which is the same failure
 // build.js and lint.js have to be grepped against each other to avoid.
 function wireTouchControls() {
-  const bar = document.getElementById('touch-controls');
+  const bar = document.getElementById('psiINT-touch-controls');
   if (!bar) return;
-  const palette = document.getElementById('touch-palette');
+  const palette = document.getElementById('psiINT-touch-palette');
   const moreBtn = bar.querySelector('[data-action=more]');
   const selBtn = bar.querySelector('[data-action=select]');
   const setPalette = (open) => {
@@ -14687,15 +14682,15 @@ if (document.fonts && document.fonts.ready) {
    panel shows source - an element name, an option value, a compiler
    sentence, the source pane itself - and the bundled mono face ligates
    -> and -- into one glyph, so a waypoint list or a step chip would show
-   a token the author cannot type back. #dge-canvas is left out because
+   a token the author cannot type back. #psiINT-dge-canvas is left out because
    what is in it is the compiler's own SVG: its mono labels are already
    answered by the rule in DIAGRAM_CSS, and its sans and serif labels have
    to look here exactly as they look on the slide. */
-#dge-top, #dge-tools, #dge-side, #dge-status, #dge-strip {
+#psiINT-dge-top, #psiINT-dge-tools, #psiINT-dge-side, #psiINT-dge-status, #psiINT-dge-strip {
   font-variant-ligatures: none;
 }
 
-#dge-root {
+#psiINT-dge-root {
   position: fixed;
   inset: 0;
   z-index: 240;
@@ -14713,11 +14708,11 @@ if (document.fonts && document.fonts.ready) {
   font-size: 11px;
   user-select: none;
 }
-#dge-root[hidden] { display: none; }
+#psiINT-dge-root[hidden] { display: none; }
 
 /* The strip down the right edge instead of along the bottom (Shift-V), the
    same flip the cockpit's preview strip already offers and in the same key. */
-#dge-root.dge-strip-right {
+#psiINT-dge-root.dge-strip-right {
   grid-template-columns: auto minmax(0, 1fr) 18rem auto;
   grid-template-areas:
     "top    top    top    top"
@@ -14727,7 +14722,7 @@ if (document.fonts && document.fonts.ready) {
 
 /* ── the top bar ──────────────────────────────────────────────────── */
 
-#dge-top {
+#psiINT-dge-top {
   grid-area: top;
   display: flex;
   align-items: center;
@@ -14736,7 +14731,7 @@ if (document.fonts && document.fonts.ready) {
   border-bottom: 1px solid var(--rule);
   color: var(--ink-soft);
 }
-#dge-top .dge-name {
+#psiINT-dge-top .dge-name {
   font-weight: 600;
   color: var(--ink);
   font-size: 12px;
@@ -14745,7 +14740,7 @@ if (document.fonts && document.fonts.ready) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#dge-top .dge-experimental {
+#psiINT-dge-top .dge-experimental {
   flex: none;
   padding: 0.16rem 0.42rem;
   /* --emph, not --accent: the lecture views define --emph and know nothing
@@ -14762,7 +14757,7 @@ if (document.fonts && document.fonts.ready) {
   letter-spacing: 0.11em;
   line-height: 1;
 }
-#dge-top .dge-spacer { flex: 1; }
+#psiINT-dge-top .dge-spacer { flex: 1; }
 
 .dge-group {
   display: flex;
@@ -14845,17 +14840,17 @@ if (document.fonts && document.fonts.ready) {
 /* Whether the room is watching. Not a second concept: it is the cockpit's
    own freeze, said out loud, because "can I work unseen?" is answered by V
    and by nothing else. */
-#dge-room {
+#psiINT-dge-room {
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
   font-weight: 600;
 }
-#dge-room.dge-live { color: oklch(0.55 0.16 30); }
-#dge-room.dge-frozen { color: oklch(0.55 0.16 150); }
+#psiINT-dge-room.dge-live { color: oklch(0.55 0.16 30); }
+#psiINT-dge-room.dge-frozen { color: oklch(0.55 0.16 150); }
 
 /* ── the tool rail ────────────────────────────────────────────────── */
 
-#dge-tools {
+#psiINT-dge-tools {
   grid-area: tools;
   display: flex;
   flex-direction: column;
@@ -14864,7 +14859,7 @@ if (document.fonts && document.fonts.ready) {
   border-right: 1px solid var(--rule);
   align-content: start;
 }
-#dge-tools .dge-tool {
+#psiINT-dge-tools .dge-tool {
   width: 2.6rem;
   height: 2.2rem;
   display: flex;
@@ -14874,14 +14869,14 @@ if (document.fonts && document.fonts.ready) {
   gap: 1px;
   padding: 0;
 }
-#dge-tools .dge-tool svg { width: 15px; height: 15px; }
-#dge-tools .dge-tool span {
+#psiINT-dge-tools .dge-tool svg { width: 15px; height: 15px; }
+#psiINT-dge-tools .dge-tool span {
   font-size: 8px;
   font-family: var(--mono-font);
   opacity: 0.6;
 }
-#dge-tools .dge-tool kbd { display: none; }
-#dge-tools hr {
+#psiINT-dge-tools .dge-tool kbd { display: none; }
+#psiINT-dge-tools hr {
   border: 0;
   border-top: 1px solid var(--rule);
   margin: 0.3rem 0.2rem;
@@ -14889,11 +14884,11 @@ if (document.fonts && document.fonts.ready) {
 /* A wrapper acts on the selection, so it is unusable until there is one.
    Saying that with the disabled state teaches the semantics: there is
    nothing to draw, there is something to select first. */
-#dge-tools .dge-tool:disabled span { opacity: 0.35; }
+#psiINT-dge-tools .dge-tool:disabled span { opacity: 0.35; }
 
 /* ── the canvas ───────────────────────────────────────────────────── */
 
-#dge-canvas {
+#psiINT-dge-canvas {
   grid-area: canvas;
   position: relative;
   overflow: hidden;
@@ -14902,19 +14897,19 @@ if (document.fonts && document.fonts.ready) {
   place-items: center;
   cursor: default;
 }
-#dge-canvas.dge-panning { cursor: grabbing; }
-#dge-canvas.dge-pannable { cursor: grab; }
-#dge-canvas.dge-placing { cursor: crosshair; }
+#psiINT-dge-canvas.dge-panning { cursor: grabbing; }
+#psiINT-dge-canvas.dge-pannable { cursor: grab; }
+#psiINT-dge-canvas.dge-placing { cursor: crosshair; }
 
 /* The frame is a real destination, not a canvas size: the chunk's own width
    class in a 16:9 view, one pane of a ::: side at that class, or the print
    measure where the height cap does not apply. Switching frames changes
    nothing in the source - it is a preview of where the same block lands. */
-#dge-stage {
+#psiINT-dge-stage {
   position: relative;
   transform-origin: center center;
 }
-#dge-frame {
+#psiINT-dge-frame {
   position: relative;
   background: var(--paper);
   box-shadow: 0 1px 12px oklch(0 0 0 / 0.18);
@@ -14924,7 +14919,7 @@ if (document.fonts && document.fonts.ready) {
   align-items: center;
   justify-content: center;
 }
-#dge-frame::after {
+#psiINT-dge-frame::after {
   content: attr(data-measure);
   position: absolute;
   left: 0;
@@ -14934,14 +14929,14 @@ if (document.fonts && document.fonts.ready) {
   color: var(--ink-soft);
   white-space: nowrap;
 }
-#dge-art { position: relative; display: block; width: 100%; }
-#dge-art svg.psi-diagram { display: block; max-width: 100%; height: auto; }
+#psiINT-dge-art { position: relative; display: block; width: 100%; }
+#psiINT-dge-art svg.psi-diagram { display: block; max-width: 100%; height: auto; }
 
 /* The guide layer sits exactly on the drawing and shares its viewBox, so a
    guide drawn at 3.2,1 is at 3.2,1 in the figure. Kept out of the emitted
    SVG on purpose: that SVG stays exactly what the build would have
    produced, which is what the identity check asserts. */
-#dge-guides {
+#psiINT-dge-guides {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -14949,22 +14944,22 @@ if (document.fonts && document.fonts.ready) {
   overflow: visible;
   pointer-events: none;
 }
-#dge-guides * { vector-effect: non-scaling-stroke; }
-#dge-guides .dge-cell { stroke: var(--rule); stroke-width: 0.5; opacity: 0.4; fill: none; }
+#psiINT-dge-guides * { vector-effect: non-scaling-stroke; }
+#psiINT-dge-guides .dge-cell { stroke: var(--rule); stroke-width: 0.5; opacity: 0.4; fill: none; }
 /* The slide's canvas. Louder than a cell line and quieter than an element:
    it is the edge of the frame, not part of the drawing, and an author has to
    be able to see it without reading it as something they drew. Dashed for the
    same reason a `zone` is - a line nobody drew. */
-#dge-guides .dge-canvas {
+#psiINT-dge-guides .dge-canvas {
   stroke: var(--ink-soft, var(--rule));
   stroke-width: 1;
   stroke-dasharray: 7 6;
   opacity: 0.45;
   fill: none;
 }
-#dge-guides .dge-axis { stroke: var(--rule); stroke-width: 1; opacity: 0.75; }
-#dge-guides .dge-tick { stroke: var(--ink-soft); stroke-width: 1; opacity: 0.5; }
-#dge-guides .dge-ruler-label {
+#psiINT-dge-guides .dge-axis { stroke: var(--rule); stroke-width: 1; opacity: 0.75; }
+#psiINT-dge-guides .dge-tick { stroke: var(--ink-soft); stroke-width: 1; opacity: 0.5; }
+#psiINT-dge-guides .dge-ruler-label {
   fill: var(--ink-soft);
   font-family: var(--mono-font);
   font-size: 9px;
@@ -14974,9 +14969,9 @@ if (document.fonts && document.fonts.ready) {
    hairline, its statement named beside it. This is the editor's first job,
    before it lets anyone drag anything - two boxes 0.55 apart look exactly
    like two boxes that happen to be 0.55 apart. */
-#dge-guides .dge-rel { stroke: var(--rule); stroke-width: 1.2; fill: none; }
-#dge-guides .dge-rel-strong { stroke: var(--emph); stroke-width: 1.4; fill: none; }
-#dge-guides .dge-rel-label {
+#psiINT-dge-guides .dge-rel { stroke: var(--rule); stroke-width: 1.2; fill: none; }
+#psiINT-dge-guides .dge-rel-strong { stroke: var(--emph); stroke-width: 1.4; fill: none; }
+#psiINT-dge-guides .dge-rel-label {
   fill: var(--ink-soft);
   font-family: var(--mono-font);
   font-size: 10px;
@@ -14985,17 +14980,17 @@ if (document.fonts && document.fonts.ready) {
   stroke-width: 3px;
   stroke-linejoin: round;
 }
-#dge-guides .dge-snap { stroke: var(--emph); stroke-width: 1.2; stroke-dasharray: 4 3; fill: none; }
-#dge-guides .dge-sel {
+#psiINT-dge-guides .dge-snap { stroke: var(--emph); stroke-width: 1.2; stroke-dasharray: 4 3; fill: none; }
+#psiINT-dge-guides .dge-sel {
   fill: none;
   stroke: var(--emph);
   stroke-width: 1.6;
 }
-#dge-guides .dge-sel-master { stroke-dasharray: none; }
+#psiINT-dge-guides .dge-sel-master { stroke-dasharray: none; }
 /* An edge has no box to outline, so the selection traces the line itself. Wide
    and translucent, under the stroke rather than around it, so the arrow it
    marks stays readable. */
-#dge-guides .dge-sel-path {
+#psiINT-dge-guides .dge-sel-path {
   fill: none;
   stroke: var(--emph);
   stroke-width: 5;
@@ -15003,52 +14998,52 @@ if (document.fonts && document.fonts.ready) {
   stroke-linejoin: round;
   stroke-linecap: round;
 }
-#dge-guides .dge-handle {
+#psiINT-dge-guides .dge-handle {
   fill: var(--paper);
   stroke: var(--emph);
   stroke-width: 1.4;
   pointer-events: all;
   cursor: nwse-resize;
 }
-#dge-guides .dge-handle.dge-h-e, #dge-guides .dge-handle.dge-h-w { cursor: ew-resize; }
-#dge-guides .dge-handle.dge-h-n, #dge-guides .dge-handle.dge-h-s { cursor: ns-resize; }
+#psiINT-dge-guides .dge-handle.dge-h-e, #psiINT-dge-guides .dge-handle.dge-h-w { cursor: ew-resize; }
+#psiINT-dge-guides .dge-handle.dge-h-n, #psiINT-dge-guides .dge-handle.dge-h-s { cursor: ns-resize; }
 /* Round, because it does something different from the square ones: a corner
    handle changes a size, an end handle changes what the statement refers to. */
-#dge-guides .dge-handle.dge-h-end { cursor: crosshair; }
+#psiINT-dge-guides .dge-handle.dge-h-end { cursor: crosshair; }
 /* The four places a dragged element can be docked on whatever is under the
    pointer. Quiet until one is under the pointer, because they appear over a
    drawing that is still being read. */
-#dge-guides .dge-dock-host {
+#psiINT-dge-guides .dge-dock-host {
   fill: none;
   stroke: var(--emph);
   stroke-width: 1;
   stroke-dasharray: 3 3;
   opacity: 0.5;
 }
-#dge-guides .dge-dock {
+#psiINT-dge-guides .dge-dock {
   fill: var(--paper);
   stroke: var(--emph);
   stroke-width: 1.2;
   opacity: 0.55;
 }
-#dge-guides .dge-dock.dge-dock-on {
+#psiINT-dge-guides .dge-dock.dge-dock-on {
   fill: var(--emph);
   opacity: 1;
 }
 /* A waypoint moves a point, so it is square like the resize grips. Filled with
    the accent when it holds a reference: that one is not a pair of numbers, and
    a drag on it moves its nudge rather than replacing what it follows. */
-#dge-guides .dge-handle.dge-h-via { cursor: move; }
-#dge-guides .dge-handle.dge-h-via.dge-h-held { fill: var(--emph); }
+#psiINT-dge-guides .dge-handle.dge-h-via { cursor: move; }
+#psiINT-dge-guides .dge-handle.dge-h-via.dge-h-held { fill: var(--emph); }
 /* Where a waypoint can be added. Hollow and half the size, because it is an
    offer rather than a thing that is there. */
-#dge-guides .dge-handle.dge-h-add {
+#psiINT-dge-guides .dge-handle.dge-h-add {
   fill: none;
   stroke-dasharray: 2 2;
   opacity: 0.55;
   cursor: copy;
 }
-#dge-guides .dge-handle.dge-h-add:hover { opacity: 1; stroke-dasharray: none; }
+#psiINT-dge-guides .dge-handle.dge-h-add:hover { opacity: 1; stroke-dasharray: none; }
 /* A neighbour guide: the line a snap would write down (editor.md 9.2). Drawn
    in the same register as every other guide here - a hairline in --rule with
    its label in --ink-soft - because it is a statement being proposed rather
@@ -15056,24 +15051,24 @@ if (document.fonts && document.fonts.ready) {
    the things that are already happening: the selection, the strained align
    axis, the armed dock chip. Dashed, because a relation that is not written
    down yet should not look like one that is. */
-#dge-guides .dge-nb {
+#psiINT-dge-guides .dge-nb {
   stroke: var(--rule);
   stroke-width: 1.2;
   stroke-dasharray: 5 3;
   fill: none;
 }
-#dge-guides .dge-nb-label { fill: var(--ink-soft); }
+#psiINT-dge-guides .dge-nb-label { fill: var(--ink-soft); }
 /* A tag is not geometric, so it must not be drawn as a line. A tinted halo
    behind the members says "these belong together" without saying anything
    false about where they are. */
-#dge-guides .dge-taghalo {
+#psiINT-dge-guides .dge-taghalo {
   fill: color-mix(in oklab, var(--emph) 20%, transparent);
   stroke: none;
 }
 
 /* ── the sidebar ──────────────────────────────────────────────────── */
 
-#dge-side {
+#psiINT-dge-side {
   grid-area: side;
   border-left: 1px solid var(--rule);
   overflow-y: auto;
@@ -15082,7 +15077,7 @@ if (document.fonts && document.fonts.ready) {
   flex-direction: column;
   gap: 0.85rem;
 }
-#dge-side h3 {
+#psiINT-dge-side h3 {
   margin: 0 0 0.35rem;
   font-size: 10px;
   font-variant-caps: all-small-caps;
@@ -15090,10 +15085,10 @@ if (document.fonts && document.fonts.ready) {
   font-weight: 600;
   color: var(--ink-soft);
 }
-#dge-side .dge-empty { color: var(--ink-soft); line-height: 1.5; }
-#dge-side label { display: block; margin-bottom: 0.3rem; }
-#dge-side input[type=text],
-#dge-side textarea {
+#psiINT-dge-side .dge-empty { color: var(--ink-soft); line-height: 1.5; }
+#psiINT-dge-side label { display: block; margin-bottom: 0.3rem; }
+#psiINT-dge-side input[type=text],
+#psiINT-dge-side textarea {
   width: 100%;
   font: inherit;
   font-family: var(--mono-font);
@@ -15103,14 +15098,14 @@ if (document.fonts && document.fonts.ready) {
   background: var(--paper);
   color: var(--ink);
 }
-#dge-side textarea { resize: vertical; min-height: 3.2em; }
+#psiINT-dge-side textarea { resize: vertical; min-height: 3.2em; }
 /* Where a control needs a sentence rather than a label. Quiet enough that the
    panel still reads as controls, not as documentation. */
 .dge-chip.dge-chip-held {
   border-color: var(--emph);
   color: color-mix(in oklab, var(--emph) 70%, var(--ink));
 }
-#dge-side .dge-hint {
+#psiINT-dge-side .dge-hint {
   margin-top: 0.3rem;
   font-size: 11px;
   line-height: 1.45;
@@ -15158,7 +15153,7 @@ if (document.fonts && document.fonts.ready) {
    quieter than the panel's other sentences because it belongs to one control
    rather than to the pane - a reason sitting flush left reads as a general
    remark, and there can be four of these on screen at once. */
-#dge-side .dge-slot-why {
+#psiINT-dge-side .dge-slot-why {
   margin-top: 0.25rem;
   padding-left: 0.4rem;
   border-left: 1px solid var(--rule);
@@ -15251,7 +15246,7 @@ if (document.fonts && document.fonts.ready) {
    author keeps trusting the tool, and in a lecture tool it means a student
    learns the language by dragging things. */
 
-#dge-status {
+#psiINT-dge-status {
   grid-area: status;
   display: flex;
   align-items: center;
@@ -15261,26 +15256,26 @@ if (document.fonts && document.fonts.ready) {
   min-height: 1.9rem;
   color: var(--ink-soft);
 }
-#dge-status .dge-line {
+#psiINT-dge-status .dge-line {
   font-family: var(--mono-font);
   color: var(--ink);
   white-space: pre;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-#dge-status .dge-line ins {
+#psiINT-dge-status .dge-line ins {
   text-decoration: none;
   background: color-mix(in oklab, var(--emph) 22%, var(--paper));
   border-radius: 2px;
   padding: 0 2px;
 }
-#dge-status .dge-note { font-style: italic; }
-#dge-status .dge-bad { color: oklch(0.55 0.18 25); font-style: normal; }
-#dge-status .dge-spacer { flex: 1; }
+#psiINT-dge-status .dge-note { font-style: italic; }
+#psiINT-dge-status .dge-bad { color: oklch(0.55 0.18 25); font-style: normal; }
+#psiINT-dge-status .dge-spacer { flex: 1; }
 
 /* ── the figure strip ─────────────────────────────────────────────── */
 
-#dge-strip {
+#psiINT-dge-strip {
   grid-area: strip;
   display: flex;
   gap: 0.6rem;
@@ -15290,7 +15285,7 @@ if (document.fonts && document.fonts.ready) {
   overflow-y: hidden;
   scrollbar-width: thin;
 }
-#dge-root.dge-strip-right #dge-strip {
+#psiINT-dge-root.dge-strip-right #psiINT-dge-strip {
   flex-direction: column;
   border-top: 0;
   border-left: 1px solid var(--rule);
@@ -15298,7 +15293,7 @@ if (document.fonts && document.fonts.ready) {
   overflow-y: auto;
   width: 11rem;
 }
-#dge-strip .dge-thumb {
+#psiINT-dge-strip .dge-thumb {
   flex: 0 0 auto;
   border: 1px solid var(--rule);
   border-radius: 3px;
@@ -15311,9 +15306,9 @@ if (document.fonts && document.fonts.ready) {
   gap: 2px;
   align-items: stretch;
 }
-#dge-strip .dge-thumb[aria-current=true] { border-color: var(--emph); box-shadow: inset 0 0 0 1px var(--emph); }
-#dge-strip .dge-thumb svg { width: 100%; height: 3.2rem; display: block; }
-#dge-strip .dge-thumb b {
+#psiINT-dge-strip .dge-thumb[aria-current=true] { border-color: var(--emph); box-shadow: inset 0 0 0 1px var(--emph); }
+#psiINT-dge-strip .dge-thumb svg { width: 100%; height: 3.2rem; display: block; }
+#psiINT-dge-strip .dge-thumb b {
   font-weight: 400;
   font-size: 9.5px;
   color: var(--ink-soft);
@@ -15325,7 +15320,7 @@ if (document.fonts && document.fonts.ready) {
 /* ── the figure board (O) ─────────────────────────────────────────── */
 /* Same idiom, same key, same mental model as the slide overview. */
 
-#dge-board {
+#psiINT-dge-board {
   position: absolute;
   inset: 0;
   z-index: 5;
@@ -15337,8 +15332,8 @@ if (document.fonts && document.fonts.ready) {
   gap: 0.9rem;
   align-content: start;
 }
-#dge-board[hidden] { display: none; }
-#dge-board .dge-card {
+#psiINT-dge-board[hidden] { display: none; }
+#psiINT-dge-board .dge-card {
   border: 1px solid var(--rule);
   border-radius: 4px;
   background: var(--paper);
@@ -15348,16 +15343,16 @@ if (document.fonts && document.fonts.ready) {
   flex-direction: column;
   gap: 0.3rem;
 }
-#dge-board .dge-card[aria-current=true] { border-color: var(--emph); box-shadow: inset 0 0 0 1px var(--emph); }
-#dge-board .dge-card svg { width: 100%; height: 6.5rem; display: block; }
-#dge-board .dge-card b { font-weight: 400; color: var(--ink-soft); }
+#psiINT-dge-board .dge-card[aria-current=true] { border-color: var(--emph); box-shadow: inset 0 0 0 1px var(--emph); }
+#psiINT-dge-board .dge-card svg { width: 100%; height: 6.5rem; display: block; }
+#psiINT-dge-board .dge-card b { font-weight: 400; color: var(--ink-soft); }
 
 /* ── the source pane ──────────────────────────────────────────────── */
 /* One way, for now: the canvas writes and the pane displays, with the
    changed token highlighted. Editing text *and* dragging at the same time is
    where round-tripping editors historically come apart. */
 
-#dge-source {
+#psiINT-dge-source {
   font-family: var(--mono-font);
   font-size: 10.5px;
   line-height: 1.45;
@@ -15371,12 +15366,12 @@ if (document.fonts && document.fonts.ready) {
   background: color-mix(in oklab, var(--ink) 3%, var(--paper));
   user-select: text;
 }
-#dge-source mark {
+#psiINT-dge-source mark {
   background: color-mix(in oklab, var(--emph) 26%, var(--paper));
   color: var(--ink);
   border-radius: 2px;
 }
-#dge-source .dge-errline {
+#psiINT-dge-source .dge-errline {
   display: block;
   background: color-mix(in oklab, oklch(0.55 0.18 25) 16%, transparent);
   border-radius: 2px;
@@ -15408,13 +15403,13 @@ body[data-mode=dark] .dge-btn.dge-on,
 body[data-mode=dark] .dge-seg button[aria-pressed=true] {
   background: color-mix(in oklab, var(--emph) 26%, var(--paper));
 }
-body[data-mode=dark] #dge-frame { box-shadow: 0 1px 14px oklch(0 0 0 / 0.55); }
+body[data-mode=dark] #psiINT-dge-frame { box-shadow: 0 1px 14px oklch(0 0 0 / 0.55); }
 
 /* The slide underneath keeps running; the editor is simply on top of it.
    Nothing about the lecture's state changes while it is open - in
    particular revealed[chunkId], which the reveal, the sync, the freeze gate
    and the localStorage recovery all share. */
-body.dge-open #stage-viewport { filter: none; }
+body.dge-open #psiINT-stage-viewport { filter: none; }
 
 /* ── the entry point ──────────────────────────────────────────────── */
 /* Inside the focus card, not a bare key. The audience view is what a room is
@@ -15460,24 +15455,24 @@ body.dge-open #stage-viewport { filter: none; }
    rewrites the element's placement. That is the one place in this editor
    where the same gesture means two things, so it has to look like a mode. */
 
-#dge-beats { gap: 0.25rem; }
-#dge-beats[hidden] { display: none; }
+#psiINT-dge-beats { gap: 0.25rem; }
+#psiINT-dge-beats[hidden] { display: none; }
 .dge-beat { font-family: var(--mono-font); }
-#dge-root.dge-in-step #dge-frame {
+#psiINT-dge-root.dge-in-step #psiINT-dge-frame {
   outline: 2px solid color-mix(in oklab, var(--emph) 55%, var(--paper));
 }
-#dge-root.dge-in-step #dge-status { border-top-color: var(--emph); }
+#psiINT-dge-root.dge-in-step #psiINT-dge-status { border-top-color: var(--emph); }
 
 /* Where it was at the beat before, and the way it travelled. Both are drawn
    for now – §12 of editor.md is deciding between them by looking. */
-#dge-guides .dge-ghost {
+#psiINT-dge-guides .dge-ghost {
   fill: none;
   stroke: var(--ink-soft);
   stroke-width: 1;
   stroke-dasharray: 3 3;
   opacity: 0.55;
 }
-#dge-guides .dge-motion {
+#psiINT-dge-guides .dge-motion {
   stroke: var(--emph);
   stroke-width: 1.2;
   stroke-dasharray: 2 4;
@@ -15486,21 +15481,21 @@ body.dge-open #stage-viewport { filter: none; }
 
 /* The tool rail, locked. A mode announced once in the status bar is a mode
    nobody remembers being in, so it is drawn where the mode lives. */
-#dge-tools.dge-locked .dge-tool[aria-pressed=true] {
+#psiINT-dge-tools.dge-locked .dge-tool[aria-pressed=true] {
   box-shadow: inset 0 0 0 1px var(--emph);
 }
 
-/* The help sheet has to sit above the editor, not under it. #help-overlay is
+/* The help sheet has to sit above the editor, not under it. #psiINT-help-overlay is
    at z-index 60 and the modal at 240, so `?` inside the editor un-hid a panel
    nobody could see and left it toggled on – and it is exactly the sheet whose
    editor section renderHelpOverlay was extended to carry. Raised only while
    the modal is open, so the slide's own stacking is untouched. */
-body.dge-open #help-overlay { z-index: 260; }
+body.dge-open #psiINT-help-overlay { z-index: 260; }
 
 /* ── the asset picker (editor.md §15) ────────────────────────────────
    Same ground as the figure board, because it is the same kind of act:
    a full-canvas overlay you pick one thing out of and leave. */
-#dge-assets {
+#psiINT-dge-assets {
   position: absolute;
   inset: 0;
   z-index: 5;
@@ -15509,8 +15504,8 @@ body.dge-open #help-overlay { z-index: 260; }
   background: color-mix(in oklab, var(--paper) 88%, transparent);
   backdrop-filter: blur(2px);
 }
-#dge-assets[hidden] { display: none; }
-#dge-assets-inner {
+#psiINT-dge-assets[hidden] { display: none; }
+#psiINT-dge-assets-inner {
   width: min(46rem, 88%);
   max-height: 82%;
   overflow: auto;
@@ -15520,13 +15515,13 @@ body.dge-open #help-overlay { z-index: 260; }
   background: var(--paper);
   box-shadow: 0 10px 40px rgb(0 0 0 / 0.18);
 }
-#dge-assets-inner header {
+#psiINT-dge-assets-inner header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.8rem;
 }
-#dge-assets-list {
+#psiINT-dge-assets-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
   gap: 0.6rem;
@@ -15558,14 +15553,14 @@ body.dge-open #help-overlay { z-index: 260; }
 .dge-asset b { font-weight: 500; font-size: 0.86rem; word-break: break-all; }
 .dge-asset i { font-style: normal; font-size: 0.74rem; color: var(--ink-soft); }
 .dge-asset-file { border-style: dashed; }
-#dge-assets-note {
+#psiINT-dge-assets-note {
   margin: 0.9rem 0 0;
   font-size: 0.82rem;
   line-height: 1.45;
   color: var(--ink-soft);
 }
-#dge-assets-note .dge-btn { margin-left: 0.5rem; }
-body[data-mode=dark] #dge-assets-inner,
+#psiINT-dge-assets-note .dge-btn { margin-left: 0.5rem; }
+body[data-mode=dark] #psiINT-dge-assets-inner,
 body[data-mode=dark] .dge-asset { background: color-mix(in oklab, var(--paper) 86%, #fff 14%); }
 .dge-asset-thumb { display: block; width: 100%; height: 3.4rem; }
 .dge-asset-thumb > svg, .dge-asset-thumb > img { width: 100%; height: 100%; object-fit: contain; }
@@ -24765,7 +24760,7 @@ function createDiagramCompiler(env = {}) {
     // re-rendering a figure the build already named and the names have to
     // agree – element ids are what the runtime, the sync protocol and the
     // editor's own selection all address.
-    const prefix = opts.prefix || `dg${++dgCounter}-`;
+    const prefix = opts.prefix || `psiINT-dg${++dgCounter}-`;
     // Drawing order is fixed, and `.front` is the one way out of it. Read off
     // the resolved classes rather than the authored ones, so a `default edge
     // {.front}` counts too.
@@ -26007,7 +26002,7 @@ let dgeRoot = null;
 function dgeBuildChrome() {
   if (dgeRoot) return dgeRoot;
 
-  const tools = dgeEl('nav', { id: 'dge-tools', 'aria-label': 'Tools' });
+  const tools = dgeEl('nav', { id: 'psiINT-dge-tools', 'aria-label': 'Tools' });
   for (const t of DGE_TOOLS) {
     if (t.sep) { tools.appendChild(dgeEl('hr', {})); continue; }
     const icon = dgeEl('svg', { viewBox: '0 0 15 15', 'aria-hidden': 'true' }, [
@@ -26022,7 +26017,7 @@ function dgeBuildChrome() {
     tools.appendChild(btn);
   }
 
-  const seg = dgeEl('div', { class: 'dge-seg', id: 'dge-frames', role: 'group', 'aria-label': 'Frame' });
+  const seg = dgeEl('div', { class: 'dge-seg', id: 'psiINT-dge-frames', role: 'group', 'aria-label': 'Frame' });
   for (const f of ['slide', 'column', 'print']) {
     seg.appendChild(dgeEl('button', {
       type: 'button', 'data-frame': f, 'aria-pressed': String(f === DGE.frame),
@@ -26030,8 +26025,8 @@ function dgeBuildChrome() {
     }, [document.createTextNode(f[0].toUpperCase() + f.slice(1)), dgeEl('i', { text: '' })]));
   }
 
-  const top = dgeEl('header', { id: 'dge-top' }, [
-    dgeEl('span', { class: 'dge-name', id: 'dge-name' }),
+  const top = dgeEl('header', { id: 'psiINT-dge-top' }, [
+    dgeEl('span', { class: 'dge-name', id: 'psiINT-dge-name' }),
     dgeEl('span', {
       class: 'dge-experimental',
       text: 'experimental',
@@ -26039,64 +26034,64 @@ function dgeBuildChrome() {
     }),
     dgeEl('div', { class: 'dge-group' }, [
       dgeEl('button', { type: 'button', class: 'dge-btn', 'data-act': 'prev', title: 'previous figure (, or PageUp)', text: '‹', onclick: () => dgeGoFigure(-1) }),
-      dgeEl('span', { id: 'dge-figpos' }),
+      dgeEl('span', { id: 'psiINT-dge-figpos' }),
       dgeEl('button', { type: 'button', class: 'dge-btn', 'data-act': 'next', title: 'next figure (. or PageDown)', text: '›', onclick: () => dgeGoFigure(1) }),
-      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-board-btn', title: 'the figure board', html: 'Board <kbd>O</kbd>', onclick: () => dgeToggleBoard() }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'psiINT-dge-board-btn', title: 'the figure board', html: 'Board <kbd>O</kbd>', onclick: () => dgeToggleBoard() }),
       dgeEl('button', { type: 'button', class: 'dge-btn', text: 'New figure…', title: 'put a whole figure chunk on the clipboard, for source.md', onclick: () => dgeNewFigure() }),
     ]),
     dgeEl('div', { class: 'dge-group' }, [dgeEl('span', { class: 'dge-cap', text: 'frame' }), seg]),
     dgeEl('div', { class: 'dge-group' }, [
       dgeEl('button', { type: 'button', class: 'dge-btn', text: '−', title: 'zoom out', onclick: () => dgeZoomBy(1 / 1.2) }),
-      dgeEl('span', { id: 'dge-zoom' }),
+      dgeEl('span', { id: 'psiINT-dge-zoom' }),
       dgeEl('button', { type: 'button', class: 'dge-btn', text: '+', title: 'zoom in', onclick: () => dgeZoomBy(1.2) }),
       dgeEl('button', { type: 'button', class: 'dge-btn', text: 'Fit', title: 'fit the frame in the canvas', onclick: () => dgeZoomFit() }),
     ]),
     dgeEl('span', { class: 'dge-spacer' }),
-    dgeEl('span', { id: 'dge-room' }),
+    dgeEl('span', { id: 'psiINT-dge-room' }),
     dgeEl('div', { class: 'dge-group' }, [
-      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-undo-btn', title: 'undo (⌘Z)', text: '↶', onclick: () => dgeUndo() }),
-      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-redo-btn', title: 'redo (⇧⌘Z)', text: '↷', onclick: () => dgeRedo() }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'psiINT-dge-undo-btn', title: 'undo (⌘Z)', text: '↶', onclick: () => dgeUndo() }),
+      dgeEl('button', { type: 'button', class: 'dge-btn', id: 'psiINT-dge-redo-btn', title: 'redo (⇧⌘Z)', text: '↷', onclick: () => dgeRedo() }),
     ]),
-    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-file-btn', text: 'Open source.md…', title: 'write back straight into the file (Chromium only)', onclick: () => dgePickSourceFile() }),
-    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'dge-revert-btn', text: 'Revert', title: 'discard your edits to this figure', onclick: () => dgeRevertLocal() }),
-    dgeEl('button', { type: 'button', class: 'dge-btn dge-on', id: 'dge-copy-btn', html: 'Copy source <kbd>⌘S</kbd>', onclick: () => dgeCommit() }),
+    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'psiINT-dge-file-btn', text: 'Open source.md…', title: 'write back straight into the file (Chromium only)', onclick: () => dgePickSourceFile() }),
+    dgeEl('button', { type: 'button', class: 'dge-btn', id: 'psiINT-dge-revert-btn', text: 'Revert', title: 'discard your edits to this figure', onclick: () => dgeRevertLocal() }),
+    dgeEl('button', { type: 'button', class: 'dge-btn dge-on', id: 'psiINT-dge-copy-btn', html: 'Copy source <kbd>⌘S</kbd>', onclick: () => dgeCommit() }),
     dgeEl('button', { type: 'button', class: 'dge-btn', html: 'Close <kbd>Esc</kbd>', onclick: () => dgeClose() }),
   ]);
 
-  // The guide layer is a sibling of the drawing *inside* #dge-art, not of the
+  // The guide layer is a sibling of the drawing *inside* #psiINT-dge-art, not of the
   // frame: the frame has padding, so guides pinned to it would be offset by
   // that padding from the picture they annotate. Sharing the drawing's own
   // box and its viewBox is what makes a guide drawn at 3.2,1 land at 3.2,1.
-  const guides = dgeEl('svg', { id: 'dge-guides', 'aria-hidden': 'true' });
-  const art = dgeEl('div', { id: 'dge-art' }, [guides]);
-  const frame = dgeEl('div', { id: 'dge-frame' }, [art]);
-  const stage = dgeEl('div', { id: 'dge-stage' }, [frame]);
-  const board = dgeEl('div', { id: 'dge-board', hidden: true });
-  const assets = dgeEl('div', { id: 'dge-assets', hidden: true }, [
-    dgeEl('div', { id: 'dge-assets-inner' }, [
+  const guides = dgeEl('svg', { id: 'psiINT-dge-guides', 'aria-hidden': 'true' });
+  const art = dgeEl('div', { id: 'psiINT-dge-art' }, [guides]);
+  const frame = dgeEl('div', { id: 'psiINT-dge-frame' }, [art]);
+  const stage = dgeEl('div', { id: 'psiINT-dge-stage' }, [frame]);
+  const board = dgeEl('div', { id: 'psiINT-dge-board', hidden: true });
+  const assets = dgeEl('div', { id: 'psiINT-dge-assets', hidden: true }, [
+    dgeEl('div', { id: 'psiINT-dge-assets-inner' }, [
       dgeEl('header', {}, [
         dgeEl('b', { text: 'Place a picture' }),
         dgeEl('button', { type: 'button', class: 'dge-btn', text: 'Cancel', onclick: () => dgeCloseAssetPicker() }),
       ]),
-      dgeEl('div', { id: 'dge-assets-list' }),
-      dgeEl('p', { id: 'dge-assets-note' }),
+      dgeEl('div', { id: 'psiINT-dge-assets-list' }),
+      dgeEl('p', { id: 'psiINT-dge-assets-note' }),
     ]),
   ]);
-  const canvas = dgeEl('main', { id: 'dge-canvas' }, [stage, board, assets]);
+  const canvas = dgeEl('main', { id: 'psiINT-dge-canvas' }, [stage, board, assets]);
 
-  const side = dgeEl('aside', { id: 'dge-side' });
-  const status = dgeEl('footer', { id: 'dge-status' }, [
-    dgeEl('span', { class: 'dge-group', id: 'dge-beats', hidden: true }),
-    dgeEl('span', { class: 'dge-line', id: 'dge-statusline' }),
-    dgeEl('span', { class: 'dge-note', id: 'dge-statusnote' }),
+  const side = dgeEl('aside', { id: 'psiINT-dge-side' });
+  const status = dgeEl('footer', { id: 'psiINT-dge-status' }, [
+    dgeEl('span', { class: 'dge-group', id: 'psiINT-dge-beats', hidden: true }),
+    dgeEl('span', { class: 'dge-line', id: 'psiINT-dge-statusline' }),
+    dgeEl('span', { class: 'dge-note', id: 'psiINT-dge-statusnote' }),
     dgeEl('span', { class: 'dge-spacer' }),
-    dgeEl('span', { id: 'dge-counts' }),
+    dgeEl('span', { id: 'psiINT-dge-counts' }),
   ]);
-  const strip = dgeEl('section', { id: 'dge-strip', 'aria-label': 'Figures' });
+  const strip = dgeEl('section', { id: 'psiINT-dge-strip', 'aria-label': 'Figures' });
 
   tools.appendChild(dgeEl('hr', {}));
   tools.appendChild(dgeEl('button', {
-    type: 'button', class: 'dge-btn dge-tool', id: 'dge-lock', 'aria-pressed': 'false',
+    type: 'button', class: 'dge-btn dge-tool', id: 'psiINT-dge-lock', 'aria-pressed': 'false',
     title: 'keep the current tool active instead of falling back to select  (Q)',
     onclick: () => { DGE.toolLocked = !DGE.toolLocked; dgeRenderTools(); },
   }, [
@@ -26107,7 +26102,7 @@ function dgeBuildChrome() {
   ]));
 
   dgeRoot = dgeEl('div', {
-    id: 'dge-root', role: 'dialog', 'aria-modal': 'true',
+    id: 'psiINT-dge-root', role: 'dialog', 'aria-modal': 'true',
     'aria-label': 'Diagram editor, experimental', hidden: true,
   }, [top, tools, canvas, side, status, strip]);
   document.body.appendChild(dgeRoot);
@@ -26239,7 +26234,7 @@ function dgeBoxesAt(model, beat) {
 }
 
 function dgePaintArt(html) {
-  const art = dgeQ('#dge-art');
+  const art = dgeQ('#psiINT-dge-art');
   const holder = document.createElement('div');
   holder.innerHTML = html;
   const fig = holder.querySelector('figure');
@@ -26259,12 +26254,12 @@ function dgePaintArt(html) {
   else if (svg.dataset.liveViewbox) svg.setAttribute('viewBox', svg.dataset.liveViewbox);
   svg.removeAttribute('width');
   svg.removeAttribute('height');
-  // The compiler prefixes every id inside the figure (dg3-mix, dg3-edge-1--p)
+  // The compiler prefixes every id inside the figure (psiINT-dg3-mix, psiINT-dg3-edge-1--p)
   // and the root carries the prefix too, so keep it before overwriting the id.
   // It is the only way back from a model id to the node the compiler drew for
   // it, and searching by suffix instead would match my-edge-1--p for edge-1--p.
   DGE.prefix = /root$/.test(svg.id || '') ? svg.id.replace(/root$/, '') : '';
-  svg.id = 'dge-art-svg';
+  svg.id = 'psiINT-dge-art-svg';
   // Paint the beat on screen into it, using the runtime the build already
   // ships – no second implementation of "what does step k look like".
   const payload = fig ? fig.querySelector('script.psi-diagram-frames') : null;
@@ -26281,7 +26276,7 @@ function dgePaintArt(html) {
   } else {
     DGE.frames = null;
   }
-  const guides = dgeQ('#dge-guides');
+  const guides = dgeQ('#psiINT-dge-guides');
   art.replaceChildren(svg, guides);
   guides.setAttribute('viewBox', svg.getAttribute('viewBox'));
   guides.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -26291,9 +26286,9 @@ function dgePaintArt(html) {
 
 function dgeApplyFrame() {
   const m = dgeFrameMetrics();
-  const frame = dgeQ('#dge-frame');
-  const art = dgeQ('#dge-art');
-  const svg = dgeQ('#dge-art-svg');
+  const frame = dgeQ('#psiINT-dge-frame');
+  const art = dgeQ('#psiINT-dge-art');
+  const svg = dgeQ('#psiINT-dge-art-svg');
   if (!frame || !svg) return;
   frame.style.width = (m.px * DGE.zoom) + 'px';
   frame.style.padding = (14 * DGE.zoom) + 'px';
@@ -26358,7 +26353,7 @@ function dgeApplyFrame() {
       : ` · fills ${Math.round(100 * (cv[2] * cv[3]) / (cv[0] * cv[1]))}% of its canvas`;
   }
   frame.dataset.measure = note;
-  dgeQ('#dge-frames').querySelectorAll('button').forEach((b) => {
+  dgeQ('#psiINT-dge-frames').querySelectorAll('button').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.frame === DGE.frame));
     const em = DGE_FRAME_EM[b.dataset.frame][m.width];
     b.querySelector('i').textContent = b.dataset.frame === 'print' ? em + 'em' : em + 'em';
@@ -26372,11 +26367,11 @@ function dgeApplyFrame() {
 // stays a transform, because pan is exactly a thing that should not affect
 // layout.
 function dgeApplyView() {
-  const stage = dgeQ('#dge-stage');
+  const stage = dgeQ('#psiINT-dge-stage');
   if (!stage) return;
   stage.style.transform = `translate(${DGE.pan.x}px, ${DGE.pan.y}px)`;
   dgeApplyFrame();
-  const z = dgeQ('#dge-zoom');
+  const z = dgeQ('#psiINT-dge-zoom');
   if (z) z.textContent = Math.round(DGE.zoom * 100) + '%';
 }
 
@@ -26401,8 +26396,8 @@ function dgeZoomBy(k) {
 
 function dgeZoomFit() {
   dgeApplyFrame();
-  const canvas = dgeQ('#dge-canvas');
-  const frame = dgeQ('#dge-frame');
+  const canvas = dgeQ('#psiINT-dge-canvas');
+  const frame = dgeQ('#psiINT-dge-frame');
   if (!canvas || !frame) return;
   DGE.zoom = 1;
   DGE.pan = { x: 0, y: 0 };
@@ -26420,7 +26415,7 @@ function dgeZoomFit() {
 // number in the block is written in. getScreenCTM does the whole transform
 // chain, so zoom, pan and the frame's own scaling are all accounted for.
 function dgePointToDiagram(ev) {
-  const guides = dgeQ('#dge-guides');
+  const guides = dgeQ('#psiINT-dge-guides');
   const ctm = guides.getScreenCTM();
   if (!ctm) return { x: 0, y: 0 };
   const inv = ctm.inverse();
@@ -26451,7 +26446,7 @@ function dgeUnits(model) {
 let dgeSnapGuides = [];   // live during a drag, cleared on pointerup
 
 function dgeDrawGuides() {
-  const g = dgeQ('#dge-guides');
+  const g = dgeQ('#psiINT-dge-guides');
   if (!g || !DGE.model) return;
   g.replaceChildren();
   const { uw, uh } = dgeUnits();
@@ -28580,7 +28575,7 @@ function dgeRedo() {
 // block to learn what the DOM already knows. Coupled to dgPathD and
 // dgSplineD, the two texts that ever write this attribute.
 function dgeEdgePts(id) {
-  const svg = dgeQ('#dge-art-svg');
+  const svg = dgeQ('#psiINT-dge-art-svg');
   if (!svg) return null;
   // Scoped to the editor's own copy. The slide behind the modal holds the
   // same figure with the same prefixed ids, and getElementById would answer
@@ -28609,7 +28604,7 @@ function dgeEdgePts(id) {
 // Seven CSS pixels, in the diagram's own units, so a hairline is exactly as
 // easy to hit at 4x as at 1x.
 function dgeGrabTolerance(px = 7) {
-  const guides = dgeQ('#dge-guides');
+  const guides = dgeQ('#psiINT-dge-guides');
   const ctm = guides && guides.getScreenCTM();
   const s = ctm ? Math.hypot(ctm.a, ctm.b) : 1;
   return px / (s || 1);
@@ -28629,7 +28624,7 @@ function dgeSegDist(p, a, b) {
 // time. Boxes are deliberately not filtered this way: a hidden box still
 // occupies the area you clicked, where a hidden hairline occupies nothing.
 function dgeEdgeVisible(id) {
-  const svg = dgeQ('#dge-art-svg');
+  const svg = dgeQ('#psiINT-dge-art-svg');
   const g = svg && svg.querySelector('[id="' + DGE.prefix + id + '"]');
   if (!g) return true;
   return parseFloat(getComputedStyle(g).opacity || '1') > 0.02;
@@ -28858,7 +28853,7 @@ function dgeGestureBase() {
     return null;
   }
   dgeInGesture = true;
-  const svg = dgeQ('#dge-art-svg');
+  const svg = dgeQ('#psiINT-dge-art-svg');
   if (svg) DGE.pinnedViewBox = svg.getAttribute('viewBox');
   return { source: DGE.source, model: DGE.model, boxes: DGE.boxes, spans: DGE.spans };
 }
@@ -29599,9 +29594,9 @@ function dgePlace(tool, pt) {
 const DGE_IMG_EXTS = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
 
 function dgeOpenAssetPicker(onPick) {
-  const box = dgeQ('#dge-assets');
-  const list = dgeQ('#dge-assets-list');
-  const note = dgeQ('#dge-assets-note');
+  const box = dgeQ('#psiINT-dge-assets');
+  const list = dgeQ('#psiINT-dge-assets-list');
+  const note = dgeQ('#psiINT-dge-assets-note');
   const inlined = DGE.fig.images || {};
   box.hidden = false;
   note.textContent = '';
@@ -29680,7 +29675,7 @@ function dgeAssetThumb(entry) {
 let dgeAssetThumbSeq = 0;
 
 function dgeCloseAssetPicker() {
-  const box = dgeQ('#dge-assets');
+  const box = dgeQ('#psiINT-dge-assets');
   if (box) box.hidden = true;
 }
 
@@ -29955,7 +29950,7 @@ function dgeSelect(ids) {
 }
 
 function dgeRenderSide() {
-  const side = dgeQ('#dge-side');
+  const side = dgeQ('#psiINT-dge-side');
   if (!side || !DGE.model) return;
   side.replaceChildren();
 
@@ -31965,7 +31960,7 @@ function dgePlacementPane(el) {
       dgeEl('label', { class: 'dge-num' }, [
         dgeEl('span', { text: 'of' }),
         dgeEl('input', {
-          type: 'text', value: p.ref, list: 'dge-elids',
+          type: 'text', value: p.ref, list: 'psiINT-dge-elids',
           onchange: (e) => {
             const v = e.target.value.trim();
             if (v && v !== p.ref) write(dgePlaceText(p.dir, v, dgeGapWritten(p))); else dgeRenderSide();
@@ -32018,7 +32013,7 @@ function dgePlacementPane(el) {
       row.appendChild(dgeEl('label', { class: 'dge-num' }, [
         dgeEl('span', { text: i ? 'and' : 'between' }),
         dgeEl('input', {
-          type: 'text', value: (p.refs[i] || {}).ref || '', list: 'dge-elids',
+          type: 'text', value: (p.refs[i] || {}).ref || '', list: 'psiINT-dge-elids',
           onchange: (e) => {
             const v = e.target.value.trim();
             const a = i === 0 ? v : (p.refs[0] || {}).ref;
@@ -32084,7 +32079,7 @@ function dgePlacementPane(el) {
       dgeEl('label', { class: 'dge-num' }, [
         dgeEl('span', { text: 'in' }),
         dgeEl('input', {
-          type: 'text', value: p.ref, list: 'dge-elids',
+          type: 'text', value: p.ref, list: 'psiINT-dge-elids',
           onchange: (e) => {
             const v = e.target.value.trim();
             if (v && v !== p.ref) write(text(p.ax, p.ay, dgeGapWritten(p)).replace('in ' + p.ref, 'in ' + v));
@@ -32115,7 +32110,7 @@ function dgePlacementPane(el) {
 
   // One list for every id in the block, so the reference fields complete
   // rather than having to be remembered.
-  const dl = dgeEl('datalist', { id: 'dge-elids' });
+  const dl = dgeEl('datalist', { id: 'psiINT-dge-elids' });
   for (const o of others) dl.appendChild(dgeEl('option', { value: o }));
   wrap.appendChild(dl);
   wrap.appendChild(dgeEl('div', { class: 'dge-hint', text:
@@ -32157,7 +32152,7 @@ function dgeElementList() {
 function dgeSourcePane() {
   const wrap = dgeEl('div', {});
   wrap.appendChild(dgeEl('h3', { text: 'source' }));
-  const pane = dgeEl('div', { id: 'dge-source' });
+  const pane = dgeEl('div', { id: 'psiINT-dge-source' });
   const errLines = new Set((DGE.problems || []).map((p) => p.line).filter(Boolean));
   DGE.source.split('\n').forEach((line, i) => {
     const sel = DGE.selection.some((id) => {
@@ -32214,8 +32209,8 @@ function dgeNote(note, bad) {
 
 function dgeStatus(line, note, bad) {
   DGE.status = { line: line || '', note: note || '', bad: !!bad };
-  const l = dgeQ('#dge-statusline');
-  const n = dgeQ('#dge-statusnote');
+  const l = dgeQ('#psiINT-dge-statusline');
+  const n = dgeQ('#psiINT-dge-statusnote');
   if (l) l.textContent = DGE.status.line;
   if (n) {
     n.textContent = DGE.status.note;
@@ -32266,7 +32261,7 @@ function dgeThumbFor(fig) {
   clone.querySelectorAll('[id]').forEach((n) => ids.add(n.id));
   if (!ids.size) return clone;
   // One pass with a longest-first alternation, never a loop of replacements.
-  // The ids in a diagram nest – `dg6-alice` is a prefix of `dg6-alice--i` –
+  // The ids in a diagram nest – `psiINT-dg6-alice` is a prefix of `psiINT-dg6-alice--i` –
   // so a second pass rewrites what the first one just inserted, and the
   // result was `dgt6-dgt6-dg6-alice--i`. A single `replace` never re-scans
   // its own output, and the longest alternative wins at each position.
@@ -32281,7 +32276,7 @@ function dgeThumbFor(fig) {
 }
 
 function dgeRenderStrip() {
-  const strip = dgeQ('#dge-strip');
+  const strip = dgeQ('#psiINT-dge-strip');
   if (!strip) return;
   strip.replaceChildren();
   DGE_FIGURES.forEach((fig, i) => {
@@ -32294,7 +32289,7 @@ function dgeRenderStrip() {
 
 function dgeToggleBoard(force) {
   DGE.boardOpen = force === undefined ? !DGE.boardOpen : force;
-  const board = dgeQ('#dge-board');
+  const board = dgeQ('#psiINT-dge-board');
   board.hidden = !DGE.boardOpen;
   if (!DGE.boardOpen) return;
   board.replaceChildren();
@@ -32340,7 +32335,7 @@ function dgeSetBeat(k) {
 }
 
 function dgeRenderBeats() {
-  const host = dgeQ('#dge-beats');
+  const host = dgeQ('#psiINT-dge-beats');
   if (!host) return;
   host.replaceChildren();
   const steps = DGE.model ? DGE.model.steps : [];
@@ -32642,12 +32637,12 @@ function dgePickTool(id) {
   if (t && t.wrapper) { dgeWrap(id); return; }
   DGE.tool = id;
   dgeRenderTools();
-  const canvas = dgeQ('#dge-canvas');
+  const canvas = dgeQ('#psiINT-dge-canvas');
   canvas.classList.toggle('dge-placing', id !== 'select');
 }
 
 function dgeRenderTools() {
-  const rail = dgeQ('#dge-tools');
+  const rail = dgeQ('#psiINT-dge-tools');
   if (!rail) return;
   rail.querySelectorAll('.dge-tool').forEach((b) => {
     const t = DGE_TOOLS.find((x) => x.id === b.dataset.tool);
@@ -32657,7 +32652,7 @@ function dgeRenderTools() {
   // Locked is a state of the rail, so it is drawn on the rail. A mode
   // announced once in the status bar is a mode nobody remembers being in.
   rail.classList.toggle('dge-locked', DGE.toolLocked);
-  const lock = dgeQ('#dge-lock');
+  const lock = dgeQ('#psiINT-dge-lock');
   if (lock) lock.setAttribute('aria-pressed', String(DGE.toolLocked));
 }
 
@@ -32696,11 +32691,11 @@ function dgeKeydown(ev) {
     if (k.toLowerCase() === 's') { ev.preventDefault(); dgeCommit(); return; }
     return;
   }
-  if (k === ' ') { DGE.spaceDown = true; dgeQ('#dge-canvas').classList.add('dge-pannable'); ev.preventDefault(); return; }
+  if (k === ' ') { DGE.spaceDown = true; dgeQ('#psiINT-dge-canvas').classList.add('dge-pannable'); ev.preventDefault(); return; }
   if (k === 'Escape') {
     ev.preventDefault();
     // One rung at a time, identical to the ladder on the slide.
-    if (!dgeQ('#dge-assets').hidden) return dgeCloseAssetPicker();
+    if (!dgeQ('#psiINT-dge-assets').hidden) return dgeCloseAssetPicker();
     if (DGE.boardOpen) return dgeToggleBoard(false);
     if (DGE.selection.length) return dgeSelect([]);
     if (DGE.tool !== 'select') return dgePickTool('select');
@@ -32742,7 +32737,7 @@ function dgeKeydown(ev) {
 function dgeKeyup(ev) {
   if (ev.key === ' ') {
     DGE.spaceDown = false;
-    const c = dgeQ('#dge-canvas');
+    const c = dgeQ('#psiINT-dge-canvas');
     if (c) c.classList.remove('dge-pannable');
   }
 }
@@ -33239,7 +33234,7 @@ function dgeNewFigure() {
 }
 
 function dgeHelp() {
-  const help = document.getElementById('help-overlay');
+  const help = document.getElementById('psiINT-help-overlay');
   if (help) help.classList.toggle('hidden');
 }
 
@@ -33247,11 +33242,11 @@ function dgeHelp() {
 
 function dgeRenderAll() {
   if (!DGE.open) return;
-  const name = dgeQ('#dge-name');
+  const name = dgeQ('#psiINT-dge-name');
   if (name) name.textContent = DGE.fig.chunk ? '#' + DGE.fig.chunk : 'figure ' + (DGE.index + 1);
-  const pos = dgeQ('#dge-figpos');
+  const pos = dgeQ('#psiINT-dge-figpos');
   if (pos) pos.textContent = `${DGE.index + 1} / ${DGE_FIGURES.length}`;
-  const counts = dgeQ('#dge-counts');
+  const counts = dgeQ('#psiINT-dge-counts');
   if (counts && DGE.model) {
     counts.textContent = `${DGE.model.nodes.length + DGE.model.edges.length
       + DGE.model.containers.length + DGE.model.braces.length} elements`
@@ -33261,12 +33256,12 @@ function dgeRenderAll() {
   // One line of chrome saying which of the two situations this is. A private
   // editor mode is not a separate feature – it is the cockpit's existing
   // freeze, and saying so beats growing a second concept for the same thing.
-  const room = dgeQ('#dge-room');
+  const room = dgeQ('#psiINT-dge-room');
   if (room) {
     // Read off the cockpit's own control rather than a variable: `frozen` is
     // a top-level `let` in a classic script, which is not a property of
     // window, and the button is the state made visible anyway.
-    const btn = document.getElementById('freeze-btn');
+    const btn = document.getElementById('psiINT-freeze-btn');
     const frozen = !!(btn && btn.getAttribute('aria-pressed') === 'true');
     const isSpeaker = document.body.dataset.view === 'speaker';
     room.textContent = isSpeaker
@@ -33276,7 +33271,7 @@ function dgeRenderAll() {
   }
   // The commit button names the tier it will actually use, so "where does
   // this go?" is answered before it is pressed rather than after.
-  const copy = dgeQ('#dge-copy-btn');
+  const copy = dgeQ('#psiINT-dge-copy-btn');
   if (copy) {
     copy.disabled = !!(DGE.problems && DGE.problems.length);
     const live = window.psiWatch && window.psiWatch.ready() && DGE.fig.range;
@@ -33290,7 +33285,7 @@ function dgeRenderAll() {
   }
   // Tier 3 is opportunistic and never load-bearing: offered where the
   // picker exists and there is no watch socket already doing the job.
-  const fileBtn = dgeQ('#dge-file-btn');
+  const fileBtn = dgeQ('#psiINT-dge-file-btn');
   if (fileBtn) {
     const useful = dgeCanPickFile() && !(window.psiWatch && window.psiWatch.ready());
     fileBtn.hidden = !useful || !!DGE.fileHandle;
@@ -33298,18 +33293,18 @@ function dgeRenderAll() {
   // A reader's edits live in localStorage and nowhere else, so the way back
   // has to be visible. Shown only when this figure is actually showing
   // something other than what the author wrote.
-  const revert = dgeQ('#dge-revert-btn');
+  const revert = dgeQ('#psiINT-dge-revert-btn');
   if (revert) revert.hidden = DGE.source === DGE.fig.body;
   // Every mechanism in here has to have a visible control with its key printed
   // on it – editor.md §4.2. Undo was the one that had only the key, and how
   // deep the stack is is a thing the author can otherwise only find out by
   // pressing it.
-  const undoBtn = dgeQ('#dge-undo-btn');
+  const undoBtn = dgeQ('#psiINT-dge-undo-btn');
   if (undoBtn) {
     undoBtn.disabled = !DGE.undo.length;
     undoBtn.title = DGE.undo.length ? `undo (⌘Z) – ${DGE.undo.length} change(s) back` : 'nothing to undo';
   }
-  const redoBtn = dgeQ('#dge-redo-btn');
+  const redoBtn = dgeQ('#psiINT-dge-redo-btn');
   if (redoBtn) {
     redoBtn.disabled = !DGE.redo.length;
     redoBtn.title = DGE.redo.length ? `redo (⇧⌘Z) – ${DGE.redo.length} change(s) forward` : 'nothing to redo';
@@ -33321,7 +33316,7 @@ function dgeRenderAll() {
   dgeRenderSide();
   dgeDrawGuides();
   dgeRoot.classList.toggle('dge-in-step', DGE.beat > 0);
-  const strip = dgeQ('#dge-strip');
+  const strip = dgeQ('#psiINT-dge-strip');
   if (strip) strip.querySelectorAll('.dge-thumb').forEach((b, i) => {
     b.setAttribute('aria-current', String(i === DGE.index));
   });
@@ -33346,7 +33341,7 @@ function dgeFigureForNode(node) {
 }
 
 function dgeMountEntryPoint() {
-  const overlay = document.getElementById('figure-overlay');
+  const overlay = document.getElementById('psiINT-figure-overlay');
   if (!overlay) return;
   const sync = () => {
     const card = overlay.querySelector('.figure-focus-target');
@@ -33371,7 +33366,7 @@ function dgeMountEntryPoint() {
 }
 
 function dgeOpenFromCard() {
-  const overlay = document.getElementById('figure-overlay');
+  const overlay = document.getElementById('psiINT-figure-overlay');
   const card = overlay ? overlay.querySelector('.figure-focus-target') : null;
   const i = dgeFigureForNode(card);
   if (i < 0) return false;

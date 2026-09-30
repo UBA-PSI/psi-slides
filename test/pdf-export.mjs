@@ -273,8 +273,8 @@ try {
   // Everything asserted below is about the print DOM, which is the body. The
   // dump is documentElement.outerHTML, so <head> carries every inlined
   // stylesheet - and three of these checks first failed on prose inside a CSS
-  // comment: AUDIENCE_CSS explains why the TOC overlay is scoped to `nav#toc`
-  // rather than `id="toc"`, and the export stylesheet says what stands where
+  // comment: AUDIENCE_CSS explains why the TOC overlay is scoped to `nav#psiINT-toc`
+  // rather than `id="psiINT-toc"`, and the export stylesheet says what stands where
   // an <iframe> was. Both are correct comments about elements that are not
   // there. Cut at the last </head> for the same reason settings.mjs anchors
   // on a body attribute: the literal appears in comments too.
@@ -285,7 +285,7 @@ try {
   // The wrapper table, in document order. Every later assertion reads this
   // rather than counting substrings a second time.
   const pages = [...dom.matchAll(
-    /<div class="pdf-page" id="(pdf-p\d+)" style="--zoom: ([0-9.]+);">([\s\S]*?)(?=<div class="pdf-page"|<\/body>)/g)]
+    /<div class="pdf-page" id="(psiINT-pdf-p\d+)" style="--zoom: ([0-9.]+);">([\s\S]*?)(?=<div class="pdf-page"|<\/body>)/g)]
     .map(m => ({
       id: m[1],
       zoom: Number(m[2]),
@@ -328,8 +328,9 @@ try {
   for (const sel of ['exps', 'exp-chev', 'exp-body', 'annot-box', 'annot-add', 'link-code']) {
     ok(!new RegExp(`class="[^"]*\\b${sel}\\b`).test(dom), `no .${sel} in the print DOM`);
   }
-  for (const id of ['link-overlay', 'toc', 'search-panel', 'mode-badge', 'help-overlay',
-    'laser-pointer', 'touch-controls', 'figure-overlay', 'stage-viewport']) {
+  for (const id of ['psiINT-link-overlay', 'psiINT-toc', 'psiINT-search-panel', 'psiINT-mode-badge',
+    'psiINT-help-overlay', 'psiINT-laser-pointer', 'psiINT-touch-controls', 'psiINT-figure-overlay',
+    'psiINT-stage-viewport']) {
     ok(!new RegExp(`id="${id}"`).test(dom), `no #${id} in the print DOM`);
   }
   ok(!/<script/i.test(dom), 'and no <script at all, the SVG step payload included');
@@ -339,14 +340,14 @@ try {
   console.log('\nlinks');
   ok(/<a [^>]*href="https:\/\/uba-psi\.github\.io\/psi-slides\/"/.test(dom),
      'an external link keeps its href and stays an <a>');
-  const chunkHref = /href="#(pdf-p\d+)"[^>]*>a chunk</.exec(dom)
-    || /<a href="#(pdf-p\d+)">a chunk<\/a>/.exec(dom);
+  const chunkHref = /href="#(psiINT-pdf-p\d+)"[^>]*>a chunk</.exec(dom)
+    || /<a href="#(psiINT-pdf-p\d+)">a chunk<\/a>/.exec(dom);
   ok(!!chunkHref, 'a link to a chunk points at a page wrapper');
   if (chunkHref) {
     ok(chunkHref[1] === pages[firstOf['beatless']].id,
        'and at the FIRST page of that chunk', `${chunkHref[1]} vs ${pages[firstOf['beatless']].id}`);
   }
-  const colHref = /<a href="#(pdf-p\d+)">a column<\/a>/.exec(dom);
+  const colHref = /<a href="#(psiINT-pdf-p\d+)">a column<\/a>/.exec(dom);
   ok(!!colHref, 'a link to a column id resolves too');
   if (colHref) {
     ok(colHref[1] === pages[firstOf['beats-section']].id,
@@ -427,7 +428,7 @@ try {
   // checkable in the clear alongside /Count.
   ok(/\/S\s*\/URI\s*\n?\/URI \(https:\/\/uba-psi\.github\.io\/psi-slides\/\)/.test(pdf),
      'the external link is a clickable URI annotation in the file');
-  const dests = [...pdf.matchAll(/\/Dest\s+\/(pdf-p\d+)/g)].map(m => m[1]);
+  const dests = [...pdf.matchAll(/\/Dest\s+\/(psiINT-pdf-p\d+)/g)].map(m => m[1]);
   ok(dests.includes(pages[firstOf['beatless']].id),
      'and the chunk link is a named destination on that chunk\'s first page',
      dests.join(', '));

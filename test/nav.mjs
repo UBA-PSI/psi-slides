@@ -178,8 +178,8 @@ export async function run({ page, report, at, press, walkTo, beatOf, restart }) 
 
   // ── the marks are for the slide, so they are absent everywhere else ──
   const hintOpacity = () => page.evaluate(() =>
-    getComputedStyle(document.querySelector('#nav-hints span')).opacity);
-  ok(await page.evaluate(() => document.querySelectorAll('#nav-hints span').length) === 1,
+    getComputedStyle(document.querySelector('#psiINT-nav-hints span')).opacity);
+  ok(await page.evaluate(() => document.querySelectorAll('#psiINT-nav-hints span').length) === 1,
     'one mark, not three - the two sideways ones went with the exception they announced');
   await press('o', 500);
   ok(await hintOpacity() === '0', 'the marks are gone on the overview board');

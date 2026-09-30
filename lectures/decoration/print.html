@@ -1843,12 +1843,12 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
   .rd-lb-bar button:hover, .rd-lb-bar button:focus-visible { background: rgb(255 255 255 / 0.24); }
   .rd-lb-bar .rd-lb-spot[aria-pressed=true] { color: #1a1a1a; background: var(--rd-hl-strong); border-color: transparent; }
   .rd-lb-bar .rd-lb-close { font-size: 1.15rem; padding: 0.3rem 0.65rem; }
-  body.rd-marking #lightbox, body.rd-marking #lightbox > .lb-card, body.rd-marking #lightbox > .lb-card * { cursor: crosshair; }
-  body.rd-marking #lightbox .rd-pin, body.rd-marking #lightbox .rd-pin * { cursor: pointer; }
+  body.rd-marking #psiINT-lightbox, body.rd-marking #psiINT-lightbox > .lb-card, body.rd-marking #psiINT-lightbox > .lb-card * { cursor: crosshair; }
+  body.rd-marking #psiINT-lightbox .rd-pin, body.rd-marking #psiINT-lightbox .rd-pin * { cursor: pointer; }
   body[data-reader=on] .psi-diagram .dg-el.rd-hover > :is(rect, circle, .dg-shape),
   body[data-reader=on] .psi-diagram .dg-el.rd-hover .dg-stroke { stroke: var(--rd-hl-strong); stroke-width: 4px; }
-  #lightbox > .rd-card { position: absolute; z-index: 4; width: 17rem; cursor: auto; }
-  #lightbox > .rd-card .rd-actions { display: flex; }
+  #psiINT-lightbox > .rd-card { position: absolute; z-index: 4; width: 17rem; cursor: auto; }
+  #psiINT-lightbox > .rd-card .rd-actions { display: flex; }
   .rd-card-what { margin: 0 0 0.3rem; font-size: 0.72rem; color: var(--ink-soft); }
   .rd-approx { font-style: italic; }
 }
@@ -1999,7 +1999,7 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
    paper. */
 @media screen {
   body.lb-ready :is(figure.figure-img, figure.figure-diagram, main pre, main .math-display) { cursor: zoom-in; }
-  #lightbox {
+  #psiINT-lightbox {
     position: fixed;
     inset: 0;
     display: none;
@@ -2011,12 +2011,12 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
     cursor: grab;
     touch-action: none;
   }
-  body.lb-open #lightbox { display: flex; }
+  body.lb-open #psiINT-lightbox { display: flex; }
   /* Focused so Esc reaches it at once; the ring would frame the window. */
-  #lightbox:focus { outline: none; }
+  #psiINT-lightbox:focus { outline: none; }
   body.lb-open { overflow: hidden; }
-  body.lb-dragging #lightbox, body.lb-dragging #lightbox * { cursor: grabbing !important; }
-  #lightbox > .lb-card {
+  body.lb-dragging #psiINT-lightbox, body.lb-dragging #psiINT-lightbox * { cursor: grabbing !important; }
+  #psiINT-lightbox > .lb-card {
     max-width: 96vw;
     max-height: 96vh;
     overflow: hidden;
@@ -2035,11 +2035,11 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
      so a zoomed screenshot stayed at the pixels of the unzoomed card and read
      soft – while the same data URL opened in a tab was sharp. When the class
      drops after the quiet period, the card is re-rasterised at its scale. */
-  body.lb-dragging #lightbox > .lb-card,
-  body.lb-zooming #lightbox > .lb-card { transition: none; will-change: transform; }
-  #lightbox > figure.lb-card { display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
-  #lightbox figure.figure-img img,
-  #lightbox figure.figure-img svg {
+  body.lb-dragging #psiINT-lightbox > .lb-card,
+  body.lb-zooming #psiINT-lightbox > .lb-card { transition: none; will-change: transform; }
+  #psiINT-lightbox > figure.lb-card { display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
+  #psiINT-lightbox figure.figure-img img,
+  #psiINT-lightbox figure.figure-img svg {
     width: 92vw;
     max-width: none;
     max-height: 88vh;
@@ -2049,29 +2049,29 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
   /* A diagram's box is derived from its type size in the document (main
      .psi-diagram); here the window decides, and --dg-ar turns the height
      budget into a width so a tall drawing is not letterboxed. */
-  #lightbox .psi-diagram {
+  #psiINT-lightbox .psi-diagram {
     width: min(92vw, calc(88vh * var(--dg-ar, 1)));
     max-width: none;
     max-height: 88vh;
     margin: 0;
   }
-  #lightbox figcaption {
+  #psiINT-lightbox figcaption {
     font-family: var(--sans);
     font-size: 0.9rem;
     color: var(--ink-soft);
     text-align: center;
   }
-  #lightbox > pre.lb-card {
+  #psiINT-lightbox > pre.lb-card {
     font-size: clamp(14px, 1.9vw, 30px);
     line-height: 1.5;
     white-space: pre;
     background: var(--paper) !important;
   }
-  #lightbox > .math-display.lb-card { font-size: clamp(22px, 3.2vw, 56px); }
+  #psiINT-lightbox > .math-display.lb-card { font-size: clamp(22px, 3.2vw, 56px); }
   body.lb-open main { filter: blur(2px); }
 }
 @media print {
-  #lightbox { display: none !important; }
+  #psiINT-lightbox { display: none !important; }
 }
 
 
@@ -2450,19 +2450,19 @@ code:not(pre code):not(.chunk-heading code) { font-size: 0.885em; }
 
 </head>
 <body data-slide-nums="horizontal"  data-reader="on">
-<button type="button" class="rd-toggle" aria-controls="reader-contents" aria-expanded="false" hidden>Contents</button>
-<nav id="reader-contents" class="rd-contents" aria-label="Contents" hidden>
+<button type="button" class="rd-toggle" aria-controls="psiINT-reader-contents" aria-expanded="false" hidden>Contents</button>
+<nav id="psiINT-reader-contents" class="rd-contents" aria-label="Contents" hidden>
   <div class="rd-head"><span class="rd-label">Contents</span><button type="button" class="rd-close" aria-label="Close contents">×</button></div>
   <ol class="rd-list">
 <li><a href="#preview" data-rd="preview"><span class="rd-num">3</span><span class="rd-text">None of this is in the 1.0.0 release</span></a></li>
-<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#covers">The cover, and the slide that closes it</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-1" aria-label="Slides in this part: The cover, and the slide that closes it"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-1"><li><a href="#cover-list" data-rd="cover-list"><span class="rd-num">4</span><span class="rd-text">Ten ways to open a lecture</span></a></li><li><a href="#cover-keys" data-rd="cover-keys"><span class="rd-num">5</span><span class="rd-text">Three keys the cover reads</span></a></li><li><a href="#cover-quote" data-rd="cover-quote"><span class="rd-num">6</span><span class="rd-text"><code class="nb">quote</code> draws no quotation mark</span></a></li><li><a href="#closing-tag" data-rd="closing-tag"><span class="rd-num">7</span><span class="rd-text">The last slide closes the arc</span></a></li></ol></li>
-<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#dividers">Dividers carry their own slide</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-2" aria-label="Slides in this part: Dividers carry their own slide"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-2"><li><a href="#section-list" data-rd="section-list"><span class="rd-num">8</span><span class="rd-text">Six treatments, every one quieter than the cover</span></a></li><li><a href="#outline-why" data-rd="outline-why"><span class="rd-num">9</span><span class="rd-text">What a running agenda says that a coloured field cannot</span></a></li><li><a href="#outline-states" data-rd="outline-states"><span class="rd-num">10</span><span class="rd-text">Three states, two greys</span></a></li><li><a href="#divider-body" data-rd="divider-body"><span class="rd-num">11</span><span class="rd-text">The lines under a <code class="nb">#</code> heading are the divider&#39;s slide</span></a></li><li><a href="#divider-beside" data-rd="divider-beside"><span class="rd-num">12</span><span class="rd-text">A figure divider lays out beside the heading</span></a></li><li><a href="#divider-stack" data-rd="divider-stack"><span class="rd-num">13</span><span class="rd-text">…unless the figure is the point of the part</span></a></li></ol></li>
-<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#grounds">Cards, rows and panes</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-3" aria-label="Slides in this part: Cards, rows and panes"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-3"><li><a href="#cards-why" data-rd="cards-why"><span class="rd-num">14</span><span class="rd-text"><code>::: cards</code> makes boxes, not columns</span></a></li><li><a href="#cards-grounds" data-rd="cards-grounds"><span class="rd-num">15</span><span class="rd-text">What a card sits on</span></a></li><li><a href="#cards-size" data-rd="cards-size"><span class="rd-num">16</span><span class="rd-text">The row size reads the longest item</span></a></li><li><a href="#cards-fold" data-rd="cards-fold"><span class="rd-num">17</span><span class="rd-text">One row serves two views</span></a></li><li><a href="#rows" data-rd="rows"><span class="rd-num">18</span><span class="rd-text"><code>::: rows</code> turns a card row on its side</span></a></li><li><a href="#side" data-rd="side"><span class="rd-num">19</span><span class="rd-text"><code>::: side</code> takes a ratio</span></a></li></ol></li>
-<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#reveal">Revealing a picture</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-4" aria-label="Slides in this part: Revealing a picture"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-4"><li><a href="#reveal-why" data-rd="reveal-why"><span class="rd-num">20</span><span class="rd-text">The window walks the beats, and the picture stands still</span></a></li><li><a href="#reveal-open" data-rd="reveal-open"><span class="rd-num">21</span><span class="rd-text">A picture that retreats</span></a></li><li><a href="#reveal-from" data-rd="reveal-from"><span class="rd-num">22</span><span class="rd-text"><code class="nb">from</code> holds an overlay back until a beat</span></a></li><li><a href="#reveal-close" data-rd="reveal-close"><span class="rd-num">23</span><span class="rd-text">A picture that covers the words</span></a></li><li><a href="#backdrop-slots" data-rd="backdrop-slots"><span class="rd-num">24</span><span class="rd-text">Where the picture sits, and what it is veiled with</span></a></li><li><a href="#overlay-slots" data-rd="overlay-slots"><span class="rd-num">25</span><span class="rd-text">An overlay is a block of text over the slide</span></a></li></ol></li>
-<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#panels">Panels: the card grown to the frame</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-5" aria-label="Slides in this part: Panels: the card grown to the frame"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-5"><li><a href="#panel-column" data-rd="panel-column"><span class="rd-num">26</span><span class="rd-text">A column the full height of the slide</span></a></li><li><a href="#panel-band" data-rd="panel-band"><span class="rd-num">27</span><span class="rd-text">A band across the foot, a third high, with a beat inside</span></a></li><li><a href="#panel-frame" data-rd="panel-frame"><span class="rd-num">28</span><span class="rd-text">The whole frame veiled, and a card on top of it</span></a></li></ol></li>
-<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#docks">A dock at the frame's edge</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-6" aria-label="Slides in this part: A dock at the frame's edge"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-6"><li><a href="#dock-why" data-rd="dock-why"><span class="rd-num">29</span><span class="rd-text">A dock is part of the frame, and the text yields to it</span></a></li><li><a href="#dock-cols" data-rd="dock-cols"><span class="rd-num">30</span><span class="rd-text">The text column narrows, and two columns still fit beside a dock</span></a></li><li><a href="#dock-band" data-rd="dock-band"><span class="rd-num">31</span><span class="rd-text">A band replaces the inherited column</span></a></li><li><a href="#dock-top" data-rd="dock-top"><span class="rd-num">32</span><span class="rd-text">A band at the head, and the chrome moves to the foot</span></a></li><li><a href="#dock-from" data-rd="dock-from"><span class="rd-num">33</span><span class="rd-text">A dock held to a beat arrives into a track kept free</span></a></li><li><a href="#dock-slots" data-rd="dock-slots"><span class="rd-num">34</span><span class="rd-text">The dock&#39;s words</span></a></li></ol></li>
-<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#beats">Beats below the top level</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-7" aria-label="Slides in this part: Beats below the top level"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-7"><li><a href="#beats-panes" data-rd="beats-panes"><span class="rd-num">35</span><span class="rd-text">Six beats in source order, and nothing moves</span></a></li><li><a href="#beats-rows" data-rd="beats-rows"><span class="rd-num">36</span><span class="rd-text">Rows that arrive one at a time</span></a></li></ol></li>
-<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#bare">A heading that stays off the slide</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-8" aria-label="Slides in this part: A heading that stays off the slide"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-8"><li><a href="#bare-why" data-rd="bare-why"><span class="rd-num">37</span><span class="rd-text"><code class="nb">{.bare}</code> gives up the projection and nothing else</span></a></li><li><a href="#bare-loop" data-rd="bare-loop"><span class="rd-num">38</span><span class="rd-text">The measurement loop</span></a></li><li><a href="#autoplay" data-rd="autoplay"><span class="rd-num">39</span><span class="rd-text">A figure that walks itself</span></a></li><li><a href="#end" data-rd="end"><span class="rd-num">40</span><span class="rd-text">A slide is a frame</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#covers">The cover, and the slide that closes it</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-1" aria-label="Slides in this part: The cover, and the slide that closes it"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-1"><li><a href="#cover-list" data-rd="cover-list"><span class="rd-num">4</span><span class="rd-text">Ten ways to open a lecture</span></a></li><li><a href="#cover-keys" data-rd="cover-keys"><span class="rd-num">5</span><span class="rd-text">Three keys the cover reads</span></a></li><li><a href="#cover-quote" data-rd="cover-quote"><span class="rd-num">6</span><span class="rd-text"><code class="nb">quote</code> draws no quotation mark</span></a></li><li><a href="#closing-tag" data-rd="closing-tag"><span class="rd-num">7</span><span class="rd-text">The last slide closes the arc</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#dividers">Dividers carry their own slide</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-2" aria-label="Slides in this part: Dividers carry their own slide"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-2"><li><a href="#section-list" data-rd="section-list"><span class="rd-num">8</span><span class="rd-text">Six treatments, every one quieter than the cover</span></a></li><li><a href="#outline-why" data-rd="outline-why"><span class="rd-num">9</span><span class="rd-text">What a running agenda says that a coloured field cannot</span></a></li><li><a href="#outline-states" data-rd="outline-states"><span class="rd-num">10</span><span class="rd-text">Three states, two greys</span></a></li><li><a href="#divider-body" data-rd="divider-body"><span class="rd-num">11</span><span class="rd-text">The lines under a <code class="nb">#</code> heading are the divider&#39;s slide</span></a></li><li><a href="#divider-beside" data-rd="divider-beside"><span class="rd-num">12</span><span class="rd-text">A figure divider lays out beside the heading</span></a></li><li><a href="#divider-stack" data-rd="divider-stack"><span class="rd-num">13</span><span class="rd-text">…unless the figure is the point of the part</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#grounds">Cards, rows and panes</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-3" aria-label="Slides in this part: Cards, rows and panes"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-3"><li><a href="#cards-why" data-rd="cards-why"><span class="rd-num">14</span><span class="rd-text"><code>::: cards</code> makes boxes, not columns</span></a></li><li><a href="#cards-grounds" data-rd="cards-grounds"><span class="rd-num">15</span><span class="rd-text">What a card sits on</span></a></li><li><a href="#cards-size" data-rd="cards-size"><span class="rd-num">16</span><span class="rd-text">The row size reads the longest item</span></a></li><li><a href="#cards-fold" data-rd="cards-fold"><span class="rd-num">17</span><span class="rd-text">One row serves two views</span></a></li><li><a href="#rows" data-rd="rows"><span class="rd-num">18</span><span class="rd-text"><code>::: rows</code> turns a card row on its side</span></a></li><li><a href="#side" data-rd="side"><span class="rd-num">19</span><span class="rd-text"><code>::: side</code> takes a ratio</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#reveal">Revealing a picture</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-4" aria-label="Slides in this part: Revealing a picture"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-4"><li><a href="#reveal-why" data-rd="reveal-why"><span class="rd-num">20</span><span class="rd-text">The window walks the beats, and the picture stands still</span></a></li><li><a href="#reveal-open" data-rd="reveal-open"><span class="rd-num">21</span><span class="rd-text">A picture that retreats</span></a></li><li><a href="#reveal-from" data-rd="reveal-from"><span class="rd-num">22</span><span class="rd-text"><code class="nb">from</code> holds an overlay back until a beat</span></a></li><li><a href="#reveal-close" data-rd="reveal-close"><span class="rd-num">23</span><span class="rd-text">A picture that covers the words</span></a></li><li><a href="#backdrop-slots" data-rd="backdrop-slots"><span class="rd-num">24</span><span class="rd-text">Where the picture sits, and what it is veiled with</span></a></li><li><a href="#overlay-slots" data-rd="overlay-slots"><span class="rd-num">25</span><span class="rd-text">An overlay is a block of text over the slide</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#panels">Panels: the card grown to the frame</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-5" aria-label="Slides in this part: Panels: the card grown to the frame"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-5"><li><a href="#panel-column" data-rd="panel-column"><span class="rd-num">26</span><span class="rd-text">A column the full height of the slide</span></a></li><li><a href="#panel-band" data-rd="panel-band"><span class="rd-num">27</span><span class="rd-text">A band across the foot, a third high, with a beat inside</span></a></li><li><a href="#panel-frame" data-rd="panel-frame"><span class="rd-num">28</span><span class="rd-text">The whole frame veiled, and a card on top of it</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#docks">A dock at the frame's edge</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-6" aria-label="Slides in this part: A dock at the frame's edge"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-6"><li><a href="#dock-why" data-rd="dock-why"><span class="rd-num">29</span><span class="rd-text">A dock is part of the frame, and the text yields to it</span></a></li><li><a href="#dock-cols" data-rd="dock-cols"><span class="rd-num">30</span><span class="rd-text">The text column narrows, and two columns still fit beside a dock</span></a></li><li><a href="#dock-band" data-rd="dock-band"><span class="rd-num">31</span><span class="rd-text">A band replaces the inherited column</span></a></li><li><a href="#dock-top" data-rd="dock-top"><span class="rd-num">32</span><span class="rd-text">A band at the head, and the chrome moves to the foot</span></a></li><li><a href="#dock-from" data-rd="dock-from"><span class="rd-num">33</span><span class="rd-text">A dock held to a beat arrives into a track kept free</span></a></li><li><a href="#dock-slots" data-rd="dock-slots"><span class="rd-num">34</span><span class="rd-text">The dock&#39;s words</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#beats">Beats below the top level</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-7" aria-label="Slides in this part: Beats below the top level"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-7"><li><a href="#beats-panes" data-rd="beats-panes"><span class="rd-num">35</span><span class="rd-text">Six beats in source order, and nothing moves</span></a></li><li><a href="#beats-rows" data-rd="beats-rows"><span class="rd-num">36</span><span class="rd-text">Rows that arrive one at a time</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#bare">A heading that stays off the slide</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-8" aria-label="Slides in this part: A heading that stays off the slide"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-8"><li><a href="#bare-why" data-rd="bare-why"><span class="rd-num">37</span><span class="rd-text"><code class="nb">{.bare}</code> gives up the projection and nothing else</span></a></li><li><a href="#bare-loop" data-rd="bare-loop"><span class="rd-num">38</span><span class="rd-text">The measurement loop</span></a></li><li><a href="#autoplay" data-rd="autoplay"><span class="rd-num">39</span><span class="rd-text">A figure that walks itself</span></a></li><li><a href="#end" data-rd="end"><span class="rd-num">40</span><span class="rd-text">A slide is a frame</span></a></li></ol></li>
   </ol>
   <div class="rd-foot" data-reader-slot="tools"></div>
 </nav><script>document.body.classList.add('rd-ready');for (const e of document.querySelectorAll('.rd-contents, .rd-toggle')) e.hidden = false;</script>
@@ -2793,12 +2793,12 @@ is refused.</p>
 <section class="column" id="grounds">
   <h1 class="column-heading">Cards, rows and panes</h1>
   
-  <div class="column-lede"><figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-89.00 -25.50 338.56 159.00" style="--dg-type-w:22.571;--dg-ar:2.1293;--dg-ink-x:0.03544" width="2000" height="939" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
-<g id="dg1-note--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg1-note--lead--p" class="dg-stroke" d="M130.46 54.00L77.00 54.00" fill="none"/><path id="dg1-note--lead--h" class="dg-head" d="M77.00 54.00L77.00 54.00L77.00 54.00Z"/></g>
-<g id="dg1-cards" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg1-cards--r" x="-77.00" y="-13.50" width="154.00" height="27.00" rx="4"/><g id="dg1-cards--lw0" data-lab="cards--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg1-cards--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">cards 3</tspan></text></g></g></g>
-<g id="dg1-rows" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg1-rows--r" x="-77.00" y="40.50" width="154.00" height="27.00" rx="4"/><g id="dg1-rows--lw0" data-lab="rows--l" class="dg-lwrap" transform="translate(0.00,54.00)"><g id="dg1-rows--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">rows</tspan></text></g></g></g>
-<g id="dg1-side" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg1-side--r" x="-77.00" y="94.50" width="154.00" height="27.00" rx="4"/><g id="dg1-side--lw0" data-lab="side--l" class="dg-lwrap" transform="translate(0.00,108.00)"><g id="dg1-side--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">side 2:1</tspan></text></g></g></g>
-<g id="dg1-note" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg1-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(136.40,54.00)"><g id="dg1-note--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">three containers,</tspan><tspan x="0" y="11.58">three jobs</tspan></text></g></g></g>
+  <div class="column-lede"><figure class="figure-diagram"><svg id="psiINT-dg1-root" class="psi-diagram" viewBox="-89.00 -25.50 338.56 159.00" style="--dg-type-w:22.571;--dg-ar:2.1293;--dg-ink-x:0.03544" width="2000" height="939" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
+<g id="psiINT-dg1-note--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="psiINT-dg1-note--lead--p" class="dg-stroke" d="M130.46 54.00L77.00 54.00" fill="none"/><path id="psiINT-dg1-note--lead--h" class="dg-head" d="M77.00 54.00L77.00 54.00L77.00 54.00Z"/></g>
+<g id="psiINT-dg1-cards" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="psiINT-dg1-cards--r" x="-77.00" y="-13.50" width="154.00" height="27.00" rx="4"/><g id="psiINT-dg1-cards--lw0" data-lab="cards--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="psiINT-dg1-cards--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">cards 3</tspan></text></g></g></g>
+<g id="psiINT-dg1-rows" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="psiINT-dg1-rows--r" x="-77.00" y="40.50" width="154.00" height="27.00" rx="4"/><g id="psiINT-dg1-rows--lw0" data-lab="rows--l" class="dg-lwrap" transform="translate(0.00,54.00)"><g id="psiINT-dg1-rows--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">rows</tspan></text></g></g></g>
+<g id="psiINT-dg1-side" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="psiINT-dg1-side--r" x="-77.00" y="94.50" width="154.00" height="27.00" rx="4"/><g id="psiINT-dg1-side--lw0" data-lab="side--l" class="dg-lwrap" transform="translate(0.00,108.00)"><g id="psiINT-dg1-side--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">side 2:1</tspan></text></g></g></g>
+<g id="psiINT-dg1-note" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="psiINT-dg1-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(136.40,54.00)"><g id="psiINT-dg1-note--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">three containers,</tspan><tspan x="0" y="11.58">three jobs</tspan></text></g></g></g>
 </svg></figure></div>
   
   
@@ -2969,9 +2969,9 @@ second one. Any two numbers work.</p>
 </div><div class="side-b">
 
 
-<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" style="--dg-type-w:30.980;--dg-ar:3.3674;--dg-ink-x:0.02582" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
-<g id="dg2-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg2-a--r" x="-142.50" y="-57.00" width="285.00" height="114.00" rx="4"/><g id="dg2-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">2fr</tspan></text></g></g></g>
-<g id="dg2-b" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg2-b--r" x="155.70" y="-57.00" width="142.50" height="114.00" rx="4"/><g id="dg2-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(226.95,0.00)"><g id="dg2-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">1fr</tspan></text></g></g></g>
+<figure class="figure-diagram"><svg id="psiINT-dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" style="--dg-type-w:30.980;--dg-ar:3.3674;--dg-ink-x:0.02582" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
+<g id="psiINT-dg2-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="psiINT-dg2-a--r" x="-142.50" y="-57.00" width="285.00" height="114.00" rx="4"/><g id="psiINT-dg2-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="psiINT-dg2-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">2fr</tspan></text></g></g></g>
+<g id="psiINT-dg2-b" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="psiINT-dg2-b--r" x="155.70" y="-57.00" width="142.50" height="114.00" rx="4"/><g id="psiINT-dg2-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(226.95,0.00)"><g id="psiINT-dg2-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">1fr</tspan></text></g></g></g>
 </svg></figure>
 
 
@@ -3342,16 +3342,16 @@ dock per slide; a <code class="nb">#id</code> link in the body is the live marke
 <section class="column" id="beats">
   <h1 class="column-heading">Beats below the top level</h1>
   
-  <div class="column-lede"><figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-59.20 -22.20 634.60 79.97" style="--dg-type-w:42.307;--dg-ar:7.9350;--dg-ink-x:0.01891" width="2000" height="252" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
-<g id="dg3-p1" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p1--p" class="dg-stroke" d="M-47.20 20.40L-47.20 27.40L150.44 27.40L150.44 20.40" fill="none"/><g id="dg3-p1--lw0" data-lab="p1--l" class="dg-lwrap" transform="translate(51.62,36.40)"><g id="dg3-p1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">left pane</tspan></text></g></g></g>
-<g id="dg3-p2" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p2--p" class="dg-stroke" d="M159.28 20.40L159.28 27.40L356.92 27.40L356.92 20.40" fill="none"/><g id="dg3-p2--lw0" data-lab="p2--l" class="dg-lwrap" transform="translate(258.10,36.40)"><g id="dg3-p2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">right pane</tspan></text></g></g></g>
-<g id="dg3-p3" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p3--p" class="dg-stroke" d="M365.76 20.40L365.76 27.40L563.40 27.40L563.40 20.40" fill="none"/><g id="dg3-p3--lw0" data-lab="p3--l" class="dg-lwrap" transform="translate(464.58,36.40)"><g id="dg3-p3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">the card row</tspan></text></g></g></g>
-<g id="dg3-b1" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg3-b1--r" x="-47.20" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b1--lw0" data-lab="b1--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg3-b1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 1</tspan></text></g></g></g>
-<g id="dg3-b2" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg3-b2--r" x="56.04" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b2--lw0" data-lab="b2--l" class="dg-lwrap" transform="translate(103.24,0.00)"><g id="dg3-b2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 2</tspan></text></g></g></g>
-<g id="dg3-b3" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg3-b3--r" x="159.28" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b3--lw0" data-lab="b3--l" class="dg-lwrap" transform="translate(206.48,0.00)"><g id="dg3-b3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 3</tspan></text></g></g></g>
-<g id="dg3-b4" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg3-b4--r" x="262.52" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b4--lw0" data-lab="b4--l" class="dg-lwrap" transform="translate(309.72,0.00)"><g id="dg3-b4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 4</tspan></text></g></g></g>
-<g id="dg3-b5" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg3-b5--r" x="365.76" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b5--lw0" data-lab="b5--l" class="dg-lwrap" transform="translate(412.96,0.00)"><g id="dg3-b5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 5</tspan></text></g></g></g>
-<g id="dg3-b6" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg3-b6--r" x="469.00" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b6--lw0" data-lab="b6--l" class="dg-lwrap" transform="translate(516.20,0.00)"><g id="dg3-b6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 6</tspan></text></g></g></g>
+  <div class="column-lede"><figure class="figure-diagram"><svg id="psiINT-dg3-root" class="psi-diagram" viewBox="-59.20 -22.20 634.60 79.97" style="--dg-type-w:42.307;--dg-ar:7.9350;--dg-ink-x:0.01891" width="2000" height="252" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
+<g id="psiINT-dg3-p1" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="psiINT-dg3-p1--p" class="dg-stroke" d="M-47.20 20.40L-47.20 27.40L150.44 27.40L150.44 20.40" fill="none"/><g id="psiINT-dg3-p1--lw0" data-lab="p1--l" class="dg-lwrap" transform="translate(51.62,36.40)"><g id="psiINT-dg3-p1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">left pane</tspan></text></g></g></g>
+<g id="psiINT-dg3-p2" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="psiINT-dg3-p2--p" class="dg-stroke" d="M159.28 20.40L159.28 27.40L356.92 27.40L356.92 20.40" fill="none"/><g id="psiINT-dg3-p2--lw0" data-lab="p2--l" class="dg-lwrap" transform="translate(258.10,36.40)"><g id="psiINT-dg3-p2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">right pane</tspan></text></g></g></g>
+<g id="psiINT-dg3-p3" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="psiINT-dg3-p3--p" class="dg-stroke" d="M365.76 20.40L365.76 27.40L563.40 27.40L563.40 20.40" fill="none"/><g id="psiINT-dg3-p3--lw0" data-lab="p3--l" class="dg-lwrap" transform="translate(464.58,36.40)"><g id="psiINT-dg3-p3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">the card row</tspan></text></g></g></g>
+<g id="psiINT-dg3-b1" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="psiINT-dg3-b1--r" x="-47.20" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b1--lw0" data-lab="b1--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="psiINT-dg3-b1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 1</tspan></text></g></g></g>
+<g id="psiINT-dg3-b2" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="psiINT-dg3-b2--r" x="56.04" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b2--lw0" data-lab="b2--l" class="dg-lwrap" transform="translate(103.24,0.00)"><g id="psiINT-dg3-b2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 2</tspan></text></g></g></g>
+<g id="psiINT-dg3-b3" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="psiINT-dg3-b3--r" x="159.28" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b3--lw0" data-lab="b3--l" class="dg-lwrap" transform="translate(206.48,0.00)"><g id="psiINT-dg3-b3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 3</tspan></text></g></g></g>
+<g id="psiINT-dg3-b4" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="psiINT-dg3-b4--r" x="262.52" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b4--lw0" data-lab="b4--l" class="dg-lwrap" transform="translate(309.72,0.00)"><g id="psiINT-dg3-b4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 4</tspan></text></g></g></g>
+<g id="psiINT-dg3-b5" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="psiINT-dg3-b5--r" x="365.76" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b5--lw0" data-lab="b5--l" class="dg-lwrap" transform="translate(412.96,0.00)"><g id="psiINT-dg3-b5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 5</tspan></text></g></g></g>
+<g id="psiINT-dg3-b6" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="psiINT-dg3-b6--r" x="469.00" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="psiINT-dg3-b6--lw0" data-lab="b6--l" class="dg-lwrap" transform="translate(516.20,0.00)"><g id="psiINT-dg3-b6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 6</tspan></text></g></g></g>
 </svg></figure></div>
   
   
@@ -3467,13 +3467,13 @@ type above it, and each is still a row in the search index.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
   
   <h2 class="chunk-heading">The measurement loop</h2>
-  <figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 367.55 180.03" style="--dg-type-w:24.503;--dg-ar:2.0417;--dg-ink-x:0.03265" width="2000" height="980" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
-<g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="dg4-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="dg4-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
-<g id="dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="dg4-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="dg4-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="dg4-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
-<g id="dg4-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg4-edge-3--p" class="dg-stroke" d="M227.78 18.38L227.78 83.52" fill="none"/><path id="dg4-edge-3--h" class="dg-head" d="M227.78 91.17L223.82 82.17L231.74 82.17Z"/></g>
-<g id="dg4-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg4-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
-<g id="dg4-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-site--r" x="156.35" y="-18.38" width="142.85" height="36.75" rx="4"/><g id="dg4-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(227.78,0.00)"><g id="dg4-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
-<g id="dg4-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-score--r" x="156.35" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg4-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(227.78,109.55)"><g id="dg4-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
+  <figure class="figure-diagram"><svg id="psiINT-dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 367.55 180.03" style="--dg-type-w:24.503;--dg-ar:2.0417;--dg-ink-x:0.03265" width="2000" height="980" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
+<g id="psiINT-dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="psiINT-dg4-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="psiINT-dg4-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="psiINT-dg4-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="psiINT-dg4-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
+<g id="psiINT-dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="psiINT-dg4-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="psiINT-dg4-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="psiINT-dg4-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="psiINT-dg4-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
+<g id="psiINT-dg4-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="psiINT-dg4-edge-3--p" class="dg-stroke" d="M227.78 18.38L227.78 83.52" fill="none"/><path id="psiINT-dg4-edge-3--h" class="dg-head" d="M227.78 91.17L223.82 82.17L231.74 82.17Z"/></g>
+<g id="psiINT-dg4-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="psiINT-dg4-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="psiINT-dg4-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="psiINT-dg4-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
+<g id="psiINT-dg4-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="psiINT-dg4-site--r" x="156.35" y="-18.38" width="142.85" height="36.75" rx="4"/><g id="psiINT-dg4-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(227.78,0.00)"><g id="psiINT-dg4-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
+<g id="psiINT-dg4-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="psiINT-dg4-score--r" x="156.35" y="91.17" width="142.85" height="36.75" rx="4"/><g id="psiINT-dg4-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(227.78,109.55)"><g id="psiINT-dg4-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
 </svg></figure>
   
   
@@ -3486,14 +3486,14 @@ type above it, and each is still a row in the search index.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></span>
   
   <h2 class="chunk-heading">A figure that walks itself</h2>
-  <figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206;--dg-ink-x:0.01944;--dg-live-type-w:41.144;--dg-live-ar:4.0206;--dg-live-ink-x:0.01944" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
-<g id="dg5-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-1--p" class="dg-stroke" d="M75.00 0.00L145.75 0.00" fill="none"/><path id="dg5-edge-1--h" class="dg-head" d="M153.40 0.00L144.40 3.96L144.40 -3.96Z"/></g>
-<g id="dg5-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-2--p" class="dg-stroke" d="M228.40 18.38L228.40 66.72" fill="none"/><path id="dg5-edge-2--h" class="dg-head" d="M228.40 74.38L224.44 65.38L232.36 65.38Z"/></g>
-<g id="dg5-n--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg5-n--lead--p" class="dg-stroke" d="M353.24 92.75L303.40 92.75" fill="none"/><path id="dg5-n--lead--h" class="dg-head" d="M303.40 92.75L303.40 92.75L303.40 92.75Z"/></g>
-<g id="dg5-raw" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg5-raw--r" x="-75.00" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg5-raw--lw0" data-lab="raw--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg5-raw--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">raw crawl</tspan></text></g></g></g>
-<g id="dg5-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg5-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg5-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="dg5-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
-<g id="dg5-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg5-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="dg5-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="dg5-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
-<g id="dg5-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg5-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="dg5-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
+  <figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="psiINT-dg5-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206;--dg-ink-x:0.01944;--dg-live-type-w:41.144;--dg-live-ar:4.0206;--dg-live-ink-x:0.01944" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
+<g id="psiINT-dg5-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="psiINT-dg5-edge-1--p" class="dg-stroke" d="M75.00 0.00L145.75 0.00" fill="none"/><path id="psiINT-dg5-edge-1--h" class="dg-head" d="M153.40 0.00L144.40 3.96L144.40 -3.96Z"/></g>
+<g id="psiINT-dg5-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="psiINT-dg5-edge-2--p" class="dg-stroke" d="M228.40 18.38L228.40 66.72" fill="none"/><path id="psiINT-dg5-edge-2--h" class="dg-head" d="M228.40 74.38L224.44 65.38L232.36 65.38Z"/></g>
+<g id="psiINT-dg5-n--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="psiINT-dg5-n--lead--p" class="dg-stroke" d="M353.24 92.75L303.40 92.75" fill="none"/><path id="psiINT-dg5-n--lead--h" class="dg-head" d="M303.40 92.75L303.40 92.75L303.40 92.75Z"/></g>
+<g id="psiINT-dg5-raw" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="psiINT-dg5-raw--r" x="-75.00" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="psiINT-dg5-raw--lw0" data-lab="raw--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="psiINT-dg5-raw--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">raw crawl</tspan></text></g></g></g>
+<g id="psiINT-dg5-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="psiINT-dg5-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="psiINT-dg5-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="psiINT-dg5-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
+<g id="psiINT-dg5-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="psiINT-dg5-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="psiINT-dg5-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="psiINT-dg5-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
+<g id="psiINT-dg5-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="psiINT-dg5-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="psiINT-dg5-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
 </svg><figcaption class="dg-hint"></figcaption></figure>
   
   
@@ -3519,7 +3519,7 @@ did before.</p>
   const SEL = 'figure.figure-img, figure.figure-diagram, main pre, main .math-display';
   const MIN = 0.5, MAX = 8, K = 0.01, STEP = 12, QUIET = 160;
   const box = document.createElement('div');
-  box.id = 'lightbox';
+  box.id = 'psiINT-lightbox';
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-modal', 'true');
   document.body.appendChild(box);
@@ -3576,7 +3576,7 @@ did before.</p>
     const sel = window.getSelection && window.getSelection();
     if (sel && !sel.isCollapsed && String(sel).trim()) return;
     const el = e.target.closest(SEL);
-    if (!el || el.closest('#lightbox')) return;
+    if (!el || el.closest('#psiINT-lightbox')) return;
     e.preventDefault();
     open(el);
   });
@@ -3662,11 +3662,11 @@ did before.</p>
   });
 })();
 </script>
-<script type="application/json" id="reader-data">{"key":"decoration","title":"Slide Decoration","s":{"reader-close":"Close contents","reader-mark":"Highlight","reader-note":"Note (optional)","reader-remove":"Remove","reader-removed":"Highlight removed.","reader-undo":"Undo","reader-orphans":"No longer found in this version","reader-orphan-remove":"remove","reader-session":"This browser does not let the page save highlights – they are lost when the tab is closed.","reader-nav":"Highlights","reader-prev":"Previous highlight","reader-next":"Next highlight","reader-filter-all":"all","reader-filter-notes":"with note","reader-export":"Export highlights (.md)","reader-import":"Import","reader-delete-all":"Delete all","reader-help":"About highlights","reader-help-what":"Select words to highlight them and add a note. Figures, diagrams, images, code and formulas have a button in their corner that marks them whole; open a figure to mark a spot in it.","reader-help-keys":"On a keyboard: n and p step through the highlights, m marks a spot in an open figure.","reader-help-where":"Highlights and notes are stored only in this browser, on this device.","reader-help-risk":"That storage can be lost: clearing site data or closing a private window deletes it, and browsers may delete it on their own – Safari, notably on iPhone and iPad, after seven days of Safari use in which this page was not used.","reader-help-backup":"So export regularly, as a backup: the export is a readable .md file, and importing it brings the highlights back – here, in another browser or on another device.","reader-fold":"Slides in this part","reader-export-file":"highlights","reader-export-line":"Exported on {date}. Highlights: {n}, with a note: {notes}.","reader-imported":"Imported: {added} new, {updated} updated, {orphaned} not found in this version.","reader-import-none":"This file holds no highlights.","reader-import-skipped":"Entries that could not be read: {n}.","reader-deleted-all":"All highlights deleted.","reader-fig-mark":"Highlight this figure","reader-lb-spot":"Mark a spot","reader-lb-close":"Close","reader-fig":"Figure “{key}”","reader-fig-at":"Figure “{key}”, at “{label}”","reader-fig-spot":"Figure “{key}”, a spot in it","reader-fig-approx":"Approximate: that part is no longer in this version of the figure.","reader-code-mark":"Highlight this code","reader-formula-mark":"Highlight this formula","reader-code":"Code, line {line}","reader-code-block":"Code “{key}”","reader-formula":"Formula “{key}”"}}</script>
+<script type="application/json" id="psiINT-reader-data">{"key":"decoration","title":"Slide Decoration","s":{"reader-close":"Close contents","reader-mark":"Highlight","reader-note":"Note (optional)","reader-remove":"Remove","reader-removed":"Highlight removed.","reader-undo":"Undo","reader-orphans":"No longer found in this version","reader-orphan-remove":"remove","reader-session":"This browser does not let the page save highlights – they are lost when the tab is closed.","reader-nav":"Highlights","reader-prev":"Previous highlight","reader-next":"Next highlight","reader-filter-all":"all","reader-filter-notes":"with note","reader-export":"Export highlights (.md)","reader-import":"Import","reader-delete-all":"Delete all","reader-help":"About highlights","reader-help-what":"Select words to highlight them and add a note. Figures, diagrams, images, code and formulas have a button in their corner that marks them whole; open a figure to mark a spot in it.","reader-help-keys":"On a keyboard: n and p step through the highlights, m marks a spot in an open figure.","reader-help-where":"Highlights and notes are stored only in this browser, on this device.","reader-help-risk":"That storage can be lost: clearing site data or closing a private window deletes it, and browsers may delete it on their own – Safari, notably on iPhone and iPad, after seven days of Safari use in which this page was not used.","reader-help-backup":"So export regularly, as a backup: the export is a readable .md file, and importing it brings the highlights back – here, in another browser or on another device.","reader-fold":"Slides in this part","reader-export-file":"highlights","reader-export-line":"Exported on {date}. Highlights: {n}, with a note: {notes}.","reader-imported":"Imported: {added} new, {updated} updated, {orphaned} not found in this version.","reader-import-none":"This file holds no highlights.","reader-import-skipped":"Entries that could not be read: {n}.","reader-deleted-all":"All highlights deleted.","reader-fig-mark":"Highlight this figure","reader-lb-spot":"Mark a spot","reader-lb-close":"Close","reader-fig":"Figure “{key}”","reader-fig-at":"Figure “{key}”, at “{label}”","reader-fig-spot":"Figure “{key}”, a spot in it","reader-fig-approx":"Approximate: that part is no longer in this version of the figure.","reader-code-mark":"Highlight this code","reader-formula-mark":"Highlight this formula","reader-code":"Code, line {line}","reader-code-block":"Code “{key}”","reader-formula":"Formula “{key}”"}}</script>
 <script>
 (() => {
   const body = document.body;
-  const nav = document.getElementById('reader-contents');
+  const nav = document.getElementById('psiINT-reader-contents');
   const main = document.querySelector('main');
   if (!nav || !main) return;
   const toggle = document.querySelector('.rd-toggle');
@@ -3774,7 +3774,7 @@ did before.</p>
     if (isOpen() && e.target.closest('a')) setOpen(false, false);
   });
   document.addEventListener('click', (e) => {
-    if (!isOpen() || e.target.closest('#reader-contents, .rd-toggle')) return;
+    if (!isOpen() || e.target.closest('#psiINT-reader-contents, .rd-toggle')) return;
     e.preventDefault();
     e.stopPropagation();
     setOpen(false, true);
@@ -3789,7 +3789,7 @@ did before.</p>
 (() => {
   const body = document.body;
   const main = document.querySelector('main');
-  const dataEl = document.getElementById('reader-data');
+  const dataEl = document.getElementById('psiINT-reader-data');
   if (!main || !dataEl) return;
   let data = {};
   try { data = JSON.parse(dataEl.textContent) || {}; } catch (e) { return; }
@@ -3969,7 +3969,7 @@ did before.</p>
   // numbered on screen; on paper a figure with a note carries its number.
   const FIG = 'figure.figure-img:not(.figure-missing), figure.figure-diagram';
   const SVGNS = 'http://www.w3.org/2000/svg';
-  const figsIn = (root) => [...root.querySelectorAll(FIG)].filter(f => !f.closest('#lightbox, .speaker-note, ' + UI)
+  const figsIn = (root) => [...root.querySelectorAll(FIG)].filter(f => !f.closest('#psiINT-lightbox, .speaker-note, ' + UI)
     && (root.tagName !== 'SECTION' || !f.closest('article.chunk')));
   const figRoot = (fig) => fig.closest('article.chunk[id]') || fig.closest('section.column[id]');
   const drawingOf = (fig) => fig.querySelector(':scope > svg, :scope > img, :scope > .rd-fig-box > img');
@@ -4195,7 +4195,7 @@ did before.</p>
   // no selection: KaTeX sets one glyph per box.
   const BLOCKS = { code: 'pre', formula: '.math-display' };
   const blocksIn = (root, kind) => [...root.querySelectorAll(BLOCKS[kind] || 'x-none')]
-    .filter(b => !b.closest('#lightbox, .speaker-note, pulse-question, pulse-deck, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
+    .filter(b => !b.closest('#psiINT-lightbox, .speaker-note, pulse-question, pulse-deck, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
   const blockKind = (el) => el.matches('pre') ? 'code' : 'formula';
   const codeTexts = (pre) => {
     const out = [];
@@ -4658,11 +4658,11 @@ did before.</p>
   helpBtn.setAttribute('aria-label', S['reader-help'] || '');
   helpBtn.title = S['reader-help'] || '';
   helpBtn.setAttribute('aria-expanded', 'false');
-  helpBtn.setAttribute('aria-controls', 'rd-help');
+  helpBtn.setAttribute('aria-controls', 'psiINT-rd-help');
   menuActs.append(exportBtn, importBtn, deleteAllBtn, helpBtn);
   const helpEl = document.createElement('div');
   helpEl.className = 'rd-help';
-  helpEl.id = 'rd-help';
+  helpEl.id = 'psiINT-rd-help';
   helpEl.hidden = true;
   helpEl.tabIndex = -1;
   helpEl.setAttribute('role', 'group');
@@ -4712,7 +4712,7 @@ did before.</p>
   // The count beside a contents entry: the slide's own highlights, and on a
   // part's heading those of its lede. Every highlight, whatever the filter
   // says - the filter is a way through the page, the count is what is in it.
-  const countLinks = [...document.querySelectorAll('#reader-contents a[data-rd], #reader-contents a.rd-part')];
+  const countLinks = [...document.querySelectorAll('#psiINT-reader-contents a[data-rd], #psiINT-reader-contents a.rd-part')];
   const counts = () => {
     const n = new Map();
     for (const h of store) if (marksOf.has(h.id)) n.set(h.chunk, (n.get(h.chunk) || 0) + 1);
@@ -4728,7 +4728,7 @@ did before.</p>
     // A folded part says how many are in it, lede and slides together; the
     // stylesheet shows this sum while the part is closed and the slides'
     // own counts while it is open, so folding asks nothing of this script.
-    for (const g of document.querySelectorAll('#reader-contents .rd-group')) {
+    for (const g of document.querySelectorAll('#psiINT-reader-contents .rd-group')) {
       const head = g.querySelector('.rd-part');
       if (!head) continue;
       let k = 0;
@@ -4861,7 +4861,7 @@ did before.</p>
     const root = document.getElementById(chunk);
     if (!root || !main.contains(root) || !root.matches('article.chunk, section.column')) return id;
     const esc = window.CSS && CSS.escape ? CSS.escape(chunk) : chunk;
-    let name = plain(document.querySelector('#reader-contents a[data-rd="' + esc + '"] .rd-text, #reader-contents a.rd-part[href="#' + esc + '"]'));
+    let name = plain(document.querySelector('#psiINT-reader-contents a[data-rd="' + esc + '"] .rd-text, #psiINT-reader-contents a.rd-part[href="#' + esc + '"]'));
     if (!name) name = plain(root.querySelector(root.tagName === 'SECTION' ? '.column-heading' : 'h1, h2, h3'));
     const num = body.dataset.slideNums !== 'off' && root.dataset.chunkNum ? root.dataset.chunkNum : '';
     return [num, name].filter(Boolean).join(' · ') + (num || name ? ' ' : '') + id;
@@ -5236,7 +5236,7 @@ did before.</p>
   // itself, lent to the overlay while it is open, so typing there is typing
   // in the card the page shows when it closes. A drag still pans and the
   // wheel still zooms, marking or not.
-  const lb = document.getElementById('lightbox');
+  const lb = document.getElementById('psiINT-lightbox');
   let lbFig = null, lbCopy = null, marking = false, lbCard = null, bar = null, spotBtn = null, hover = null;
   const syncLb = () => {
     if (!lbCopy) return;
@@ -5417,11 +5417,11 @@ did before.</p>
     if (card) {
       if (t.closest('.rd-remove')) remove(card.dataset.hl);
       // A figure's card shows where on the figure it is.
-      else if (!t.closest('textarea, button') && !card.closest('#lightbox')
+      else if (!t.closest('textarea, button') && !card.closest('#psiINT-lightbox')
                && (figs.has(card.dataset.hl) || blocks.has(card.dataset.hl))) pulse(card.dataset.hl);
       return;
     }
-    if (t.closest(UI + ', #reader-contents, .rd-toggle, #lightbox')) return;
+    if (t.closest(UI + ', #psiINT-reader-contents, .rd-toggle, #psiINT-lightbox')) return;
     const mark = t.closest('mark.rd-hl');
     const sel = window.getSelection && window.getSelection();
     const selecting = sel && !sel.isCollapsed && String(sel).trim();

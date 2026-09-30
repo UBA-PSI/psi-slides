@@ -1453,7 +1453,7 @@ function dgSwapFigure(oldSvg, html) {
   // actually looking at while a figure is zoomed – the very state an edit
   // is usually made in. dgMirrorIntoFocus can only repaint ids that
   // survived the edit, so a structural change replaces the clone whole.
-  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  const card = document.querySelector('#psiINT-figure-overlay .figure-focus-target');
   if (card) {
     const shown = card.querySelector('svg.psi-diagram');
     if (shown && shown.id === next.id) {
@@ -1468,7 +1468,7 @@ function dgSwapFigure(oldSvg, html) {
 // Repaint whatever diagram is currently zoomed into the focus card. Cheap and
 // unconditional: one querySelector when nothing is focused.
 function dgMirrorIntoFocus(d, step) {
-  const card = document.querySelector('#figure-overlay .figure-focus-target');
+  const card = document.querySelector('#psiINT-figure-overlay .figure-focus-target');
   if (!card) return;
   const svg = card.querySelector('svg.psi-diagram');
   if (!svg || svg.id !== d.svg.id) return;

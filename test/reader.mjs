@@ -188,7 +188,7 @@ const navState = (p) => p.evaluate(() => {
   const f = document.querySelector('mark.rd-hl.is-focus');
   const fr = f && f.getBoundingClientRect();
   const counts = {};
-  for (const c of document.querySelectorAll('#reader-contents .rd-count')) {
+  for (const c of document.querySelectorAll('#psiINT-reader-contents .rd-count')) {
     const a = c.closest('a');
     counts[a.dataset.rd || a.getAttribute('href').slice(1)] = c.textContent;
   }
@@ -338,16 +338,16 @@ async function highlights({ browser, ok, note }) {
        'the contents count them per slide, and a lede\'s on its part', JSON.stringify(nv.counts));
     // A folded part carries the sum of its lede and its slides instead.
     const sumOf = () => p.evaluate(() => {
-      const g = document.querySelector('#reader-contents a.rd-part[href="#part-one"]').closest('.rd-group');
+      const g = document.querySelector('#psiINT-reader-contents a.rd-part[href="#part-one"]').closest('.rd-group');
       const shown = (sel) => { const e = g.querySelector(sel); return !!e && e.getBoundingClientRect().width > 0; };
       return { open: g.classList.contains('is-open'), sum: (g.querySelector('.rd-sum') || {}).textContent || null,
                sumShown: shown('.rd-part .rd-sum'), ownShown: shown('.rd-part .rd-count'), slideShown: shown('a[data-rd=term] .rd-count') };
     });
     let sm = await sumOf();
-    if (sm.open) { await p.click('#reader-contents a.rd-part[href="#part-one"] + .rd-fold'); sm = await sumOf(); }
+    if (sm.open) { await p.click('#psiINT-reader-contents a.rd-part[href="#part-one"] + .rd-fold'); sm = await sumOf(); }
     ok(!sm.open && sm.sum === '4' && sm.sumShown && !sm.ownShown && !sm.slideShown,
        'a closed part shows the sum of its highlights, lede and slides together', JSON.stringify(sm));
-    await p.click('#reader-contents a.rd-part[href="#part-one"] + .rd-fold');
+    await p.click('#psiINT-reader-contents a.rd-part[href="#part-one"] + .rd-fold');
     sm = await sumOf();
     ok(sm.open && !sm.sumShown && sm.ownShown && sm.slideShown,
        'open, the counts stand on the lede and the slides again', JSON.stringify(sm));
@@ -539,7 +539,7 @@ async function highlights({ browser, ok, note }) {
                  left: r.left, right: r.right, top: r.top, bottom: r.bottom, dTop: m ? Math.abs(m.top - r.top) : null };
       });
       return {
-        chrome: shown('.rd-card, .rd-nav, .rd-mark-btn, .rd-toast, #reader-contents, .rd-toggle, #lightbox'),
+        chrome: shown('.rd-card, .rd-nav, .rd-mark-btn, .rd-toast, #psiINT-reader-contents, .rd-toggle, #psiINT-lightbox'),
         yellow: marks.every(c => !/rgba\(0, 0, 0, 0\)|transparent/.test(c.backgroundColor)),
         exact: marks.every(c => c.printColorAdjust === 'exact'),
         sups: [...document.querySelectorAll('.rd-pn')].map(n => n.textContent),
@@ -979,7 +979,7 @@ async function touch({ browser, ok, note }) {
   const hit = (sel) => p.evaluate((sel) => {
     const el = document.querySelector(sel);
     if (!el) return { sel, missing: true };
-    if (getComputedStyle(el).position !== 'fixed' && !el.closest('#reader-contents, #lightbox, .rd-nav')) el.scrollIntoView({ block: 'center' });
+    if (getComputedStyle(el).position !== 'fixed' && !el.closest('#psiINT-reader-contents, #psiINT-lightbox, .rd-nav')) el.scrollIntoView({ block: 'center' });
     const r = el.getBoundingClientRect();
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     const miss = [];
@@ -994,7 +994,7 @@ async function touch({ browser, ok, note }) {
   const hints = (q) => q.evaluate(() => {
     const after = (sel) => { const e = document.querySelector(sel); if (!e) return null; const c = getComputedStyle(e, '::after').content; return c !== 'none' && c !== 'normal' ? c : ''; };
     const line = document.querySelector('.rd-help .rd-keys-line');
-    return { prev: after('.rd-nav .rd-prev'), next: after('.rd-nav .rd-next'), spot: after('#lightbox .rd-lb-spot'),
+    return { prev: after('.rd-nav .rd-prev'), next: after('.rd-nav .rd-next'), spot: after('#psiINT-lightbox .rd-lb-spot'),
              line: line ? getComputedStyle(line).display !== 'none' : null,
              keys: [...document.querySelectorAll('[aria-keyshortcuts]')].map(e => e.getAttribute('aria-keyshortcuts')).sort().join('') };
   });
@@ -1029,13 +1029,13 @@ async function touch({ browser, ok, note }) {
     // The sidebar, opened over the page: close, a part, its chevron, a slide, the menu.
     await p.tap('.rd-toggle');
     await p.waitForTimeout(300);
-    await check(['#reader-contents .rd-close', '#reader-contents a.rd-part', '#reader-contents .rd-fold'],
+    await check(['#psiINT-reader-contents .rd-close', '#psiINT-reader-contents a.rd-part', '#psiINT-reader-contents .rd-fold'],
       'the sidebar\'s close button, a part heading and its chevron');
-    if (await p.evaluate(() => document.querySelector('#reader-contents .rd-fold').getAttribute('aria-expanded') !== 'true')) {
-      await p.tap('#reader-contents .rd-fold');
+    if (await p.evaluate(() => document.querySelector('#psiINT-reader-contents .rd-fold').getAttribute('aria-expanded') !== 'true')) {
+      await p.tap('#psiINT-reader-contents .rd-fold');
       await p.waitForTimeout(150);
     }
-    await check(['#reader-contents a[data-rd="ctr"]'], 'a slide\'s entry');
+    await check(['#psiINT-reader-contents a[data-rd="ctr"]'], 'a slide\'s entry');
     await check(['.rd-menu .rd-export', '.rd-menu .rd-import', '.rd-menu .rd-delete-all', '.rd-menu .rd-help-btn'],
       'export, import, delete all and the ?');
     await p.tap('.rd-close');
@@ -1046,7 +1046,7 @@ async function touch({ browser, ok, note }) {
     await p.tap('#pic figure img');
     await p.waitForTimeout(300);
     ok(await p.evaluate(() => document.body.classList.contains('lb-open')), 'touch: a tap on the picture opens the lightbox');
-    await check(['#lightbox .rd-lb-spot', '#lightbox .rd-lb-close'], 'the lightbox\'s two buttons');
+    await check(['#psiINT-lightbox .rd-lb-spot', '#psiINT-lightbox .rd-lb-close'], 'the lightbox\'s two buttons');
     const coarse = await hints(p);
     ok(coarse.prev === '' && coarse.next === '' && coarse.spot === '' && coarse.line === false && coarse.keys === 'mnp',
        'touch: no key hints under a coarse pointer, and aria-keyshortcuts on the three buttons all the same', JSON.stringify(coarse));
@@ -1168,34 +1168,34 @@ async function figures({ browser, ok, note }) {
     // ── (b) a spot in the picture, in the lightbox ──
     await p.click('#pic figure img');
     await p.waitForTimeout(200);
-    const bar = await p.evaluate(() => [...document.querySelectorAll('#lightbox .rd-lb-bar button')].map(b => b.textContent));
+    const bar = await p.evaluate(() => [...document.querySelectorAll('#psiINT-lightbox .rd-lb-bar button')].map(b => b.textContent));
     ok(await lbOpen() && bar.length === 2 && bar[0] === 'Mark a spot', 'a figure\'s lightbox has a bar: mark a spot, close', JSON.stringify(bar));
     await p.click('.rd-lb-spot');
     const marking = await p.evaluate(() => document.body.classList.contains('rd-marking')
       && document.querySelector('.rd-lb-spot').getAttribute('aria-pressed') === 'true'
-      && getComputedStyle(document.querySelector('#lightbox > .lb-card')).cursor === 'crosshair');
+      && getComputedStyle(document.querySelector('#psiINT-lightbox > .lb-card')).cursor === 'crosshair');
     ok(marking, 'marking: the button is pressed and the cursor is a crosshair');
     // A drag pans, marking or not, and sets nothing.
-    const img0 = await p.evaluate(() => document.querySelector('#lightbox img').getBoundingClientRect().toJSON());
+    const img0 = await p.evaluate(() => document.querySelector('#psiINT-lightbox img').getBoundingClientRect().toJSON());
     await p.mouse.move(img0.x + 50, img0.y + 50);
     await p.mouse.down();
     await p.mouse.move(img0.x + 110, img0.y + 90, { steps: 6 });
     await p.mouse.up();
     await p.waitForTimeout(150);
-    const img1 = await p.evaluate(() => document.querySelector('#lightbox img').getBoundingClientRect().toJSON());
+    const img1 = await p.evaluate(() => document.querySelector('#psiINT-lightbox img').getBoundingClientRect().toJSON());
     ok((await entries()).length === 1 && await lbOpen() && Math.abs(img1.x - img0.x - 60) < 4,
        'a drag while marking pans the picture and sets no pin', JSON.stringify({ img0, img1 }));
     await p.keyboard.press('0');
     await p.waitForTimeout(150);
-    const ir = await p.evaluate(() => document.querySelector('#lightbox img').getBoundingClientRect().toJSON());
+    const ir = await p.evaluate(() => document.querySelector('#psiINT-lightbox img').getBoundingClientRect().toJSON());
     await p.mouse.click(ir.x + ir.width * 0.25, ir.y + ir.height * 0.75);
     await p.waitForTimeout(150);
     st = await entries();
     const spot = st.find(h => h.chunk === 'pic') || {};
     const inLb = await p.evaluate((id) => {
-      const c = document.querySelector('#lightbox > .rd-card');
+      const c = document.querySelector('#psiINT-lightbox > .rd-card');
       return { card: !!c && c.dataset.hl === id, active: document.activeElement && document.activeElement.className,
-               pins: document.querySelectorAll('#lightbox .rd-pin').length, marking: document.body.classList.contains('rd-marking') };
+               pins: document.querySelectorAll('#psiINT-lightbox .rd-pin').length, marking: document.body.classList.contains('rd-marking') };
     }, spot.id);
     ok(spot.type === 'figure' && spot.fig.kind === 'image' && spot.fig.key === 'A gradient'
        && Math.abs(spot.at.x - 0.25) < 0.02 && Math.abs(spot.at.y - 0.75) < 0.02 && !('el' in spot.at),
@@ -1208,7 +1208,7 @@ async function figures({ browser, ok, note }) {
        'typing there is typing in the one card the entry has');
     await p.keyboard.press('Escape');
     await p.waitForTimeout(100);
-    ok(await lbOpen() && !(await p.evaluate(() => !!document.querySelector('#lightbox > .rd-card'))),
+    ok(await lbOpen() && !(await p.evaluate(() => !!document.querySelector('#psiINT-lightbox > .rd-card'))),
        'Esc puts the card away first and leaves the lightbox open');
     await p.keyboard.press('Escape');
     await p.waitForTimeout(150);
@@ -1240,18 +1240,18 @@ async function figures({ browser, ok, note }) {
     // lightbox's copy at once and from the document, and back with undo.
     await p.click('#pic figure img');
     await p.waitForTimeout(200);
-    const lbPin = await centre('#lightbox .rd-pin .rd-pin-dot');
+    const lbPin = await centre('#psiINT-lightbox .rd-pin .rd-pin-dot');
     await p.mouse.click(lbPin.x, lbPin.y);
     await p.waitForTimeout(150);
-    await p.click('#lightbox > .rd-card .rd-remove');
+    await p.click('#psiINT-lightbox > .rd-card .rd-remove');
     await p.waitForTimeout(150);
     const lbGone = await p.evaluate(() => ({ lb: document.body.classList.contains('lb-open'),
-      inLb: document.querySelectorAll('#lightbox .rd-pin, #lightbox .rd-frame, #lightbox .rd-fig-box').length }));
+      inLb: document.querySelectorAll('#psiINT-lightbox .rd-pin, #psiINT-lightbox .rd-frame, #psiINT-lightbox .rd-fig-box').length }));
     ok(lbGone.lb && lbGone.inLb === 0 && clean(await traces('#pic')),
        'the last pin removed in the lightbox leaves nothing on its copy or on the figure in the document', JSON.stringify(lbGone));
     await p.evaluate(() => document.querySelector('.rd-undo').click());
     await p.waitForTimeout(150);
-    ok(await p.evaluate(() => document.querySelectorAll('#lightbox .rd-pin').length === 1 && document.querySelectorAll('#pic .rd-pin').length === 1),
+    ok(await p.evaluate(() => document.querySelectorAll('#psiINT-lightbox .rd-pin').length === 1 && document.querySelectorAll('#pic .rd-pin').length === 1),
        'and undo draws it again on both');
     await p.keyboard.press('Escape');
     await p.waitForTimeout(150);
@@ -1260,17 +1260,17 @@ async function figures({ browser, ok, note }) {
     await p.click('#ctr .psi-diagram');
     await p.waitForTimeout(200);
     await p.keyboard.press('m');
-    const beta = await centre('#lightbox .dg-el[id$="-b"] rect');
+    const beta = await centre('#psiINT-lightbox .dg-el[id$="-b"] rect');
     await p.mouse.move(beta.x, beta.y);
     await p.waitForTimeout(80);
-    const hov = await p.evaluate(() => [...document.querySelectorAll('#lightbox .rd-hover')].map(g => g.id));
+    const hov = await p.evaluate(() => [...document.querySelectorAll('#psiINT-lightbox .rd-hover')].map(g => g.id));
     ok(hov.length === 1 && /-b$/.test(hov[0]), 'marking, the part under the pointer is outlined', JSON.stringify(hov));
     await p.mouse.click(beta.x, beta.y);
     await p.waitForTimeout(150);
     await p.keyboard.type('Why Beta?');
     await p.keyboard.press('Escape');
     await p.keyboard.press('m');
-    const alpha = await centre('#lightbox .dg-el[id$="-a"] rect');
+    const alpha = await centre('#psiINT-lightbox .dg-el[id$="-a"] rect');
     await p.mouse.click(alpha.x, alpha.y);
     await p.waitForTimeout(150);
     await p.keyboard.press('Escape');
@@ -1281,14 +1281,14 @@ async function figures({ browser, ok, note }) {
        'the pin keeps the part\'s own name, without the dg<N> prefix, and the spot as a fallback', JSON.stringify([onB, onA]));
     // A click on a pin in the lightbox opens its card and keeps the overlay.
     const pinB = await p.evaluate((id) => {
-      const d = [...document.querySelectorAll('#lightbox .rd-pin')].find(x => x.dataset.hl === id);
+      const d = [...document.querySelectorAll('#psiINT-lightbox .rd-pin')].find(x => x.dataset.hl === id);
       const r = d.getBoundingClientRect();
       return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
     }, onB.id);
     await p.mouse.click(pinB.x, pinB.y);
     await p.waitForTimeout(150);
     const reopened = await p.evaluate(() => {
-      const c = document.querySelector('#lightbox > .rd-card');
+      const c = document.querySelector('#psiINT-lightbox > .rd-card');
       return c && { note: c.querySelector('.rd-note').value, what: c.querySelector('.rd-card-what').textContent };
     });
     ok(await lbOpen() && reopened && reopened.note === 'Why Beta?' && reopened.what === 'Figure “Counter mode”, at “Beta”',
@@ -1297,7 +1297,7 @@ async function figures({ browser, ok, note }) {
     await p.waitForTimeout(150);
     const docFig = await p.evaluate(() => ({
       lb: document.body.classList.contains('lb-open'),
-      tinted: [...document.querySelectorAll('#ctr .rd-el')].map(g => g.id.replace(/^dg\d+-/, '')).sort(),
+      tinted: [...document.querySelectorAll('#ctr .rd-el')].map(g => g.id.replace(/^psiINT-dg\d+-/, '')).sort(),
       fill: getComputedStyle(document.querySelector('#ctr .dg-el[id$="-b"] rect')).fill,
       pins: document.querySelectorAll('#ctr .rd-pin').length,
     }));
@@ -1361,8 +1361,8 @@ async function figures({ browser, ok, note }) {
     ok(!(await lbOpen()) && await focusedCard() === code.id, 'a click on a code highlight opens its card, not the lightbox');
     await p.click('#code pre', { position: { x: 5, y: 5 } });
     await p.waitForTimeout(150);
-    const clone = await p.evaluate(() => ({ marks: document.querySelectorAll('#lightbox pre mark.rd-hl').length,
-      btn: document.querySelectorAll('#lightbox .rd-fig-btn').length, bar: !!document.querySelector('#lightbox .rd-lb-bar') }));
+    const clone = await p.evaluate(() => ({ marks: document.querySelectorAll('#psiINT-lightbox pre mark.rd-hl').length,
+      btn: document.querySelectorAll('#psiINT-lightbox .rd-fig-btn').length, bar: !!document.querySelector('#psiINT-lightbox .rd-lb-bar') }));
     ok(await lbOpen() && clone.marks === cm.n && !clone.btn && !clone.bar,
        'a click beside it opens the lightbox, which shows the marks and no button or bar', JSON.stringify(clone));
     await p.keyboard.press('Escape');
@@ -1462,7 +1462,7 @@ async function figures({ browser, ok, note }) {
         lost: document.querySelectorAll('[data-reader-slot=tools] .rd-orphans li').length,
       };
     }, [onA.id, onB.id]);
-    ok(moved.root === 'dg2-root' && JSON.stringify(moved.tinted) === '["dg2-a"]' && moved.aIn,
+    ok(moved.root === 'psiINT-dg2-root' && JSON.stringify(moved.tinted) === '["psiINT-dg2-a"]' && moved.aIn,
        'the pin on a part follows it when every dg<N> in the figure has moved', JSON.stringify(moved));
     ok(moved.bIn && /Approximate/.test(moved.approx || '') && moved.lost === 0,
        'a pin whose part was renamed stays on the figure at its spot, and its card says it is approximate', JSON.stringify(moved));
@@ -1519,7 +1519,7 @@ export async function run({ page, report }) {
   // Two frames: one for the scroll event's batched frame, one to read after it.
   const settle = (p) => p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
   const current = (p) => p.evaluate(() => {
-    const a = document.querySelector('#reader-contents [aria-current=location]');
+    const a = document.querySelector('#psiINT-reader-contents [aria-current=location]');
     return a ? a.dataset.rd : null;
   });
 
@@ -1528,7 +1528,7 @@ export async function run({ page, report }) {
     for (const file of ['print.html', 'print-notes.html']) {
       const { p, ctx, errors } = await open({ width: 1440, height: 900 }, file);
       const got = await p.evaluate(() => {
-        const entries = [...document.querySelectorAll('#reader-contents a[data-rd]')].map(a => ({
+        const entries = [...document.querySelectorAll('#psiINT-reader-contents a[data-rd]')].map(a => ({
           id: a.dataset.rd,
           num: a.querySelector('.rd-num').textContent,
           text: a.querySelector('.rd-text').textContent,
@@ -1560,7 +1560,7 @@ export async function run({ page, report }) {
     {
       const { p, ctx } = await open({ width: 1440, height: 900 });
       const g = await p.evaluate(() => {
-        const nav = document.getElementById('reader-contents');
+        const nav = document.getElementById('psiINT-reader-contents');
         const r = nav.getBoundingClientRect(), m = document.querySelector('main').getBoundingClientRect();
         const num = document.querySelector('main .chunk:not(.chunk-title) .chunk-num').getBoundingClientRect();
         const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -1589,19 +1589,19 @@ export async function run({ page, report }) {
       await scrollToChunk('why', 0.2);
       await settle(p);
       ok(await current(p) === 'why', 'and is once it crosses it', await current(p));
-      const count = await p.evaluate(() => document.querySelectorAll('#reader-contents [aria-current]').length);
+      const count = await p.evaluate(() => document.querySelectorAll('#psiINT-reader-contents [aria-current]').length);
       ok(count === 1, 'exactly one entry is marked', String(count));
 
       // ── the parts fold to their headings ──
       const folds = () => p.evaluate(() => {
-        const vis = (id) => { const a = document.querySelector('#reader-contents a[data-rd="' + id + '"]'); return !!a && a.getBoundingClientRect().height > 0; };
+        const vis = (id) => { const a = document.querySelector('#psiINT-reader-contents a[data-rd="' + id + '"]'); return !!a && a.getBoundingClientRect().height > 0; };
         const part = (id) => {
-          const g = document.querySelector('#reader-contents a.rd-part[href="#' + id + '"]').closest('.rd-group');
+          const g = document.querySelector('#psiINT-reader-contents a.rd-part[href="#' + id + '"]').closest('.rd-group');
           return g.classList.contains('is-open') && g.querySelector('.rd-fold').getAttribute('aria-expanded') === 'true';
         };
         return { one: part('part-one'), two: part('part-two'), intro: vis('intro'), term: vis('term'), why: vis('why') };
       });
-      const chevron = (id) => p.click('#reader-contents a.rd-part[href="#' + id + '"] + .rd-fold');
+      const chevron = (id) => p.click('#psiINT-reader-contents a.rd-part[href="#' + id + '"] + .rd-fold');
       let f = await folds();
       ok(!f.one && f.two && !f.term && f.why, 'the part being read is open and the other folded to its heading', JSON.stringify(f));
       await p.evaluate(() => window.scrollTo(0, 0));
@@ -1644,7 +1644,7 @@ export async function run({ page, report }) {
       // ── nothing of it on paper ──
       await p.emulateMedia({ media: 'print' });
       const printed = await p.evaluate(() => ({
-        nav: getComputedStyle(document.getElementById('reader-contents')).display,
+        nav: getComputedStyle(document.getElementById('psiINT-reader-contents')).display,
         toggle: getComputedStyle(document.querySelector('.rd-toggle')).display,
         pad: getComputedStyle(document.body).paddingLeft,
       }));
@@ -1658,7 +1658,7 @@ export async function run({ page, report }) {
       const tag = `${viewport.width}px`;
       const { p, ctx, errors } = await open(viewport);
       const state = () => p.evaluate(() => {
-        const nav = document.getElementById('reader-contents');
+        const nav = document.getElementById('psiINT-reader-contents');
         const r = nav.getBoundingClientRect();
         return { open: document.body.classList.contains('rd-open'),
                  onScreen: getComputedStyle(nav).visibility === 'visible' && r.right > 0,
@@ -1697,10 +1697,10 @@ export async function run({ page, report }) {
       // window moves the button to the foot.
       await p.click('.rd-toggle');
       await p.waitForTimeout(250);
-      const whyHidden = await p.evaluate(() => document.querySelector('#reader-contents a[data-rd="why"]').getBoundingClientRect().height === 0);
+      const whyHidden = await p.evaluate(() => document.querySelector('#psiINT-reader-contents a[data-rd="why"]').getBoundingClientRect().height === 0);
       ok(whyHidden, `${tag}: at the cover, a part's slides are folded under its heading`);
-      await p.click('#reader-contents a.rd-part[href="#part-two"] + .rd-fold');
-      await p.click('#reader-contents a[data-rd="why"]');
+      await p.click('#psiINT-reader-contents a.rd-part[href="#part-two"] + .rd-fold');
+      await p.click('#psiINT-reader-contents a[data-rd="why"]');
       await p.waitForTimeout(300);
       await settle(p);
       const s3 = await state();
@@ -1718,14 +1718,14 @@ export async function run({ page, report }) {
       // view - even after the reader folded it by hand the last time.
       await p.click('.rd-toggle');
       await p.waitForTimeout(250);
-      await p.click('#reader-contents a.rd-part[href="#part-two"] + .rd-fold');
+      await p.click('#psiINT-reader-contents a.rd-part[href="#part-two"] + .rd-fold');
       await p.keyboard.press('Escape');
       await p.waitForTimeout(250);
       await p.click('.rd-toggle');
       await p.waitForTimeout(250);
       const cur = await p.evaluate(() => {
-        const a = document.querySelector('#reader-contents a[data-rd="why"]');
-        const r = a.getBoundingClientRect(), l = document.querySelector('#reader-contents .rd-list').getBoundingClientRect();
+        const a = document.querySelector('#psiINT-reader-contents a[data-rd="why"]');
+        const r = a.getBoundingClientRect(), l = document.querySelector('#psiINT-reader-contents .rd-list').getBoundingClientRect();
         return { open: a.closest('.rd-group').classList.contains('is-open'), inView: r.height > 0 && r.top >= l.top && r.bottom <= l.bottom };
       });
       ok(cur.open && cur.inView, `${tag}: opened, the sidebar shows the part being read, with its entry in view`, JSON.stringify(cur));
@@ -1748,7 +1748,7 @@ export async function run({ page, report }) {
     {
       const { p, ctx } = await open({ width: 1440, height: 900 }, 'print.html', { javaScriptEnabled: false });
       const g = await p.evaluate(() => ({
-        nav: getComputedStyle(document.getElementById('reader-contents')).display,
+        nav: getComputedStyle(document.getElementById('psiINT-reader-contents')).display,
         toggle: getComputedStyle(document.querySelector('.rd-toggle')).display,
         pad: getComputedStyle(document.body).paddingLeft,
       })).catch(() => null);
@@ -1763,11 +1763,11 @@ export async function run({ page, report }) {
       const html = fs.readFileSync(path.join(offDir, 'print.html'), 'utf8');
       // The stylesheet is shared and ships either way; every rule in it is keyed
       // off the attribute and the class, which are what must be missing.
-      ok(!html.includes('id="reader-contents"') && !html.includes("classList.add('rd-ready')")
-         && !html.includes("getElementById('reader-contents')") && !html.includes('data-reader="on"')
-         && !html.includes('id="reader-data"') && !html.includes("'psi-reader:v1:'"),
+      ok(!html.includes('id="psiINT-reader-contents"') && !html.includes("classList.add('rd-ready')")
+         && !html.includes("getElementById('psiINT-reader-contents')") && !html.includes('data-reader="on"')
+         && !html.includes('id="psiINT-reader-data"') && !html.includes("'psi-reader:v1:'"),
          'reader: off ships no sidebar, no reader script and no attribute for its CSS');
-      ok(html.includes("box.id = 'lightbox'"), 'and still ships the lightbox, which is not a reader tool');
+      ok(html.includes("box.id = 'psiINT-lightbox'"), 'and still ships the lightbox, which is not a reader tool');
       const { p, ctx, errors } = await open({ width: 1440, height: 900 }, 'print.html', { port: off.port });
       const g = await p.evaluate(() => ({
         pad: getComputedStyle(document.body).paddingLeft + ' ' + getComputedStyle(document.body).paddingRight,

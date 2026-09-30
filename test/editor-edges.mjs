@@ -18,7 +18,7 @@ export async function run({ page, report, press, walkTo, ed }) {
   await walkTo('cbc');
   for (let i = 0; i < 3; i++) await press(' ');
   ok(await ed.open('cbc'), 'the editor opens with E from a focused figure');
-  ok(await page.locator('#dge-top .dge-experimental').isVisible(),
+  ok(await page.locator('#psiINT-dge-top .dge-experimental').isVisible(),
     'the open editor labels itself experimental');
   // Visible is not the claim. The badge shipped asking for `--accent`, which
   // the lecture views do not define - so it came out in the toolbar's own grey
@@ -27,7 +27,7 @@ export async function run({ page, report, press, walkTo, ed }) {
   // present, and it did not read as a badge. This asserts the effect: it is a
   // different colour from the text around it and it has an outline.
   const badge = await page.evaluate(() => {
-    const b = document.querySelector('#dge-top .dge-experimental');
+    const b = document.querySelector('#psiINT-dge-top .dge-experimental');
     const cs = getComputedStyle(b);
     return { colour: cs.color, around: getComputedStyle(b.parentElement).color,
       border: cs.borderTopStyle };
@@ -36,43 +36,43 @@ export async function run({ page, report, press, walkTo, ed }) {
     `badge ${badge.colour}, toolbar ${badge.around}`);
   ok(badge.border === 'solid', 'the experimental badge keeps its outline',
     `border-style was ${badge.border}`);
-  ok((await page.locator('#dge-root').getAttribute('aria-label')) === 'Diagram editor, experimental',
+  ok((await page.locator('#psiINT-dge-root').getAttribute('aria-label')) === 'Diagram editor, experimental',
     'the experimental status is also in the dialog name');
 
   // ── undo and redo are controls, not only keys (editor.md §4.2) ──
-  ok(await page.locator('#dge-undo-btn').count() > 0, 'undo is in the toolbar');
-  ok(await page.locator('#dge-redo-btn').count() > 0, 'redo is in the toolbar');
-  ok(await page.locator('#dge-undo-btn').isDisabled(), 'undo starts disabled');
+  ok(await page.locator('#psiINT-dge-undo-btn').count() > 0, 'undo is in the toolbar');
+  ok(await page.locator('#psiINT-dge-redo-btn').count() > 0, 'redo is in the toolbar');
+  ok(await page.locator('#psiINT-dge-undo-btn').isDisabled(), 'undo starts disabled');
 
   // ── an edge can be clicked, and the click lands on the line ──
-  ok(await ed.clickPath('#dge-art-svg [id$="feed0--p"]', 0.5), 'found the feed0 arrow');
+  ok(await ed.clickPath('#psiINT-dge-art-svg [id$="feed0--p"]', 0.5), 'found the feed0 arrow');
   ok(await ed.selection() === 'edge feed0', 'clicking the arrow selects it', await ed.selection());
-  ok(await page.locator('#dge-guides .dge-sel-path').count() > 0,
+  ok(await page.locator('#psiINT-dge-guides .dge-sel-path').count() > 0,
     'the selection traces the line rather than boxing it');
-  ok(await page.locator('#dge-guides .dge-h-end').count() === 2,
-    'it grows two endpoint handles', String(await page.locator('#dge-guides .dge-h-end').count()));
+  ok(await page.locator('#psiINT-dge-guides .dge-h-end').count() === 2,
+    'it grows two endpoint handles', String(await page.locator('#psiINT-dge-guides .dge-h-end').count()));
 
   // ── an edge has a label, and a label can hold a line break ──
-  ok(await page.locator('#dge-side textarea').count() > 0, 'an edge gets a label field');
+  ok(await page.locator('#psiINT-dge-side textarea').count() > 0, 'an edge gets a label field');
   const ends = await page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side .dge-num')].map(n => n.querySelector('span').textContent));
+    [...document.querySelectorAll('#psiINT-dge-side .dge-num')].map(n => n.querySelector('span').textContent));
   ok(ends.includes('from') && ends.includes('to'), 'the panel offers from and to', JSON.stringify(ends));
 
-  await page.fill('#dge-side textarea', 'erste Zeile\nzweite Zeile');
-  await page.locator('#dge-side textarea').blur();
+  await page.fill('#psiINT-dge-side textarea', 'erste Zeile\nzweite Zeile');
+  await page.locator('#psiINT-dge-side textarea').blur();
   await page.waitForTimeout(400);
   let line = await ed.lineWith('edge feed0 ');
   ok(/"erste Zeile\\nzweite Zeile"/.test(line || ''),
     'a newline typed in the field lands as \\n in the source', line);
-  ok(!(await page.locator('#dge-undo-btn').isDisabled()), 'undo enables once something changed');
+  ok(!(await page.locator('#psiINT-dge-undo-btn').isDisabled()), 'undo enables once something changed');
 
   // ── retargeting an end answers with a name, not with coordinates ──
   const before = await ed.lineWith('edge feed0 ');
   note('before: ' + before);
   const handle = await page.evaluate(() => {
-    const h = [...document.querySelectorAll('#dge-guides .dge-h-end')]
+    const h = [...document.querySelectorAll('#psiINT-dge-guides .dge-h-end')]
       .find(n => n.dataset.handle === 'from').getBoundingClientRect();
-    const t = document.querySelector('#dge-art-svg [id$="c2--r"]').getBoundingClientRect();
+    const t = document.querySelector('#psiINT-dge-art-svg [id$="c2--r"]').getBoundingClientRect();
     return { from: { x: h.x + h.width / 2, y: h.y + h.height / 2 },
              to: { x: t.x + t.width / 2, y: t.y + t.height / 2 } };
   });
@@ -92,17 +92,17 @@ export async function run({ page, report, press, walkTo, ed }) {
   ok((after || '').includes('"erste Zeile\\nzweite Zeile"'), 'so does the label', after);
 
   // ── undo, redo, swap ──
-  await page.click('#dge-undo-btn');
+  await page.click('#psiINT-dge-undo-btn');
   await page.waitForTimeout(400);
   ok(await ed.lineWith('edge feed0 ') === before, 'the undo button restores the previous source',
     await ed.lineWith('edge feed0 '));
-  ok(!(await page.locator('#dge-redo-btn').isDisabled()), 'redo enables after an undo');
-  await page.click('#dge-redo-btn');
+  ok(!(await page.locator('#psiINT-dge-redo-btn').isDisabled()), 'redo enables after an undo');
+  await page.click('#psiINT-dge-redo-btn');
   await page.waitForTimeout(400);
   ok(await ed.lineWith('edge feed0 ') === after, 'and redo puts it back');
 
   await page.evaluate(() =>
-    [...document.querySelectorAll('#dge-side button')].find(b => b.textContent.includes('Swap ends')).click());
+    [...document.querySelectorAll('#psiINT-dge-side button')].find(b => b.textContent.includes('Swap ends')).click());
   await page.waitForTimeout(400);
   ok(/^edge feed0 x0 -> c2/.test((await ed.lineWith('edge feed0 ') || '').trim()),
     'Swap ends exchanges the two names', await ed.lineWith('edge feed0 '));
@@ -113,7 +113,7 @@ export async function run({ page, report, press, walkTo, ed }) {
   // panel has to refuse rather than write.
   const intact = await ed.lineWith('edge feed0 ');
   await page.evaluate(() => {
-    const input = [...document.querySelectorAll('#dge-side .dge-num')]
+    const input = [...document.querySelectorAll('#psiINT-dge-side .dge-num')]
       .find(n => n.querySelector('span').textContent === 'from').querySelector('input');
     input.value = '   ';
     input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -123,7 +123,7 @@ export async function run({ page, report, press, walkTo, ed }) {
     'clearing an endpoint field is refused rather than written', await ed.lineWith('edge feed0 '));
 
   // ── the two regressions teaching the hit test about lines could cause ──
-  const box = await ed.centreOf('#dge-art-svg [id$="d1--r"]');
+  const box = await ed.centreOf('#psiINT-dge-art-svg [id$="d1--r"]');
   await page.mouse.click(box.x, box.y);
   await page.waitForTimeout(320);
   ok(await ed.selection() === 'box d1', 'a click on a box still selects the box', await ed.selection());
@@ -132,11 +132,11 @@ export async function run({ page, report, press, walkTo, ed }) {
   // `edge feed0 -> x0` parses, passes referential integrity, and draws
   // nothing at all. The edge tool must never name one.
   await press('a', 150);
-  const onEdge = await ed.pointOnPath('#dge-art-svg [id$="feed1--p"]', 0.5);
+  const onEdge = await ed.pointOnPath('#psiINT-dge-art-svg [id$="feed1--p"]', 0.5);
   await page.mouse.move(onEdge.x, onEdge.y);
   await page.mouse.down();
   await page.mouse.move(onEdge.x - 240, onEdge.y + 120, { steps: 10 });
-  const plan = await page.evaluate(() => (document.querySelector('#dge-statusline') || {}).textContent || '');
+  const plan = await page.evaluate(() => (document.querySelector('#psiINT-dge-statusline') || {}).textContent || '');
   await page.mouse.up();
   await page.waitForTimeout(400);
   ok(/^edge -?[\d.]+,-?[\d.]+ ->/.test(plan.trim()),
@@ -166,7 +166,7 @@ export async function run({ page, report, press, walkTo, ed }) {
   ok(JSON.stringify(was) === JSON.stringify(await beneath()),
     'no key reaches the lecture underneath while the editor is open',
     JSON.stringify(was) + ' → ' + JSON.stringify(await beneath()));
-  ok(await page.locator('#dge-root').count() > 0, 'and the editor is still open');
+  ok(await page.locator('#psiINT-dge-root').count() > 0, 'and the editor is still open');
 
   ok(!(await ed.problems()).includes('line '), 'the block still compiles', await ed.problems());
 
@@ -197,7 +197,7 @@ export async function run({ page, report, press, walkTo, ed }) {
   await ed.beat(0);
 
   const rowOf = (slot) => page.evaluate((sl) => {
-    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+    const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
       .find((x) => x.querySelector('b') && x.querySelector('b').textContent === sl);
     return s ? [...s.querySelectorAll('.dge-sw')].map((b) => b.textContent) : null;
   }, slot);
@@ -247,7 +247,7 @@ export async function run({ page, report, press, walkTo, ed }) {
     return el ? DGE.source.slice(el.span[0], el.span[1]) : null;
   }, target);
   const clickSideSw = (text) => page.evaluate((t) => {
-    const s = [...document.querySelectorAll('#dge-side .dge-slot')]
+    const s = [...document.querySelectorAll('#psiINT-dge-side .dge-slot')]
       .find((x) => x.querySelector('b') && x.querySelector('b').textContent === 'side');
     const b = s && [...s.querySelectorAll('.dge-sw')].find((x) => x.textContent === t);
     if (b) b.click();

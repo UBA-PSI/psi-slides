@@ -92,7 +92,7 @@ One line, and nothing else on the slide.
 const measure = (page) => page.evaluate(() => {
   const zoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--zoom'));
   const el = document.querySelector('.chunk.active');
-  const vp = document.getElementById('stage-viewport');
+  const vp = document.getElementById('psiINT-stage-viewport');
   return {
     zoom,
     h: el ? Math.round(el.getBoundingClientRect().height) : 0,

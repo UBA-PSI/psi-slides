@@ -22,7 +22,7 @@ import { render, lintAll } from './harness.mjs';
 
 export const name = 'peers share one size, and a box holds its words';
 
-const P = 'dg1-';
+const P = 'psiINT-dg1-';
 /** The rect a box's group draws, as {x, y, w, h}, or null. */
 const rectOf = (out, id) => {
   const g = out.match(new RegExp(`id="${P}${id}"[\\s\\S]*?(<(?:rect|path)[^>]*>)`));

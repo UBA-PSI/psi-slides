@@ -169,17 +169,17 @@ function svgFor(html, chunkId, prefix) {
   const b = html.indexOf('</svg>', a);
   if (a < 0 || b < 0) throw new Error('no svg in chunk #' + chunkId);
   const svg = html.slice(a, b + 6);
-  const m = svg.match(/id="([a-z0-9]+)-root"/);
+  const m = svg.match(/id="(psiINT-dg[0-9]+)-root"/);
   if (!m) throw new Error('figure in #' + chunkId + ' carries no root id');
   // Two families of id have to be renamed, not one. The element ids are
   // numbered per document; the <symbol> an embedded picture is defined in is
   // numbered per *figure*, so two figures out of the same build both call
-  // theirs psi-sym-1. Lifted into one page, the second figure's <use> resolves
+  // theirs psiINT-sym-1. Lifted into one page, the second figure's <use> resolves
   // against the first figure's symbol - which is how the base-rate figure came
   // to show a smiling face where its own file draws a frown, with a correct
   // reference pointing at a correct symbol belonging to somebody else.
   return {
-    svg: svg.split(m[1] + '-').join(prefix + '-').split('psi-sym-').join(prefix + '-sym-'),
+    svg: svg.split(m[1] + '-').join(prefix + '-').split('psiINT-sym-').join(prefix + '-sym-'),
     old: m[1],
   };
 }

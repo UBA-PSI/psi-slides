@@ -6,7 +6,7 @@
  * rebuild is a function of the source alone - and for a while it was not.
  * `inlineSvgCounter` numbers the id prefix of every inlined SVG and used to
  * reset once per *build* rather than once per view, so the same figure came
- * out `psi-fig-6-` under `--audience-only` and `psi-fig-8-` under a full
+ * out `psiINT-fig-6-` under `--audience-only` and `psiINT-fig-8-` under a full
  * build. Content identical, bytes different: a contributor who iterated with
  * a partial flag and committed produced a diff of pure id churn and a view
  * that read as stale to CI.
@@ -90,7 +90,7 @@ const note = (line) => console.log('    ' + line);
   const full = build();
   // The fixture has to contain the thing under test, or every assertion
   // below passes by vacuity. This one line is why the check can go red.
-  const n = (full.match(/\bid="psi-fig-\d+-root"/g) || []).length;
+  const n = (full.match(/\bid="psiINT-fig-\d+-root"/g) || []).length;
   ok(n === 2, 'the fixture inlined both of its SVGs', `${n} inlined`);
 
   ok(full === build(), 'a full build is reproducible: two runs, same bytes');
@@ -106,7 +106,7 @@ const note = (line) => console.log('    ' + line);
 
   // The property underneath it, stated directly so a failure says which half
   // broke: every id in one document is unique, whatever the floor was.
-  const ids = [...full.matchAll(/\bid="(psi-fig-\d+-[^"]*)"/g)].map(m => m[1]);
+  const ids = [...full.matchAll(/\bid="(psiINT-fig-\d+-[^"]*)"/g)].map(m => m[1]);
   ok(ids.length === new Set(ids).size,
      'and every inlined-SVG id in the document is still unique',
      `${ids.length} ids, ${new Set(ids).size} distinct`);

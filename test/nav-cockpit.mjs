@@ -18,9 +18,9 @@ export async function run({ page, report, at, press }) {
   const { ok } = report;
 
   const opacity = (dir) => page.evaluate((d) =>
-    getComputedStyle(document.querySelector('#nav-hints [data-hint="' + d + '"]')).opacity, dir);
+    getComputedStyle(document.querySelector('#psiINT-nav-hints [data-hint="' + d + '"]')).opacity, dir);
 
-  ok(await page.locator('#nav-hints').count() > 0, 'the cockpit carries the mark too');
+  ok(await page.locator('#psiINT-nav-hints').count() > 0, 'the cockpit carries the mark too');
 
   // Walk forward until the mark lights. It says "the next forward press
   // leaves this column", so it appears on the last chunk of a column once
@@ -48,10 +48,10 @@ export async function run({ page, report, at, press }) {
   // The go-to prompt in the window where its id could collide with a slide.
   // Every chunk of the lecture is in speaker.html too, inside the mirror, so
   // the chrome and the lecture share one id namespace - the reason the cue
-  // panel is called #cue-panel. This is the cheap assertion that the prompt
+  // panel is called #psiINT-cue-panel. This is the cheap assertion that the prompt
   // found itself and not a slide.
   const promptOpen = () => page.evaluate(() => {
-    const r = document.getElementById('goto-prompt');
+    const r = document.getElementById('psiINT-goto-prompt');
     return !!r && r.dataset.chunkId === undefined && !r.classList.contains('hidden');
   });
   await press('g', 350);

@@ -26,7 +26,7 @@ export const view = 'audience';
 
 const fsState = (p) => p.evaluate(() => ({
   on: !!document.fullscreenElement,
-  hint: !document.getElementById('fullscreen-hint').classList.contains('hidden'),
+  hint: !document.getElementById('psiINT-fullscreen-hint').classList.contains('hidden'),
 }));
 
 async function openCockpit(aud) {
@@ -75,7 +75,7 @@ export async function run({ page, report, at, press, restart }) {
   ok(s.hint, 'it arms it instead, and the projection says so in one line');
   ok(!(await spk.evaluate(() => !!document.fullscreenElement)),
     'and the cockpit stays in its window');
-  note('cockpit toast: ' + await spk.evaluate(() => document.getElementById('mode-badge').textContent));
+  note('cockpit toast: ' + await spk.evaluate(() => document.getElementById('psiINT-mode-badge').textContent));
 
   // One click on the projection spends the arming - and only that. The click
   // lands on a figure-bearing slide in the middle of the frame, so a press
@@ -115,7 +115,7 @@ export async function run({ page, report, at, press, restart }) {
 
   // ── the touch palette calls the same function the key calls ──
   const wired = await aud.evaluate(() =>
-    !!document.querySelector('#touch-palette [data-action=fullscreen]'));
+    !!document.querySelector('#psiINT-touch-palette [data-action=fullscreen]'));
   ok(wired, 'the coarse-pointer palette carries a fullscreen button');
 
   await spk.close();

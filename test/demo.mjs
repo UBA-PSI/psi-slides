@@ -34,20 +34,20 @@ const stubCapture = (page, delay = 0) => page.evaluate((delay) => {
 }, delay);
 
 const showing = (page) => page.evaluate(() => {
-  const v = document.getElementById('demo-video');
+  const v = document.getElementById('psiINT-demo-video');
   return {
-    overlay: !document.getElementById('demo-overlay').classList.contains('hidden'),
+    overlay: !document.getElementById('psiINT-demo-overlay').classList.contains('hidden'),
     stageOff: document.body.classList.contains('demo-live'),
     width: v.videoWidth,
     playing: !v.paused,
   };
 });
 const cockpit = (page) => page.evaluate(() => ({
-  badge: !document.getElementById('demo-badge').classList.contains('hidden'),
+  badge: !document.getElementById('psiINT-demo-badge').classList.contains('hidden'),
   stream: !!demoStream,
   pc: demoPc ? demoPc.connectionState : null,
   captures: window.__captures,
-  toast: document.getElementById('mode-badge').textContent,
+  toast: document.getElementById('psiINT-mode-badge').textContent,
 }));
 
 async function openCockpit(aud) {

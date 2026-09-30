@@ -45,7 +45,7 @@ const findChunks = (page) => page.evaluate(() => {
 
 const geom = (page) => page.evaluate(() => {
   const c = document.querySelector('.chunk.active');
-  const vp = document.getElementById('stage-viewport').getBoundingClientRect();
+  const vp = document.getElementById('psiINT-stage-viewport').getBoundingClientRect();
   // Relative to the frame, because that is the question: the speaker window
   // scales its whole stage, so a raw client rect is in a different space.
   const R = (e) => {
