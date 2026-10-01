@@ -312,7 +312,7 @@ Speaker inherits audience nav bindings, plus:
 ### 4.3 Audience → speaker startup
 
 On `S` in audience:
-1. Audience runs `window.open('speaker.html', 'psi-slides-speaker', 'width=1400,height=900')` and stashes the returned `Window` reference as its `peer`.
+1. If the audience already holds a live cockpit, `S` focuses it and stops here. Otherwise it runs `window.open('', 'psi-slides-speaker', 'width=1400,height=900')`, which finds a cockpit window of that name without navigating it, sends the window to `speaker.html` only when it is not already this deck's cockpit (a fresh blank one, or under `--serve` another page), and stashes the reference as its `peer`. Opening with the URL directly, as up to 2.0.0, re-navigated an open cockpit on every second `S`: a reload that dropped its freeze, its clock and its cue cursor.
 2. Speaker boots, picks up `window.opener` as its `peer`, posts a `hello` to it.
 3. Audience receives `hello`, replies with current state via `peer.postMessage(...)`.
 4. Speaker applies state, shows itself ready.

@@ -1452,6 +1452,9 @@ tag:
 
 ### Fixed
 
+- **A second `S` on the projection brings the cockpit forward instead of
+  reloading it.** `window.open` with the address re-navigated the open
+  cockpit, which lost its freeze, its clock and its cue cursor.
 - **A frozen cockpit stays where the lecturer took it.** Every snapshot from
   the projection used to be applied in full, so an `autoplay` tick there, or
   `B` pressed on its keyboard, dragged the look-ahead back to the room's

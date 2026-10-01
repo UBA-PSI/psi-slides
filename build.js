@@ -23116,10 +23116,29 @@ const COMMAND_RUN = {
   // its own export.
   'export-annotations': (e) => { exportAnnotationsPlain(); e.preventDefault(); },
   // Only in audience: open the speaker window and remember it as our peer.
+  //
+  // A cockpit that is already open is brought forward, never opened again:
+  // window.open with a URL re-navigates the named window, which reloaded the
+  // cockpit and lost its freeze, its clock and its cue cursor. Opening with
+  // an empty URL finds the named window without navigating it; only when
+  // that is not already this deck's cockpit is it sent to speaker.html. A
+  // cockpit page on file:// is another origin, so reading its address
+  // throws - which says it is the cockpit and not a blank window this call
+  // just made.
   'cockpit': (e) => {
-    const w = window.open('speaker.html', 'psi-slides-speaker', 'width=1400,height=900');
-    setPeer(w);
     e.preventDefault();
+    if (hasLivePeer()) { try { peer.focus(); } catch (err) {} return; }
+    const w = window.open('', 'psi-slides-speaker', 'width=1400,height=900');
+    if (!w) return;
+    // Readable means same origin: a blank window, or under --serve a page
+    // that may be another deck's cockpit - either way, unless it already is
+    // this deck's cockpit, it is sent there.
+    const want = new URL('speaker.html', location.href).href;
+    let here = null;
+    try { here = String(w.location.href).split(/[?#]/)[0]; } catch (err) { here = null; }
+    if (here !== null && here !== want) w.location.href = want;
+    setPeer(w);
+    try { w.focus(); } catch (err) {}
   },
   'help': (e) => { toggleHelp(); e.preventDefault(); },
 };
