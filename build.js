@@ -45,6 +45,11 @@ import {
   splitTail, parseTail, slotTable, strayTailProblem,
   parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseRevealMark,
 } from './tails.mjs';
+// The live views' commands: which key means what, and the ? panel's rows.
+// Imported here to render the panel; its text is also spliced into both
+// live views as window.PSI_COMMANDS, where the key map dispatches from it -
+// see the header of commands.mjs.
+import { helpGroups } from './commands.mjs';
 
 // KaTeX ships its stylesheet and fonts as plain files next to the module.
 // They are not importable as ESM, so resolve them the CommonJS way.
@@ -3418,6 +3423,23 @@ function cueCardsScript() {
 }
 let cueCardsCache = null;
 const cueCardsJs = () => (cueCardsCache ??= cueCardsScript());
+
+// The command table, same treatment again: the key map in AUDIENCE_JS looks
+// a press up in it and the panel is rendered from it, so the one text has to
+// be in Node and in the page. It lands as window.PSI_COMMANDS in both live
+// views, in a script element of its own ahead of the runtime.
+const COMMANDS_PATH = new URL('./commands.mjs', import.meta.url);
+function commandsScript() {
+  const text = fs.readFileSync(COMMANDS_PATH, 'utf8');
+  const names = [...text.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)]
+    .map(m => m[1]);
+  const plain = text
+    .replace(/^export\s+(function|const|let)\s/gm, '$1 ')
+    .replace(/<\/(script)/gi, '<\\/$1');
+  return `window.PSI_COMMANDS = (function () {\n${plain}\nreturn { ${names.join(', ')} };\n})();`;
+}
+let commandsCache = null;
+const commandsJs = () => (commandsCache ??= commandsScript());
 
 // Pulse Embed v2, the self-test widget for ::: pulse, same treatment: a
 // verbatim copy of the client the Pulse server publishes (its header names
@@ -13598,162 +13620,13 @@ const GOTO_PROMPT_HTML = `<div id="psiINT-goto-prompt" class="hidden" role="dial
 // runtime half is beside toggleHelp in AUDIENCE_JS). Its two words come from
 // STRINGS; the rows do not, and stay English whatever lang: says.
 //
-// **Every key the key map answers has a row here**, and test/gates/help-keys.mjs
-// holds that: it reads the handlers as text, renders this function, and fails
-// on a key that is answered and not listed – so a new case in the switch is a
-// new row in the same commit, or an entry on that gate's reviewed list.
+// The rows are commands.mjs's table, one entry per row, through helpGroups:
+// the same entries the key map in AUDIENCE_JS dispatches from, so a key is
+// bound by writing its row. test/gates/commands.mjs holds the keys the
+// listener's guards still answer in code to a row as well, or to an entry
+// on its reviewed list.
 function renderHelpOverlay(view, withEditor, withSouffleuse, S = STRINGS.en) {
-  const shared = [
-    ['Moving around', [
-      ['<kbd>Space</kbd> · <kbd>↓</kbd> · <kbd>Enter</kbd> · <kbd>PageDown</kbd>', 'forward: the next reveal or diagram step, then the next slide'],
-      ['<kbd>↑</kbd> · <kbd>PageUp</kbd> · <kbd>Backspace</kbd>', 'back: the reveal before it, then the slide before it'],
-      ['<kbd>→</kbd> <kbd>←</kbd>', 'the same pair, on every slide'],
-      ['<kbd>Shift</kbd><kbd>→</kbd> · <kbd>Shift</kbd><kbd>←</kbd>', 'the next column · the column before it – from anywhere'],
-      ['the mark at the foot', '⌄ the next forward press leaves this column'],
-      ['<kbd>1</kbd>–<kbd>9</kbd>', 'open the n-th expansion'],
-      ['<kbd>Esc</kbd>', 'step back out: figure, then overview, then expansion'],
-    ]],
-    ['Finding a slide', [
-      ['<kbd>O</kbd>', 'overview – the whole lecture on one board (letter O, not zero)'],
-      ['drag · wheel', 'pan the board · zoom it where the pointer is'],
-      ['click a slide', 'go there and leave the board'],
-      ['<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>', 'move the selection (the board follows)'],
-      ['<kbd>O</kbd> · <kbd>Enter</kbd>', 'land on the selected slide'],
-      ['<kbd>G</kbd>', 'go to a slide by the number in its corner – type the digits, <kbd>Backspace</kbd> takes one back, <kbd>Enter</kbd> lands, <kbd>Esc</kbd> cancels'],
-      ['<kbd>/</kbd>', 'search – opens from anywhere, see below'],
-      ['<kbd>T</kbd>', 'column list'],
-    ]],
-    ['Searching', [
-      ['<kbd>/</kbd>', 'open the search panel, in overview or on a slide'],
-      ['type', 'matching slides are listed with the sentence they matched'],
-      ['<kbd>↑</kbd> <kbd>↓</kbd>', 'pick a hit (the overview board follows along)'],
-      ['<kbd>Enter</kbd> · click', 'go to that slide'],
-      ['<kbd>Esc</kbd>', 'close without moving'],
-    ]],
-    ['On the slide', [
-      ['click a figure or code block', 'zoom it into a centred card'],
-      ['drag · wheel', 'pan the card · zoom it where the pointer is'],
-      ['<kbd>+</kbd> <kbd>-</kbd> · <kbd>0</kbd>', 'zoom from the centre · reset the zoomed card'],
-      ['click a marginalia', 'slide the frame right until the whole aside is on it'],
-      ['drag the slide', 'pan within a chunk that is taller than the screen'],
-      ['hold <kbd>Alt</kbd>/<kbd>option</kbd> and drag', 'select text to copy – dragging pans again once you let go'],
-      ['click a link', 'opens it in a new tab of this window'],
-      ['<kbd>Shift</kbd>-click a link', 'puts the address on both screens, big enough to write down'],
-      ['<kbd>Esc</kbd>', 'back to the whole slide'],
-    ]],
-    ['Reading knobs', [
-      ['<kbd>C</kbd>', 'collapse: what the room sees ↔ the full text'],
-      ['<kbd>F</kbd>', 'font: serif → sans → mono'],
-      ['<kbd>A</kbd>', 'theme: four light accents, a neutral dark, two phosphor modes'],
-      ['<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'text size, and zero resets it (kept separately for each collapse mode)'],
-      ['<kbd>#</kbd>', 'auto-fit: off → shrink a slide that is too big → size every slide to the screen'],
-      ['<kbd>L</kbd>', 'slide numbers: stacked → in a row → off'],
-      ['<kbd>M</kbd>', 'the <i>+ note</i> button in the slide\'s left gutter: shown ↔ hidden – pressed here it lands on the projection too, and <kbd>N</kbd> still opens an annotation either way'],
-      ...(view === 'speaker' ? [] : [
-        ['<kbd>N</kbd>', 'annotation on the slide itself – it fills the frame while you type; an address in it gets a QR code, and <kbd>Esc</kbd> leaves it as a margin note'],
-        ['<kbd>Shift</kbd>-<kbd>E</kbd>', 'copy the annotations typed with <kbd>N</kbd> out as Markdown for source.md'],
-      ]),
-      ['<kbd>W</kbd>', 'fullscreen on the projection – nothing of the browser round the slide' + (view === 'speaker'
-        ? '. The browser only grants this to a press in the window itself, so the projection puts up a line to click once, and <kbd>Esc</kbd> leaves'
-        : ', and <kbd>Esc</kbd> leaves it again')],
-      ...(view === 'speaker' ? [['<kbd>Shift</kbd>-<kbd>W</kbd>', 'fullscreen for this window instead of the projection']] : []),
-      ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working, frozen or not'],
-      ['<kbd>D</kbd>', 'live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop; the very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk'],
-      ['<kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd>', 'cycle that knob backwards'],
-      ['on a touchscreen', 'the same settings sit behind the ⋯ button on the toolbar'],
-    ]],
-  ];
-  const speakerOnly = [
-    ['Cue cards', [
-      ['<kbd>K</kbd>', 'your notes as cards down a rail, the projection small in the corner – and back'],
-      ['<kbd>Space</kbd> · <kbd>↓</kbd> · <kbd>→</kbd>', 'the next card of this beat; when they are said, the next reveal, then the next slide – the diamonds on the rail are the clicks the room sees'],
-      ['<kbd>Backspace</kbd> · <kbd>↑</kbd> · <kbd>←</kbd>', 'one press back, whatever the last press was'],
-      ['<kbd>Enter</kbd>', 'the next slide, skipping what is left of this one\'s cards (a presenter that sends Enter for forward will do this too)'],
-      ['in source.md', 'a <code>&gt; note:</code> paragraph is a card and its <b>bold</b> phrases are the bullets; a note after a <code>---</code> belongs to that beat; <code>@12:30</code> on a card puts the drift beside the clock'],
-      ['click the clock', 'restart it at 0:00 – it started when this window opened'],
-    ]],
-    ['Arranging this window', [
-      ['<kbd>Shift</kbd>-<kbd>V</kbd>', 'preview strip: along the bottom ↔ down the right edge'],
-      ['drag the bar above the notes', 'resize the notes pane; the slide preview rescales to fit'],
-      ['the hatched block on a slide', 'what the next Space or ↓ will reveal – cockpit only'],
-      ['drag the bar on the preview strip', 'resize the strip, any of the three arrangements – in the cue cards it sizes the mirror with it; double-click resets'],
-      ['<kbd>&minus;</kbd> <kbd>+</kbd> in the notes corner', 'notes text size (no hotkey – you type in there)'],
-      ['double-click either bar', 'back to automatic size'],
-      ['drag the preview strip', 'scroll it · click a thumbnail to jump'],
-      ['click the bar along the top', 'a column name goes to that column\'s first slide, a dot to its slide'],
-    ]],
-    ['Notes', [
-      ['<kbd>Shift</kbd>-<kbd>N</kbd>', 'private notes for this chunk – never shown to the room'],
-      ['<kbd>N</kbd>', 'annotation on the slide itself – it fills the frame while you type and the room reads along; an address in it gets a QR code'],
-      ['<kbd>Shift</kbd>-<kbd>E</kbd>', 'copy annotations out as Markdown for source.md'],
-      ['<kbd>Esc</kbd> in a note', 'back to the slide, so the arrows work again – the annotation stays as a margin note'],
-    ]],
-    ['The projector', [
-      ['<kbd>V</kbd>', 'freeze the projection – the room holds this slide while you move on'],
-      ['<kbd>V</kbd> again', 'live again, and the room catches up to where you are now'],
-      ['move the mouse over the stage', 'laser pointer on the projector'],
-    ]],
-  ];
-  // The editor's own section, from the one table in editor.md §4.2. Emitted
-  // only where the editor ships, so a lecture without diagrams does not
-  // advertise a modal it does not carry.
-  const editorKeys = ['The experimental diagram editor', [
-    ['click a diagram, then <kbd>E</kbd>', 'open the editor on that figure – or the button in the corner of the card'],
-    ['<kbd>1</kbd> <kbd>V</kbd>', 'select'],
-    ['<kbd>2</kbd>/<kbd>R</kbd> <kbd>3</kbd>/<kbd>C</kbd> <kbd>4</kbd>/<kbd>T</kbd> <kbd>5</kbd>/<kbd>A</kbd> <kbd>8</kbd>/<kbd>I</kbd>', 'box · dot · text · edge · image'],
-    ['<kbd>9</kbd>/<kbd>L</kbd>', 'a line with no arrowhead – both ends are plain coordinates, so it attaches to nothing'],
-    ['<kbd>6</kbd> · <kbd>7</kbd>', 'container · brace, drawn around whatever is selected'],
-    ['<kbd>Q</kbd>', 'keep the current tool instead of falling back to select'],
-    ['drag · drag a handle', 'move it · resize it – the status bar shows the line it will write'],
-    ['drag it over another element', 'four chips appear – release on one and it docks to that side of it, and follows it from then on'],
-    ['drag it through what it sits beside', 'changes which side of that element it is on'],
-    ['arrows · <kbd>Shift</kbd>-arrows', 'nudge the selection, fine · coarse'],
-    ['<kbd>Ctrl</kbd> while dragging', 'suspend snapping, for when 0.5847 is meant'],
-    ['<kbd>Alt</kbd> while dragging', 'leave an align or spread set at once – or just pull half a cell clear of it'],
-    ['double-click a waypoint', 'take it off the arrow – the hollow dots on the line put one back'],
-    ['<kbd>Delete</kbd> · <kbd>Backspace</kbd>', 'delete, after listing what refers to it'],
-    ['<kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd>', 'undo · redo'],
-    ['<kbd>Ctrl/Cmd</kbd>-<kbd>A</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>D</kbd>', 'select all · duplicate'],
-    ['<kbd>Ctrl/Cmd</kbd>-<kbd>C</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>V</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>Shift</kbd>-<kbd>V</kbd>', 'copy · paste · paste in place'],
-    ['<kbd>Ctrl/Cmd</kbd>-<kbd>S</kbd>', 'write the block back – into source.md while --watch runs, otherwise to the clipboard'],
-    ['<kbd>&lt;</kbd> <kbd>&gt;</kbd>', 'walk the diagram steps – a drag inside a step writes a move into that step'],
-    ['<kbd>Space</kbd>-drag · middle-drag · wheel', 'pan · pan · zoom'],
-    ['<kbd>F</kbd> · <kbd>Shift</kbd>-<kbd>F</kbd>', 'frame: slide → column → print, the three places the figure can land · the same the other way round'],
-    ['<kbd>,</kbd> <kbd>.</kbd> · <kbd>PageUp</kbd> <kbd>PageDown</kbd>', 'previous / next figure in the lecture'],
-    ['<kbd>O</kbd>', 'the figure board'],
-    ['<kbd>Shift</kbd>-<kbd>V</kbd>', 'flip the figure strip between the bottom and the right edge'],
-    ['<kbd>Esc</kbd>', 'step back out: deselect, then the select tool, then close'],
-    ['<kbd>?</kbd>', 'this panel, over the editor'],
-  ]];
-  // The prompter's own section, emitted only where the sidecar is running.
-  // Its first row is not a key: it is the one thing a person has to know
-  // before switching a microphone on, and the console and the README say it
-  // too (PLAN-souffleuse.md § Privacy). It stands first rather than last
-  // because it is the only row in this whole overlay with a consequence
-  // somebody would want to read before pressing anything, and at the foot of
-  // the group it was the last line of a panel that scrolls.
-  const souffleuseKeys = ['The prompter', [
-    ['what leaves this machine', 'the prompter sends no audio: the transcript and the deck including your notes go as text to openrouter.ai. The speech recognition is Chrome\'s, and it sends the audio to Google unless it runs on this device – the badge says which. Nothing reaches the projection and nothing is written into source.md. The microphone hears the room too – switch it off before a question round, or tell the room'],
-    ['<kbd>Shift</kbd>-<kbd>S</kbd>', 'the prompter listens, or stops – the <b>◌ prompter</b> button in the footer is the same switch'],
-    ['<kbd>Esc</kbd>', 'take the hint standing on the strip away – it also goes by itself after fifteen seconds, and the × on it does the same'],
-    ['where it appears', 'a line over the foot of the slide, or at the head of the card column under <kbd>K</kbd> – <code>◷</code> time · <code>◇</code> example · <code>△</code> fact · <code>◌</code> delivery · <code>≫</code> pace · <code>⋯</code> something your notes planned and you have not said · <code>▤</code> a card laid into a slide still to come'],
-    ['<kbd>Shift</kbd>-click <b>◌ prompter</b>', 'the last ten it has said, and the two switches: show what it hears, and whether it may lay cards into upcoming slides'],
-    ['what it may say', 'at most twelve words, one at a time, and usually nothing: behind time, a missing example, a probable slip, a word about delivery, how fast you are speaking, and a thing your notes planned that has gone past'],
-  ]];
-  const otherWindows = ['The other windows', [
-    ...(view === 'speaker' ? [] : [['<kbd>S</kbd>', 'open the speaker cockpit – both windows then stay in sync']]),
-    ['<kbd>P</kbd>', 'open the print view in a new tab'],
-    ['<kbd>?</kbd>', 'this panel'],
-  ]];
-  // The prompter first where there is one. Measured at 1440x900: this panel is
-  // three screens tall and scrolls, and in fifth place the whole group - the
-  // privacy row with it - began 200 px below the fold. It is the only group
-  // here that is not about keys, and the only one whose first line is
-  // something a person would want to have read before pressing anything.
-  const groups = view === 'speaker'
-    ? [...(withSouffleuse ? [souffleuseKeys] : []), ...speakerOnly, ...shared,
-       ...(withEditor ? [editorKeys] : []), otherWindows]
-    : [...shared, ...(withEditor ? [editorKeys] : []), otherWindows];
+  const groups = helpGroups(view, { editor: !!withEditor, prompter: !!withSouffleuse });
 
   // Both columns are static author-written HTML (kbd markup and en-dashes),
   // never user content, so they go through verbatim.
@@ -13881,6 +13754,9 @@ ${DEMO_OVERLAY_HTML}
 ${renderTocNav(columns, S)}
 <script>
 ${qrLibJs()}
+</script>
+<script>
+${commandsJs()}
 </script>
 <script>
 const LECTURE_TITLE = ${titleJson};
@@ -19049,12 +18925,6 @@ const viewHooks = {
   consumeForward: () => false,
   consumeBack: () => false,
   onEnter: () => false,
-  onK: () => {},
-  // Shift-S in the cockpit. A hook rather than a case in the map for the
-  // reason onK is one: the letter belongs to the audience, where it opens
-  // the cockpit, and the cockpit's own meaning for it lives with the code
-  // that implements it.
-  onShiftS: () => false,
   // The prompter's step in the Esc chain: its history panel if that is
   // open, otherwise the hint standing on the strip. Returns whether it took
   // something back, so the chain carries on when it did not.
@@ -22864,6 +22734,204 @@ function announceFullscreen() {
 });
 
 // Keyboard
+//
+// What a key means is one table, commands.mjs, which reaches the page as
+// PSI_COMMANDS: COMMAND_KEYS is this view's combo-to-command map, and
+// COMMAND_RUN below says what each command does - each entry is the body of
+// the case it replaced in the switch that used to stand here, guards and all.
+// The ? panel is rendered from the same table, so a key cannot be bound
+// without a row (test/gates/commands.mjs holds the rest).
+//
+// SPEAKER_JS and SOUFFLEUSE_JS add their own commands by assigning into
+// COMMAND_RUN, the way they set viewHooks; a command this view's table has
+// and nothing here runs is a press spent on nothing.
+//
+// What stays code is the listener's head: the rules about *where* a key was
+// pressed - a text field, the ? panel's search, the search box, the link
+// mark, a modifier chord, the go-to prompt, the overview board - which come
+// before any command is looked up.
+const COMMAND_KEYS = PSI_COMMANDS.keyMap(VIEW);
+const COMMAND_RUN = {
+  // Forward and back are one pair everywhere - across reveals, across
+  // chunks, across columns - and Shift is the column modifier from any
+  // slide. That is the whole model, and it replaced one where the sideways
+  // arrows changed column on the first chunk of a column and meant
+  // forward/back on every other: an exception on exactly the slides a
+  // lecturer arrives at, which is the worst place to keep one.
+  // Shift collides with nothing here: the arrows are not cycling keys, so
+  // it does not meet the Shift that runs C, F, A and L backwards.
+  // updateNavHints still paints a mark, and it says something else now -
+  // not "sideways changes column on this slide" but "the next forward press
+  // leaves this column", which is a fact about the key already under the
+  // finger rather than about a key that might not be pressed.
+  //
+  // Down, Space, Enter and a presenter's forward button are one key, and
+  // Up, PageUp and Backspace are its mirror. Down used to skip straight to
+  // the next chunk, which meant walking a segmented slide with the arrows
+  // silently swallowed every reveal on it – and remembering to switch to
+  // Space for exactly those slides is the kind of thing that goes wrong in
+  // front of a room. It never swallows one now, in either direction.
+  //
+  // Enter is the one of them with a mind of its own: in overview it lands
+  // on the selected slide, and in the cockpit viewHooks.onEnter may spend it
+  // on skipping the rest of this slide's cue cards.
+  'forward': (e) => {
+    if (e.key === 'Enter') {
+      if (overview) { toggleOverview(); e.preventDefault(); return; }
+      if (viewHooks.onEnter()) { e.preventDefault(); return; }
+    } else if (overview) { e.preventDefault(); return; }
+    goForward();
+    e.preventDefault();
+  },
+  'back': (e) => {
+    if (overview) { e.preventDefault(); return; }
+    goBack(); e.preventDefault();
+  },
+  'next-column': (e) => { nextCol(); e.preventDefault(); },
+  'prev-column': (e) => { prevCol(); e.preventDefault(); },
+  'expansion': (e) => {
+    if (overview) return;
+    const n = parseInt(e.key, 10) - 1;
+    const entry = flatChunks[state.activeIdx];
+    if (entry && entry.el.querySelector(\`.exp-chev[data-exp="\${n}"]\`)) toggleExp(state.activeIdx, n);
+    e.preventDefault();
+  },
+  'escape': (e) => {
+    // Help sits in front of everything, so it unwinds first.
+    if (helpVisible()) { toggleHelp(false); e.preventDefault(); return; }
+    // The address overlay covers both screens, so it unwinds early – and
+    // on both, or the room would be left staring at a URL.
+    if (linkOverlayVisible()) { dismissLinkOverlay(); e.preventDefault(); return; }
+    // A whisper from the prompter arrived uninvited and is in the way of
+    // nothing, so it goes before a highlight the lecturer made on purpose
+    // – and it goes on the first Esc, which is what a hand reaches for
+    // when a line has been read and is now in the way.
+    if (viewHooks.escapePrompter()) { e.preventDefault(); return; }
+    // A live highlight is the most recent thing the user did, so it is
+    // the first thing Esc should take back.
+    if (hasTextSelection() || touchSelectOn) {
+      setTouchSelect(false);
+      endSelecting();
+      const sb = document.querySelector('#psiINT-touch-controls [data-action=select]');
+      if (sb) sb.setAttribute('aria-pressed', 'false');
+      e.preventDefault(); return;
+    }
+    if (focusedFigure) {
+      unfocusFigure();
+      if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
+      return;
+    }
+    if (tocVisible) { tocVisible = false; document.body.classList.remove('toc-visible'); return; }
+    if (overview) { dismissOverviewNoMove(); return; }
+    if (annotEditingId) { blurAnnotation(); return; }
+    // A brought-in aside is a camera state like the drag-pan, and it is
+    // the more recent of the two, so it unwinds first.
+    if (asidePan) {
+      clearAsidePan();
+      focusCamera(false);
+      if (shouldBroadcast()) sendToPeer({ type: 'figure-unpan' });
+      return;
+    }
+    if (manualPan.dx || manualPan.dy) { manualPan = { dx: 0, dy: 0 }; focusCamera(false); return; }
+    if (openExp) { closeAnyExpansion(); broadcastState(); setTimeout(() => focusCamera(false), 20); }
+  },
+  'annotate': (e) => {
+    if (overview) return;
+    const entry = flatChunks[state.activeIdx];
+    if (entry) viewHooks.onN(entry);
+    e.preventDefault();
+  },
+  'collapse': (e) => { cycleCollapse(1); e.preventDefault(); },
+  'collapse-back': (e) => { cycleCollapse(-1); e.preventDefault(); },
+  'font': (e) => { cycleFont(1); e.preventDefault(); },
+  'font-back': (e) => { cycleFont(-1); e.preventDefault(); },
+  'theme': (e) => { cycleTheme(1); e.preventDefault(); },
+  'theme-back': (e) => { cycleTheme(-1); e.preventDefault(); },
+  'slide-numbers': (e) => { cycleSlideNums(1); e.preventDefault(); },
+  'slide-numbers-back': (e) => { cycleSlideNums(-1); e.preventDefault(); },
+  // The add-note affordance on the projection, shown or hidden. A bare
+  // free letter and not a Shift pair: Shift-B was the obvious mnemonic
+  // (both take something off the screen) and is exactly the one that
+  // cannot be taken, because B is what a hand reaches for when something
+  // has to be off the projection now and a mistyped Shift must not turn
+  // that into a chrome toggle.
+  'note-button': (e) => {
+    setNoteButton(state.noteButton === 'off' ? 'on' : 'off', true);
+    e.preventDefault();
+  },
+  'overview': (e) => { toggleOverview(); e.preventDefault(); },
+  // The cue cards are the cockpit's, which replaces this entry; here the
+  // press is spent on nothing, as it always was.
+  'cue-cards': (e) => { if (overview) return; e.preventDefault(); },
+  'toc': (e) => { toggleToc(); e.preventDefault(); },
+  // The third way to reach a slide, beside the board and the search. It
+  // works in overview too, where it lands the same way a committed search
+  // hit does - there is no reason for the board to be the one place a
+  // lecturer who knows the number has to hunt for it.
+  'goto': (e) => { startGoto(); e.preventDefault(); },
+  'search': (e) => { startSearch(); e.preventDefault(); },
+  'auto-fit': (e) => { cycleAutoFit(1); e.preventDefault(); },
+  'zoom-in': (e) => {
+    if (focusedFigure) setFigureScale(figureScale * 1.2);
+    else stepZoom(1);
+    e.preventDefault();
+  },
+  'zoom-out': (e) => {
+    if (focusedFigure) setFigureScale(figureScale / 1.2);
+    else stepZoom(-1);
+    e.preventDefault();
+  },
+  'zoom-reset': (e) => {
+    if (focusedFigure) {
+      resetFigureView();
+      applyFigureTransform();
+      broadcastFigureView();
+    } else setZoom(1.35);
+    e.preventDefault();
+  },
+  'blank': (e) => {
+    state.blanked = !state.blanked;
+    applyState();
+    // Blanking is a command to the projector, so it outranks the freeze
+    // gate. Without this line, hitting B while frozen would toast
+    // "projection blanked" at a projection that stayed lit – the one
+    // failure that has to not happen, since B is what you reach for when
+    // something must come off the screen now.
+    if (VIEW === 'speaker') {
+      sendToPeer({ type: 'blank', source: VIEW, blanked: state.blanked });
+    }
+    flashMode(state.blanked ? 'projection blanked' : 'projection back');
+    e.preventDefault();
+  },
+  // W is the projection's frame, Shift-W is this window's - see the
+  // fullscreen section for why the cockpit's W can only arm the
+  // projection and not enter it for the lecturer. A free letter and not
+  // a Shift pair on B or F: F is the font cycle, and Shift-B is the one
+  // pair that cannot be taken, for the reason M records. In the audience
+  // the projection is this window, so Shift-W, which has no entry of its
+  // own there, reaches this one and does the same.
+  'fullscreen': (e) => { toggleProjectionFullscreen(); e.preventDefault(); },
+  'print': (e) => {
+    window.open('print.html', '_blank', 'noopener');
+    e.preventDefault();
+  },
+  // Live demo: a window or a screen of this machine on the projection.
+  // Pressed in the cockpit, the picker opens on the laptop and the room
+  // sees the picture; pressed again anywhere, it ends on both screens.
+  // No overview guard, as on B: the stop half is the urgent one.
+  'demo': (e) => { toggleDemo(); e.preventDefault(); },
+  // Shift-E copies live annotation drafts to the clipboard for paste-back
+  // into source.md. Plain E is unbound; the cockpit replaces this entry with
+  // its own export.
+  'export-annotations': (e) => { exportAnnotationsPlain(); e.preventDefault(); },
+  // Only in audience: open the speaker window and remember it as our peer.
+  'cockpit': (e) => {
+    const w = window.open('speaker.html', 'psi-slides-speaker', 'width=1400,height=900');
+    setPeer(w);
+    e.preventDefault();
+  },
+  'help': (e) => { toggleHelp(); e.preventDefault(); },
+};
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('.annot-textarea')) return;
   // The ? panel's search field: every key types, except the two that close.
@@ -22929,212 +22997,8 @@ document.addEventListener('keydown', (e) => {
       case 'ArrowLeft':  selectOverviewCol(-1); e.preventDefault(); return;
     }
   }
-  switch (e.key) {
-    // Forward and back are one pair everywhere - across reveals, across
-    // chunks, across columns - and Shift is the column modifier from any
-    // slide. That is the whole model, and it replaced one where the sideways
-    // arrows changed column on the first chunk of a column and meant
-    // forward/back on every other: an exception on exactly the slides a
-    // lecturer arrives at, which is the worst place to keep one.
-    // Shift collides with nothing here: the arrows are not cycling keys, so
-    // it does not meet the Shift that runs C, F, A and L backwards.
-    // updateNavHints still paints a mark, and it says something else now -
-    // not "sideways changes column on this slide" but "the next forward press
-    // leaves this column", which is a fact about the key already under the
-    // finger rather than about a key that might not be pressed.
-    case 'ArrowRight': e.shiftKey ? nextCol() : goForward(); e.preventDefault(); break;
-    case 'ArrowLeft':  e.shiftKey ? prevCol() : goBack();    e.preventDefault(); break;
-    // Down, Space, Enter and a presenter's forward button are one key, and
-    // Up, PageUp and Backspace are its mirror. Down used to skip straight to
-    // the next chunk, which meant walking a segmented slide with the arrows
-    // silently swallowed every reveal on it – and remembering to switch to
-    // Space for exactly those slides is the kind of thing that goes wrong in
-    // front of a room. It never swallows one now, in either direction.
-    case 'ArrowUp':
-    case 'PageUp':
-    case 'Backspace':
-      if (overview) { e.preventDefault(); break; }
-      goBack(); e.preventDefault(); break;
-    case 'ArrowDown':
-    case 'PageDown':
-    case ' ': {
-      if (overview) { e.preventDefault(); break; }
-      goForward();
-      e.preventDefault(); break;
-    }
-    case 'Enter': {
-      if (overview) { toggleOverview(); e.preventDefault(); break; }
-      if (viewHooks.onEnter()) { e.preventDefault(); break; }
-      goForward();
-      e.preventDefault(); break;
-    }
-    case '1': case '2': case '3': case '4': case '5':
-    case '6': case '7': case '8': case '9': {
-      if (overview) break;
-      const n = parseInt(e.key, 10) - 1;
-      const entry = flatChunks[state.activeIdx];
-      if (entry && entry.el.querySelector(\`.exp-chev[data-exp="\${n}"]\`)) toggleExp(state.activeIdx, n);
-      e.preventDefault(); break;
-    }
-    case 'Escape': {
-      // Help sits in front of everything, so it unwinds first.
-      if (helpVisible()) { toggleHelp(false); e.preventDefault(); break; }
-      // The address overlay covers both screens, so it unwinds early – and
-      // on both, or the room would be left staring at a URL.
-      if (linkOverlayVisible()) { dismissLinkOverlay(); e.preventDefault(); break; }
-      // A whisper from the prompter arrived uninvited and is in the way of
-      // nothing, so it goes before a highlight the lecturer made on purpose
-      // – and it goes on the first Esc, which is what a hand reaches for
-      // when a line has been read and is now in the way.
-      if (viewHooks.escapePrompter()) { e.preventDefault(); break; }
-      // A live highlight is the most recent thing the user did, so it is
-      // the first thing Esc should take back.
-      if (hasTextSelection() || touchSelectOn) {
-        setTouchSelect(false);
-        endSelecting();
-        const sb = document.querySelector('#psiINT-touch-controls [data-action=select]');
-        if (sb) sb.setAttribute('aria-pressed', 'false');
-        e.preventDefault(); break;
-      }
-      if (focusedFigure) {
-        unfocusFigure();
-        if (shouldBroadcast()) sendToPeer({ type: 'figure-unfocus' });
-        break;
-      }
-      if (tocVisible) { tocVisible = false; document.body.classList.remove('toc-visible'); break; }
-      if (overview) { dismissOverviewNoMove(); break; }
-      if (annotEditingId) { blurAnnotation(); break; }
-      // A brought-in aside is a camera state like the drag-pan, and it is
-      // the more recent of the two, so it unwinds first.
-      if (asidePan) {
-        clearAsidePan();
-        focusCamera(false);
-        if (shouldBroadcast()) sendToPeer({ type: 'figure-unpan' });
-        break;
-      }
-      if (manualPan.dx || manualPan.dy) { manualPan = { dx: 0, dy: 0 }; focusCamera(false); break; }
-      if (openExp) { closeAnyExpansion(); broadcastState(); setTimeout(() => focusCamera(false), 20); }
-      break;
-    }
-    case 'n': case 'N': {
-      if (overview) break;
-      // Shift-N on speaker: force-open the private notes pane and
-      // focus it (even when empty/collapsed). Plain N keeps the
-      // existing behavior – audience-mirrored annotations.
-      if (VIEW === 'speaker' && e.shiftKey && typeof focusNotesPane === 'function') {
-        focusNotesPane();
-        e.preventDefault(); break;
-      }
-      const entry = flatChunks[state.activeIdx];
-      if (entry) viewHooks.onN(entry);
-      e.preventDefault(); break;
-    }
-    case 'c': case 'C': cycleCollapse(e.shiftKey ? -1 : 1); e.preventDefault(); break;
-    case 'f': case 'F': cycleFont(e.shiftKey ? -1 : 1); e.preventDefault(); break;
-    case 'a': case 'A': cycleTheme(e.shiftKey ? -1 : 1); e.preventDefault(); break;
-    case 'l': case 'L': cycleSlideNums(e.shiftKey ? -1 : 1); e.preventDefault(); break;
-    case 'm': case 'M':
-      // The add-note affordance on the projection, shown or hidden. A bare
-      // free letter and not a Shift pair: Shift-B was the obvious mnemonic
-      // (both take something off the screen) and is exactly the one that
-      // cannot be taken, because B is what a hand reaches for when something
-      // has to be off the projection now and a mistyped Shift must not turn
-      // that into a chrome toggle.
-      setNoteButton(state.noteButton === 'off' ? 'on' : 'off', true);
-      e.preventDefault(); break;
-    case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
-    case 'k': case 'K': if (overview) break; viewHooks.onK(); e.preventDefault(); break;
-    case 't': case 'T': toggleToc(); e.preventDefault(); break;
-    // The third way to reach a slide, beside the board and the search. It
-    // works in overview too, where it lands the same way a committed search
-    // hit does - there is no reason for the board to be the one place a
-    // lecturer who knows the number has to hunt for it.
-    case 'g': case 'G': startGoto(); e.preventDefault(); break;
-    case '/': startSearch(); e.preventDefault(); break;
-    case '#': cycleAutoFit(1); e.preventDefault(); break;
-    case '+': case '=':
-      if (focusedFigure) setFigureScale(figureScale * 1.2);
-      else stepZoom(1);
-      e.preventDefault(); break;
-    case '-': case '_':
-      if (focusedFigure) setFigureScale(figureScale / 1.2);
-      else stepZoom(-1);
-      e.preventDefault(); break;
-    case '0':
-      if (focusedFigure) {
-        resetFigureView();
-        applyFigureTransform();
-        broadcastFigureView();
-      } else setZoom(1.35);
-      e.preventDefault(); break;
-    case 'b': case 'B':
-      state.blanked = !state.blanked;
-      applyState();
-      // Blanking is a command to the projector, so it outranks the freeze
-      // gate. Without this line, hitting B while frozen would toast
-      // "projection blanked" at a projection that stayed lit – the one
-      // failure that has to not happen, since B is what you reach for when
-      // something must come off the screen now.
-      if (VIEW === 'speaker') {
-        sendToPeer({ type: 'blank', source: VIEW, blanked: state.blanked });
-      }
-      flashMode(state.blanked ? 'projection blanked' : 'projection back');
-      e.preventDefault(); break;
-    case 'w': case 'W':
-      // W is the projection's frame, Shift-W is this window's - see the
-      // fullscreen section for why the cockpit's W can only arm the
-      // projection and not enter it for the lecturer. A free letter and not
-      // a Shift pair on B or F: F is the font cycle, and Shift-B is the one
-      // pair that cannot be taken, for the reason M records.
-      if (e.shiftKey) toggleFullscreenHere();
-      else toggleProjectionFullscreen();
-      e.preventDefault(); break;
-    case 'p': case 'P':
-      window.open('print.html', '_blank', 'noopener');
-      e.preventDefault(); break;
-    case 'd': case 'D':
-      // Live demo: a window or a screen of this machine on the projection.
-      // Pressed in the cockpit, the picker opens on the laptop and the room
-      // sees the picture; pressed again anywhere, it ends on both screens.
-      // No overview guard, as on B: the stop half is the urgent one.
-      toggleDemo();
-      e.preventDefault(); break;
-    case 'e': case 'E':
-      // Shift-E copies live annotation drafts to the
-      // clipboard for paste-back into source.md. Plain E is unbound.
-      if (!e.shiftKey) break;
-      if (VIEW === 'speaker' && typeof exportAnnotations === 'function') exportAnnotations();
-      else exportAnnotationsPlain();
-      e.preventDefault();
-      break;
-    case 'v': case 'V':
-      // V freezes the projection – phonetically close enough to "freeze" to
-      // stick, and F is already the font cycle. Rearranging this window is
-      // the rarer, less urgent act, so it moves to Shift-V.
-      if (VIEW !== 'speaker') break;
-      if (e.shiftKey) {
-        if (typeof togglePreviewOrientation === 'function') togglePreviewOrientation();
-      } else if (typeof toggleFreeze === 'function') {
-        toggleFreeze();
-      }
-      e.preventDefault(); break;
-    case 's': case 'S':
-      // Shift-S in the cockpit switches the live prompter on and off. A bare
-      // letter would fire in the middle of a sentence, and S itself already
-      // means "open the cockpit" one window over.
-      if (VIEW === 'speaker' && e.shiftKey) {
-        if (viewHooks.onShiftS()) e.preventDefault();
-        break;
-      }
-      // Only in audience: open the speaker window and remember it as our peer.
-      if (VIEW === 'audience') {
-        const w = window.open('speaker.html', 'psi-slides-speaker', 'width=1400,height=900');
-        setPeer(w);
-        e.preventDefault();
-      }
-      break;
-    case '?': toggleHelp(); e.preventDefault(); break;
-  }
+  const id = PSI_COMMANDS.commandFor(COMMAND_KEYS, e);
+  if (id && COMMAND_RUN[id]) COMMAND_RUN[id](e);
 });
 
 // Search input: live-filter on every keystroke.
@@ -24067,6 +23931,9 @@ ${qrLibJs()}
 </script>
 <script>
 ${cueCardsJs()}
+</script>
+<script>
+${commandsJs()}
 </script>
 <script>
 const LECTURE_TITLE = ${titleJson};
@@ -25177,6 +25044,26 @@ requestAnimationFrame(sizeStageViewport);
 // broadcast does is hand the room our current state.
 let frozen = false;
 viewHooks.shouldBroadcast = () => !frozen;
+// The cockpit's own commands, assigned into the key map's COMMAND_RUN the way
+// viewHooks are set: what the letters mean is in commands.mjs, what they do
+// here is in this file, next to the code that does it.
+//
+// V freezes the projection – phonetically close enough to "freeze" to
+// stick, and F is already the font cycle. Rearranging this window is the
+// rarer, less urgent act, so it is Shift-V.
+COMMAND_RUN['freeze'] = (e) => { toggleFreeze(); e.preventDefault(); };
+COMMAND_RUN['preview-orientation'] = (e) => { togglePreviewOrientation(); e.preventDefault(); };
+// Shift-N: force-open the private notes pane and focus it, even when it is
+// empty or collapsed. Plain N stays the annotation the room reads along.
+COMMAND_RUN['notes-pane'] = (e) => {
+  if (overview) return;
+  focusNotesPane();
+  e.preventDefault();
+};
+COMMAND_RUN['export-annotations'] = (e) => { exportAnnotations(); e.preventDefault(); };
+// This window's own frame, for the one-screen case where the cockpit IS the
+// thing to fill; plain W is the projection's.
+COMMAND_RUN['fullscreen-window'] = (e) => { toggleFullscreenHere(); e.preventDefault(); };
 function applyFreezeIndicator() {
   freezeBtn.classList.toggle('is-frozen', frozen);
   freezeBtn.textContent = frozen ? '❄ frozen' : '● live';
@@ -25816,7 +25703,11 @@ try {
   const saved = Number(localStorage.getItem(CUE_SCALE_KEY));
   if (saved > 0) applyCueScale(saved);
 } catch (e) {}
-viewHooks.onK = toggleCueMode;
+COMMAND_RUN['cue-cards'] = (e) => {
+  if (overview) return;
+  toggleCueMode();
+  e.preventDefault();
+};
 cueBtn.addEventListener('click', toggleCueMode);
 // The saved mode is restored at the FOOT of this section, not here. Two of
 // the bindings cueRender reaches - cueMarks and driftEl - are declared
@@ -27319,7 +27210,9 @@ if (SOUFFLEUSE && window.psiWatch) {
     if (souffOn) { souffEarWhy = null; souffStop(false); }
     else souffStart(true);
   }
-  viewHooks.onShiftS = () => { souffToggle(); return true; };
+  // Shift-S: a bare letter would fire in the middle of a sentence, and S
+  // itself means "open the cockpit" one window over.
+  COMMAND_RUN['prompter'] = (e) => { souffToggle(); e.preventDefault(); };
   // Shift-click rather than a key: every free letter in this window is a
   // navigation command that would fire mid-sentence, and the history is
   // read after a talk or between two slides, never in the middle of one.

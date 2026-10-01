@@ -4,10 +4,11 @@
 // createRequire for the bundled fonts and the KaTeX stylesheet, a dynamic
 // import() for ws, and a WASM load for Shiki's regex engine.
 //
-// What is copied is what the engine reads about itself: build.js, the five
+// What is copied is what the engine reads about itself: build.js, the six
 // files it splices in at run time over import.meta.url (diagram-core.mjs,
-// cue-cards.mjs, pulse-embed.js, editor.mjs, editor.css), the two it imports statically
-// (tails.mjs, and pdf-core.mjs for the PDF option checks), and the package.json and lockfile that decide the dependency
+// cue-cards.mjs, commands.mjs, pulse-embed.js, editor.mjs, editor.css), the
+// two it only imports statically (tails.mjs, and pdf-core.mjs for the PDF
+// option checks) – commands.mjs is both – and the package.json and lockfile that decide the dependency
 // tree. Everything else in the repository – the lectures, the tests, the site
 // – is not the engine.
 //
@@ -36,6 +37,7 @@ const FILES = [
   'diagram-core.mjs',
   'tails.mjs',
   'cue-cards.mjs',
+  'commands.mjs',
   'pdf-core.mjs',
   'pulse-embed.js',
   'editor.mjs',

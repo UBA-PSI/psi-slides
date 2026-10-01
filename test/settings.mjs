@@ -2915,7 +2915,8 @@ console.log('\nlayout generations');
     // The runtime half: a free letter, its own message type, and nothing in
     // the snapshot. A field in snapshot() would drag the receiver's slide
     // position along with the toggle - the reason blank has its own type.
-    ok(/case 'm': case 'M':/.test(keynote.html) && /setNoteButton\(/.test(keynote.html),
+    ok(/id: 'note-button', group: 'knobs', views: BOTH, keys: \['m'\]/.test(keynote.html)
+       && /'note-button': \(e\) => \{\s*setNoteButton\(/.test(keynote.html),
        'M toggles it at runtime');
     ok(/type: 'note-button', source: VIEW/.test(keynote.html),
        'and it travels to the projection as its own message, past the freeze gate');

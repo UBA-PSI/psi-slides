@@ -6,7 +6,7 @@
  * has the keyboard when the panel opens, that a letter typed there types a
  * letter instead of blanking the projection or cycling the font, and that
  * Esc empties the field before it closes the panel. That every key has a row
- * to find is the help-keys gate's job, without a browser.
+ * to find is the commands gate's job, without a browser.
  *
  * It builds two decks of its own, for the reason test/README.md gives for
  * the others that do: it needs a `lang: de` deck, and no lecture here is one

@@ -70,9 +70,11 @@
  *   id-namespace  every id the build writes or looks up by literal starts
  *              with psiINT-, or is on a reviewed list of sites that emit the
  *              author's own ids or build one from a psiINT- prefix
- *   help-keys  every key the live views answer has a row in their ? panel:
- *              the handlers read as text, the panel rendered, and a
- *              reviewed list of the keys answered without one
+ *   commands   the command table in commands.mjs: every press the old key
+ *              map answered still means what it meant, every command has a
+ *              run function where it is answered, and every key the live
+ *              views answer has a row in their ? panel - the panel rendered,
+ *              and a reviewed list of the keys answered without one
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -103,7 +105,7 @@ const GATES = [
   './untrusted.mjs',
   './pdf-core.mjs',
   './id-namespace.mjs',
-  './help-keys.mjs',
+  './commands.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));
