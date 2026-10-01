@@ -257,18 +257,6 @@ used to make, which was separating it from the paragraph that introduces it at
 35px. The seam takes the page's own number for a row against its neighbour,
 the clamp on `.beside + *`: 72px at 1440.
 
-**One section is not a `.beside` and takes the same rule further.** "Getting
-started" on the front page has a heading, a lede *and* a chooser's tab row
-above its row, so the hole is under the tabs and moving the heading alone
-would fix nothing. The whole section becomes one band instead: column one is
-the section from its heading to its button – heading, lede, tabs, the option's
-words, and the sentence and button that send a reader on – and column two is
-the option's picture, spanning the lot. The tail is inside the row and outside
-every option: it does not switch, and it no longer starts under a hole. This
-is the one documented exception to *What may follow a band* – a block at the
-frame's width is what follows a band whose column is **full**, and this
-column was 230px against a 530px picture.
-
 #### Which side the stage takes
 
 Not alternation. A page that flips every section has stopped meaning
@@ -408,6 +396,31 @@ already whole, and is unchanged on 768 and 390 where the hero stacks. Padding
 is up on every desktop window: 43 to 56 at 1440x700, 45 to 68 at 1512x850, 56
 to 74 at 1920x930, 101 to 115 at 2560x1440.
 
+#### The two ways to start
+
+The hero names the two ways in before anything else asks for attention: a
+cue – download the app and choose **New lecture…**, or see the tutorial first –
+and two buttons that take them. Stacked under the lede, cue then button row,
+they cost the screenshot pair more than the trade above had bought: at
+1440x900 the German pair lost its bottom tenth, and at 1440x700 the visible
+share fell from about two thirds to 37 % in English and 26 % in German.
+
+**So on a desktop window the buttons stand beside the cue**, centred against it
+the way a band's words are centred against its stage, and the routes cost the
+height of the cue rather than the cue plus a row. `.hero-said` becomes a grid
+there: the lede spans it and keeps its 47rem by itself, the cue takes up to
+`--measure`, and the buttons take what they need. The cue column is what
+yields on a narrow desktop window, and the lede is kept out of the track
+sizing (`contain: inline-size`) or its width widens the button column until the
+cue sets eight lines at 1100. Under 68rem the three stack as before. Both
+routes stay on the first screen in both languages at 390x844 as well, which in
+German took a few pixels off the line over the h1 and the h1's own margin on the
+front page alone.
+
+Measured as the visible share of the pair's box at load: 1440x900 is 100 % in both languages again (German was
+91 %); 1440x700 is 64 % in English and 62 % in German (37 % and 26 % with the
+stacked cue); 1100x800 is 100 % and 91 % (84 % and 65 %).
+
 ## Colour
 
 **The page is not white.** Everything the site shows a picture of is
@@ -494,8 +507,8 @@ motion.
   JavaScript the options stand under each other with their labels above them,
   and the section still says what it came to say.
 
-  It carries three things, and that it is one mechanism rather than three is
-  the point – a second way of switching something would be a second thing for a
+  It carries two things, and that it is one mechanism rather than two is the
+  point – a second way of switching something would be a second thing for a
   reader to learn and a second thing to keep operable from a keyboard.
   **The three ways** on the front page are an argument in three moves, so its
   labels carry the judgement ("not ideal", "our approach") the prose used to
@@ -504,25 +517,13 @@ motion.
   the cards and the projection together and a still cannot show a change. Its
   labels are paragraphs rather than headings: that page's headings are the
   anchors its two languages are linked by, and the twin gate counts them.
-  **The two ways in**, under "Getting started" on the front page, is the one
-  where the two halves are not the same kind of thing: the app is a window and
-  photographs, the command line is a terminal and does not – there is no
-  terminal for a screenshot script to point at, and a page built to impersonate
-  one would buy a picture of text, which is exactly the file this site has just
-  had to replace six of. So that half is the build's own output, set as a
-  listing – the build run in this repository and pasted, and since the section
-  became a band it carries the second half of the story too: an `ls -al` of
-  the four files it wrote, which is what a build log does not tell. Both
-  panels are laid into one grid cell and hidden with
-  `visibility`, so the row is as tall as its tallest part and the listing is
-  stretched to it; the measured heights and the breakpoint under which the row
-  goes back to one column are in `site.css` beside the rule. What sets the
-  height is now the words column, because it carries the section, so the
-  window is centred in the field it does not fill – a field's margin is even –
-  and the listing keeps stretching, which is what a terminal looks like
-  anyway. The handout switch
-  is the nearer relative in what it answers – one thing, two executions – and
-  it could not be used: it swaps an `img` src.
+
+  The front page used to carry a third, the two ways in – the app beside the
+  command line – under a "Getting started" band. That band has left the front
+  page: the two routes are now two buttons in the hero (see *The two ways to
+  start*), and the page they lead to, `getting-started.html`, takes the app
+  first and the command line after it as two plain sections, with nothing to
+  switch.
 - **The handout switch** opens on `print.html`, the file that is handed
   out, and swaps to `print-notes.html`. The filename in the title bar
   changes with it, or the bar would be exactly the confusion the switch

@@ -1,5 +1,5 @@
 /*
- * Two small behaviours for the project site. No dependencies and no build
+ * Small behaviours for the project site. No dependencies and no build
  * step: the page it enhances is a hand-written file, and a bundler for
  * sixty lines would be its own kind of joke on a tool that ships static
  * HTML.
@@ -143,6 +143,26 @@
       }
     });
   }
+
+  /* ── a link into a folded section ──────────────────────────────────────
+   * comparison.html folds each of its dimensions into a <details> whose id is
+   * the heading's anchor, so a link to one lands on a closed fold with the
+   * text it was sent to hidden inside. On load and on every change of the
+   * fragment, the fold that holds the target - the <details> itself or one
+   * around it - is opened and brought into view. The menu is a <details> too
+   * and is left alone.
+   */
+  function openTarget() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    if (!id) return;
+    var el = document.getElementById(id);
+    var fold = el && el.closest('details');
+    if (!fold || fold.classList.contains('topbar-menu')) return;
+    fold.open = true;
+    el.scrollIntoView({ block: 'start' });
+  }
+  openTarget();
+  window.addEventListener('hashchange', openTarget);
 
   /* ── lightbox ──────────────────────────────────────────────────────────
    * The shots are laid out between a third and a half of the size they were

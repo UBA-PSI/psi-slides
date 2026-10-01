@@ -323,8 +323,6 @@ main.banded { display: block; max-width: none; padding: 0; }
 .wrap > .ways,
 .wrap > .gallery,
 .wrap > .pair-up,
-.wrap > .hero-cols,
-.wrap > .scroller,
 .wrap > table,
 .wrap > pre,
 .wrap > footer,
@@ -554,9 +552,8 @@ p { margin: 0 0 1.1rem; }
    both text of the same kind, centring them makes two ragged tops out of two
    flush ones. A band has a stage in it; this does not. */
 .beside.level { align-items: start; }
-/* A grid item is min-content wide by default, and since the download table
-   moved into the words column of `.words-wide` the widest thing in one is a
-   three-column table. Without this the table pushed the column, the column
+/* A grid item is min-content wide by default, and a table in a words column
+   is wider than its share. Without this the table pushed the column, the column
    pushed the page, and a phone got a horizontal scrollbar on the whole
    document rather than on the table - the same fault `.setup` records. */
 .beside > * { min-width: 0; }
@@ -607,11 +604,8 @@ p { margin: 0 0 1.1rem; }
 /* The one lede that is not an entrance but the section's whole text: beside a
    stage there is no paragraph after it, so it is read as prose and is set at
    the prose size rather than a step under it. Uncapped, because the column it
-   stands in is 24rem and already narrower than the measure - except in
-   `.words-wide`, where that column is the wide one and the cap has to come
-   back or the sentence runs to 93 characters. */
+   stands in is 24rem and already narrower than the measure. */
 .beside .said .lede { font-size: var(--fs-body); max-width: none; }
-.beside.words-wide .said .lede { max-width: var(--measure); }
 /* Mirrored: the stage on the left, the words on the right. The page would
    otherwise put every picture on the same side and read as a template - and
    it is also the answer to a row whose picture cannot be made shorter. Where
@@ -657,18 +651,6 @@ p { margin: 0 0 1.1rem; }
     column-gap: clamp(1.8rem, 3.9vw, 4.5rem);
   }
 }
-/* The other proportion: the words are the wide column and the picture the
-   narrow one. Used where the column carries more than a heading and four
-   lines - on `getting-started.html` it carries the download table too - and
-   where the picture is evidence rather than something to read. The picture
-   then does not need to be the taller of the two, because the words are what
-   the row is about; what is left under it stands at the frame's right edge. */
-@media (min-width: 68rem) {
-  .beside.words-wide { grid-template-columns: minmax(0, 1fr) minmax(0, 30rem); }
-}
-/* A table in that column is a list to look up in, so it takes the column
-   whole rather than the measure the prose above it keeps. */
-.beside.words-wide .said .scroller { max-width: none; }
 
 /*
  * ── Screenshots ───────────────────────────────────────────────────────────
@@ -721,16 +703,6 @@ figure.shot .bar {
   border-bottom: 0;
 }
 figure.shot .bar b { font-weight: 400; color: var(--ink); }
-/* The traffic lights are gone from this page's own window bars - they said
-   "this is a window" over a bar that already says `speaker.html` - but
-   figures.html still frames the editor with them, where the point is that
-   the editor is an application and not a slide. The rule stays for that one
-   caller; it is not used here. */
-figure.shot .dots { display: flex; gap: 0.3rem; }
-figure.shot .dots i {
-  width: 0.5rem; height: 0.5rem; border-radius: 50%;
-  background: var(--rule); display: block;
-}
 figure.shot img {
   width: 100%; height: auto; display: block; background: var(--shot-bg);
   cursor: zoom-in;
@@ -875,15 +847,59 @@ figure.shot .swap button[aria-pressed="true"]:hover {
  * Gated at 68rem, the width where this page becomes a desktop page at all.
  * Under it the container is narrower than either number and the rule would
  * change nothing but the box; a phone and a portrait tablet keep the 40rem
- * above to the pixel.
+ * above to the pixel. It sits on the lede itself, in the start row's rule
+ * below, because on a desktop window the container is wider than the lede.
  */
-@media (min-width: 68rem) {
-  .hero-said { max-width: 47rem; }
-}
 /* No size of its own any more. It used to be 1.3rem against a section lede's
    1.18rem, which is 20.8px against 18.9 - a difference nobody sees under an
    h1 of 70px, and the third of three lede sizes on the page. */
-.hero-said .lede { max-width: none; margin-bottom: 1.8rem; }
+.hero-said .lede { max-width: none; margin-bottom: 1.2rem; }
+/*
+ * The two ways to start: a cue that names them and the two buttons that take
+ * them. Stacked, the cue's four lines and then a row of buttons under them
+ * cost the screenshot pair below its place on the first screen - at 1440x700
+ * its visible share fell to 37 % in English and 26 % in German, and with the
+ * buttons beside the cue it is 64 % and 62 %.
+ *
+ * On a desktop window the buttons therefore stand BESIDE the cue, centred
+ * against it the way a band's words are centred against its stage, so the
+ * routes cost the height of the cue and not the cue plus a row. The lede
+ * keeps the 47rem above by itself; the container gives up its cap so the row
+ * can run past it towards the frame. The cue keeps --measure, the buttons
+ * take what they need, and on the narrowest desktop window the cue column is
+ * what yields. Under 68rem the three stack as before - a phone has no width
+ * to put a button beside a sentence.
+ */
+@media (min-width: 68rem) {
+  .hero-said {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, var(--measure)) max-content;
+    column-gap: 2.6rem;
+    align-items: center;
+    margin-bottom: 2.6rem;
+  }
+  /* `contain: inline-size` keeps the lede's own width out of the track
+     sizing: an item spanning both columns hands its max-content width to the
+     intrinsic one, and on a 1100px window that widened the button column
+     until the cue beside it set eight lines. */
+  .hero-said .lede {
+    grid-column: 1 / -1;
+    max-width: 47rem;
+    margin-bottom: 1.4rem;
+    contain: inline-size;
+  }
+  .hero-said .cue { margin: 0; max-width: none; }
+  .hero-said .cta { margin: 0; flex-wrap: nowrap; }
+}
+/* On a phone the two buttons stack, and in German the second one ended 10px
+   under a 390x844 window. The line over the h1 and the h1 itself give up a
+   few pixels each on the front page alone, so both routes are on the first
+   screen in both languages. */
+@media (max-width: 67.99rem) {
+  .band-hero-home .mark { margin-bottom: 1.1rem; }
+  .band-hero-home h1 { margin-bottom: 0.9rem; }
+}
 
 .cta { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 0 0 3rem; }
 .cta a {
@@ -893,9 +909,9 @@ figure.shot .swap button[aria-pressed="true"]:hover {
   border-radius: 6px;
   text-decoration: none;
   /* Every button label on this page is one size - here, on the tabs above the
-     chooser, and on a lecture card's four links. At the prose size the two
-     buttons in figures.html's right-hand hero column stopped fitting one line
-     and stacked, which turns a pair into a list. */
+     chooser, and on a lecture card's four links. At the prose size a pair of
+     these in a narrow column stopped fitting one line and stacked, which turns
+     a pair into a list. */
   font-size: var(--fs-note);
   font-weight: 550;
 }
@@ -1047,13 +1063,7 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
    it. Measured, not guessed: 17.6px over the first line and 60px under the
    last. */
 .hint .pair-up > * > :last-child { margin-bottom: 0; }
-/* The wide variant, used once, on getting-started.html: the box that says what
-   the tagged release does not carry, with the clone that fixes it beside the
-   sentence rather than under it. At 42rem those two halves are a paragraph and
-   a stub, which is exactly the half-empty row the page is written against; at
-   the frame width they are two halves. `.wrap > *` caps everything at the
-   measure, so this has to out-specify that rather than only raise `.hint`. */
-.wrap > .hint.wide { max-width: none; }
+
 
 p.tiny { font-size: var(--fs-note); color: var(--ink-soft); max-width: var(--measure-col); }
 /* A line that explains the block above it is a caption, so it sits close to
@@ -1379,6 +1389,41 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
 }
 
 /*
+ * The folds on comparison.html. Two of its sections fold their subsections,
+ * twenty-nine in all, into a <details> each, whose summary is the
+ * subsection's heading, so a reader scans the list and opens what they came
+ * for.
+ *
+ * Shut, a run is a list, and it is drawn as one: a hairline between two
+ * entries, the way the table above it separates its rows. The summary is set
+ * like the h3 it replaces – lead size, the h3's weight – so the list reads as
+ * headings and not as a row of links. The marker is the browser's own
+ * triangle, one step back in ink; it is the control, not a decoration. Open,
+ * the fold keeps the page's prose measure and some floor under its last
+ * paragraph before the next rule.
+ */
+main > details {
+  border-top: 1px solid var(--rule);
+  max-width: var(--measure);
+  scroll-margin-top: 4.5rem;
+}
+/* The page's own <hr> closes both runs today; a run that ends without one
+   gets a rule under its last entry instead. */
+main > details:not(:has(+ details, + hr)) { border-bottom: 1px solid var(--rule); margin-bottom: 2rem; }
+main > details > summary {
+  cursor: pointer;
+  padding: 0.85rem 0;
+  font-size: var(--fs-lead);
+  font-weight: 650;
+  line-height: 1.3;
+}
+main > details > summary::marker { color: var(--ink-soft); font-size: 0.75em; }
+main > details > summary:hover { color: var(--accent); }
+main > details[open] > summary { padding-bottom: 0.6rem; }
+main > details[open] { padding-bottom: 1.2rem; }
+main > details > :last-child { margin-bottom: 0; }
+
+/*
  * The walkthrough for a machine with nothing on it.
  *
  * Closed by default, because opened it is longer than the section around it
@@ -1506,17 +1551,6 @@ table {
   display: block;
   overflow-x: auto;
 }
-/*
- * A table that has to take the frame width rather than shrink to its own
- * content. `table` above is display:block so that a wide comparison table can
- * scroll inside itself instead of pushing the page; the cost is that a block
- * box wraps an anonymous table which still sizes to its rows, so the download
- * table on getting-started.html stood at three fifths of the frame with
- * nothing beside it - the half-empty row this stylesheet is written against.
- * The scrolling moves out to a wrapper, and the table is a table again.
- */
-.scroller { overflow-x: auto; }
-.scroller > table { display: table; width: 100%; overflow: visible; }
 th, td { border-bottom: 1px solid var(--rule); padding: 0.5rem 0.6rem; text-align: left; vertical-align: top; }
 th { font-weight: 650; color: var(--ink-soft); }
 
@@ -1550,29 +1584,8 @@ hr + h2 { border-top: 0; padding-top: 0; margin-top: 1.6rem; }
 }
 body.lightbox-open { overflow: hidden; }
 
-/*
- * ── What figures.html needs from here ─────────────────────────────────────
- *
- * That page carries a genuine two-column hero - a claim on the left and its
- * complication on the right, the same weight - which index.html does not.
- * The rules live here rather than in that page's own <style> because the
- * button, the wordmark and the measure they sit in are shared, and a second
- * copy of the CTA would drift the first time this one is touched.
- */
-.hero-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem 3rem; }
-.hero-col { display: flex; flex-direction: column; }
-/* A flex container does not collapse its children's margins, so two stacked
-   paragraphs put the first's margin-bottom and the second's margin-top
-   between them - twice the column rhythm. */
-.hero-col > p + p { margin-top: 0; }
-/* Buttons to the foot of the column, so the two columns end on one line
-   however the prose falls. */
-.hero-col .cta { margin-top: auto; margin-bottom: 2rem; }
-@media (max-width: 52rem) {
-  .hero-cols { grid-template-columns: 1fr; }
-  .hero-col .cta { margin-top: 0.6rem; }
-}
-.tagline, .lead { color: var(--ink-soft); margin: 0 0 2.4rem; font-size: var(--fs-lead); }
+
+.lead { color: var(--ink-soft); margin: 0 0 2.4rem; font-size: var(--fs-lead); }
 
 /*
  * The line that goes in front of a picture.
@@ -1927,131 +1940,6 @@ footer p { max-width: none; }
 .ways-frames:not(.is-switched) { gap: 2.6rem; }
 
 /*
- * The same chooser carrying the two ways in - "Getting started" on the front
- * page. Third caller, and deliberately not a third device: the section says
- * there are two ways, and now it shows them.
- *
- * The half that is not a picture. One way is a window and photographs; the
- * other is a terminal, and there is nothing for a screenshot script to
- * photograph - playwright-core photographs pages, so a terminal shot would
- * mean building a page that impersonates one. That buys a picture of text,
- * and this site has just had to replace six of those because they showed a
- * state the tool no longer produces. So the console half is the build's own
- * output, set as a listing like every other listing here: sharp at any zoom,
- * selectable, searchable, and it cannot go stale as a file.
- *
- * What that costs is the one thing a switch may not do: the two halves are
- * different heights, and a switch whose sides are different sizes reads as
- * two pictures rather than as two answers to one question. So both `.way`
- * panels are laid into ONE grid cell and hidden with `visibility` rather than
- * `display`. The row is then as tall as the taller of the two, the listing is
- * stretched to exactly that height, and nothing moves when the switch is
- * pressed. `visibility: hidden` also keeps the hidden half out of the tab
- * order and out of the accessibility tree, which `opacity: 0` would not.
- *
- * Which half is the taller one has to stay the same one, and that is what the
- * 80rem breakpoint is for. A window's height grows with the column; a
- * listing's shrinks, because the same characters wrap into fewer lines. They
- * cross at a shot of about 760px: above it the window is taller and the extra
- * room lands inside the terminal, which is what a terminal looks like anyway;
- * below it the listing is taller and the window stands in a field of grey,
- * which reads as a fault. Measured at 1440 the window is 391px and the
- * listing 324; at 1100 in the same two-column row the listing would be 481
- * against 256. So the two-column row starts at 80rem, and under it the option
- * is one column - words over a full-width stage - where the window is the
- * taller half again. The stack is dropped there with it: two panels in one
- * cell have their own words above their own stage, so the stage would move
- * even though the cell did not.
- *
- * The picture is larger here than the 480px it has on getting-started.html,
- * and it is a crop rather than the whole window - the reason is DESIGN.md's
- * fifth rule. There the window is evidence beside text that names its six
- * controls, so it keeps all six and goes small. Here it is one of two answers
- * a reader compares against the other, so the status line and the four view
- * buttons have to be readable rather than merely present, and everything
- * below them belongs to a sentence this section does not make.
- *
- * It is the whole window again since the words column became the section
- * itself - heading, lede, tabs, words, and the button that sends a reader on.
- * The column has height to fill now, so the picture is given the tallest crop
- * there is, and the two rows the old 1520x718 crop cut off are exactly the
- * ones the paragraph beside it names: open the source.md in any editor, save
- * it, and the four views are built again.
- */
-.ways-two .way { grid-template-columns: minmax(0, 1fr); }
-/* The stage takes the row's height whatever the words do, or the listing has
-   nothing to fill and the two options stop being the same height. */
-.ways-two .way > .stage { align-self: stretch; }
-/* One column means the words are the page's own paragraph rather than a
-   column beside a picture, and `.way-said p` uncaps them: at 1100 they ran to
-   the frame's full 1034px, about a hundred characters a line. */
-.ways-two .way-said p { max-width: var(--measure); }
-/*
- * Each option is a band, and what follows the row follows the row.
- *
- * The paragraph that sends a reader to the next page and the button that takes
- * them there used to be a child of `.ways`, placed by hand into the second row
- * of the words column, because under a top-aligned row they would otherwise
- * have started under a quarter-screen of nothing. That answer cost the panels
- * their place in the grid - both had to become `display: contents` and have
- * their two halves placed one at a time - and it put the page's one call to
- * act inside a chooser, where it switched sides with the tabs it does not
- * belong to.
- *
- * As a band neither is needed. The words are centred against the stage, so the
- * difference in height is split above and below them and there is no hole for
- * anything to start under; and the tail is a sibling of the row at the frame's
- * full width, which is what may follow a band. The panels are grid items
- * again, they still overlap in one cell, and they still hide with
- * `visibility` rather than `display` so the row stays as tall as the taller of
- * the two and nothing moves when the switch is pressed - which is the point of
- * the arrangement and the one part of it that was never the problem.
- */
-@media (min-width: 80rem) {
-  .ways-two .way { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
-  .ways-two .way-said p { max-width: none; }
-  .ways-two.is-switched { display: grid; }
-  .ways-two.is-switched .way,
-  .ways-two.is-switched .way.is-shown {
-    display: grid;
-    grid-area: 1 / 1 / 2 / 2;
-    visibility: hidden;
-    /* The band's own rule, one level down: the words sit centred against the
-       stage beside them. */
-    align-items: center;
-  }
-  .ways-two.is-switched .way.is-shown { visibility: visible; }
-  /* The stage still stretches to the row, or the listing has nothing to fill
-     and the two options come out different heights after all. */
-  .ways-two.is-switched .way > .stage { align-self: stretch; }
-}
-/* The tail. A block at the frame's width under a band, so it starts where the
-   band started rather than under one of its columns. */
-.ways-on { margin-top: clamp(2.4rem, 5vw, 5.5rem); }
-.ways-on > p { margin-top: 0; }
-.ways-on > .cta { margin-bottom: 0; }
-/* The stage has to reach the bottom of the row, or the listing's stretch has
-   nothing to stretch inside. */
-.ways-two .stage { margin-bottom: 0; display: grid; }
-.ways-two figure.shot { margin: 0; display: grid; grid-template-rows: auto 1fr; }
-/* Not stretched: the window is what sets the row's height, and a stretched
-   img is a distorted one the moment that stops being true. */
-.ways-two figure.shot > img { align-self: start; }
-/* The listing wears the shot's frame rather than standing loose on the stage,
-   so the two halves have the same edges. Its ground stays --code-bg: it is
-   text, and on this site text in a recess is what a listing looks like. */
-.ways-two figure.shot > pre {
-  height: 100%;
-  margin: 0;
-  max-width: none;
-  border: 1px solid var(--frame);
-  border-top: 0;
-  border-radius: 0 0 6px 6px;
-}
-/* Without scripting the two stand under each other, so they need the air
-   between two stages rather than the gap inside one option. */
-.ways-two:not(.is-switched) { gap: 2.6rem; }
-/*
  * ── The three other lectures ──────────────────────────────────────────────
  *
  * Punkt 1. This was the six-column table again, inside the disclosure, with
@@ -2106,59 +1994,8 @@ footer p { max-width: none; }
  * at the same time. Fold it into the sections above when that has landed.
  * ══════════════════════════════════════════════════════════════════════════ */
 
-/*
- * ── The hero buttons on `figures.html` stood in a hole ────────────────────
- *
- * `.hero-col .cta` was pushed down with `margin-top: auto` so that the two
- * hero columns would end on one line. The right column carries a drawing, so
- * the push was 222px against 32px underneath: a ratio of seven to one, and
- * the client's word for it was that the buttons hang in the air. The two
- * columns ending together is worth less than the buttons reading as the end
- * of the sentence above them, so the push is gone and the pair now sits in
- * the page's own rhythm – a step above, a slightly smaller step below.
- */
-.hero-col .cta {
-  margin-top: clamp(1.8rem, 2.6vw, 2.6rem);
-  margin-bottom: clamp(1.4rem, 2vw, 2rem);
-}
-@media (max-width: 63.99rem) {
-  .hero-col .cta { margin-top: clamp(1.2rem, 3vw, 1.8rem); }
-}
 
-/*
- * ── The editor section on `figures.html`: two rows, no sub-heading ────────
- *
- * The picture is followed by two paragraphs about the window and two about
- * opening it, and an h3 used to stand between them. It sat 8px above the
- * first of three columns, so it read as a label for that column rather than
- * for the row, and it cut two halves of one subject apart. The heading is
- * gone (the page carries the note) and what separates the rows is air. The
- * number is set against the 72px above the first row rather than chosen: the
- * two paragraphs belong to the picture over them, so the step down to the
- * two that follow has to be the larger of the two or the block reads as
- * belonging to the picture as well.
- *
- * It was 5.2rem, and 83px against the 72 above it is a difference nobody
- * reads: four paragraphs at one measure, ragged at the foot, with the two
- * seams within 11px of each other, and the block read as one field of text
- * rather than as two rows. At 6.5rem the row seam is 101px at 1440 - 1.4
- * times the seam above it and 59 % of the 172px between two sections, so it
- * separates two rows without pretending to be a section break. This is the
- * only rule in the file with one caller and it stays that way: a second
- * `.pair-up` under a first is this section and nothing else on the site.
- */
-.wrap > .pair-up + .pair-up { margin-top: clamp(2.8rem, 7vw, 6.5rem); }
 
-/*
- * ── A table directly under its heading ────────────────────────────────────
- *
- * Every h2 on the site is followed by 18px of air, which is right for a lede
- * and wrong for a table: a table is looked at rather than read, so it is the
- * same category as a stage, and 18px reads as pressed against the heading.
- * The rule is on the wrapper rather than on the table, because the wrapper is
- * what stands in the flow.
- */
-h2 + .scroller { margin-top: clamp(1.5rem, 3vw, 2.5rem); }
 
 /*
  * ── The packages: one card per system, the alternative as a link ──────────
@@ -2288,87 +2125,8 @@ h2 + .scroller { margin-top: clamp(1.5rem, 3vw, 2.5rem); }
  * The section gap is still the thing that separates two sections; it is now
  * doing the whole job rather than three quarters of it.
  */
-.band:has(> .wrap > .beside.heading-in),
-.band:has(> .wrap > .two-ways) { padding: clamp(4.5rem, 9vw, 11.25rem) 0; }
+.band:has(> .wrap > .beside.heading-in) { padding: clamp(4.5rem, 9vw, 11.25rem) 0; }
 
-/*
- * ── "Getting started" on the front page: the tail beside the picture ──────
- *
- * The one section of the three that is not a `.beside`, and the one where
- * moving the heading alone would have fixed nothing: above the row stand a
- * heading, a lede AND the chooser's tab row, so the hole is not under the
- * heading but under the tabs, and the sentence and the button that follow the
- * band began under it at the frame's left edge with half a screen of nothing
- * above them.
- *
- * The whole section becomes one band instead. Column one is the section
- * itself, top to bottom - heading, lede, tabs, the option's words, and the
- * sentence and button that send a reader to the next page - and column two is
- * the option's picture, spanning the lot. Nothing is left over to hang under
- * anything, and the call to act stands beside the evidence rather than under
- * a hole.
- *
- * What has NOT changed is the thing the arrangement was built for. The two
- * options still lie in one cell and still hide with `visibility`, so the row
- * is as tall as the taller of the two and nothing moves when the switch is
- * pressed; and the tail is still outside every `.way`, so it does not switch
- * and does not belong to one of the two options. It is a child of the row for
- * placement and of neither option for meaning.
- *
- * `display: contents` on the panels is what puts their two halves into the
- * row's own grid, and it is why `visibility` still works: visibility is
- * inherited, so a panel that generates no box of its own still hides its
- * children and still keeps them out of the tab order and the accessibility
- * tree.
- *
- * Two `1fr` rows, above and below the words-and-tail pair, are what centres
- * that pair against the picture. Auto rows would not: a grid item spanning
- * several intrinsic tracks hands its extra height to those tracks, so the
- * space would have opened up BETWEEN the words and the button rather than
- * around them. A flexible track takes the leftover instead and leaves the
- * intrinsic ones at their content height.
- *
- * Gated on `:has(.is-switched)` and on the 80rem breakpoint the arrangement
- * already had. Without scripting, and under 80rem, `.two-ways` is a plain
- * block: the two options stand under each other with their labels, the tail
- * follows them, and the section still says what it came to say.
- */
-.wrap > .two-ways { max-width: none; }
-@media (min-width: 80rem) {
-  .two-ways:has(> .ways-two.is-switched) {
-    display: grid;
-    grid-template-columns: minmax(0, 24rem) minmax(0, 1fr);
-    /* space | heading | lede | tabs | words | tail | space */
-    grid-template-rows: 1fr auto auto auto auto auto 1fr;
-    column-gap: clamp(1.6rem, 3.2vw, 3.8rem);
-    row-gap: 0;
-  }
-  .two-ways:has(> .ways-two.is-switched) > h2 { grid-area: 2 / 1 / 3 / 2; max-width: none; margin-bottom: 0.7rem; }
-  .two-ways:has(> .ways-two.is-switched) > .lede { grid-area: 3 / 1 / 4 / 2; font-size: var(--fs-body); max-width: none; margin-bottom: 1.4rem; }
-  .two-ways:has(> .ways-two.is-switched) > .way-tabs { grid-area: 4 / 1 / 5 / 2; margin-bottom: 1.4rem; }
-  .two-ways:has(> .ways-two.is-switched) > .ways-on { grid-area: 6 / 1 / 7 / 2; margin-top: 1.4rem; }
-  /* The chooser and its panels dissolve into the row; the halves are placed. */
-  .two-ways:has(> .ways-two.is-switched) > .ways-two,
-  .two-ways .ways-two.is-switched .way,
-  .two-ways .ways-two.is-switched .way.is-shown { display: contents; }
-  /* The words row is as tall as the LONGER of the two options, so the shorter
-     one has room to spare in it. Centred, not pinned to the top: the spare
-     room is then a line above and a line below rather than four lines between
-     the paragraph and the button, which is the same hole this whole slice is
-     about, one cell down. */
-  .two-ways .ways-two.is-switched .way > .way-said { grid-area: 5 / 1 / 6 / 2; align-self: center; }
-  .two-ways .ways-two.is-switched .way > .stage { grid-area: 1 / 2 / 8 / 3; align-self: stretch; }
-  /* The words column is now the taller half - it carries the section rather
-     than four lines - so the stage has room to spare under the window, and a
-     picture pinned to the top of a field it does not fill leaves that room on
-     one side only. A field's margin is even (DESIGN.md, fifth rule), so the
-     window is centred in it. The listing is exempt and keeps stretching: it
-     is text in a recess, it fills whatever height it is given, and that is
-     what a terminal looks like anyway. */
-  .two-ways .ways-two.is-switched .way > .stage > figure.shot:not(:has(> pre)) {
-    align-self: center;
-  }
-}
 
 /*
  * ── The same decision one heading level down ──────────────────────────────
