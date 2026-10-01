@@ -122,7 +122,9 @@
     <code class="flag">--watch</code> flag keeps <code>node build.js</code>
     running and rebuilds the lecture whenever you save; the cockpit hands what
     it hears to that running program, and the program asks a language
-    model.</p>
+    model. The desktop app cannot run the prompter: it does not pass
+    <code class="flag">--prompter</code> and has no network permission, so use the
+    command line.</p>
    </div>
    <div>
     <p><strong>The internet and an OpenRouter key.</strong> The model is

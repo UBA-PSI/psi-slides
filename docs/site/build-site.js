@@ -109,7 +109,7 @@ const BAR_TEXT = {
     chair: 'Lehrstuhl für Privatsphäre und Sicherheit in Informationssystemen',
     menu: 'Menü', lang: 'Sprache',
     nav: {
-      home: 'Start', room: 'Im Raum', decoration: 'Dekoration',
+      home: 'Start', room: 'Im Hörsaal', decoration: 'Dekoration',
       figures: 'Abbildungen', start: 'Loslegen', comparison: 'Vergleich',
     },
   },
@@ -135,7 +135,7 @@ const BAR_TEXT = {
  *             out until then: an entry that 404s is worse than one that is
  *             missing. PSI_SITE_NAV_ALL=1 renders the pending rows anyway,
  *             which is how the bar's breakpoints were measured against the
- *             full six entries rather than against today's five.
+ *             full six entries rather than against five.
  *
  * Every row now names a page of its own. Two of them did not: `start` and
  * `decoration` pointed at sections of the home page until those sections were

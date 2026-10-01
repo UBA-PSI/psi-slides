@@ -70,6 +70,14 @@
     <p class="cue">The two talk over the browser&rsquo;s own message channel,
     between the window that opened and the one it opened. No server, no port, no
     pairing code &ndash; and so it works from a file on a stick.</p>
+    <p class="cue">Before the talk starts, the projection carries a small start
+    menu: <b>Fullscreen</b>, <b>Speaker cockpit</b> and <b>Print view</b>, each
+    with its key, so the first three things you do need no key list. It opens
+    by itself only before the talk starts and goes away with the first press;
+    <kbd>&lsaquo;</kbd> puts it away earlier, and a <kbd>&rsaquo;</kbd> beside the
+    <kbd>?</kbd> circle opens it again. <kbd>W</kbd> makes the projection fullscreen. The browser
+    grants that only to a click in the window itself, so the projection asks
+    for one click; <kbd>Esc</kbd> leaves.</p>
    </div>
    <div class="stage">
     <figure class="shot">
@@ -326,13 +334,14 @@ where the rest of the hour is going to be spent.
     <p class="cue">With <kbd>O</kbd> you lay the whole lecture out as a board,
     in both windows at once, so the room searches with you rather than watching
     you scroll. The search on <kbd>/</kbd> stays in the cockpit until you pick a
-    hit.</p>
+    hit. If someone asks for slide 23, <kbd>G</kbd>, the digits from the
+    corner of the slide and <kbd>Enter</kbd> land there.</p>
    </div>
    <div class="stage">
     <div class="stage-pair">
      <figure class="shot">
       <div class="bar"><b>audience.html</b> &middot; O</div>
-      <img src="img/overview.webp" alt="The overview board: the whole 36-slide lecture laid out as a grid of readable slides, with the current one outlined.">
+      <img src="img/overview.webp" alt="The overview board: the whole 39-slide lecture laid out as a grid of readable slides, with the current one outlined.">
       <figcaption><strong>The whole lecture at once.</strong> Not thumbnails
       &ndash; the real slides, still legible. Drag to move around the board,
       <kbd>Enter</kbd> opens the one you picked.</figcaption>
@@ -504,8 +513,10 @@ where the rest of the hour is going to be spent.
     becomes a still of its first frame, a YouTube or Vimeo video a card with
     the provider's name, the address beneath it. The cockpit and your notes are not in the file.</p>
     <p class="cue">On the command line it is
-    <code class="flag">--slides-pdf</code>, which needs Chrome on the machine,
-    and <code class="flag">--print-pdf</code> and
+    <code class="flag">--slides-pdf</code>, which needs a Chromium: the one
+    <code>npm install</code> normally provides, else <code>$PSI_CHROME</code> or
+    a system Chrome. The app needs none of that, because it prints with its own
+    Chromium. And <code class="flag">--print-pdf</code> and
     <code class="flag">--print-notes-pdf</code> write the two handouts as A4
     PDFs. In the app all three are under <b>Export as PDF&hellip;</b>.</p>
    </div>
