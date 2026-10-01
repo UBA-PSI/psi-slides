@@ -93,70 +93,74 @@ Ground rules for every slice:
 
 ### F5 – Tutorial: statements that are false now
 
-`[ ]` on hold – the other session’s `npm test` builds these sources in place
+`[x]` lec-f5 – 483e6fbe (views not yet rebuilt)
 
-- [ ] ✓ `:1455` `{middle}` / `{top}` → `{.middle}` / `{.top}` (bare form refused).
-- [ ] ✓ `:1752`, `:1784`, `:1790` „seven frontmatter keys“ / nine shown / „the
+- [x] ✓ `:1455` `{middle}` / `{top}` → `{.middle}` / `{.top}` (bare form refused).
+- [x] ✓ `:1752`, `:1784`, `:1790` „seven frontmatter keys“ / nine shown / „the
       six above“ – there are eleven; `transition:` and `reader:` missing.
-- [ ] `:160` the expand chip shows the author's label now (abbreviation only as
+- [x] `:160` the expand chip shows the author's label now (abbreviation only as
       fallback) – so the slug labels (`digits-and-chevrons`, …) reach the
       projection as typed. Fix the text and give the expansions readable labels.
-- [ ] `:1336`, `:1342` overlay „three slots“, „every one is a card“ – five
+- [x] `:1336`, `:1342` overlay „three slots“, „every one is a card“ – five
       slots, `{.panel}` is not a card.
-- [ ] `:1591`, `:1595` „one of the five“ fonts – nine (as `:1564` says).
-- [ ] `:1564`, `:1586` three font roles – four; `display` never mentioned.
-- [ ] `:484`, `:1764` `slide-numbers` default changed to horizontal – say so.
-- [ ] `:564` „the label above it always reads NOTE“ – not under `labels:` or `lang: de`.
-- [ ] `:1748` only `--slides-pdf`; add `--print-pdf`, `--print-notes-pdf`, the app.
-- [ ] `:43` „Those are all of them“ (terms) – false; „beat“ never defined.
+- [x] `:1591`, `:1595` „one of the five“ fonts – nine (as `:1564` says).
+- [x] `:1564`, `:1586` three font roles – four; `display` never mentioned.
+- [x] `:484`, `:1764` `slide-numbers` default changed to horizontal – say so.
+- [x] `:564` „the label above it always reads NOTE“ – not under `labels:` or `lang: de`.
+- [x] `:1748` only `--slides-pdf`; add `--print-pdf`, `--print-notes-pdf`, the app.
+- [x] `:43` „Those are all of them“ (terms) – false; „beat“ never defined.
 
 ### F6 – Other lectures: statements that are false now
 
-`[ ]` on hold – the other session’s `npm test` builds these sources in place
+`[x]` lec-f6 – 8877e68f (views not yet rebuilt; CHANGELOG.md:1178 still open)
 
-- [ ] ✓ `diagrams:392`, `:1227` „seventeen statements, and no more“ –
+- [x] ✓ `diagrams:392`, `:1227` „seventeen statements, and no more“ –
       `DG_KEYWORDS` has 20 (`zone`, `row`, `col`).
-- [ ] `diagrams:805` „Six statements expand at parse time“ – seven.
-- [ ] `diagrams:3` subtitle „Six real lecture slides“ on a 42-chunk catalogue;
+- [x] `diagrams:805` „Six statements expand at parse time“ – seven.
+- [x] `diagrams:3` subtitle „Six real lecture slides“ on a 42-chunk catalogue;
       `:669`, `:1158` history framing.
-- [ ] `decoration:87` „Three keys the cover reads“ omits `cover-ground:`, `closing-image:`.
-- [ ] `decoration:119–121` closing slide carries no presenter line – contradicted
+- [x] `decoration:87` „Three keys the cover reads“ omits `cover-ground:`, `closing-image:`.
+- [x] `decoration:119–121` closing slide carries no presenter line – contradicted
       by `closing-credits:`, which the deck sets itself (line 8).
-- [ ] `decoration:524` vs `:591` five vs six grounds.
-- [ ] `decoration` closing slide is a compatibility promise, not a close.
-- [ ] `decoration:586` „Merke:“ in an English deck; spaced hyphens as dashes
+- [x] `decoration:524` vs `:591` five vs six grounds.
+- [x] `decoration` closing slide is a compatibility promise, not a close.
+- [x] `decoration:586` „Merke:“ in an English deck; spaced hyphens as dashes
       (`:379`, `:430`, `:431`, `:521`, `:534`, `:573`, `:643`).
-- [ ] `display-face:69` points at `tools/font-playground/` instead of
+- [x] `display-face:69` points at `tools/font-playground/` instead of
       `display-faces.html`; `:46–48` „byte for byte“.
-- [ ] `network-security` frontmatter subtitle vs title chunk (`:17`) disagree.
-- [ ] `frame-lab`: English title, German body, no `lang:`; CHANGELOG.md:1178
+- [x] `network-security` frontmatter subtitle vs title chunk (`:17`) disagree.
+- [x] `frame-lab`: English title, German body, no `lang:`; CHANGELOG.md:1178
       calls it untracked (it is tracked).
 
 ## Phase 2 – structure
 
 ### S1 – Figures: one page instead of two
 
-`[~]` site-s1 (Opus)
+`[x]` site-s1 – f26cbd7c, links in 5e4d0f3c and the in-the-room/decoration commit, docs 0a487ea2
 
-- [ ] `figures.html` and `figures-you-write.html` share a title and open with the
+- [x] `figures.html` and `figures-you-write.html` share a title and open with the
       same figure; the manual has no top bar. Merge the case into the head of
       the manual, one bar entry, top bar on it. Both pages come out of
       `docs/artifact/refresh-figures.mjs`; its `--check` must stay green.
 
 ### S2 – Landing page and getting started
 
-- [ ] Hero: a two-line „Start here“ – no terminal → app, *New lecture…*; see it
+`[x]` site-s2 – 5e4d0f3c · site-cmp – f8d325d9 · polish (hero fold, details style, unused CSS, DESIGN.md) `[~]` site-polish (Opus)
+
+- [x] Hero: a two-line „Start here“ – no terminal → app, *New lecture…*; see it
       first → the tutorial („a lecture about writing lectures“). Links straight
       to `getting-started.html#app` and the tutorial's `audience.html`.
-- [ ] Drop the getting-started teaser band and the figure source listing from
+- [x] Drop the getting-started teaser band and the figure source listing from
       `index`; move „Open the lectures yourself“ up, tutorial first.
-- [ ] `getting-started`: app first, ending in „your first lecture“ (*New
+- [x] `getting-started`: app first, ending in „your first lecture“ (*New
       lecture…*, Help ▸ How to write a lecture, the release ZIP with built
       examples); then the command line; „Versions“ to one line at the foot.
-- [ ] `comparison`: fold „Dimension by dimension“ and „Tool by tool“ into
+- [x] `comparison`: fold „Dimension by dimension“ and „Tool by tool“ into
       `<details>`.
 
 ### S3 – Tutorial: basics in the tutorial, advanced into the reference decks
+
+`[~]` lec-s3 (Opus)
 
 - [ ] `lectures/tutorial` keeps the basics (~55 chunks: welcome, moving,
       finding, on-screen, vocabulary, cockpit, layouts, craft, next) plus a 3–4
@@ -177,7 +181,7 @@ Ground rules for every slice:
 
 ### S4 – Lectures nobody explains
 
-- [ ] `demo-deco` → test fixture (it is a coverage probe). `demo-tracking`,
+- [ ] **Decided: move all three demo-* decks under `test/`** (update pages.yml). `demo-deco` → test fixture (it is a coverage probe). `demo-tracking`,
       `demo-responsibility`: document as corpus decks or move beside the
       fixtures; fix or accept their 15 canvas warnings; `pages.yml:76–82` builds
       them. **Decision for the maintainer.**
@@ -186,18 +190,20 @@ Ground rules for every slice:
 
 ## Phase 3 – prose passes (prose-passes skill, EN + DE together)
 
+`[x]` site-p3 – b58c4016 (in-the-room, decoration, prompter) · index + getting-started in 5e4d0f3c
+
 Audience: lecturers and teaching staff, many not developers. Run after Phase 2
 on the pages as they then stand.
 
-- [ ] `index` – lede says „Four HTML files“ before saying what a lecturer gets;
+- [x] `index` – lede says „Four HTML files“ before saying what a lecturer gets;
       „source“, „projection“ unglossed; riddle at `:116`; caption rationale
       `:282–286`; `:90–92`; `file://` as reassurance `:547–556`.
-- [ ] `in-the-room` – `:33–39`, `:101–104`, `:188–199` (lede before `K`),
+- [x] `in-the-room` – `:33–39`, `:101–104`, `:188–199` (lede before `K`),
       `:293–297` (six facts in one lede), `:323–329` contradiction.
-- [ ] `getting-started` – `:41–44`, `:54–59`, `:163–169`, `:384–386`, `:440–446`.
-- [ ] `decoration` – `:188–190`, `:209–211`, `:304–305`; „deck“ → „lecture“.
-- [ ] Figures page (merged) – `figures.html:850`, `:862`.
-- [ ] `comparison` – `:42`, `:44` universal claims.
+- [x] `getting-started` – `:41–44`, `:54–59`, `:163–169`, `:384–386`, `:440–446`.
+- [x] `decoration` – `:188–190`, `:209–211`, `:304–305`; „deck“ → „lecture“.
+- [x] Figures page (merged) – `figures.html:850`, `:862`.
+- [x] `comparison` – `:42`, `:44` universal claims.
 - [ ] Tutorial (basics) – cover slide explains its own composition; `:147`
       cockpit deferred; `:270`, `:322–324`, `:541` engine detail in first lessons;
       `:363`, `:1506`, `:1631`, `:1746` changelog asides; `:609`, `:665–667`
@@ -208,6 +214,10 @@ on the pages as they then stand.
 - [ ] Credits: one scheme across the decks (`presenter:` + `affiliation:`).
 
 ## Phase 4 – close
+
+- [ ] `comparison`'s details: a `summary` style in `site.css` (it is the
+      browser default now) and open the block a `#fragment` names (`site.js`,
+      on load and `hashchange`). After site-s1, which may touch `site.css`.
 
 - [ ] Top bar at its breakpoints: the DE entry is now „Im Hörsaal“ (was „Im
       Raum“) – check it does not wrap (`PSI_SITE_NAV_ALL`, DESIGN.md).
