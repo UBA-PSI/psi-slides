@@ -71,7 +71,7 @@ knows the cue-card grammar, and this keeps it that way.
 | `--prompter-replay FILE` | no watcher, no browser, no renderer, no network: read a finished run's `prompter-*.jsonl` back through **today's** parser and **today's** policy and print, per answer, what the model proposed and what the policy would do with it now. `node build.js <source.md> --prompter-replay prompter-20260911-1015.jsonl`. It is how a threshold gets changed with evidence rather than by feel; the pure half is `replayAnswers` in `souffleuse.mjs` |
 | `OPENROUTER_API_KEY` | required. Without it the sidecar starts `disabled`: nothing is sent, the console says so once, a `hello` says so, the badge says so – and the transcript is still logged, because a missing key is not a reason to lose the debrief. **A key that is not printable ASCII (`SOUFFLEUSE_KEY_RE`, `/^[\x21-\x7e]+$/`) is refused the same way**, in words that do not contain it, and never put into a header: one with a line break in it made undici throw an error quoting the header, and the key went to the log, the terminal, the badge and `--events`. Beyond that, **every string the sidecar writes anywhere goes through `redact`** – `log`, `emit`, `sendToCockpit` and `logLine` are wrapped at the top of `createSouffleuse`, so an endpoint that echoes the request cannot put the key on a badge either |
 | `OPENROUTER_BASE_URL` | another OpenAI-compatible endpoint, default `https://openrouter.ai/api/v1`. This is how the spec's fake OpenRouter is reached. One that is not `https` and not loopback is warned about at start: the deck, the transcript and the key would cross the network in the clear |
-| `PSI_PROMPTER_FREE_CLOCK=1` | **test-only.** Turns off `clampSpan` (see *The tick scheduler*), because `test/souffleuse.mjs` moves the cockpit's clock by hand and every compressed minute would otherwise count as two seconds. Read from the environment only, so no page can throw it |
+| `PSI_PROMPTER_FREE_CLOCK=1` | **test-only.** Turns off `clampSpan` and `shouldTick`'s `wallSince` (see *The tick scheduler*), because `test/souffleuse.mjs` moves the cockpit's clock by hand and every compressed minute would otherwise count as two seconds. Read from the environment only, so no page can throw it |
 
 Frontmatter, nested like `style:`; `SOUFFLEUSE_SPEC` is the table and the bounds
 are the build's:
@@ -215,6 +215,8 @@ every `move`:
 
 - A **slide** occasion on a changed `idx`, at the earliest 8 s after the last
   tick – paging through three slides to reach one is not three occasions.
+  **The 8 s are the sidecar's wall seconds** (`wallSince`, below), not the
+  cockpit's.
 - A **speech** occasion when the speech seconds since the last tick reach
   `cadence` **and** at least 8 new words arrived. Silence is never an occasion,
   and the seconds are seconds of speech (`t1 - t0` per segment), not wall
@@ -252,7 +254,20 @@ every `move`:
   `souffleuse.mjs`) moves a segment's `t0` up so that `t1 - t0` is no more
   than the wall seconds since the segment before it arrived plus
   `SOUFFLEUSE_SPAN_SLACK_S` (2 s); `lastSayWall` is re-stamped by every `say`
-  and every `hello`. A segment is also cut to `SEGMENT_MAX_CHARS` (2,000, the
+  and every `hello`. **That is per message, and a flood of messages was a
+  flood of slack**: a page with the nonce stamping every move eight cockpit
+  seconds after the last and every say with a second of speech had 78 calls in
+  20 s out of a dry run. So `shouldTick` also takes `wallSince` – the wall
+  seconds since the count started (`sinceTick.wall`, re-stamped by every tick,
+  the switch and a rebase) – and with it the slide floor is measured on that,
+  and the speech credited since the last call is held to it plus the slack
+  *once*. Left out (`--prompter-replay`, which has no wall clock), both rules
+  read the cockpit's clock as before; `PSI_PROMPTER_FREE_CLOCK=1` leaves it
+  out too. **Every id or name a page sends is cut before it is logged**:
+  `pageString` holds a chunk id, a hint id, a dismissal's `how` and the
+  recogniser's name to `SOUFFLEUSE_ID_MAX` (200) and a `lang` to
+  `SOUFFLEUSE_LANG_MAX` (35) – a hundred kilobytes in a `dismiss` used to be a
+  hundred kilobytes on a line of the debrief. A segment is also cut to `SEGMENT_MAX_CHARS` (2,000, the
   newest characters) on arrival, and `windowOf` cuts the newest segment of a
   window to the window's words and to the same character count, marked `… `
   – it used to keep that one whole, and a security review had a megabyte in

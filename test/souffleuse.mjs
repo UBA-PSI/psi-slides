@@ -1304,6 +1304,55 @@ export async function run({ page, report }) {
         return /the words of a dry run reach the log/.test(text) ? text : null;
       }, 8000);
       ok(!!dryLog, 'and what it heard reaches the sidecar\'s log');
+
+      // ── a page with the nonce, flooding ───────────────────────────
+      // A security review stamped every move eight seconds after the last and
+      // every say with a second of speech, and had 78 calls in 20 s out of a
+      // dry run; and a hundred kilobytes in a dismiss was a hundred kilobytes
+      // on a line of the log. This engine runs on the wall clock (no
+      // PSI_PROMPTER_FREE_CLOCK), which is what both answers are measured on.
+      const dryHtml = fs.readFileSync(path.join(dryDir, 'speaker.html'), 'utf8');
+      const dryPort = Number((dryHtml.match(/ws:\/\/127\.0\.0\.1:(\d+)/) || [])[1]);
+      const dryNonce = (dryHtml.match(/nonce: "([0-9a-f]+)"/) || [])[1];
+      const flood = new WebSocket('ws://127.0.0.1:' + dryPort, { headers: { Origin: 'null' } });
+      await new Promise((r) => { flood.on('open', r); flood.on('error', r); });
+      let seq = 0;
+      const waiting = new Map();
+      flood.on('message', (d) => {
+        let m = null;
+        try { m = JSON.parse(String(d)); } catch (e) { return; }
+        if (m && waiting.has(m.id)) { waiting.get(m.id)(m); waiting.delete(m.id); }
+      });
+      const ask = (m) => new Promise((r) => {
+        const i = 'flood' + (++seq);
+        waiting.set(i, r);
+        flood.send(JSON.stringify({ ...m, id: i, nonce: dryNonce }));
+        setTimeout(() => r(null), 3000);
+      });
+      const huge = 'X'.repeat(100000);
+      const dryLogName = fs.readdirSync(dryDir).filter((f) => /^prompter-.*\.jsonl$/.test(f)).pop();
+      const ticksSoFar = () => fs.readFileSync(path.join(dryDir, dryLogName), 'utf8')
+        .split('\n').filter((l) => l.includes('"type":"tick"')).length;
+      const before = ticksSoFar();
+      await ask({ type: 'souffleuse-hello', stt: { engine: huge, local: true }, lang: huge });
+      let el = 5000;
+      for (let k = 0; k < 30; k++) {
+        el += 10;
+        await ask({ type: 'souffleuse-move', idx: k % 4, beat: 0, elapsed: el, chunkId: huge });
+        await ask({ type: 'souffleuse-say', text: 'one two three four five six seven eight nine ten',
+          t0: el - 1, t1: el, idx: k % 4, chunkId: huge });
+        await ask({ type: 'souffleuse-dismiss', hintId: huge, how: huge });
+      }
+      const floodTicks = ticksSoFar() - before;
+      ok(floodTicks <= 1,
+         'thirty moves eight cockpit seconds apart, sent within a second or two, buy one call at most',
+         floodTicks);
+      const runs = (fs.readFileSync(path.join(dryDir, dryLogName), 'utf8').match(/X+/g) || [])
+        .map((r) => r.length);
+      const longest = Math.max(0, ...runs);
+      ok(longest > 0 && longest <= 200,
+         'and an id, a name or a language tag a page sends reaches the log cut to 200 characters', longest);
+      flood.close();
     }
     ok(errs.length === 0, 'no page errors in the pages opened since', errs.join(' | '));
 

@@ -1158,10 +1158,21 @@ export function rebaseClock({
  */
 export function shouldTick({
   now, lastTickAt, lastTickReason, speechSecondsSince, newWordsSince,
-  cadence, slideChanged, inflight,
+  cadence, slideChanged, inflight, wallSince, slack = 2,
 } = {}) {
   const t = num(now, 0);
   const last = lastTickAt == null ? null : num(lastTickAt, 0);
+  // `wallSince` is the sidecar's own clock: seconds since the last call, or
+  // since the switch was thrown if there has been none. Both numbers below
+  // are otherwise counted on the cockpit's clock, which the page owns – a
+  // page that stamps every move eight seconds later than the one before, and
+  // every say with a second of speech, earned a call per message (78 in 20 s
+  // in a dry run). So with it, the slide floor is eight seconds that passed
+  // here, and the speech credited since the last call is held to the seconds
+  // that passed here plus `slack` once – `clampSpan` per message allowed the
+  // slack per message, and a flood of messages is a flood of slack. Left out
+  // (a replay, which has no wall clock), both rules read the cockpit's.
+  const wall = wallSince == null || !isFinite(Number(wallSince)) ? null : Math.max(0, Number(wallSince));
   // A clock that has gone backwards is a *new* clock, not a tick in the
   // future. The cockpit's timer restarts with the page, and a --watch rebuild
   // reloads the page on every save, so `now - last` goes negative there – and
@@ -1170,11 +1181,13 @@ export function shouldTick({
   // this is the same rule seen from inside, so that neither half depends on
   // the other having noticed.
   const raw = last == null ? Infinity : t - last;
-  const since = raw < 0 ? Infinity : raw;
+  const since = last == null ? Infinity : wall != null ? wall : raw < 0 ? Infinity : raw;
   const cad = num(cadence, 25);
+  const speech = wall == null ? num(speechSecondsSince, 0)
+    : Math.min(num(speechSecondsSince, 0), wall + Math.max(0, num(slack, 0)));
   let reason = null;
   if (slideChanged && since >= 8) reason = 'slide';
-  else if (num(speechSecondsSince, 0) >= cad && num(newWordsSince, 0) >= 8) reason = 'speech';
+  else if (speech >= cad && num(newWordsSince, 0) >= 8) reason = 'speech';
 
   if (inflight) {
     const pending = String(lastTickReason || '') === 'slide' && reason !== 'slide'

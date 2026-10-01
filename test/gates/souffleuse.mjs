@@ -539,6 +539,25 @@ export async function run({ report }) {
      'a clock that went backwards is a new clock, not a tick in the future', j(t));
   ok(shouldTick({ now: 3, lastTickAt: 400, speechSecondsSince: 25, newWordsSince: 8, cadence: 25 }).tick === true,
      'and the speech occasion behind it is not lost either');
+  // A page with the nonce owns the cockpit's clock: it stamped every move
+  // eight seconds after the last and every say with a second of speech, and
+  // earned a call per message – 78 in 20 s in a dry run. With the sidecar's
+  // own seconds handed in, both rules are measured on those.
+  t = shouldTick({ now: 900, lastTickAt: 100, slideChanged: true, cadence: 25, wallSince: 1 });
+  ok(t.tick === false,
+     'the slide floor is eight seconds on the sidecar\'s clock, whatever the cockpit\'s says', j(t));
+  t = shouldTick({ now: 900, lastTickAt: 100, slideChanged: true, cadence: 25, wallSince: 8 });
+  ok(t.tick === true && t.reason === 'slide', 'and eight of them that passed are enough', j(t));
+  t = shouldTick({ now: 900, lastTickAt: 100, speechSecondsSince: 60, newWordsSince: 400, cadence: 25, wallSince: 5, slack: 2 });
+  ok(t.tick === false,
+     'speech credited since the last call is held to the wall seconds since it, plus the slack once', j(t));
+  t = shouldTick({ now: 900, lastTickAt: 100, speechSecondsSince: 60, newWordsSince: 400, cadence: 25, wallSince: 23, slack: 2 });
+  ok(t.tick === true && t.reason === 'speech', 'and a cadence that passed on that clock is an occasion', j(t));
+  t = shouldTick({ now: 3, lastTickAt: 400, slideChanged: true, cadence: 25, wallSince: 2 });
+  ok(t.tick === false,
+     'a cockpit clock that went backwards buys no slide call inside the wall floor either', j(t));
+  ok(shouldTick({ now: 900, lastTickAt: null, slideChanged: true, cadence: 25, wallSince: 0 }).tick === true,
+     'the first call still has no last call to wait for');
 
   // ── the clock going backwards ────────────────────────────────────
   ok(rebaseClock({ prev: 300, next: 299 }) === null && rebaseClock({ prev: 300, next: 300 }) === null,

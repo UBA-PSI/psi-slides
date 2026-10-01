@@ -28622,6 +28622,15 @@ const SOUFFLEUSE_KEY_RE = /^[\x21-\x7e]+$/;
 // recogniser's stamps are the cockpit's clock, which the page controls; this
 // is the slack for two messages crossing a socket.
 const SOUFFLEUSE_SPAN_SLACK_S = 2;
+// The longest id, name or word a page may put into the log: a chunk id, a
+// hint id, how a hint was sent away, the recogniser's name. Every string a
+// cockpit sends is the page's to choose, and a hundred kilobytes in a
+// `dismiss` was a hundred kilobytes on every line of the debrief. The heard
+// words have their own cap, SEGMENT_MAX_CHARS; a language tag is shorter
+// still (BCP 47 allows 35).
+const SOUFFLEUSE_ID_MAX = 200;
+const SOUFFLEUSE_LANG_MAX = 35;
+const pageString = (v, max = SOUFFLEUSE_ID_MAX) => String(v == null ? '' : v).slice(0, max);
 // 30 s, 60 s, then two minutes, and after five in a row the sidecar gives up
 // for this build. A prompter that keeps retrying through a talk is a prompter
 // that spends the speaker's bandwidth on nothing.
@@ -28777,7 +28786,10 @@ async function createSouffleuse({
   const transcript = [];
   const hints = [];           // what went to the strip, newest last
   const cues = [];
-  let sinceTick = { seconds: 0, words: 0 };
+  // What has been said since the last call, and when (on this machine's
+  // clock) the count started: the wall seconds the credited speech and the
+  // slide floor are held to (`shouldTick`'s `wallSince`).
+  let sinceTick = { seconds: 0, words: 0, wall: Date.now() };
   let lastTickAt = null;
   let lastTickReason = null;
   let slideChanged = false;
@@ -28965,7 +28977,7 @@ async function createSouffleuse({
       cursor.beats = Math.max(0, Math.round(Number(msg.beats)));
     }
     cursor.chunkId = (deck && deck.chunks[idx] && deck.chunks[idx].id)
-      || (msg.chunkId == null ? cursor.chunkId : String(msg.chunkId));
+      || (msg.chunkId == null ? cursor.chunkId : pageString(msg.chunkId));
     if (elapsed != null && isFinite(Number(elapsed))) {
       const next = Math.max(0, Number(elapsed));
       // The cockpit's clock went backwards: its page reloaded, which a --watch
@@ -28982,7 +28994,7 @@ async function createSouffleuse({
         onAtElapsed = jump.onAt;
         lastTickAt = jump.lastTickAt;
         transcript.splice(0, transcript.length, ...jump.transcript);
-        sinceTick = { seconds: 0, words: 0 };
+        sinceTick = { seconds: 0, words: 0, wall: Date.now() };
         if (lastTimeHint) lastTimeHint = { ...lastTimeHint, at: lastTimeHint.at + jump.delta };
         // And everything else stamped on the clock that died. The policy keeps
         // four timestamps of its own, and moving the transcript without them
@@ -29024,8 +29036,8 @@ async function createSouffleuse({
   // and calling a model for a cockpit whose switch was off.
   function hello(msg, reply) {
     stt = msg.stt && typeof msg.stt === 'object'
-      ? { engine: String(msg.stt.engine || ''), local: !!msg.stt.local } : null;
-    if (msg.lang) lang = String(msg.lang) || lang;
+      ? { engine: pageString(msg.stt.engine || ''), local: !!msg.stt.local } : null;
+    if (msg.lang) lang = pageString(msg.lang, SOUFFLEUSE_LANG_MAX) || lang;
     // The cockpit's clock is stamped here, before anything reads it. Until a
     // cockpit says hello there is no talk and no clock, and `wallAt` from the
     // moment the watcher started would otherwise make nowElapsed() count the
@@ -29118,7 +29130,7 @@ async function createSouffleuse({
     setCursor(msg, msg.elapsed, true);
     logLine('move', {
       idx: cursor.idx, chunkId: cursor.chunkId,
-      sentId: msg.chunkId == null ? null : String(msg.chunkId),
+      sentId: msg.chunkId == null ? null : pageString(msg.chunkId),
       beat: cursor.beat, elapsed: cursor.elapsed,
     });
     reply(true, '');
@@ -29126,8 +29138,8 @@ async function createSouffleuse({
   }
 
   function dismissed(msg, reply) {
-    const id = String(msg.hintId == null ? '' : msg.hintId);
-    const how = String(msg.how == null ? '' : msg.how);
+    const id = pageString(msg.hintId);
+    const how = pageString(msg.how);
     if (policy) policy.dismissed(id);
     // The prompt shows dismissed hints with a ✕ precisely because they are
     // the ones that must not come back in other words.
@@ -29179,7 +29191,7 @@ async function createSouffleuse({
       // the talk: switching the prompter on in the middle still buys the
       // speaker a minute to find the room.
       onAtElapsed = nowElapsed();
-      sinceTick = { seconds: 0, words: 0 };
+      sinceTick = { seconds: 0, words: 0, wall: Date.now() };
       status('listening');
     } else if (!want && on) {
       on = false;
@@ -29240,6 +29252,12 @@ async function createSouffleuse({
       speechSecondsSince: sinceTick.seconds,
       newWordsSince: sinceTick.words,
       cadence, slideChanged, inflight: !!inflight,
+      // The sidecar's own seconds since the count started. The cockpit's clock
+      // is the page's to set, and on it alone a page with the nonce earned a
+      // call per message. Only the test that moves that clock by hand
+      // turns it off, with the switch `clampSpan` answers to.
+      wallSince: freeClock ? null : (Date.now() - sinceTick.wall) / 1000,
+      slack: SOUFFLEUSE_SPAN_SLACK_S,
     });
     if (!d.tick) {
       // An occasion that arrived while a call was out is not lost, it is
@@ -29293,7 +29311,7 @@ async function createSouffleuse({
     const message = souff.tickMessage(session);
     lastTickAt = elapsed;
     lastTickReason = reason;
-    sinceTick = { seconds: 0, words: 0 };
+    sinceTick = { seconds: 0, words: 0, wall: Date.now() };
     slideChanged = false;
     pendingReason = null;
     // The user message, never the prefix: the prefix is the same 20 to 60 KB

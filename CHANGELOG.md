@@ -203,6 +203,17 @@ tag:
   linter as a pre-commit gate while `node build.js` refused it. An error is
   now reported whatever the comment says. No lecture in this repository or
   in the content repository ignores an error.
+- **The live prompter's call rate is measured on the computer's own clock.**
+  A page holding the cockpit's token could stamp each slide change eight
+  seconds after the last and each sentence with a second of speech, and got
+  a call to the model per message: 78 in 20 seconds in a dry run, bounded
+  only by `calls-per-hour`. The eight seconds between two slide calls and the
+  speech counted towards `cadence` are now held to the seconds that actually
+  passed in `node build.js`.
+- **What a page sends the prompter reaches its log cut short.** A slide id,
+  a hint id, how a hint was sent away and the name of the speech recogniser
+  are cut to 200 characters, a language tag to 35; one message used to put a
+  hundred kilobytes on a line of `prompter-*.jsonl`.
 
 ### Added
 
