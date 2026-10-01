@@ -46,7 +46,7 @@ edge eve -> bob "plaintext"
 ## figure: the picture the site opens with {.full #sitehero}
 
 ::: draw 150x38
-# The figure at the top of docs/site/figures.html. Encapsulation drawn as what
+# The figure at the top of the figures page. Encapsulation drawn as what
 # it is - each layer wrapping the one before it - rather than as a stack of
 # four bars, which is the same fact drawn as a list.
 # It opens finished and the beats walk outwards through it, one header at a

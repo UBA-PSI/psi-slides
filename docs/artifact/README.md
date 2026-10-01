@@ -1,9 +1,12 @@
 # figures-you-write.html
 
-A standalone page that teaches `::: draw`, the figure language described in
-CLAUDE.md under *Animated infographics*. Open it in a browser; it needs no
-server and fetches nothing at all &ndash; the three typefaces are embedded as
-`data:` URIs, which is what the last row below is about.
+The page about `::: draw`, the figure language described in CLAUDE.md under
+*Animated infographics*: the case for the language first, then the manual that
+teaches it. The project site publishes it as `figures.html`, the bar's
+*Figures* entry. Open the file here in a browser and it works the same, minus
+the site's bar; it needs no server and fetches nothing at all &ndash; the three
+typefaces are embedded as `data:` URIs, which is what the last row below is
+about.
 
 It is written by hand, but several regions of it are produced by a script and
 must not be edited in the HTML.
@@ -12,21 +15,24 @@ must not be edited in the HTML.
 
 | | |
 |---|---|
-| `figures-you-write.html` | the manual: the page that teaches the language from nothing |
-| `figure-rules/source.md` | a psi-slides lecture whose only job is to be compiled: every figure both pages draw with, including five that step |
-| `demo-controls.js` | the arrows, the beat rail and the play button under a stepped figure. Inlined into both pages, because two copies of it is how their controls come to disagree |
-| `refresh-figures.mjs` | rebuilds that lecture and puts every generated region back into **both** pages |
+| `figures-you-write.html` | the page: the case for the language, then the manual that teaches it from nothing |
+| `figure-rules/source.md` | a psi-slides lecture whose only job is to be compiled: every figure the page draws with, including six that step |
+| `demo-controls.js` | the arrows, the beat rail and the play button under a stepped figure, and the autoplay of the figure at the top. Inlined by the script |
+| `refresh-figures.mjs` | rebuilds that lecture and puts every generated region back into the page |
 
-The second page is `docs/site/figures.html`, on the project site: the *case*
-for the language rather than the manual for it, drawing three of the same
-figures. This script writes it too, and `--check` covers both.
+**The page has been two pages and is one again.** The case (`docs/site/figures.html`)
+and the manual stood apart for a while: one page had put `start here` 1,562
+words in, behind a manifesto. The split gave the site two pages with one title
+that opened on the same seven-line figure, and the manual no site bar. Merged,
+the case is the masthead and one section, *Four design principles* (`#why`),
+directly under the contents, and `#first-figure` is still where learning
+starts. Every section id of the manual survived, and the site's old
+`figures-you-write.html` forwards to `figures.html` with its fragment.
 
-**They were one page, and it did neither job well.** Its own eyebrow put
-`start here` on the **second** section, 1,562 words in, and a reader who wanted
-to learn walked through a manifesto naming all nine step verbs before meeting a
-`box`. Splitting them put `start here` first and cut those 1,562 words to 306.
-The case ends by sending the reader here, which is why `build-site.js` copies
-this page into the published site.
+`docs/site/build-site.js` publishes the file as `figures.html`: it drops the
+`../site/` step from every link, copies the bar's rules out of `site.css` into
+the head, and puts the bar in at the `<!--topbar-->` marker. Off disk that
+marker is a comment and the page loads nothing.
 
 ## What the script owns
 
@@ -56,12 +62,14 @@ It replaces, keyed by markers in the HTML:
 - **Five figures that step** &ndash; drawing, per-beat geometry, the list of
   beat names under it and its listing, from an `--audience-only` build, which
   is the only pass that emits the geometry. `#follow`, which opens the step
-  section here and carries the argument on the site page, is the only one whose
+  section here, is the only one whose
   listing is stripped of its comments: it has to
   show the *shape* of a stepped block &ndash; the cast at the top, the beats
   underneath, one blank line between &ndash; and six lines of commentary sitting
   in that blank line hide it. Its prose on the page quotes measured pixel
   widths, so re-measure them if the figure's geometry changes.
+- **The figure at the top**, `#sitehero`, with its beats and no listing, from
+  the same live build. It plays itself.
 - **Fifteen gallery figures**, their fifteen listings and their fifteen beat
   rails, read out of `lectures/network-security/source.md`. The line count
   shown in each card comes from the same read.

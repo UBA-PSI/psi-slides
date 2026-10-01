@@ -6,10 +6,9 @@
  *
  * A file of its own for the reason editor.mjs and editor.css are: read from
  * disk and inlined, so a backtick or a backslash in it means what it says.
- * refresh-figures.mjs splices it into both pages that carry stepped figures -
- * docs/artifact/figures-you-write.html, which is the manual, and
- * docs/site/figures.html, which is the case for the language - so the two
- * cannot drift into two different sets of controls.
+ * refresh-figures.mjs splices it into docs/artifact/figures-you-write.html,
+ * the page the project site publishes as figures.html. It was two pages
+ * once, and one file is how their two sets of controls stayed the same.
  */
 // Drives the lifted runtime. dgStep(d, k) renders any beat in either
 // direction - stepping back costs nothing, because each beat is recomputed
@@ -123,12 +122,11 @@
     });
   });
   /* ── the one screenshot ────────────────────────────────────────────────
-   * The manual carries a picture of the editor's window, and a window shown
-   * at the width of a column is a thumbnail of one. The case page gets this
-   * behaviour from site.js; the manual loads no script of its own, so it
-   * arrives here, where both pages already share their controls. Bound to
-   * `.uishot img`, which only the manual has - on the case page this wires
-   * nothing and site.js keeps its own shots.
+   * The page carries a picture of the editor's window, and a window shown
+   * at the width of a column is a thumbnail of one. The other site pages get
+   * this behaviour from site.js; this page loads no script of its own, so
+   * that it can be opened straight off disk, and it arrives here instead.
+   * Bound to `.uishot img`.
    */
   var lit = null, litTrigger = null;
   function litOpen(img) {

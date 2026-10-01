@@ -59,10 +59,11 @@ does:
    stands among is 19px, so a figure is drawn at about its viewBox width
    times 19/15 &ndash; its labels then read at the size of the sentences beside
    them. Larger than that is a diagram shouting over the text that
-   introduces it: the three boxes on `figures.html` were drawn 1187px wide
-   for a drawing 719 units across and their labels came out at 25px. The
-   frame's full width is what a figure gets when the number asks for MORE
-   than the frame, which on that page is true of exactly one of the four.
+   introduces it: the three boxes on the case page `figures.html` used to be
+   were drawn 1187px wide for a drawing 719 units across and their labels
+   came out at 25px. The frame's full width is what a figure gets when the
+   number asks for MORE than the frame, which on that page was true of
+   exactly one of the four.
    A figure narrower than its stage is **centred** on it: the stage is a
    field, a field's margin is even, and the stage itself still starts at
    the frame's left edge, so the page's one left edge is untouched.
@@ -88,8 +89,7 @@ it has a second one the screenshots do not: the compiler paints in the page's
 own tokens, so a box is filled `--paper` and outlined `--ink` on a page whose
 ground is `--paper`. Dropped straight onto the page a figure has no edge at
 all. What it does not get is a window bar, because there is no window; that is
-what `.shot.drawn` says on the front page and what `.fig-card` says on
-`figures.html`.
+what `.shot.drawn` says on the front page.
 
 ## The layout: one frame, one left edge, two stops
 
@@ -321,7 +321,8 @@ other here rather than chosen.
 `.pair-up` used to take half the frame per column and hold its prose at
 `--measure-col` inside that. Above about 1600px the column outran the cap
 and the difference came out as gutter &ndash; 137px between two paragraphs on
-`figures.html`, which reads as two unrelated pages side by side. The cap
+the case page `figures.html` was then, which reads as two unrelated pages side
+by side. The cap
 belongs on the row: two measures and a 3rem gutter is what the pattern
 *is*, and what is left over stands at the frame's right edge, where the
 page already leaves ground under every paragraph.
@@ -557,6 +558,16 @@ page into the navigation is a row there and nothing else; a row marked
 `pending` is a page that has been decided on but not written, and the bar
 leaves it out until it exists.
 
+**One page in the bar does not load `site.css`: `figures.html`.** It is
+`docs/artifact/figures-you-write.html` &ndash; the case for the figure language
+and its manual, one page &ndash; which carries its own stylesheet, fonts and
+diagram runtime so that it also opens straight off disk. `build-site.js` puts
+the bar in at its `<!--topbar-->` marker and copies the bar's rules out of
+`site.css` into its head (`topbarCss()`), so a change to the bar here reaches
+that page on the next site build. The rest of this document's layout rules do
+not apply to it; its own are in the page's stylesheet and in
+`docs/artifact/README.md`.
+
 **The page you are on is marked, and the mark is not a device.** The entry
 carries `aria-current="page"`; the stylesheet answers with the other entries
 one shade back and a hairline under this one. Not an accent border, not a
@@ -608,7 +619,8 @@ Then, in order of how much each one has caught:
    figure and card whether `scrollWidth > clientWidth`, with the
    disclosures forced open.
 3. **390, 768, 1100, 1440, 1920, 2560**, both languages, plus
-   `figures.html` and `comparison.html`, which inherit this stylesheet.
+   `comparison.html`, which inherits this stylesheet, and `figures.html`,
+   which does not (see *Navigation*).
 4. **Both colour schemes**, and contrast measured on rendered pixels.
 5. Keyboard focus visible, `prefers-reduced-motion` respected, the chooser
    and the handout switch operable by keyboard, in each place the chooser
