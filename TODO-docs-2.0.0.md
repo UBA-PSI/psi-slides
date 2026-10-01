@@ -190,6 +190,8 @@ Ground rules for every slice:
 
 ## Phase 3 – prose passes (prose-passes skill, EN + DE together)
 
+Lectures `[~]`: prose-tut (tutorial) · prose-dg (diagrams, network-security) · prose-deco (decoration, title-block, display-face, spoken-talk ×2, python-intro, frame-lab, credits) – all Opus. Then build:tracked + browser suite again.
+
 `[x]` site-p3 – b58c4016 (in-the-room, decoration, prompter) · index + getting-started in 5e4d0f3c
 
 Audience: lecturers and teaching staff, many not developers. Run after Phase 2
@@ -215,8 +217,8 @@ on the pages as they then stand.
 
 ## Phase 4 – close
 
-- [~] Site counts and tutorial descriptions after the split (site-counts, Sonnet).
-- [ ] Browser suite after the split (running).
+- [x] Site counts and tutorial descriptions after the split – f719a203.
+- [x] Browser suite after the split: 1737 passed, 0 failed.
 - [ ] `img/builder.webp` is used by no page any more; `shoot.mjs` still takes it (owned by the other session – tell it).
 - [ ] Dark mode of the changed site pages not checked.
 
