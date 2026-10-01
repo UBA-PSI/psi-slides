@@ -49,9 +49,19 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 // Build rather than assume. A suite that runs against whatever HTML happens
 // to be on disk reports on the last build somebody made by hand, which is the
 // one thing a regression suite must not do.
+//
+// The build runs in place, and three of the lectures the specs drive have
+// tracked views (tutorial, diagrams, decoration), so it passes the flag
+// `npm run build:tracked` passes: --no-optimize-images. Without it, a machine
+// with cwebp or magick re-encoded every inlined PNG as WebP and a test run
+// left the tracked views modified; with it, they come out the bytes that are
+// committed. No spec measures an inlined picture's encoding, so the other
+// lectures are built the same way and the suite does not depend on which
+// encoder the machine has.
 export function buildLecture(slug, flags = []) {
   const src = path.join(ROOT, 'lectures', slug, 'source.md');
-  const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), src, ...flags],
+  const r = spawnSync(process.execPath,
+    [path.join(ROOT, 'build.js'), src, '--no-optimize-images', ...flags],
     { cwd: ROOT, encoding: 'utf8' });
   if (r.status !== 0) {
     throw new Error(`build of ${slug} failed:\n${r.stdout || ''}${r.stderr || ''}`);
