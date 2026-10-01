@@ -20179,6 +20179,21 @@ function chunkBeats(el) {
   let segIdx = 0;
   let pos = 0;
   const push = (b) => { if (b.at == null) b.pos = pos++; out.push(b); };
+  // Beats inside a container held to a beat count from the container's own:
+  // from 3 with a marker and a figure step inside is the container on 3, the
+  // marker on 4, the step on 5. One counter per container, in document order,
+  // so a marker and a diagram step inside one interleave as they are written.
+  // Diagram steps used to be pushed positionally wherever they stood, and a
+  // figure in an overlay held to from 2 played its steps behind a card that
+  // was not yet on the slide.
+  const inner = new Map();
+  const innerAt = (node) => {
+    const c = node.closest(FROM_SEL);
+    if (!c) return null;
+    const k = (inner.get(c) || 0) + 1;
+    inner.set(c, k);
+    return Number(c.dataset.from) + k;
+  };
   el.querySelectorAll('.reveal-segment, svg.psi-diagram, .beat-mark').forEach(node => {
     // A diagram inside an expansion body is not on the projection, so its
     // steps must not consume beats – Space would advance a counter and the
@@ -20217,16 +20232,13 @@ function chunkBeats(el) {
       // A written number wins over the position; inside a container that is
       // itself held to a beat the two cannot both be present, which the
       // parser refuses, so this is a choice between one answer and none.
-      const ov = node.closest(FROM_SEL);
-      const at = fromOf(node) ?? (ov
-        ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node)
-        : null);
+      const at = fromOf(node) ?? innerAt(node);
       push({ type: 'mark', els, at });
       return;
     }
     const d = node.psiDiagram;
     if (!d || d.data.n < 2) return;
-    for (let s = 1; s < d.data.n; s++) push({ type: 'diag', d, step: s });
+    for (let s = 1; s < d.data.n; s++) push({ type: 'diag', d, step: s, at: innerAt(node) });
   });
   return out;
 }
@@ -20287,7 +20299,7 @@ function applyReveal(el, id, instant) {
         e.toggleAttribute('data-beat-hidden', !shown);
         e.toggleAttribute('data-next', !shown && next && k === 0);
       });
-    } else if (on) {
+    } else if (b.at != null ? consumed >= b.at : on) {
       steps.set(b.d, Math.max(steps.get(b.d) || 0, b.step));
     }
   });

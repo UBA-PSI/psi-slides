@@ -1452,6 +1452,11 @@ tag:
 
 ### Fixed
 
+- **A figure's `step` blocks inside a container held to a beat wait for
+  it.** In an `::: overlay … from N`, a `::: dock … from N` or a
+  `--- from N` segment they were counted in the slide's own order, so they
+  played while the card was still hidden. They now count from the
+  container's beat, interleaved with its `---` markers as written.
 - **Every way onto a slide lands the same way.** A figure with `autoplay`
   never played when the cockpit drove the projection onto it; it now starts
   wherever a slide is arrived at, and a press in the cockpit takes it over as
