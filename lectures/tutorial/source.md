@@ -116,7 +116,7 @@ shows columns only.
 
 - `P` opens `print.html` in a new tab – the whole lecture as a document.
 - `S` opens `speaker.html` as a second window, the speaker view. Once both are open, they mirror each other as you move.
-- `?` shows the full keyboard and mouse reference. Everything below is in there too.
+- `?` shows the full keyboard and mouse reference. Everything below is in there too, and `Cmd`-`K` (`Ctrl`-`K` off a Mac) opens the same panel as a command palette.
 
 **The one file that produced all four** is `lectures/tutorial/source.md`. Open it in a text editor beside this window and read the two together.
 
@@ -140,7 +140,7 @@ shows columns only.
 
 ---
 
-**You just uncovered a *segment*: in the source, a line containing nothing but `---` cuts a chunk into segments, as long as it is outside a block of code.** The first segment is on screen when you arrive; forward uncovers the next, back puts it away. Each press that changes the slide is a *beat*: every `---` is one, and so is each step of a figure, which later slides show.
+**You just uncovered a *segment*: in the source, a line containing nothing but `---` cuts a chunk into segments, as long as it is outside a block of code.** The first segment is on screen when you arrive; forward uncovers the next, back puts it away. Each press that changes the slide is a *beat*: every `---` is one, and so is each step of a figure, which later slides show. So the number of `---` lines in a chunk is the number of presses it takes, and you can count them off the source.
 
 **A faint `⌄` at the foot of the slide says the next forward press will leave the column.** It is the one thing about where you are that the slide cannot show you by itself. There is nothing to click.
 
@@ -201,9 +201,10 @@ The codes are drawn when the lecture is built, one per external address in the s
 
 **A question from the audience can send you forty slides back, and the back arrow is too slow for that.**
 
-**Three panels reach any chunk directly.** Which one you want depends on what you still remember about the slide, and none of them passes through the chunks in between.
+**Four keys reach any chunk directly.** Which one you want depends on what you still remember about the slide, and none of them passes through the chunks in between.
 
 - Roughly **where it sat** – the overview board, `O`.
+- Its **number** in the corner – go to, `G`.
 - Which **part of the lecture** – the contents list, `T`.
 - A **word that was on it** – search, `/`.
 
@@ -217,6 +218,12 @@ The codes are drawn when the lecture is built, one per external address in the s
 - `O` again or `Enter` **lands** on the outlined slide; `Esc` leaves without moving.
 
 The board shows the shape of the lecture, which is usually enough to find the part you want. With a speaker window open, both windows enter, pan, zoom and leave together.
+
+## free: Go to a slide by its number | `G`, the digits, `Enter` {.standard #goto}
+
+**The number in the corner of a slide is an address: press `G`, type it and press `Enter`, and you are there.** It is the number a question from the audience names – “back on slide 14” – so it is the quickest way to answer one.
+
+It works in either window, and the other follows. A number the lecture does not have shakes the prompt and keeps your digits, so you can correct them; `Backspace` takes a digit back and `Esc` closes the prompt without moving.
 
 ## free: Open the contents list | `T` lists the lecture's columns {.standard #toc}
 
@@ -267,7 +274,7 @@ It asks two things of you. Every paragraph has to **open with a sentence that st
 
 The two bullets above are that rule applied: neither is a list in the source – each is a `**bold**` phrase inside a sentence the projection is holding back.
 
-**Bold selects, it does not stress.** A bullet is set like the sentence above it, and **one word inside a bold phrase is stressed with `*em*`, like *this* one**. On paper the phrase is bold and the stressed word bold in the accent colour; `style: {bold: …}` and `style: {print-bold: …}` change either look for a whole lecture, and the chunk on the `style:` block lists the six.
+**Bold selects, it does not stress.** A bullet is set like the sentence above it, and **one word inside a bold phrase is stressed with `*em*`, like *this* one**. On paper the phrase is bold and the stressed word bold in the accent colour; `style: {bold: …}` and `style: {print-bold: …}` change either look for a whole lecture, and the decoration lecture's part on type and colour lists the six.
 
 That suits a chunk that argues, where every paragraph has a point to open with. It is the wrong fit when the chunk wants continuous explanation instead, and the next chunk shows the alternative.
 
@@ -306,6 +313,19 @@ This is the paragraph that comes and goes. It is what you would say out loud abo
 **A `::: slide` block wins wherever a chunk has one; failing that, a `::: script` block puts everything outside itself on the screen; failing both, Option 1 applies.** Three rules, checked in that order, on each chunk separately, so one lecture normally uses all three.
 
 > note: A chunk carrying both blocks is not an error – the slide block wins and everything outside it, the script block included, is narration. Writing both usually means the chunk wants splitting. In practice Option 1 carries the short argumentative chunks, and the chunks near their word budget are where marking the slide by hand is the shorter route.
+
+## free: The long version has tools for its reader | contents, highlights and notes in `print.html` {.wide #reader-tools}
+
+**`print.html` and `print-notes.html` are what a student reads after the lecture, so on a screen they come with a few tools.** Press `P` and try them on this tour.
+
+- **A contents sidebar** lists every slide by part and marks the one you are reading.
+- **Select words and press the button at the end of the selection** to highlight them, with a note if you want one. A figure, a code block or a formula has a button in its corner that marks it whole.
+- **`n` and `p` step through your highlights**, and a counter in the corner says how many there are.
+- **The menu at the foot of the sidebar exports them** as a Markdown file and reads such a file back in.
+
+**Highlights stay in the reader's browser and nobody else sees them.** They are kept per lecture, so the export is the backup and the way to take them to another machine. Printed, they come out yellow, with each note in the margin. `reader: off` in the frontmatter ships the two documents without any of this.
+
+> note: Not to be confused with annotations (`N`), which are the lecturer's, shown to the room, and can be written back into the source. A highlight belongs to one reader and never leaves their browser.
 
 # The chunk vocabulary {#vocabulary}
 
@@ -403,6 +423,12 @@ A `---` between two of them is one press.
 
 :::
 
+## free: Before the talk starts | the start menu, and `W` for fullscreen {.wide #start-menu}
+
+**Open `audience.html` and the first slide carries a small menu in its bottom-left corner: *Fullscreen*, *Speaker cockpit* and *Print view*, each with its key – `W`, `S` and `P`.** It is the three things you do before the talk, for the day you have not learnt the keys yet. The first move through the lecture folds it away, and so does its own `‹`; the `›` beside the `?` brings it back.
+
+**`W` puts the projection into fullscreen, and a second `W` takes it out.** Pressed in the speaker view it means the projection too, but a browser lets a window go fullscreen only in answer to a click or a key pressed in that window – so the projection shows a hint, and your next click on it enters. `Shift`-`W` puts the speaker view itself into fullscreen, for a talk given from one screen.
+
 ## free: Arranging the speaker view | resizing the panes, and where the thumbnails sit {.wide #cockpit-layout}
 
 ::: slide
@@ -489,6 +515,12 @@ speaker view and `print-notes.html` show it, the projection never does.
 ## free: The same controls without a keyboard | the toolbar on a phone or tablet {.wide #knobs-touch}
 
 **On a phone or a tablet with no keyboard, both windows show a small toolbar along the bottom edge.** Forward, back, overview and zoom sit on it; `C`, `F`, `A`, `#`, the search and text selection are behind its `⋯` button. Attach a keyboard and the toolbar goes away again, because the keys are back.
+
+## free: A key you have forgotten | `Cmd`-`K` runs any command by name {.wide #palette}
+
+**`Cmd`-`K` – `Ctrl`-`K` off a Mac – opens the `?` panel with the cursor in its search field, and that turns the reference into a command palette.** Type a few letters of what you want – *theme*, *blank*, *fullscreen* – and the list narrows to the commands that match.
+
+`↑` and `↓` pick a row, and `Enter` or a click runs it, exactly as its key would have. That is the answer mid-talk to a key you cannot remember, without reading the whole reference in front of the audience. It works in both windows.
 
 ## free: What the keys remember | themes, the two zooms, auto-fit and blanking {.wide #knobs-modes}
 
@@ -606,19 +638,17 @@ which usually brings it well under the 2 MB limit.
 
 ![](reveal-demo)
 
-That player is a real clip embedded in this HTML file, a pan across the overview board. Press play, then check the address bar – nothing was fetched. **The file is 78 KB and it costs 104 KB here**, because a `data:` URI is base64 and base64 is a third larger than the bytes it carries – which is the price of the whole file being one file.
+That player is a real clip embedded in this HTML file, a pan across the overview board. Press play, then check the address bar – nothing was fetched.
 
-## free: More on videos | the size limit, clips on a server, and what a click does {.wide #video-more}
+**Play, pause and seeking are shared between the windows**, so you can operate the clip at the lectern and the projection follows; freeze the projection first and it does not, which is how you check a clip before showing it.
 
-**Play, pause and seeking are shared between the windows.** Operate the clip at the lectern and the projection follows. Freeze the projection first and it does not, so you can check a clip before showing it.
+::: expand Size, and clips on a server
+**A clip goes inside the HTML up to its own limit of 12 MB**, because the 2 MB picture limit would reject every real one. This one is 78 KB and costs 104 KB here: a `data:` URI is base64, a third larger than the bytes it carries.
 
-**A clip goes inside the HTML like any other asset, up to its own limit of 12 MB.** A clip is an order of magnitude heavier than a diagram, and the 2 MB picture limit would reject every real one.
+**Over that limit the clip is stored beside the file**, in a `videos/` folder next to the output. The build says so on the terminal and suggests an `ffmpeg` line that would make it small enough to go inside – one named folder to copy along with the HTML.
 
-**Over that limit the clip is stored beside the file instead.** The build copies it into a `videos/` folder next to the output, plays it from there, tells you on the terminal, and suggests an `ffmpeg` line that would make it small enough to go inside. One named folder to copy along with the HTML, instead of a path that only works on the machine that built it.
-
-**A clip can also live on a web server:** `![](https://host/clip.mp4)` works and stays an ordinary player, so play, pause and seeking are still synchronised between the two windows.
-
-**There is no fullscreen setting**: the player has its own button, and how large the clip sits on the slide is the chunk's width, as with a still picture. Clicking a clip does not open it in a card either, because that would conflict with the play button.
+**A clip can also live on a web server:** `![](https://host/clip.mp4)` stays an ordinary player, still synchronised between the two windows. The player's own button is the fullscreen control, and a click on a clip does not open it in a card, which would fight the play button.
+:::
 
 ## free: Hosted players | `::: embed` for YouTube and Vimeo {.wide #embed}
 
@@ -634,21 +664,15 @@ The line under it becomes the caption. A `youtu.be/…` or a bare `vimeo.com/123
 
 **The address is always printed under the player**, with a QR code on `Shift`-click, so people can reach the video even when the player will not run. YouTube is asked for through `youtube-nocookie.com`, and Vimeo is asked not to track.
 
-**A lecture with a hosted player no longer contains everything it needs: the machine showing it – often the lecture hall's own PC – contacts that company while you teach.** A clip in `assets/`, or an `.mp4` address on a server you control, keeps the two windows in step and needs no other server. The build tells you which of the two you have chosen.
+**A lecture with a hosted player no longer contains everything it needs: the machine showing it – often the lecture hall's own PC – contacts that company while you teach.** A clip in `assets/`, or an `.mp4` address on a server you control, needs no other server. The build tells you which of the two you have chosen.
 
-## free: More on hosted players | what the directive does that an embed code would not {.wide #embed-more}
-
-- **Nothing loads until you get there.** The player points at the video only while its chunk is on screen.
+::: expand What the directive does, and YouTube from disk
+- **Nothing loads until you get there**, and nothing starts by itself: arriving at the slide gives you a player waiting on its button.
 - **Play and pause are shared between the windows**, as for a local clip. Freeze the projection and it stays put.
-- **Nothing starts by itself.** Arriving at the slide gives you a loaded player waiting on its button.
-- **A player that cannot run is replaced by a card that says why.** A page opened from disk has no web address and YouTube will not play; Vimeo does.
+- **A player that cannot run is replaced by a card that says why.** A page opened from disk has no web address, and YouTube will not play there; Vimeo does.
 
-**To teach with a YouTube video, serve the lecture:**
-
-```bash
-node build.js <source.md> --serve         # prints the URLs
-node build.js <source.md> --watch --serve # and live reload
-```
+To teach with a YouTube video, serve the lecture: `node build.js <source.md> --serve` prints the addresses, and `--watch --serve` adds live reload.
+:::
 
 ## free: Math | `$inline$` and `$$display$$` {.wide .blocks-left #math}
 
@@ -705,9 +729,11 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 > note: The recurring temptation is to fix a weak short view by adding more bold. That is nearly always the wrong direction – fewer bolds and a stronger opening sentence is the fix.
 
-## exercise: The squint test | walk your own lecture end to end in the short view {.wide #squint-test}
+## exercise: The squint test | `--squint` writes out what the room reads, slide by slide {.wide #squint-test}
 
-**Open your own lecture in the projection, press `C` until it is short, walk it end to end without opening the source, and stop at every chunk you could not talk from using only what is on the screen.**
+**Run `node build.js <source.md> --squint` on your own lecture, then read `squint.txt` beside the source.** It walks the built projection press by press and writes down what each slide shows: the heading, the first sentences, each bold phrase as the bullet it becomes, and what arrives on which beat. The sentences the short view holds back are marked as withheld, with a word count.
+
+**Read it as the audience would, and stop at every chunk you could not talk from using only those lines.** `--squint-out -` prints it in the terminal instead. It reads the built page rather than your source, so it shows the cut that actually happens.
 
 **For each chunk you stopped at, ask three questions in this order:**
 
@@ -717,9 +743,62 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 **If all three answers are fine and it still reads badly,** mark the slide by hand. Option 1 holds up while a chunk is an argument of one to three paragraphs; once it wants continuous prose, a `::: slide` block is the shorter route.
 
-> note: Worth doing once per lecture, the day before. Reading the short version is close enough to giving the talk that it doubles as a rehearsal.
+> note: Worth doing once per lecture, the day before. Reading the short version is close enough to giving the talk that it doubles as a rehearsal. The file cannot see colour, contrast or anything that overlaps – for those, walk the projection itself once with `C` set to short.
 
-# Figures {#beyond}
+# Questions for the reader {#pulse}
+
+## principle: A document can test its reader | the question stands under the chunk it asks about {.standard #pulse-idea}
+
+**Reading a hand-out a second time feels like knowing it, and a question is the quickest way to find out whether it is.** Trying to answer from memory also tends to keep the material longer than rereading it does.
+
+**`::: pulse` writes such a question into the lecture source, under the chunk it belongs to.** `print.html` and `print-notes.html` show it to the reader; the projection and the speaker view leave it out, so the room sees your slides and not a quiz.
+
+**This tour carries a few of them already.** Open `print.html` and you will find one under several chunks, this one and the next included.
+
+::: pulse
+Which of the four views show a `::: pulse` question?
+---
+The two documents, `print.html` and `print-notes.html`. The projection and the
+speaker view leave it out.
+:::
+
+## free: Writing a question | the question, a line of `---`, the answer {.wide #pulse-write}
+
+**Everything above the one line that is exactly `---` is the question, everything below it the answer.** Both halves are ordinary Markdown – bold, code, a list, a formula – but no `:::` block.
+
+```markdown
+## definition: Digital signatures {.wide #signatures}
+
+A key pair: the private key signs, the public key verifies.
+
+::: pulse
+What does a signature guarantee that encryption alone does not?
+---
+**Authenticity and integrity**: only the key holder could have made it,
+and any change to the message breaks it.
+:::
+```
+
+**The question is drawn at the end of its chunk, after the speaker notes in `print-notes.html`**, because it asks about all of it. Where in the chunk you write the block does not move it.
+
+**The build refuses a block it cannot read as a question**: no `---` or two of them, an empty half, a `> note:` inside it, or a question on the `title:` or `closing:` chunk. An answer that needs a rule writes `***`.
+
+::: expand What the reader sees, and where the answers go
+**In the document the answer stays folded behind a button**, and once it is open the reader says whether they knew it. Printed on paper, each answer stands under its question. Two or more questions on one chunk become a stack the reader answers one at a time.
+
+**The box is Pulse, a self-test service at `pulse.psi.uni-bamberg.de`, and it sends nothing until the reader signs in.** Until then the answers stay in their browser; after signing in with an email address, the questions come back by mail at growing intervals.
+
+**Each question is filed under the chunk's id and the lecture's `title:`**, so reword a question freely but keep both once students have answered, or their progress starts over. A second question on the same chunk names its own key: `::: pulse {#signatures-verify}`.
+:::
+
+::: pulse
+A `::: pulse` block contains two lines that are exactly `---`. What happens?
+---
+The build stops and says so: a question has exactly one `---`, between question
+and answer. A rule inside either half is written `***`.
+:::
+
+# Beyond the basics {#beyond}
 
 ## principle: A figure written as text is a figure you can still change | you say what sits beside what, and the placing is worked out {.standard #drawn-from-text}
 
@@ -779,569 +858,30 @@ step blame
   emph leak, log
 :::
 
-## example: What a step block says | the source of the figure on the previous slide {.full .blocks-left #diagram-beats-rule}
+**The last four lines of the block are the two steps:** `step leak` shows the logfile, and `step blame` emphasises the leak and the box it runs to. An arrow is only as visible as the two things it joins, so showing the logfile is enough to bring its arrow with it.
 
-**The figure on the previous slide is the three boxes from the slide before it, with a logfile added and four lines at the end.**
+**The rest of the language is in [the diagrams lecture](../diagrams/audience.html)**: charts, tables, swim-lanes and protocols, every class and every word a step knows, each one drawn on a slide of its own. Click a figure there, and the button in the corner of its card opens the graphical editor.
 
-```text
-box  src  "Sender"
-box  mix  "Mix"        right of src gap 1.05
-box  dst  "Receiver"   right of mix gap 1.05
-box  log  "Logfile"    below mix gap 0.9  {.dashed}
-edge src -> mix "encrypted"
-edge mix -> dst "recoded"
-edge leak mix -> log {.dashed}
-text why "this is where\nthe anonymity ends"  right of log gap 1.4 -- leak {.hand}
-step leak
-  show log
-step blame
-  emph leak, log
-```
+> note: `print.html` and `print-notes.html` draw the **last** step rather than every step laid over each other, so an element a step hid stays hidden on paper.
 
-`step leak` shows the logfile, and `step blame` emphasises the leak and the box it runs to. **The words a step knows are `show`, `hide`, `move … to`, `move … by`, the three attention verbs `emph`, `dim` and `ghost`, plus `style` and `label`.**
+## free: A slide can be more than a column of text | and what makes it one is not written inside the text {.wide #deco-idea}
 
-**Anything attached to something invisible is invisible too**, which is why `step leak` names only the logfile. An arrow is only as visible as the two things it joins, a `container` or a `brace` only as visible as its members, and a `text` with a line drawn to something only as visible as what it points at. So showing the boxes shows the arrows between them, and most of a figure needs no `show` of its own.
-
-> note: `print.html` and `print-notes.html` draw the **last** step rather than every step laid over each other, so an element a step hid stays hidden. Emphasis is the exception and comes from the first step, so attention you move around during the talk never reaches the paper while a `{.dim}` written on an element's own line does: written on the line it is part of the drawing, written inside a `step` it is part of the talk.
-
-## free: Words that arrive with a step | `--- from N` pins a beat by number {.full #diagram-beats-pinned}
-
-**A beat is taken in the order it was written, and that is wrong for one shape: a figure that steps in one pane and the words about it in the other.** Written plainly the figure's steps come first and the words queue behind them, because document order is the only order there is. `--- from N` pins a beat to an advance by number instead, so the two halves move together.
-
-::: side
-
-::: draw 120x44
-box a "request" at 0,0 {.tone-2}
-box b "cache" below a {.tone-1}
-box c "origin" below b {.tone-1}
-edge a -> b
-edge b -> c {.dashed}
-
-step hit
-  emph b
-step miss
-  dim b
-  emph c
-:::
-
-::: flip
-
-The request reaches the cache first, and most of the time that is the end of it.
-
---- from 1
-
-**A hit** is answered from the cache, and the dashed line is never walked.
-
---- from 2
-
-**A miss** walks it, and the origin pays for the request instead.
-
-:::
-
-**A pinned beat rides one the slide already has rather than adding one**, so this chunk takes two presses, not four. `from 0` is refused – that is the beat the slide opens on, so write the words above the marker – and so is a `from` inside an `::: overlay from N` or a `::: dock from N`, which numbers its own markers already.
-
-> note: The two paragraphs and the two steps are written in different panes, so before `from` existed the only way to keep them together was to give the prose no beats at all and let it stand there from the start – which tells the room the answer before the question.
-
-## free: Every line has the same six slots | `kind name label placement options tail` {.full .blocks-left #diagram-slots}
-
-**Every line in a `::: draw` block has the same six slots, in this order**, and most lines fill three or four of them:
-
-```text
-box   mix   "Mix"   right of src gap 0.6   w 1.2    {.tone-2 @crypto}
-kind  name  label   placement              options  tail
-```
-
-**The name is how later lines refer to an element and is never drawn; the label is what the audience reads**, and `""` is a legal empty one. A name is letters, digits, `_` and `-`, and a line starting with `#` is a comment.
-
-**Inside the tail, the first character says what a word is: `.` starts a class and `@` starts a tag.**
-
-- **`.tone-2` is a class**, which says how the element looks. `{!tone-2}`, with an exclamation mark, takes one off again.
-- **`@crypto` is a tag**, which says what set the element belongs to.
-
-A tag goes wherever a name goes, so `show @crypto` in a step selects every element that carries it. An element joins a set on its own line, which makes adding one a one-line edit.
-
-## free: Where an element goes | a grid square, a neighbour, or another element's coordinate {.full #diagram-placement}
-
-**Placement is a grid square, or a relation to a neighbour.**
-
-- **`at 2,1`** puts an element in a grid square.
-- **`right of mix gap 0.6`** places it against a neighbour, as do `left of`, `above` and `below`.
-- **`between a,b`** is the point on the line joining two elements.
-- **`offset dx,dy`** is a nudge any of the three accepts on the end.
-
-## free: A coordinate can be another element's | fractions, edges and pictures {.full #diagram-coords}
-
-**A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`. Anywhere an `X,Y` pair goes, that form goes.
-
-**An anchor can carry a fraction**: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side rather than on top of each other. `gap 0 flush left` at the end of a placement makes two boxes touch.
-
-**An edge is one of the things a coordinate can name.** `text n "only after the handshake" above w1 gap 0.2` sets a phrase against the wire it describes rather than against a box at one end of it, so the label follows its line instead of drifting off it the next time a box changes height. Name the edge first, in the slot before the arrow's first end: `edge w1 mix -> log`. An edge has no name until you write one, and most edges never need one.
-
-**A picture can be an element too.** `image alice avatar-alice w 0.4` finds the file exactly as `![](fig-id)` does, and an SVG drawing takes the theme's colours there in the same way.
-
-::: expand The rest of the vocabulary
-**There are more kinds than `box`, `edge` and `text`.** `dot` is a circle for junctions and glyphs. `container … over a,b,c` fits a box around its members and re-fits when they move, and `brace … over a,b right "Label"` is a bracket spanning a subset. `bars`, `grid` and `plot` are charts without a chart library. `table` reads its rows off the quoted lines under it and names every cell, `lanes` draws swim-lanes of equal width, and `sequence` draws a protocol down the page, deciding the vertical spacing and generating a name for everything it draws.
-
-**Two statements save repetition.** `default box {.tone-4} w 1.15` sets the starting point for every box in the figure, and adding a tag narrows that to one set; the same lines go in a `draw-defaults:` frontmatter key when every figure in a lecture should look alike. `same as create` copies another element's width and height.
-
-**Inside a label**, `_sub` and `^sup` shift a character or a `{group}` down or up, `*accent*` colours a run and `~muted~` greys it. **A whole line of a multi-line label written in that mark is the quiet register**, smaller as well as grey, so one `text` can carry a question over the verb that answers it and be centred on its cell as one block.
-
-**Click the figure, and the button in the corner of the card opens the graphical editor, which is experimental.** It is built for a desktop-sized screen and has been tested a great deal by machine and very little by people. Drag a box and it rewrites one number – the `gap`, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits inside. It also draws those relations while you work, which the finished drawing cannot: a box written `gap 0.55` from its neighbour looks exactly like one that happens to sit 0.55 away. `editor: none` in the frontmatter leaves it out.
-
-**Everything above is drawn rather than described in [the diagrams lecture](../diagrams/audience.html)**, one construct per slide, with one chunk there as the reference for the whole class vocabulary and another for where an edge's label sits. `figure-design.md` in the repository is how to lay a figure out so an audience can read it.
-:::
-
-## free: Classes | thirteen groups, and one question each {.full .figure-type-70 #diagram-classes}
-
-**Only one member of a group is in force.** The names come from a fixed list, and `{.tone-1}` on a box therefore *replaces* a `default box {.tone-4}` rather than piling on top of it, which is what makes the groups worth knowing.
-
-::: draw 112x82
-# A reference sheet is denser than a talk's figure, so the chunk says so
-# once – {.figure-type-70} on the heading – rather than letting the drawing
-# scale itself down and take the slide's prose with it. Six rows of
-# specimens, each row a run of peers that now shares one size without any
-# line saying so.
-default box {.sharp} w 0.62 h 0.42 pad 0.12
-
-# The fills sit across a rule, so that .clear and .paper can be told apart:
-# one lets the line through, the other knocks a hole in it.
-edge -0.55,0 -- 4.85,0 {.muted}
-box f1 "paper"  at 0,0 {.paper}
-box f2 "tone-1" right of f1 gap 0.35 {.tone-1}
-box f3 "tone-2" right of f2 gap 0.35 {.tone-2}
-box f4 "tone-3" right of f3 gap 0.35 {.tone-3}
-box f5 "tone-4" right of f4 gap 0.35 {.tone-4}
-box f6 "clear"  right of f5 gap 0.35 {.clear}
-text fl "fill" left of f1 gap 0.7 {.muted .right}
-
-box o1 "round"   at 0,0.78 {.round .tone-2}
-box o2 "sharp"   right of o1 gap 0.35 same as o1 {.tone-2}
-box o3 "hex"     right of o2 gap 0.35 same as o1 {.hex .tone-2}
-box o4 "chevron" right of o3 gap 0.35 w 0.78 h 0.42 point right {.chevron .tone-2}
-box o5 ""        right of o4 gap 0.4 w 0.42 h 0.42 point up {.wedge .tone-4}
-# A cross squares itself past this row's `default box … w`, the same way a
-# bars column ignores an inherited outline: the default is about the
-# rectangles in the block, and a plus sign is not one of them.
-box o6 ""        right of o5 gap 0.4 {.cross .accent}
-# A diamond is sized at twice what its label would need in a rectangle, so it
-# is shown empty here like the wedge and the cross rather than made to hold
-# the word "diamond" and doubling the width of the whole row.
-box o7 ""        right of o6 gap 0.4 w 0.5 h 0.42 {.diamond .tone-2}
-text o5n "wedge" below o5 gap 0.16 {.small .muted}
-text o6n "cross" below o6 gap 0.16 {.small .muted}
-text o7n "diamond" below o7 gap 0.16 {.small .muted}
-text ol "outline" left of o1 gap 0.7 {.muted .right}
-
-box s1 "dashed" at 0,1.62 {.dashed .clear}
-box s2 "dotted" right of s1 gap 0.35 {.dotted .clear}
-box s3 "thick"  right of s2 gap 0.35 {.thick .clear}
-box s4 "bare"   right of s3 gap 0.35 {.bare .clear}
-box s5 "ghost"  right of s4 gap 0.35 {.ghost .tone-2}
-box s6 "dim"    right of s5 gap 0.35 {.dim .tone-2}
-text sl "stroke,\nand presence" left of s1 gap 0.7 {.muted .right}
-
-# Only the two ends of this row are placed. The five between them are named
-# in the order they should stand in and get equal centre distances, which is
-# what a row of seven specimens of seven different widths wants.
-text t1 "sans"  at 0.3,2.3
-text t7 "bold"  right of t1 gap 5.45 {.bold}
-text t2 "mono"  right of t1 gap 0.55 {.mono}
-text t3 "serif" right of t1 gap 0.55 {.serif}
-text t4 "hand"  right of t1 gap 0.55 {.hand}
-text t5 "small" right of t1 gap 0.55 {.small}
-text t6 "large" right of t1 gap 0.55 {.large}
-text tw "family,\nand size" left of t1 gap 0.85 {.muted .right}
-spread x t1, t2, t3, t4, t5, t6, t7
-
-box g1 "a label that is too long" at 0,2.95 w 1.2 h 0.5 {.shrink .clear}
-box g2 "short" right of g1 gap 0.4 same as g1 {.fit .clear}
-text n1 "shrink" below g1 gap 0.14 {.small .muted}
-text n2 "fit"    below g2 gap 0.14 {.small .muted}
-text gl "type meets\nits box" left of g1 gap 0.7 {.muted .right}
-
-box w1 "top\nleft"     right of g2 gap 0.75 w 0.56 h 0.74 {.clear .top .left}
-box w2 "centred"       right of w1 gap 0.25 same as w1 {.clear}
-box w3 "bottom\nright" right of w2 gap 0.25 same as w1 {.clear .bottom .right}
-box w4 "turn"          right of w3 gap 0.25 w 0.34 h 0.74 {.tone-2 .turn}
-text wl "where the words sit" below w2 gap 0.18 {.small .muted}
-
-# Five labels hanging off rows of five different lengths: the statement gives
-# them all the right edge of the first one.
-align x right fl, ol, sl, tw, gl
-:::
-
-::: expand How to read the sheet, and the rest of the list
-**Every row above is one group**, except three that carry two or three because the questions belong together: stroke pattern, weight and the two ways of receding; family and size; the words that place a label across and the ones that place it down. The two ink classes have no row of their own, because they are used across the whole sheet – `.accent` on the cross, `.muted` on every caption.
-
-**Forty-one names in all, and `lint.js` refuses anything else**, so a typo stops the build rather than leaving a box unstyled.
-
-
-Only three class names belong to no group and can be combined with anything: `.bold` for a heavier label, `.turn` for a label read bottom-to-top up the side of something tall and narrow, and `.front` for a line drawn over the boxes rather than under them. Three groups have no row on the sheet. Two of them belong to edges – how a line is drawn (`.smooth` bends your waypoints into a curve running through them, `.elbow` works out a right-angled route with its turn halfway across the gap and needs no waypoints at all) and which end carries an arrowhead, which you normally say with the arrow itself (`->`, `<-`, `<->`, `--`) and write as a class only inside a `step`. The third is how much of the audience's attention an element asks for: `.emph`, `.dim` and `.ghost`. **Those three names are also the three verbs a step uses for the same thing.** Two members of one group on one element is an error, and `{!dim}` is how a class comes back off; there is no fourth name for ordinary prominence, the absence of all three being what that is. `.paper` fills a label with the page colour, knocking a hole in a line running behind it.
-
-Two pairs are not one group but still draw a warning, because one of the two ends up doing nothing: `.tone-4` with `.accent`, where the fill already *is* the accent, and `.turn` with `.left` or `.right`, where a label standing on end is centred across the direction it reads. `.top` and `.bottom` do still move a turned label.
-
-Which way a pointed outline aims is the `point` option – `up`, `down`, `left` or `right` – and writing it on an outline that has no point is an error. So is `.fit` on a box with no width to fit into, and so is an outline class on anything but a `box`. A `.cross` given no `w` of its own comes out square, and stays square even under a `default box … w`; a `w` on the element's own line still wins.
-
-:::
-
-## free: Lining things up | `flush`, `align` and `spread` {.full #diagram-align}
-
-**Three words put elements level with each other, and they are not interchangeable.**
-
-- **`flush` finishes a placement** and takes one word: `below src gap 0 flush left` keeps the new box's left edge level with `src`.
-- **`align` is a statement on a line of its own.** `align y middle a, b, c` gives `b` and `c` the vertical centre of `a`; the first name is the one the others follow.
-- **`spread x a, b, c, d` shares a set out evenly.** First and last stay put; everything between gets the same distance from its neighbours.
-
-**The two statements are both used in the sheet on the last slide**: an `align x right` gives the five row labels the right edge of the first, and a `spread x` puts the five middle words of the family row between `sans` and `bold`.
-
-::: expand Where the two statements refuse
-`align` and `spread` work on boxes, dots, texts and images only – naming an edge, a container or a brace is an error. `align` names its axis first: `x` takes `left`, `middle` or `right`, `y` takes `top`, `middle` or `bottom`. `spread` needs at least three elements; `align` needs two.
-:::
-
-> note: Two columns built as separate `below` chains drift apart the moment their captions differ in height, and a line between two drifted boxes then runs a degree off the axis. The build warns about that.
->
-> The sheet stays on screen when the prose around it is shortened away, so present this chunk from the short view. Press `A` a few times while it is up: the four tones are mixed from the page's own ink and accent, so the whole sheet changes with the theme.
-
-## free: Charts | `bars`, `grid` and `plot` {.full #diagram-charts}
-
-**Three statements draw data, and each turns into ordinary boxes, texts and edges first.** `bars` becomes one box per column plus a baseline, `grid` one box per cell, and `plot` a frame of gridlines, ticks and two axis titles.
-
-::: draw 148x64
-bars wc "18,16,15,12,11,9,8,7,6,5,4,3" at 0,0 w 2.3 h 1.05 space 0.06
-brace long over wc-0,wc-1,wc-2 side bottom "the three to rewrite" pad 0.45 {.small .muted}
-# In front, or the columns cover the line and it shows only in the gaps.
-edge lim wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {.dashed .front}
-text limn "budget" at wc.right-0.28,wc.top+0.1 {.small}
-text wcn "words per chunk" above wc gap 0.3 flush left {.small .muted .left}
-
-grid ch dot 8x5 right of wc gap 1.75 cell 0.15 space 0.07 {.tone-2}
-text chn "one dot per chunk,\ntinted where a figure lives" below ch gap 0.3 flush left {.small .muted .left}
-
-step over
-  emph wc-0, wc-1, wc-2
-step figures
-  style ch-1-0, ch-4-2, ch-6-3, ch-0-4 {.tone-4}
-:::
-
-**Everything a chart draws is an ordinary element with a generated name** – `wc-0`, `wc-1`, … for the columns and `ch-1-0`, `ch-4-2`, … for the cells – which is why the brace and the tinted cells above needed no vocabulary of their own.
-
-::: expand What else is going on in that figure
-- **The budget line is an `edge`** between two coordinates read off the chart's own frame, with `.front` on it so the columns do not cover it.
-- **Spacing inside a chart is `space`, never `gap`** – `gap` is the distance to another element on the same line.
-- **A column draws no outline**, and a tone on a `bars` line is a category rather than a way to get a fill: a column with none is drawn in a fill of its own. `emph` on a column fills it in the accent instead of outlining it.
-- **`emph 0,1,2` or `dim 5`** on a `bars` line marks those columns from the opening picture onwards, which is usually where a chart wants one.
-:::
-
-## free: More on bars | a second series, and columns laid flat {.full #diagram-bars}
-
-**A second set of numbers is one more `bars` line:** `bars after "…" series of wc {.tone-1}` joins the first chart's frame and borrows its ticks, its baseline and its scale. `key "2024"` on either line names the run, and the chart draws the legend itself.
-
-## free: Columns laid flat | `horizontal`, and when to use it {.full #diagram-flat}
-
-**`horizontal` lays the columns flat**, which is what a chart wants as soon as its categories have names rather than numbers – lengths from one shared left edge are easier to rank, and “DNS cache poisoning” cannot be written under an upright column at all.
-
-::: expand What a joined series may and may not carry
-**A joined series brings only its own numbers and its own colour.** The width is shared out between them, so a grouped chart takes exactly the space a single one did. `stacked` piles it on the run before it instead, and the scale becomes the tallest stack. Such a line takes no `w`, no `h`, no `space`, no placement and no tick labels: all five belong to the chart it joined.
-
-**Laid flat**, the bars run left to right, the categories stack downwards, the tick labels become a right-aligned column down the left margin, and the baseline stands on the left. A tick string containing `|` splits on that instead of on spaces, so a label can be as many words as it needs – the same mark that separates a `table` row and a `lanes` name list.
-:::
-
-::: draw 150x50
-bars hour "31,24,18,9" "writing the prose | drawing the figures | fixing one wording | fighting the tooling" at 0,0 horizontal w 3.0 h 2.6 emph 1
-text hourn "minutes, in the hour before a lecture" below hour gap 0.5 {.small .muted}
-:::
-
-## free: Plots | `plot` draws a frame and a scale, and nothing else {.full #diagram-plot}
-
-**A `plot` draws the frame and the scale; you write the curves over it.**
-
-::: draw 150x54
-plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.8 aspect 5:2 x 0,60 y 0,40 tick 10
-edge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}
-edge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}
-dot  mark "" at pace@26,pace@12 r 0.08 {.accent}
-text evenn "even pace" at pace@50,pace@33 pad 0.12 {.small .paper}
-# The leader meets the curve at one point instead of running across the field
-# and crossing both curves on the way.
-text realn "the first third\nalways runs long" at pace@22,pace@31 pad 0.12 -- mark {.small .hand .paper}
-
-step real
-  show real, mark
-step lesson
-  emph real
-  dim even
-:::
-
-## free: What a plot gives you | a frame, a scale, and ordinary edges over it {.wide #diagram-plot-scale}
-
-**A chart is sized with `aspect`, not with `w` and `h`** – those two are counted in grid squares, and a grid square is not square, so they do not describe the shape a reader sees.
-
-**A `plot` takes two ranges and one `tick` interval** – after which `pace@26` names a value in the plot's own units anywhere a coordinate can go, and the curves over it are ordinary edges.
-
-::: expand Sizing, curves, and two charts that match
-**`aspect 4:3`, `aspect 1:1`, or a single number meaning that many wide to one tall**, states the proportion the reader sees and lets the build work the other number out. Both `bars` and `plot` take it. On the `150x54` grid of the figure above, a plot written `w 1.9 h 1.5` comes out 285 by 81 pixels, which is nothing like 1.9 by 1.5. Giving `w`, `h` and `aspect` together is an error, because two of the three would have to lose and nothing on the line says which.
-
-**`pace@26` goes anywhere a coordinate can** – in a waypoint, in an `at`, at the end of a pointer line. `.smooth` runs a curve *through* the waypoints you wrote rather than joining them with straight segments, `--` draws a line with no arrowhead, and the two steps bring the second curve in and then emphasise it while the reference line recedes.
-
-**Two charts meant to be compared take one size, written once.** `same as pace` on a second `bars` or `plot` line copies the whole frame. It can only name a chart written *above* it, and `w`, `h` or `aspect` beside it is an error. Matching frames are not a matching scale: the ranges are written per chart and nothing checks that two of them agree.
-:::
-
-> note: The numbers in both figures are made up. `plot` has no logarithmic scale, no automatic choice of ticks, no legend and no series of its own – everything it draws is an element you could have written by hand.
-
-## free: A figure that moves | `hide`, `dim`, `move` and `label`, inside a `step` {.full #diagram-steps}
-
-**A figure with steps is an argument in stages – the setting, the intruder, the cut wire, and what it costs.** Press forward three times.
-
-::: draw 138x70
-default box {.tone-2} w 1.0
-
-box alice "Alice" at 0,0
-box bob   "Bob"   right of alice gap 4.3
-edge wire alice <-> bob "M"
-container net "the intended channel" over alice,bob pad 0.16 {.dashed .muted}
-
-# `between` is a coordinate and not an adjacency, so Eve is in no chain with
-# the other two: `same as alice` is what makes her one of the three. Alice
-# and Bob need nothing – a run of `right of` boxes is one size already.
-box eve "Eve" between alice,bob offset 0,-1.1 same as alice {.tone-4 @attack}
-text note "no cipher is broken here –\nshe just stands in the middle" below alice gap 0.8 flush left -- eve.cx,eve.bottom {.hand .small @attack}
-
-# Eve is level with the other two by the time this arrow is shown - the same
-# step moves her onto the line - so it is a plain side-to-side connection and
-# the compiler picks the two facing edges.
-edge in alice -> eve {.accent @cut}
-edge fwd eve.right:0.2 -> bob.left:0.2 "M" {.accent @cut} side top
-edge edit eve.right:0.8 -> bob.left:0.8 "M′" {.accent @cut} side bottom
-
-step spot
-  show @attack
-step cut
-  hide wire
-# `to` names a position, `by` shifts by an amount, and the layout is worked
-# out again at every step, so the container re-fits.
-  move eve to between alice,bob
-  move alice by -0.3,0
-  move bob by 0.3,0
-  show @cut
-  emph eve
-step damage
-  label eve "Eve rewrites M"
-  style edit {.dashed}
-  dim net
-:::
-
-**Every element after the first is placed against another one, so nothing comes apart when the middle box moves in.** `move eve to between alice,bob` states a position, `move alice by -0.3,0` shifts an element by an amount, and the whole figure is laid out again at every step – so Alice and Bob step aside, the `container` re-fits around them, and the arrows are drawn wherever their ends have gone. `hide` takes the direct wire away, `dim` is the opposite of `emph`, and `label` swaps in wording that was typeset when the lecture was built.
-
-**Two tags do all the revealing: `@attack` and `@cut`.** `show @attack` brings Eve in and the handwritten caption with her, because both lines carry that tag; `show @cut` brings the three arrows through her a step later. The pair running to Bob leaves Eve's right edge at `:0.2` and `:0.8`, a fraction along a side being how two arrows between the same two boxes run parallel instead of on top of each other, and `side top` and `side bottom` put one label above its line and the other below.
-
-## free: A figure that advances on a timer | `::: draw autoplay N` {.wide #autoplay}
-
-**A figure written with `autoplay` advances its own steps on a timer once the slide is on screen** – one delay, in milliseconds, for every step. A cover figure that moves while the audience files in is the case it was asked for, but it works on any chunk.
+**Write a picture into a chunk and you get a picture in the text column** – not one that fills the slide, and not three things standing side by side. What makes a slide more than that is written beside the body rather than in it.
 
 ```markdown
-::: draw 150x56 autoplay 1200
-box crawler "Crawler" {.tone-1}
-box det "Detector" right of crawler gap 1.6
-edge crawler -> det "request"
+## free: A picture behind the words {.full #deco-picture}
 
-step probe
-  emph det
+::: backdrop dusk {.cover .invert}
+
+::: overlay {.bottom-left .ink .standard}
+**The backdrop is the slide's ground**\
+and this block is an overlay, placed on a 3×3 grid.
 :::
 ```
 
-The timer presses the same key you would press, so the speaker view follows and freezing the projection stops it. It runs on the projection only, and **the first key, click or scroll on that slide stops it** – once you have touched the figure you have taken over. It also refuses to start on a slide that is already half uncovered.
+**`::: backdrop` puts a picture behind the whole slide, edge to edge, and `::: overlay` sets a block of text on top of it.** Those are the lines that draw the next slide.
 
-## free: What the timer promises | the bounds, and who takes over {.wide #autoplay-bounds}
-
-The delay has to be between 200 ms and 60 s; outside that the build refuses the number rather than quietly moving it.
-
-**`cycle` repeats the run of steps** – `autoplay 1200 cycle` – which is usually what a cover figure wants while the audience is arriving. It rewinds the same way it advanced, so the speaker view follows the rewind too. The last step is held for one delay like every other, and there is no second number for how long to hold the finished picture.
-
-**The figure below is running now**, the same four lines as the block on the slide before with `cycle` added. Press any key and it stops where it stands – that is the take-over, and it is why you can read the rest of this slide without it moving underneath you.
-
-::: draw 150x56 frame 2x1.2 autoplay 1200 cycle
-# frame, for the reason the mix figure earlier carries one: two boxes and an
-# arrow are a specimen of the syntax, not a slide, and the slide round them
-# is four paragraphs of prose.
-box crawler "Crawler" {.tone-1}
-box det "Detector" right of crawler gap 1.6
-edge crawler -> det "request"
-
-step probe
-  emph det
-:::
-
-# Questions for the reader {#pulse}
-
-## principle: A document can test its reader | the question stands under the chunk it asks about {.standard #pulse-idea}
-
-**Reading a hand-out a second time feels like knowing it, and a question is the quickest way to find out whether it is.** Trying to answer from memory also tends to keep the material longer than rereading it does.
-
-**`::: pulse` writes such a question into the lecture source, under the chunk it belongs to.** `print.html` and `print-notes.html` show it to the reader; the projection and the speaker view leave it out, so the room sees your slides and not a quiz.
-
-**This tour carries a few of them already.** Open `print.html` and you will find one under several chunks, this one included.
-
-::: pulse
-Which of the four views show a `::: pulse` question?
----
-The two documents, `print.html` and `print-notes.html`. The projection and the
-speaker view leave it out.
-:::
-
-## free: Writing a question | the question, a line of `---`, the answer {.wide #pulse-write}
-
-**Everything above the one line that is exactly `---` is the question, everything below it the answer.** Both halves are ordinary Markdown – bold, code, a list, a formula – but no `:::` block.
-
-```markdown
-## definition: Digital signatures {.wide #signatures}
-
-A key pair: the private key signs, the public key verifies.
-
-::: pulse
-What does a signature guarantee that encryption alone does not?
----
-**Authenticity and integrity**: only the key holder could have made it,
-and any change to the message breaks it.
-:::
-```
-
-**The question is drawn at the end of its chunk, after the speaker notes in `print-notes.html`**, because it asks about all of it. Where in the chunk you write the block does not move it.
-
-**The build refuses a block it cannot read as a question**: no `---` or two of them, an empty half, a `> note:` inside it, or a question on the `title:` or `closing:` chunk. An answer that needs a rule writes `***`.
-
-::: pulse
-A `::: pulse` block contains two lines that are exactly `---`. What happens?
----
-The build stops and says so: a question has exactly one `---`, between question
-and answer. A rule inside either half is written `***`.
-:::
-
-## free: What the reader sees | the answer stays folded until the reader asks for it {.full #pulse-reader}
-
-**In the document, the question sits in a box of its own under the chunk, and its answer is hidden behind a button.** These two pictures are the example from the last slide, before and after the click.
-
-::: side
-
-![](pulse-closed)
-
-::: flip
-
-![](pulse-open)
-
-:::
-
-**Once the answer is open, the reader says whether they knew it.** Without a JavaScript-capable browser the same block is a question and a folded `<details>` answer, so nothing is lost.
-
-## free: Where the answers go | the reader's browser, or the reader's Pulse account {.wide #pulse-account}
-
-::: side
-
-**The box is Pulse, a self-test service at `pulse.psi.uni-bamberg.de`, and it sends nothing until the reader signs in.** Until then, whether they knew an answer is stored in their browser alone. A document opened from disk never sends its file path.
-
-**After signing in with an email address, the answers are kept in the reader's account, and the questions come back by mail at growing intervals.** The document shows the reader's standing twice: one line under the contents, and this box at the very end.
-
-::: flip
-
-![](pulse-summary)
-
-:::
-
-::: pulse
-A student answers three questions in `print.html` without signing in. What has been sent to the Pulse server?
----
-Nothing. The answers stay in the student's browser, and they move into the
-account only once the student signs in.
-:::
-
-## free: The key, and paper | what a question is filed under, and what printing drops {.wide #pulse-key}
-
-::: side 3:2
-
-**Each question is filed under a key, and the lecture's `title:` is the page it belongs to.** The key is the chunk's id, which is frozen once written anyway. A second question on the same chunk needs a key of its own, `::: pulse {#signatures-verify}`, and no key may occur twice in a lecture.
-
-**Correct a question's wording as often as you like, but keep its key and the lecture's title** – change either once students have answered and their progress starts over.
-
-**Printed on paper, the buttons disappear and each answer stands under its question**, as beside this paragraph.
-
-::: flip
-
-![](pulse-print)
-
-:::
-
-**Keep formulas out of a question that should read well in the reminder mail**: Pulse mails the text as plain text, and a formula arrives there as KaTeX's glyphs run together.
-
-::: pulse
-You fix a typo in a question that students have already answered. What must stay the same so their progress survives?
----
-The question's key – by default the chunk's id – and the lecture's `title:`.
-The wording itself may change.
-:::
-
-## free: More than one question on a chunk | they become a stack {.wide #pulse-deck}
-
-**Two or more `::: pulse` blocks in one chunk become a stack, and the reader answers one question at a time.** A line above the question says which of how many it is, a button leads on to the next, and a question that is due comes first. There is nothing new to write: the chunk says the questions belong together.
-
-::: side
-
-![](pulse-deck)
-
-::: flip
-
-![](pulse-deck-print)
-
-:::
-
-**On paper the stack prints in full, every question with its answer in one box**, as on the right. Each question in a stack still has a key of its own: the first takes the chunk's id, and each further one names itself.
-
-::: pulse
-How many questions does the reader see at once when a chunk has three `::: pulse` blocks?
----
-One. The three form a stack, and a button leads from one to the next. On paper
-all three are printed, each with its answer.
-:::
-
-::: pulse {#pulse-deck-keys}
-A chunk with the id `hashes` carries two questions, and neither names a key. What happens?
----
-The build refuses it: the first question takes the key `hashes`, and the second
-would take it too. The second has to name itself, say `::: pulse {#hashes-2}`.
-:::
-
-# Slide decoration {#decoration}
-
-## principle: A slide can be more than a column of text | and what makes it one is not written inside the text {.standard #deco-idea}
-
-**Write a picture into a chunk and you get a picture in the text column** – not one that fills the slide, and not three things standing side by side.
-
-**Three kinds of construction sit beside the body rather than in it: a picture behind the slide, blocks in place of the paragraphs, and the slides a lecture opens and closes with.** The rest of this part takes them one at a time, in that order, and all
-of them are shown one per slide in
-[the decoration lecture](../decoration/audience.html).
-
-## free: A picture that fills the frame | `::: backdrop` and `::: overlay` {.wide #backdrop}
-
-**`::: backdrop` puts a picture behind the whole slide, edge to edge, and `::: overlay` puts a block of text on top of it.** One line each, on any chunk – a cover is not a special case. A backdrop names its picture the same three ways an image does: a bare asset id, a path, an https address.
-
-```markdown
-## figure: {#skyline .full}
-
-::: backdrop city-at-night {.invert .blur}
-
-::: overlay {.bottom-left .ink .wide}
-### Every endpoint is a sensor
-A crawler that looks like a browser gets measured back.
-:::
-```
-
-## free: The words in the braces | five questions for a backdrop, five for an overlay {.wide #backdrop-words}
-
-**A backdrop's braces answer five questions, at most one word each.** How the picture fills the frame – it covers the slide, or it fits inside it whole. Which part of it survives the crop. What is laid over it. Whether it is sharp or blurred. And whether it sits under the type or in front of it. Two words answering the same question is an error, and the message names both.
-
-**The default is `veil`**: the theme's own paper at 80%, so ordinary dark text stays legible on a photograph in all seven themes. `invert` darkens the picture and turns the text light instead – the next slide is one.
-
-**An overlay answers five**: *where* on a 3×3 grid, *what it sits on* (`paper`, `ink`, `accent`, `clear` or `glass`), *how wide*, whether it is a *card* or a *panel*, and, for a panel along the top or bottom, *how high*. A card has padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room; a `{.panel}` is not a card but a column or band that reaches the frame's edge.
-
-[The decoration lecture](../decoration/audience.html) has a slide for each of the two lists, and a backdrop whose window opens on a keypress.
+**[The decoration lecture](../decoration/audience.html) shows the rest, one construction per slide**: the ten covers and the closing slide, part dividers, rows of cards, docks and panels, and the type and colour of a whole lecture – the `style:` block and the typefaces.
 
 ## free: A picture behind the words | what the two blocks on the last slide produce {.full #deco-picture}
 
@@ -1354,372 +894,13 @@ and this block is an overlay, placed on a 3×3 grid.
 
 > note: The veil laid over a backdrop is the theme's own paper, not white, so ordinary dark text stays legible over a photograph in every theme. `invert`, which this slide uses, darkens the picture and turns the text light instead. The chunk is nothing but the two blocks on the slide before it – there is no body text.
 
-## free: A row of cards | `::: cards N` {.wide #cards}
-
-**`::: cards 3` puts three separate boxes across the slide, and an item sits in one of them whole and never spans two.** A `::: cols 3` block does the other thing: one run of text the browser shares across three columns, so a paragraph can spill from the foot of one into the head of the next.
-
-::: cards 3
-- **cards**
-  - N containers side by side
-  - a three-item comparison reads as three things
-- **rows**
-  - the same container turned ninety degrees
-  - a term, with its body beside it
-- **cols**
-  - one text flow balanced across N tracks
-  - a paragraph can spill from one into the next
-:::
-
-That row is one Markdown list between `::: cards 3` and `:::`, and **each card has a second level folded away under it – press `C` and it appears.** The folded level is in `print.html` and `print-notes.html` either way, so one row serves the audience and the hand-out.
-
-One rule decides what becomes a card: write a single list and each of its items is a card; write anything else and each block is a card. The count runs from 1 to 6 – one card is a callout you want to stand apart, and past six what you have is a table.
-
-## free: The two ways to open a card | a lead-in, or a heading {.wide #cards-open}
-
-**How you open a card decides what the bold does**, and the two below are written the two ways:
-
-::: cards 2
-- **A lead-in** is written on the same line as its text, so the bold runs into the sentence and the card reads as one paragraph
-- **A heading**\
-  is written before a line break, so the bold sits on its own line with the text under it
-:::
-
-Use `cols` for an argument that runs long, and `cards` for a comparison the audience should be able to count.
-
-## free: What the words in the braces do | the seven that set a card row's look {.wide #cards-look}
-
-**Seven words in the tail set the look of a card row**, written bare between braces, at most one per question – a second word answering a question already answered stops the build.
-
-- **`ground`** – what the card is made of: a tint, a hairline, the page, or nothing.
-- **`anchor`** – where the text sits when the card is taller than its content.
-- **`corner`**, **`detail`** and **`scrim`** – the radius, the small print, and what is laid over a picture.
-- **`size`** and **`align`** decide themselves: the longest item picks the size, and the alignment follows it.
-
-## free: One ground for a whole row | `accent`, `paper`, `clear` {.wide #cards-ground}
-
-**`ground` is answered once for a whole row**, so three grounds means three rows, each written `::: cards 1 {…}` with its own word. `panel` is the default, a tinted fill; `outline` is a hairline and no fill; `photo` makes the card's first picture its background, and `scrim` says what is laid over it.
-
-::: cards 1 {.accent}
-- **accent** – the theme's own colour, with the text in the page colour on top
-:::
-
-::: cards 1 {.paper}
-- **paper** – the page colour, so the card stands out from whatever is behind it
-:::
-
-::: cards 1 {.clear}
-- **clear** – no box at all, so the gap is what separates one card from the next
-:::
-
-## free: A tail that answers twice | `::: cards 3 {.outline .middle}` {.wide #cards-anchor}
-
-::: cards 3 {.outline .middle}
-- **outline**\
-  a hairline and no fill, which is less prominent on a slide that already carries a figure
-- **middle**\
-  this text is centred against the tallest card. In the row above it sits at the top
-- **never both**\
-  a fill inside a hairline reads as a form field rather than as a card
-:::
-
-**That row is `::: cards 3 {.outline .middle}`**, so its tail answers two questions at once: `ground`, and `anchor` – where the text sits when the card is taller than its content, which it always is, a grid row being as tall as its longest card.
-
-## free: A term and what it means | `::: rows` {.wide #rows}
-
-**`::: rows` is a card turned ninety degrees**: a term in a card on the left, its explanation beside it, several of them stacked.
-
-::: rows {.accent}
-- **Separatism** Engineers do the technical work; managers take the decisions
-- **Technocracy** Engineers should take them, because they understand them
-- **Deference** Engineers name the options and say what each one costs
-:::
-
-## free: What a row block does differently | no count, and three defaults of its own {.wide #rows-rules}
-
-That row is `::: rows {.accent}` around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. **The explanation is optional** – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.
-
-It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: `anchor` follows the ground, `align` says how the term sits *in its card* while the explanation ranges left, and the automatic size stops at `medium`, a term being a label in a column rather than a headline across the slide.
-
-**A row block adds one anchor word, `baseline`, and picks between two by ground.** On a fill the term is a visible slab, and a one-line slab against a three-line explanation's first line reads as a mistake, so a grounded row centres it. Under `{.clear}` there is no slab and no padding, so the term is bare words in a column, and those read best on the baseline – a hanging indent, which is the form a term and its definition have taken since long before the slide. `{.baseline}` on a `::: cards` block is an error: a card has nothing beside it to line up with.
-
-Use `rows` when a term needs a sentence, and `cards` when a comparison needs counting.
-
-## free: A figure beside the prose | `::: side 2:1` {.wide #side-ratio}
-
-::: side 2:1 {.middle}
-
-**`::: side` takes an optional ratio, so the two panes need not be equal halves.** This slide is `::: side 2:1`: two parts of prose to one part figure, which is the shape a diagram with its commentary usually wants. Any two numbers work, `::: side` on its own is equal halves, and `::: flip` starts the second pane.
-
-That drawing is a `::: draw` block inside the second pane. In `print.html` and `print-notes.html` the two panes stack one after the other and the ratio is ignored, because a page has only one column to give them.
-
-**A short pane sits at the top of its half unless you say otherwise, and `{.middle}` centres it against the taller one.** Here the *figure* is the short pane, so `{.middle}` is what puts it level with the middle of this column instead of at the top. `{.top}` is the default and often right – a caption over a figure should be aligned from the top. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only move the shorter one.
-
-**A figure *above* or *below* the text needs nothing** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns stop working, without an error. A `::: draw` written there is refused, and the message points you at `::: side`.
-
-::: flip
-
-::: draw 140x60
-box a "Crawler" {.tone-1}
-box b "Detector" below a gap 1.1 {.tone-4}
-edge a -> b "request"
-:::
-
-:::
-
-## free: Setting the typography for a whole lecture | the `style:` block {.wide #style-block}
-
-**The `style:` block holds the settings you make once for a whole lecture rather than chunk by chunk.**
-
-```yaml
-style:
-  headings: left        # auto | left | center | off
-  rules: off            # on | off  – the hairline over a principle
-  labels: off           # on | off  – the type word over a chunk
-  link-codes: off       # on | off  – the mark after an external link
-  blocks: left          # center | left – a code block, a figure, a formula
-  wrap: none            # balance | none – even line lengths
-  print-body: sans      # serif | sans – the printed document's face
-  neutrals: tinted      # neutral | tinted | warm | cool – the greys
-  print-neutrals: warm  # the same four, for the printed pages
-  headline: eyebrow     # stacked | eyebrow – the title pair
-  caps: on              # off | on – small type round a title
-  bold: accent-bold     # plain | bold | italic | accent |
-  print-bold: italic    #   accent-bold | accent-italic – live, then paper
-  code: tint            # plain | tint | spaced – code inside a sentence
-  heading-scale: 1.15   # with body-scale, bounded to 0.6 … 1.8
-```
-
-`headings: auto` is the default: the type decides, so a figure's caption sits over its artwork. `left` overrides that for one line of alignment down the lecture; `off` takes headings off the projection and keeps them in print, the contents list and search.
-
-## free: Five keys the block's names do not explain | `wrap`, `blocks`, `print-body`, the bold pair and the scales {.wide #style-keys}
-
-**`wrap` applies to headings and prose both**, which its name does not say: `balance` evens the line lengths of a heading and protects the last line of a paragraph, and `none` turns both off. `blocks` and `wrap` are the two keys a single chunk can answer for itself, with `{.blocks-left}` and `{.wrap-none}` in its attribute tail.
-
-**`print-body` is the one setting here that only the printed pages see.** The projection and the lectern let a reader pick the face with `F`; a document has no reader to press it, so `sans` is how you ask for one set in the sans. Code stays in the monospace, and so does everything the document already draws in the sans – the type word, a caption, the contents list.
-
-**`bold` and `print-bold` set how a `**bold**` phrase looks, and `plain` is a legal answer because bold selects before it decorates.** Live the default is `plain`, so a promoted bullet is set like the sentence above it; on paper it is `bold`, in the ink. `accent-bold` in both is how the tool drew every bold before the keys existed. A word stressed with `*em*` inside the phrase is bold and in the accent whatever the key says – except under `accent-bold`, where it stays italic.
-
-The two scales multiply the tool's own sizes rather than replacing them, and they are **bounded**. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.
-
-## free: Code inside a sentence | `style: {code: …}` {.wide #inline-code}
-
-**A monospaced word brings a space of its own, and it is twice the width of the one around it.** So **`async def` used to read as two words where `await` read as one** – only a span of several tokens has a gap inside it to go wrong.
-
-::: rows {.clear}
-- **`spaced`** the default: the gaps around a multi-word span are widened a hair and the ones inside it pulled in. A single token is left alone
-- **`tint`** a quiet ground behind every span, padded left and right only
-- **`plain`** the flat `0.92em` the tool drew before the setting existed
-:::
-
-Both of the first two also **size the code to the x-height of the face around it**, so a lecture that changes its serif changes this with it. A face you supplied yourself carries no measurement; the build says so and leaves the size alone.
-
-## free: What hue the greys carry | `neutrals`, and its counterpart for the page {.wide #neutrals}
-
-**`A` cycles the theme, and in the four light themes it moves one colour: the accent.** The ink stays on a cool hue, and every tinted surface – a card, a dock, an overlay card – is mixed out of that ink, so a card under a warm accent is a cool grey under a warm word.
-
-::: rows {.clear}
-- **`neutral`** the default, and what the tool has always drawn
-- **`tinted`** the greys take the accent's own hue, so the slide reads as one palette whichever accent the room gets
-- **`warm` / `cool`** a fixed hue, the accent notwithstanding
-:::
-
-**`print-neutrals` asks the same question for the two printed views**, and it is a second key because the printed page is warm already where the projection is not. Leave it out and it follows `neutrals`.
-
-## free: Which line of a title is the loud one | `headline`, and `caps` beside it {.wide #headline}
-
-**A cover carries a pair of lines, and so does a divider and a closing slide** – `title:` and `subtitle:` in the frontmatter, `Heading | Sub` in a chunk heading. `headline` says which of the two is set large.
-
-```yaml
-style:
-  headline: eyebrow     # stacked | eyebrow
-  caps: on              # off | on
-```
-
-`stacked` is the default: the title large, the subtitle quieter under it. `eyebrow` turns it over, so the title sits small above a subtitle that carries the weight – the shape a lecture title takes when the first line names the field and the second asks the question.
-
-**The words stay where they are and only their type changes**, which is what lets one key serve the cover, the dividers and the closing slide at once. `title:` is also the browser tab, the contents entry and what search reads, so putting the hook there would leave the lecture's own name nowhere.
-
-`caps` sets the small type round a title in capitals: the eyebrow, the presenter, the affiliation, never the headline. The tracking is not a second setting – the build spaces out any line already in capitals, including one you typed that way.
-
-## free: Turning the generated labels off | `style: {labels: off}` {.wide #labels}
-
-**The type word above a chunk is drawn in two places, and one setting takes it out of both.**
-
-::: cards 2
-- **`print.html` and `print-notes.html`** set a small line of capitals over every typed chunk. Every type has one except free and figure, so that is where most of them live.
-- **The projection** prints only the word over an exercise. The rest were taken out: a label naming the kind of slide is only as right as the type was.
-:::
-
-```yaml
-style:
-  labels: off
-```
-
-`rules` is the neighbouring key and switches the lines – the bar above a principle, the hairline above a definition. `labels` switches the words.
-
-**A figure's heading, set in capitals, is your own text and needs no key.** It is the chunk's heading, drawn that way because the type is `figure`, so `## figure: {.wide #id}` with no heading text leaves it off the slide. The cost is that the chunk then has no text for search to find and no heading in `print.html`. (The contents list is unaffected – `T` lists the lecture's columns, never its chunks.)
-
-## free: Which typefaces are embedded in the file | nine come with the tool {.wide #bundled-fonts}
-
-**Three families are embedded in any one file, and you pick which three.** Nine come with the tool, so naming one of those needs no font file at all. A fourth role, `display`, is optional: `fonts: {display: Anton}` names one of 32 more faces for the cover, the closing slide and the section dividers, and nothing else in the lecture wears it.
-
-```yaml
-fonts:
-  serif: Bitter                    # or Literata, the default; also Source
-                                   # Serif 4, Noto Serif, Roboto Serif
-  sans: Inter Tight                # or IBM Plex Sans, the default
-  mono: Noto Sans Mono Condensed   # or JetBrains Mono, the default
-```
-
-Only the three a lecture actually asks for are read, so choosing an alternative costs that lecture and no other. A name that is neither one of the nine nor a file in `fonts/` stops the build, and the message lists the names available for that role.
-
-**Among the serifs, the question is what a projector does to a typeface.** Bitter has the lowest stroke contrast and the smallest file, which is why it stays legible in a lit room; Roboto Serif has the strongest bold but sets 8% wider, so it re-wraps a deck written against another face.
-
-**The condensed monospace is 17% narrower** – 0.50 em against 0.60 em per character, measured in a browser – so a listing that ran off the slide now fits. It is Noto Sans Mono with its width axis pinned rather than a different typeface, so it costs 54 KB. Slashed zero, and `I`, `l` and `1` are three visibly different shapes.
-
-**`ligatures:` decides whether letter pairs are drawn joined, and answers separately for prose and for code.** `text` is the default: `fi` and `fl` joined up in prose, nothing joined in code. `none` takes them out of prose as well. `all` puts the code ones back, so JetBrains Mono draws `->` as a single arrow again. The code ones are off by default because in the figure language `->` and `--` are two *different* arrows, and every listing on a slide is source somebody may retype.
-
-## free: Embedding your own typefaces | `fonts/` beside `source.md`, plus a frontmatter block {.wide #fonts}
-
-**A family that is not inside the file is a family the lecture-hall machine may not have.** Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and `fonts: none` leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.
-
-**Each of the three text roles is answered on its own**, so you can replace one and leave the others alone. Put your files in a `fonts/` folder beside `source.md`:
-
-```yaml
-fonts:
-  serif: Vollkorn        # yours – the files are in fonts/
-  mono: JetBrains Mono   # one of the nine that ship, so no file
-                         # sans: not written, so it stays the default
-```
-
-**A file's name says which weight and style it is**: `Vollkorn-Regular.woff2`, then `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic` – or one file, `Vollkorn[wght].woff2`, carrying every weight. A family that is neither one of the nine nor a file in `fonts/` stops the build.
-
-**Putting a font inside the file redistributes it, so check the licence first.** The SIL Open Font License and Apache-2.0 – between them nearly all of Google Fonts – allow that; most commercial desktop licences do not, and want a separate web licence. The build prints a reminder and checks nothing.
-
-## free: How the title slide is composed | `cover:` plus a `subtitle:` line {.wide .blocks-left #covers}
-
-**`cover:` in the frontmatter picks how the title slide is composed, and `subtitle:` gives it the line that says what the talk is about.** Without those two, a cover is one weight of one colour with the subject set beside the venue, and it reads as a text file rather than as the opening of a talk.
-
-```yaml
-title: How Caches Forget
-subtitle: Eviction, Staleness and the Cost of Being Wrong
-presenter: Jana Wieland
-affiliation: Otto-Friedrich-Universität Bamberg
-contact: uni.example/ds
-notice: Slides go up on Friday.
-info: |
-  Distributed Systems · Lecture 7 · Room WE5/00.019
-cover: split            # see the two rows below
-cover-image: skyline    # only the four picture covers take one;
-                        # on the six text-only ones it is an error
-```
-
-`info:` takes as many lines as you give it – the course and the room, or, at a conference, its name and dates. Without `subtitle:` the one line saying what the talk is *about* has nowhere to go but `info` either, where it is set exactly like the rest.
-
-## free: The credit block has four ranks | who is talking, where, and how to reach them {.wide #credits}
-
-**The four keys under `title:` are set at four different weights, because they do four different jobs.**
-
-::: rows {.clear}
-- **`presenter:`** your name, set apart from everything under it
-- **`affiliation:`** the institution, quieter, directly beneath the name
-- **`contact:` / `notice:`** one row along the foot – the address flush left, the notice flush right and in italics
-:::
-
-A presenter and an institution *introduce the speaker*; an address and “the slides go up on Friday” *answer the room*. That is why the last two share a row instead of stacking. `info:` keeps the date, the room and the course line.
-
-**Everything but `presenter:` used to go into `info:`**, which set the line that qualifies your name exactly like the line that gives the date.
-
-## free: The ten cover compositions | six of text alone, four that take a picture {.wide #cover-list}
-
-**They are ordered by how prominent the opening slide is.** Six are text and nothing else:
-
-::: cards 3
-- **classic** the lower-left third. The default, so a lecture that names no cover is unchanged
-- **masthead** the title along the top edge, the credits along the bottom, your own text in the field between
-- **stack** the title block centred on both axes, for a calm opening
-- **display** the title set to fill the slide. The scale is the whole design
-- **panel** the type on a full field of the theme's accent colour
-- **quote** the title chunk's body set as the claim, the lecture's name under it
-:::
-
-## free: The four covers that take a picture | and what each does with it {.wide #cover-pictures}
-
-Four take a picture:
-
-::: cards 4
-- **split** type on the left, the picture running off the right edge
-- **hero** the picture is the slide, type reversed out of a dark gradient
-- **beside** the title chunk's own body, a drawing say, set to the right
-- **above** that same body on top, the title centred in the band below it
-:::
-
-## free: What a cover reads besides its name | the body, a backdrop, and three more keys {.wide #cover-keys}
-
-**`beside`, `above` and `quote` take their content from the chunk body**, so a `::: draw` can be the cover – a diagram is not a file, and `cover-image` can never name one.
-
-**The six text-only compositions each take a `::: backdrop`**, which is how a photograph reaches a cover with no `cover-image` of its own.
-
-::: expand The rest of the cover keys
-On `beside`, `above`, `quote` and `masthead`, `info:` still supplies the credit lines; everywhere else writing a body replaces `info`.
-
-`cover-ratio: 42%` sets how much of the slide the picture takes on `split`, `beside` and `above`, and `cover-align: top | middle | bottom` moves the words up or down on the compositions that leave them any freedom.
-
-`cover-ground: ink` opens a light lecture on a dark slide with nothing behind it. Until it existed, a dark opening needed a photograph – `hero` inverts the slide it draws, and `::: backdrop` wants a file. It is written only where nothing has already darkened the slide, so a backdrop still wins over it, and the closing slide inherits it with the rest of the composition.
-
-Try `panel` with a backdrop: its coloured field becomes the veil, so the picture reads through a plate of the accent rather than under the paper wash every other backdrop gets.
-:::
-
-## free: Where a new part starts | `section:` {.wide #section-dividers}
-
-**A column with a `# Heading` opens with a divider slide**, and `section:` picks how that slide is drawn.
-
-::: cards 3
-- **plain** the heading on its own. The default
-- **tinted** the accent colour over the whole slide. The most visible of the six
-- **rule** the heading between two rules. The one that survives a mono print
-- **card** the heading set on a panel
-- **number** a large counter above the heading
-- **outline** every part listed, the one you are entering marked. A running agenda
-:::
-
-## free: A divider is never the title slide | and `section-mark:` puts a word over it {.wide #section-quiet}
-
-**They stay less prominent than the cover**, so that a divider is not mistaken for the title slide: it says *a new part starts here, and it is part of the thing you are already in*.
-
-```yaml
-section: tinted         # plain | tinted | rule
-                        # card | number | outline
-section-mark: Teil      # any short word, or nothing
-```
-
-`section-mark:` puts a word of your own – `Teil`, `Kapitel` – over the heading. By default there is none.
-
-## free: The last slide | `## closing:` {.wide #closing}
-
-**`## closing:` draws a last slide in the same composition as the cover, so the lecture ends on the shape it opened with.** A lecture that starts on a designed slide and ends on the last bullet of the last argument stops rather than finishes.
-
-```markdown
-## closing: Questions? | office hours Thursday, 14–16 {#end}
-
-Next week: certificates, and who you are actually trusting.
-```
-
-**The heading is the first line, the sub-heading after the `|` is the second, and the body is whatever should stay on screen while the audience asks questions.** Your name and the `info` block are not drawn – the room learned both an hour ago, and a bookend that repeats them reads as a duplicate slide.
-
-The one line a last slide is often asked for anyway is where the slides can be found, so `closing-credits:` is graded rather than on and off: `none` is the default described above, `contact` brings back the foot row alone, and `cover` brings back the whole credit block.
-
-**A closing slide never uses `cover-image` by itself** – ending on the opening picture unasked would be the repetition a closing slide is meant to avoid. `closing-image: cover` in the frontmatter asks for it, and the deck closes on the picture it opened with; any other value names a different one, in the same three forms `cover-image` takes. A `::: backdrop` on the chunk is the other way and a different thing – a full-bleed ground behind the words, which works on all ten compositions and wins over both.
-
-> note: The checker warns if a `closing:` chunk is not the last chunk in the lecture, and if there is more than one – both of which are lectures that end twice.
-
 # Next steps {#next}
 
 ## principle: Start from a talk you have already given | the text already exists, so the work left is cutting it into chunks {.standard #start-writing}
 
 **The first lecture takes the most effort, because you are still learning the vocabulary, so start with a talk you have already given.** Its text already exists. Most of the remaining work is deciding where one chunk ends and the next begins, and the vocabulary you have just read is all you need for that.
 
-**The steps are the same for every lecture** – write the prose, sharpen the opening sentences, run the checker, then walk the lecture once in the short view before you teach it.
+**The steps are the same for every lecture** – write the prose, sharpen the opening sentences, run the checker, read what `--squint` says the room will see, then walk the lecture once in the short view before you teach it.
 
 ## free: Read more | three finished lectures to open {.wide #read-more}
 
@@ -1729,9 +910,9 @@ The one line a last slide is often asked for anyway is where the slides can be f
 
 **1. A teaching lecture of 39 chunks: `lectures/python-intro/audience.html`.** Open its speaker window with `S` and watch the layout vocabulary you have just learned in real use, running through segments, expansions and opened figures.
 
-**2. Every construction that puts something other than a column of text on a slide, one per slide: `lectures/decoration/audience.html`.** The covers, the six kinds of divider and the three kinds of divider content, cards and rows, a backdrop whose window opens on a keypress.
+**2. Every construction that puts something other than a column of text on a slide, one per slide: `lectures/decoration/audience.html`.** The covers and the credit block, the six kinds of divider, cards and rows, a backdrop whose window opens on a keypress, docks and panels – and, in its last part, the `style:` block and the typefaces.
 
-**3. Every `::: draw` statement drawn rather than described: `lectures/diagrams/audience.html`.** Real lecture figures are among them.
+**3. Every `::: draw` statement drawn rather than described: `lectures/diagrams/audience.html`.** Real lecture figures come first, then the vocabulary, then the grammar of a line in five slides.
 
 :::
 
@@ -1742,6 +923,7 @@ The one line a last slide is often asked for anyway is where the slides can be f
 - `node build.js --new <slug>` makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.
 - `node build.js <source.md> --watch` rebuilds and reloads every open tab on every save.
 - `node lint.js lectures/` checks what can be checked without building: unknown types, unclosed `:::` blocks, repeated ids, word budgets, too many segments, one-chunk columns, captions that repeat the heading, frontmatter keys nothing reads. `--strict` turns the warnings into failures.
+- `node build.js <source.md> --squint` writes `squint.txt`: what the projection shows, slide by slide and beat by beat – the squint test from earlier.
 
 A frontmatter key nothing reads looks like nothing is wrong – the lecture builds, the slides look right, and the key never reached a page. `author:` sat in several lectures here doing that.
 

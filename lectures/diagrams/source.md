@@ -28,8 +28,8 @@ build time, and stepped with the same key that advances a reveal.
 ## outline: Finished pictures first, then the language {.wide #agenda}
 
 **Parts 1 to 3 are six real lecture slides, rebuilt as figures.** The note under
-each says what holds the drawing together, in words Part 4 defines – so watch
-the pictures now and read the notes again after.
+each says what holds the drawing together, in words Parts 4 and 5 define – so
+watch the pictures now and read the notes after.
 
 ## free: Every picture here is text | change one in the source or in the editor {.standard #preview}
 
@@ -437,7 +437,7 @@ brace whole over r1,r2,r3 side left "the whole thing" pad 0.5 {.turn .muted}
 
 A `container` lays itself around its members and re-fits when they move. A `brace` spans a subset and hangs its label outside. Both measure their distance to their contents with the same word, `pad` – the brace is given `0.62` here so that it comes to lie outside the container's `0.42`.
 
-**Swimlanes are not a `container`, and the reason is what a container does.** A container measures itself against what it holds, so three lanes holding different numbers of things come out different lengths at both ends. A swimlane diagram says the opposite: the bands are equal, and only what happens inside them differs. `lanes` is for that – bands of equal width that want to know nothing about their contents. Part 5 draws one, under *Three roles, one incident*.
+**Swimlanes are not a `container`, and the reason is what a container does.** A container measures itself against what it holds, so three lanes holding different numbers of things come out different lengths at both ends. A swimlane diagram says the opposite: the bands are equal, and only what happens inside them differs. `lanes` is for that – bands of equal width that want to know nothing about their contents. Part 6 draws one, under *Three roles, one incident*.
 
 **`.turn` applies to every label, not only to a box's.** The left brace reads bottom to top, and the same class does the same thing on a container caption and on an edge label – at all four places where a label is set.
 
@@ -672,7 +672,7 @@ step all-again
 
 **Anything hanging off something invisible stays invisible.** So neither the `container` nor the dashed arrows nor the handwritten label needs a `show` of its own: an arrow is only as visible as its ends, a `container` only as visible as its members, and a `text` with a leader only as visible as what it points at. The first step says `show px` and nothing else – the two dashed arrows arrive with the proxy.
 
-**Naming an element overrides that rule, in both directions.** `hide direct` takes the direct arrow away though both its ends are still there; a written `show` does the reverse and brings something on screen whose source is still missing – an outline, say, that should stand around its whole set before the set is assembled (the tree in Part 5, under *Leaves first, and the brackets follow*). Both hold from the beat they are written in onwards. Write one only where the rule says the wrong thing. Write a `show` on every element and you have a figure that stays incomplete the next time one is added: the element is in the block, no step names it, and it never appears.
+**Naming an element overrides that rule, in both directions.** `hide direct` takes the direct arrow away though both its ends are still there; a written `show` does the reverse and brings something on screen whose source is still missing – an outline, say, that should stand around its whole set before the set is assembled (the tree in Part 6, under *Leaves first, and the brackets follow*). Both hold from the beat they are written in onwards. Write one only where the rule says the wrong thing. Write a `show` on every element and you have a figure that stays incomplete the next time one is added: the element is in the block, no step names it, and it never appears.
 
 
 ## figure: Where the words sit {.full #justify}
@@ -802,7 +802,7 @@ step exception
   emph f-0, f-1, f-2
 :::
 
-**Seven statements expand at parse time into ordinary elements.** `zone` becomes a box and a text; `bars` becomes a box per column (`f-0` … `f-11`), a baseline and – where a second string is written – a text per label; `grid` a cell per field (`g-<column>-<row>`); `plot` a frame with gridlines and axes; `table` a box per cell; `lanes` a band per lane; `sequence` a head, a lifeline, a message and a note per entry. Everything downstream treats the result like any other element: the `brace` spans three columns because three columns are three ordinary boxes, and a `style` step tints three cells because they are boxes. What makes that work is that a coordinate may be another element's – every cell is placed against an edge of the frame the same statement lays. The other four come later: `plot` on *A frame to draw in*, and `table`, `lanes` and `sequence` in Part 5.
+**Seven statements expand at parse time into ordinary elements.** `zone` becomes a box and a text; `bars` becomes a box per column (`f-0` … `f-11`), a baseline and – where a second string is written – a text per label; `grid` a cell per field (`g-<column>-<row>`); `plot` a frame with gridlines and axes; `table` a box per cell; `lanes` a band per lane; `sequence` a head, a lifeline, a message and a note per entry. Everything downstream treats the result like any other element: the `brace` spans three columns because three columns are three ordinary boxes, and a `style` step tints three cells because they are boxes. What makes that work is that a coordinate may be another element's – every cell is placed against an edge of the frame the same statement lays. The other four come later: `plot` on *A frame to draw in*, and `table`, `lanes` and `sequence` in Part 6.
 
 **An edge is one of the things a coordinate can be read off.** `w1.cx`, `w1.cy`, `above w1 gap 0.2` – what is read is the wire's bounding box. That counts as soon as a sentence describes the wire rather than one of its ends. Pinned to a box, such a sentence keeps its distance from the box and loses it from the line the moment a fraction or a height changes, with no warning. An edge has no name until you give it one, and the name goes in front, as it does on every other statement: in the slot before the first endpoint, `edge w1 mix -> log`. Staying anonymous costs nothing, the slot being optional. Place in a circle – an element against an edge that itself hangs off it – and you get `placement cycle` with the line number.
 
@@ -938,6 +938,133 @@ text  note "a raster keeps its own colours\nin every theme" right of swatch gap 
 :::
 
 Cycle the themes with `A` and the raster image stays as it is, while boxes, arrows and vector drawings re-colour. Pixels cost that; a vector drawing does not.
+
+# The language in five lines {#language}
+
+Five lines are enough for a first figure: three boxes and the two arrows
+between them. This part takes such a line apart – its six slots, where an
+element goes, a coordinate borrowed from another element – and then adds the
+steps that make a figure arrive one beat at a time.
+
+## free: Every line has the same six slots | `kind name label placement options tail` {.full .blocks-left #diagram-slots}
+
+**Every line in a `::: draw` block has the same six slots, in this order**, and most lines fill three or four of them:
+
+```text
+box   mix   "Mix"   right of src gap 0.6   w 1.2    {.tone-2 @crypto}
+kind  name  label   placement              options  tail
+```
+
+**The name is how later lines refer to an element and is never drawn; the label is what the audience reads**, and `""` is a legal empty one. A name is letters, digits, `_` and `-`, and a line starting with `#` is a comment.
+
+**Inside the tail, the first character says what a word is: `.` starts a class and `@` starts a tag.**
+
+- **`.tone-2` is a class**, which says how the element looks. `{!tone-2}`, with an exclamation mark, takes one off again.
+- **`@crypto` is a tag**, which says what set the element belongs to.
+
+A tag goes wherever a name goes, so `show @crypto` in a step selects every element that carries it. An element joins a set on its own line, which makes adding one a one-line edit.
+
+## free: Where an element goes | a grid square, a neighbour, or another element's coordinate {.full #diagram-placement}
+
+**Placement is a grid square, or a relation to a neighbour.**
+
+- **`at 2,1`** puts an element in a grid square.
+- **`right of mix gap 0.6`** places it against a neighbour, as do `left of`, `above` and `below`.
+- **`between a,b`** is the point on the line joining two elements.
+- **`offset dx,dy`** is a nudge any of the three accepts on the end.
+
+## free: A coordinate can be another element's | fractions, edges and pictures {.full #diagram-coords}
+
+**A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`. Anywhere an `X,Y` pair goes, that form goes.
+
+**An anchor can carry a fraction**: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side rather than on top of each other. `gap 0 flush left` at the end of a placement makes two boxes touch.
+
+**An edge is one of the things a coordinate can name.** `text n "only after the handshake" above w1 gap 0.2` sets a phrase against the wire it describes rather than against a box at one end of it, so the label follows its line instead of drifting off it the next time a box changes height. Name the edge first, in the slot before the arrow's first end: `edge w1 mix -> log`. An edge has no name until you write one, and most edges never need one.
+
+**A picture can be an element too.** `image alice avatar-alice w 0.4` finds the file exactly as `![](fig-id)` does, and an SVG drawing takes the theme's colours there in the same way.
+
+## example: What a step block says | four lines at the end of the block {.full #diagram-beats-rule}
+
+**A `step` block is a beat: one forward press, on the same counter a reveal segment uses.** Press forward twice here – a logfile appears, and then the leak into it is emphasised.
+
+::: draw 126x72
+box  src  "Sender"
+box  mix  "Mix"        right of src gap 1.05
+box  dst  "Receiver"   right of mix gap 1.05
+box  log  "Logfile"    below mix gap 0.9  {.dashed}
+
+edge src -> mix "encrypted"
+edge mix -> dst "recoded"
+edge leak mix -> log {.dashed}
+
+text why "this is where\nthe anonymity ends"  right of log gap 1.4 -- leak {.hand}
+
+step leak
+  show log
+step blame
+  emph leak, log
+:::
+
+**`step leak` shows the logfile, and `step blame` emphasises the leak and the box it runs to.** The words a step knows are `show`, `hide`, `move … to`, `move … by`, the three attention verbs `emph`, `dim` and `ghost`, plus `style` and `label`.
+
+**Anything attached to something invisible is invisible too**, which is why `step leak` names only the logfile. An arrow is only as visible as the two things it joins, a `container` or a `brace` only as visible as its members, and a `text` with a line drawn to something only as visible as what it points at. So showing the boxes shows the arrows between them, and most of a figure needs no `show` of its own.
+
+::: expand The source of that figure
+```text
+box  src  "Sender"
+box  mix  "Mix"        right of src gap 1.05
+box  dst  "Receiver"   right of mix gap 1.05
+box  log  "Logfile"    below mix gap 0.9  {.dashed}
+edge src -> mix "encrypted"
+edge mix -> dst "recoded"
+edge leak mix -> log {.dashed}
+text why "this is where\nthe anonymity ends"  right of log gap 1.4 -- leak {.hand}
+step leak
+  show log
+step blame
+  emph leak, log
+```
+:::
+
+> note: `print.html` and `print-notes.html` draw the **last** step rather than every step laid over each other, so an element a step hid stays hidden. Emphasis is the exception and comes from the first step, so attention you move around during the talk never reaches the paper while a `{.dim}` written on an element's own line does: written on the line it is part of the drawing, written inside a `step` it is part of the talk.
+
+## free: Words that arrive with a step | `--- from N` pins a beat by number {.full #diagram-beats-pinned}
+
+**A beat is taken in the order it was written, and that is wrong for one shape: a figure that steps in one pane and the words about it in the other.** Written plainly the figure's steps come first and the words queue behind them, because document order is the only order there is. `--- from N` pins a beat to an advance by number instead, so the two halves move together.
+
+::: side
+
+::: draw 120x44
+box a "request" at 0,0 {.tone-2}
+box b "cache" below a {.tone-1}
+box c "origin" below b {.tone-1}
+edge a -> b
+edge b -> c {.dashed}
+
+step hit
+  emph b
+step miss
+  dim b
+  emph c
+:::
+
+::: flip
+
+The request reaches the cache first, and most of the time that is the end of it.
+
+--- from 1
+
+**A hit** is answered from the cache, and the dashed line is never walked.
+
+--- from 2
+
+**A miss** walks it, and the origin pays for the request instead.
+
+:::
+
+**A pinned beat rides one the slide already has rather than adding one**, so this chunk takes two presses, not four. `from 0` is refused – that is the beat the slide opens on, so write the words above the marker – and so is a `from` inside an `::: overlay from N` or a `::: dock from N`, which numbers its own markers already.
+
+> note: The two paragraphs and the two steps are written in different panes, so before `from` existed the only way to keep them together was to give the prose no beats at all and let it stand there from the start – which tells the room the answer before the question.
 
 # Four arrangements
 

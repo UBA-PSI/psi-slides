@@ -38,14 +38,14 @@ export const name = 'every corpus figure compiles';
 // and the extractor matches nothing. When a lecture gains or loses a figure,
 // the number changes in the same commit.
 const FILES = [
-  ['lectures/diagrams/source.md', 31],
+  ['lectures/diagrams/source.md', 33],
   ['lectures/network-security/source.md', 36],
   ['docs/artifact/figure-rules/source.md', 55],
-  // Ten compiled blocks (an eleventh opener sits in a code fence as a syntax
-  // example), four tracked views, published by the Pages job.
-  // Left out of a corpus census it is invisible.
-  ['lectures/tutorial/source.md', 11],
-  ['lectures/decoration/source.md', 5],
+  // Three compiled blocks – the tutorial keeps a taste of figures and leaves
+  // the rest to lectures/diagrams – four tracked views, published by the
+  // Pages job. Left out of a corpus census it is invisible.
+  ['lectures/tutorial/source.md', 3],
+  ['lectures/decoration/source.md', 6],
   // The site's example lecture has no figure today; the zero is the ratchet
   // that notices the day it gets one.
   ['docs/site/example/source.md', 0],
