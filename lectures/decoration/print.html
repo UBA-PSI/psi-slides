@@ -2487,8 +2487,8 @@ code:not(pre code):not(.chunk-heading code) { font-size: 0.885em; }
   <span class="chunk-num" aria-hidden="true"><i>2</i></span>
   <span class="chunk-label">outline</span>
   <h2 class="chunk-heading">What this lecture shows</h2>
-  <p>Every way psi-slides has of decorating a slide, each one used on the slide that
-describes it – and, in the last part, the settings that set the type and the
+  <p>The ways psi-slides can decorate a slide, each one used on the slide that
+describes it – and, in the last part, the settings for the type and the
 colours of a whole lecture.</p>
 <ol class="section-outline"><li data-state="all"><span class="so-num">1</span><span class="so-text">The cover, and the slide that closes it</span></li><li data-state="all"><span class="so-num">2</span><span class="so-text">Dividers carry their own slide</span></li><li data-state="all"><span class="so-num">3</span><span class="so-text">Cards, rows and panes</span></li><li data-state="all"><span class="so-num">4</span><span class="so-text">Revealing a picture</span></li><li data-state="all"><span class="so-num">5</span><span class="so-text">Panels: the card grown to the frame</span></li><li data-state="all"><span class="so-num">6</span><span class="so-text">A dock at the frame's edge</span></li><li data-state="all"><span class="so-num">7</span><span class="so-text">Beats below the top level</span></li><li data-state="all"><span class="so-num">8</span><span class="so-text">A heading that stays off the slide</span></li><li data-state="all"><span class="so-num">9</span><span class="so-text">Type and colour</span></li></ol>
   
@@ -2534,8 +2534,8 @@ shot from a real build. This deck wears <code class="nb">quote</code>.</p>
   <span class="chunk-num" aria-hidden="true"><i>4</i></span>
   
   <h2 class="chunk-heading">Ten ways to open a lecture</h2>
-  <p><strong><code class="nb">cover:</code> in the frontmatter picks one of the ten below</strong>, ordered by how
-loudly the opening slide announces itself rather than alphabetically.</p>
+  <p><strong><code class="nb">cover:</code> in the frontmatter picks one of the ten below</strong>, ordered from the
+quietest opening slide to the loudest.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong class="card-lead">classic</strong><br>the lower-left third, all text. The default</li>
@@ -2629,7 +2629,7 @@ without one fails the build.</p>
   <span class="chunk-num" aria-hidden="true"><i>7</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">The credit block has four ranks</span> <span class="hd-sub">who is talking, where, and how to reach them</span></h2>
-  <p><strong><code class="nb">subtitle:</code> is the line that says what the talk is about, and four more keys under <code class="nb">title:</code> are set at four different weights, because they do four different jobs.</strong></p>
+  <p><strong><code class="nb">subtitle:</code> says what the talk is about.</strong> Under it, the credit block sets who gives the talk, from where, and how to reach them, in four ranks of type.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">title</span><span style="color:#24292E">: </span><span style="color:#032F62">How Caches Forget</span></span>
 <span class="line"><span style="color:#22863A">subtitle</span><span style="color:#24292E">: </span><span style="color:#032F62">Eviction, Staleness and the Cost of Being Wrong</span></span>
 <span class="line"><span style="color:#22863A">presenter</span><span style="color:#24292E">: </span><span style="color:#032F62">Jana Wieland</span></span>
@@ -2648,7 +2648,7 @@ without one fails the build.</p>
 </div>
 
 
-<p>A presenter and an institution <em>introduce the speaker</em>; an address and “the slides go up on Friday” <em>answer the room</em>. That is why the last two share a row instead of stacking. <code class="nb">info:</code> keeps the date, the room and the course line, as many lines as you give it.</p>
+<p>The presenter and the institution <em>introduce the speaker</em>; the address and the notice <em>answer what the audience will ask afterwards</em>, so the two share one row at the foot. <code class="nb">info:</code> keeps the date, the room and the course line, as many lines as you give it.</p>
 
   
   
@@ -2662,10 +2662,10 @@ without one fails the build.</p>
   
   <h2 class="chunk-heading">The last slide closes the arc</h2>
   <p><strong><code>## closing:</code> draws the last slide in whatever composition <code class="nb">cover:</code> names</strong>,
-so the room sees the shape the lecture opened with.</p>
+so the lecture ends in the shape it opened with.</p>
 <p>What it carries is different: your own heading, sub-heading and text. The
-presenter line and the <code class="nb">info</code> block stay off it by default, because the room
-learned who is talking and where an hour ago. <code>closing-credits: contact</code> brings
+presenter line and the <code class="nb">info</code> block stay off it by default, because the audience
+has known since the first slide who is talking and where. <code>closing-credits: contact</code> brings
 back the row along the foot – this lecture sets it, so its last slide carries the
 address – and <code class="nb">cover</code> brings back the whole credit block. <code>closing-image: cover</code>
 ends the deck on the picture it opened with; any other value names a different
@@ -2690,13 +2690,13 @@ one.</p>
   <span class="chunk-num" aria-hidden="true"><i>9</i></span>
   
   <h2 class="chunk-heading">Six treatments, every one quieter than the cover</h2>
-  <p>A divider has <strong>one job: to say that a new part starts here, and that it is part
-of the thing you are already in.</strong> One that can be mistaken for the title slide
-has failed at it.</p>
+  <p>A divider says that <strong>a new part starts here</strong>, and that the part belongs to the
+lecture already under way. All six are quieter than the cover, so none of them
+can be mistaken for the title slide.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong class="card-lead">plain</strong><br>the heading alone. The default</li>
-<li><strong class="card-lead">tinted</strong><br>the whole slide takes the theme&#39;s accent at 12%. The ten-metre signal</li>
+<li><strong class="card-lead">tinted</strong><br>the whole slide takes the theme&#39;s accent at 12%, so the back row sees the colour before it can read the words</li>
 <li><strong class="card-lead">rule</strong><br>the heading between two rules. The one that survives a monochrome print</li>
 </ul>
 
@@ -2716,7 +2716,7 @@ has failed at it.</p>
 
 <p>The six are in the same
 <a href="https://uba-psi.github.io/psi-slides/decoration.html#dividers" target="_blank" rel="noopener noreferrer">gallery</a><button type="button" class="link-code" data-link-code="https://uba-psi.github.io/psi-slides/decoration.html#dividers" aria-label="Show this address large, with a code to scan"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M1 1h5.4v5.4H1V1zm1.3 1.3v2.8h2.8V2.3H2.3zM9.6 1H15v5.4H9.6V1zm1.3 1.3v2.8h2.8V2.3h-2.8zM1 9.6h5.4V15H1V9.6zm1.3 1.3v2.8h2.8v-2.8H2.3z"/><path d="M8 1h1.2v3.1H8V1zm0 4.3h1.2v2.4h2.3v1.2H8V5.3zm5.5 2.4H15v1.2h-1.5V7.7zM8 10.1h1.2v1.4H8v-1.4zm2.4 0H15v1.2h-1.9v1.4H15V15h-1.2v-2.1h-2.2v-1.4h-1.2v-1.4zM8 12.6h1.2V15H8v-2.4z"/></svg></button> as the
-covers, under the same rule: a deck settles on one and wears it at every
+covers, under the same rule: a lecture picks one and wears it at every
 part.</p>
 
   
@@ -2730,9 +2730,9 @@ part.</p>
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></span>
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading">What a running agenda says that a coloured field cannot</h2>
-  <p><strong>Which part starts, out of how many, and how far into the hour you are.</strong> The
-room meets the same list four or six times and learns the shape of the lecture
-from it.</p>
+  <p>The agenda says <strong>which part starts, out of how many</strong>, and how far into the
+lecture you are. The audience sees the same list at every divider and learns the
+shape of the lecture from it.</p>
 <p>That only works while the list stays the same from divider to divider, so the
 heading is the live item in the list rather than a second copy set beside it.</p>
 
@@ -2782,10 +2782,9 @@ Parts 3 and 7 do</li>
 <p>Those three are what a divider takes; the other directives belong inside a
 <code class="nb">##</code> slide. The words do print, as a short paragraph under the part title. The
 divider slide itself never prints.</p>
-<p><strong>A <code>&gt; note:</code> written there is the divider&#39;s own.</strong> It reaches the cockpit as
-the card for that camera stop and <code class="nb">print-notes.html</code> under the part title, so
-the sentence that says what the part is for arrives while the part title is on
-the wall rather than one slide late.</p>
+<p><strong>A <code>&gt; note:</code> written there is the divider&#39;s own</strong>: the cockpit shows it while
+the divider is on screen, and <code class="nb">print-notes.html</code> prints it under the part
+title.</p>
 
   
   
@@ -2816,13 +2815,12 @@ the quotation divider in Part 1 comes out.</p>
   
   <h2 class="chunk-heading">…unless the figure is the point of the part</h2>
   <p><strong><code># Heading {.stack}</code> puts the content under the heading at the full measure</strong>
-and sets the heading small above it, as its caption. Beside the heading a
+and sets the heading above it, a step smaller than on a plain divider. Beside the heading a
 figure gets about half the frame, which is right for a drawing that balances a
 part title and unreadable for one with six cells and a label in each. Part 7&#39;s
 divider wears it; Part 3&#39;s is the other layout.</p>
-<p>The class is on the one heading rather than a seventh <code class="nb">section:</code> value, because
-<code class="nb">section:</code> is how the deck treats every divider and this is a fact about one
-divider&#39;s content. A <code class="nb">{.stack}</code> over a divider with nothing under its heading
+<p>The class goes on the one heading, because it concerns one divider&#39;s content;
+<code class="nb">section:</code> sets how every divider looks. A <code class="nb">{.stack}</code> over a divider with nothing under its heading
 is refused.</p>
 
   
@@ -2940,7 +2938,7 @@ its top</li>
 </div>
 
 
-<p><strong>That row is <code>::: cards 3 {.outline .middle}</code></strong>, so its tail answers two questions at once: <code class="nb">ground</code>, and <code class="nb">anchor</code> – where the text sits when a card is taller than its content, which all but the tallest card are, a grid row being as tall as its longest card.</p>
+<p><strong>That row is <code>::: cards 3 {.outline .middle}</code></strong>, so its tail answers two questions at once: <code class="nb">ground</code>, and <code class="nb">anchor</code> – where the text sits in a card taller than its content. A row is as tall as its longest card, so every other card in it is taller than what it holds.</p>
 
   
   
@@ -3046,7 +3044,7 @@ slide however long the terms are.</p>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What a row block does differently</span> <span class="hd-sub">no count, and three defaults of its own</span></h2>
   <p><strong>The explanation is optional</strong> – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.</p>
 <p>It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: <code class="nb">anchor</code> follows the ground, <code class="nb">align</code> says how the term sits <em>in its card</em> while the explanation ranges left, and the automatic size stops at <code class="nb">medium</code>, a term being a label in a column rather than a headline across the slide.</p>
-<p><strong>A row block adds one anchor word, <code class="nb">baseline</code>, and picks between two by ground.</strong> On a fill the term is a visible slab, and a one-line slab against a three-line explanation&#39;s first line reads as a mistake, so a grounded row centres it. Under <code class="nb">{.clear}</code> there is no slab and no padding, so the term is bare words in a column, and those read best on the baseline – a hanging indent, which is the form a term and its definition have taken since long before the slide. <code class="nb">{.baseline}</code> on a <code>::: cards</code> block is an error: a card has nothing beside it to line up with.</p>
+<p><strong>A row block adds one anchor word, <code class="nb">baseline</code>, and picks between two by ground.</strong> On a fill the term is a visible slab, and a one-line slab against a three-line explanation&#39;s first line reads as a mistake, so a grounded row centres it. Under <code class="nb">{.clear}</code> there is no slab and no padding, so the term is bare words in a column, and those read best on the baseline, as a hanging indent. <code class="nb">{.baseline}</code> on a <code>::: cards</code> block is an error: a card has nothing beside it to line up with.</p>
 <p>Use <code class="nb">rows</code> when a term needs a sentence, and <code class="nb">cards</code> when a comparison needs counting.</p>
 
   
@@ -3092,7 +3090,7 @@ second one. Any two numbers work.</p>
 
 <p><strong>This slide is <code>::: side 2:1 {.middle}</code>: two parts of prose to one part figure</strong>, which is the shape a diagram with its commentary usually wants. The drawing is a <code>::: draw</code> block inside the second pane.</p>
 <p><strong>A short pane sits at the top of its half unless you say otherwise, and <code class="nb">{.middle}</code> centres it against the taller one.</strong> Here the <em>figure</em> is the short pane, so <code class="nb">{.middle}</code> is what puts it level with the middle of this column instead of at the top. <code class="nb">{.top}</code> is the default and often right – a caption over a figure should be aligned from the top. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only move the shorter one.</p>
-<p><strong>A figure <em>above</em> or <em>below</em> the text needs nothing</strong> – put the block first or last in the chunk body. <code>::: cols</code> is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns stop working, without an error. A <code>::: draw</code> written there is refused, and the message points you at <code>::: side</code>.</p>
+<p><strong>A figure <em>above</em> or <em>below</em> the text needs nothing</strong> – put the block first or last in the chunk body. <code>::: cols</code> is the one place a figure does not belong: the columns are one run of text, and a figure breaks it. A <code>::: draw</code> written there is refused, and the message points you at <code>::: side</code>.</p>
 </div><div class="side-b">
 
 
@@ -3345,8 +3343,8 @@ refused: a panel runs along one edge, or takes them all.</p>
   <h2 class="chunk-heading">A dock is part of the frame, and the text yields to it</h2>
   <p><strong>An overlay lies over the slide; a dock takes its room from it.</strong> The list on
 the left is one <code>::: dock {.left .every}</code> written under this part&#39;s <code class="nb">#</code> heading,
-and every chunk of the part carries it – the item the room is on lights up,
-because each entry is a link to a chunk&#39;s <code class="nb">{#id}</code>.</p>
+and every chunk of the part carries it. The entry for the slide on screen lights
+up, because each entry is a link to a chunk&#39;s <code class="nb">{#id}</code>.</p>
 <p><strong>Four edges, six grounds, three widths.</strong> A left or right dock is a
 column the full height of the slide and the text column narrows beside it; a
 top or bottom dock is a band across the whole width and the text sits above or
@@ -3375,8 +3373,8 @@ cent of the ink on the paper, which is what gives a column on the slide&#39;s ow
 paper an edge. <code class="nb">paper</code> has none there and stays a choice for a dock over a
 picture; <code class="nb">ink</code> is the loud version.</p>
 <p>The dock&#39;s type is the overlay&#39;s, 0.92 of the slide&#39;s and zoomed with it, but
-its track is a share of the frame and does not move: a dock is part of the
-frame, and a running list that shifts sideways per slide is not a frame.</p>
+its track is a share of the frame, so the list stays in place from slide to
+slide.</p>
 </div>
   
   
@@ -3425,8 +3423,7 @@ where it is a box before the text.</p>
   <h2 class="chunk-heading">A dock held to a beat arrives into a track kept free</h2>
   <p><strong><code>from 2</code> holds this remark back until the second beat.</strong> The text column
 has been narrow from the start, so nothing moves when the dock slides in – the
-rule an overlay card follows, kept here because a slide that reflows under the
-room&#39;s eyes reads as a fault.</p>
+same rule an overlay card follows.</p>
 <p>The first beat shows this line.</p>
 <p>The second brings the dock.</p>
 
@@ -3637,7 +3634,7 @@ type above it, and each is still a row in the search index.</p>
   
   <div class="column-lede"><p>The settings in this part are written once, in the frontmatter, and change
 every slide of a lecture together: the <code class="nb">style:</code> block, and the typefaces the
-four files carry. This lecture sets none of them, so its slides show the
+four views carry. This lecture sets none of them, so its slides show the
 settings in YAML rather than wearing them.</p>
 </div>
   
@@ -3648,7 +3645,7 @@ settings in YAML rather than wearing them.</p>
   <span class="chunk-num" aria-hidden="true"><i>4</i><i>5</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Setting the typography for a whole lecture</span> <span class="hd-sub">the <code class="nb">style:</code> block</span></h2>
-  <p><strong>The <code class="nb">style:</code> block holds the settings you make once for a whole lecture rather than chunk by chunk.</strong></p>
+  <p>The <code class="nb">style:</code> block holds <strong>the settings you make once for a whole lecture</strong>.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">style</span><span style="color:#24292E">:</span></span>
 <span class="line"><span style="color:#22863A">  headings</span><span style="color:#24292E">: </span><span style="color:#032F62">left</span><span style="color:#6A737D">        # auto | left | center | off</span></span>
 <span class="line"><span style="color:#22863A">  rules</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">            # on | off  – the hairline over a principle</span></span>
@@ -3665,7 +3662,7 @@ settings in YAML rather than wearing them.</p>
 <span class="line"><span style="color:#22863A">  print-bold</span><span style="color:#24292E">: </span><span style="color:#032F62">italic</span><span style="color:#6A737D">    #   accent-bold | accent-italic – live, then paper</span></span>
 <span class="line"><span style="color:#22863A">  code</span><span style="color:#24292E">: </span><span style="color:#032F62">tint</span><span style="color:#6A737D">            # plain | tint | spaced – code inside a sentence</span></span>
 <span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # with body-scale, bounded to 0.6 … 1.8</span></span></code></pre>
-<p><code>headings: auto</code> is the default: the type decides, so a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides that for one line of alignment down the lecture; <code class="nb">off</code> takes headings off the projection and keeps them in print, the contents list and search.</p>
+<p><code>headings: auto</code> is the default: the chunk type decides, so a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides that for one line of alignment down the lecture; <code class="nb">off</code> takes headings off the projection and keeps them in print, the contents list and search.</p>
 
   
   
@@ -3679,8 +3676,8 @@ settings in YAML rather than wearing them.</p>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Five keys the block&#39;s names do not explain</span> <span class="hd-sub"><code class="nb">wrap</code>, <code class="nb">blocks</code>, <code class="nb">print-body</code>, the bold pair and the scales</span></h2>
   <p><strong><code class="nb">wrap</code> applies to headings and prose both</strong>, which its name does not say: <code class="nb">balance</code> evens the line lengths of a heading and protects the last line of a paragraph, and <code class="nb">none</code> turns both off. <code class="nb">blocks</code> and <code class="nb">wrap</code> are the two keys a single chunk can answer for itself, with <code class="nb">{.blocks-left}</code> and <code class="nb">{.wrap-none}</code> in its attribute tail.</p>
-<p><strong><code class="nb">print-body</code> is the one setting here that only the printed pages see.</strong> The projection and the lectern let a reader pick the face with <code class="nb">F</code>; a document has no reader to press it, so <code class="nb">sans</code> is how you ask for one set in the sans. Code stays in the monospace, and so does everything the document already draws in the sans – the type word, a caption, the contents list.</p>
-<p><strong><code class="nb">bold</code> and <code class="nb">print-bold</code> set how a <code class="nb">**bold**</code> phrase looks, and <code class="nb">plain</code> is a legal answer because bold selects before it decorates.</strong> Live the default is <code class="nb">plain</code>, so a promoted bullet is set like the sentence above it; on paper it is <code class="nb">bold</code>, in the ink. <code class="nb">accent-bold</code> in both is how the tool drew every bold before the keys existed. A word stressed with <code class="nb">*em*</code> inside the phrase is bold and in the accent whatever the key says – except under <code class="nb">accent-bold</code>, where it stays italic.</p>
+<p><strong><code class="nb">print-body</code> sets the face of the printed pages.</strong> In the live views the face is picked with <code class="nb">F</code>; the printed pages have no such key, so <code class="nb">sans</code> is how you ask for a document set in the sans. Code stays in the monospace, and so does everything the document already draws in the sans – the type word, a caption, the contents list.</p>
+<p><strong><code class="nb">bold</code> and <code class="nb">print-bold</code> set how a bold phrase looks</strong>, and <code class="nb">plain</code> is a legal answer: the bold marks a phrase for the slide, and its weight is only one possible look. Live the default is <code class="nb">plain</code>, so a promoted bullet is set like the sentence above it; on paper it is <code class="nb">bold</code>, in the ink. <code class="nb">accent-bold</code> in both gives the accent-coloured bold of psi-slides 1.0. A word stressed with <code class="nb">*em*</code> inside the phrase is bold and in the accent whatever the key says – except under <code class="nb">accent-bold</code>, where it stays italic.</p>
 <p>The two scales multiply the tool&#39;s own sizes rather than replacing them, and they are <strong>bounded</strong> to 0.6–1.8: outside that, the shortened view, the width limit on a line of code and the automatic zoom disagree.</p>
 
   
@@ -3694,12 +3691,12 @@ settings in YAML rather than wearing them.</p>
   <span class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Code inside a sentence</span> <span class="hd-sub"><code>style: {code: …}</code></span></h2>
-  <p><strong>A monospaced word brings a space of its own, and it is twice the width of the one around it.</strong> So <strong><code>async def</code> used to read as two words where <code class="nb">await</code> read as one</strong> – only a span of several tokens has a gap inside it to go wrong.</p>
+  <p><strong>A space in a monospaced face is about twice as wide as the word space around it</strong>, so a span like <code>async def</code> opens a hole in its middle and reads as three words where you wrote two. A single token like <code class="nb">await</code> has no inner gap to go wrong.</p>
 <div class="cards rows cards-1 cs-medium ca-left cv-baseline cd-fold cg-clear ck-round cx-veil">
 <ul>
 <li><strong><code class="nb">spaced</code></strong><span class="row-body">the default: the gaps around a multi-word span are widened a hair and the ones inside it pulled in. A single token is left alone</span></li>
 <li><strong><code class="nb">tint</code></strong><span class="row-body">a quiet ground behind every span, padded left and right only</span></li>
-<li><strong><code class="nb">plain</code></strong><span class="row-body">the flat <code class="nb">0.92em</code> the tool drew before the setting existed</span></li>
+<li><strong><code class="nb">plain</code></strong><span class="row-body">the mono face at a flat <code class="nb">0.92em</code> and nothing else, as psi-slides 1.0 drew it</span></li>
 </ul>
 
 </div>
@@ -3718,11 +3715,11 @@ settings in YAML rather than wearing them.</p>
   <span class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">What hue the greys carry</span> <span class="hd-sub"><code class="nb">neutrals</code>, and its counterpart for the page</span></h2>
-  <p><strong><code class="nb">A</code> cycles the theme, and in the four light themes it moves one colour: the accent.</strong> The ink stays on a cool hue, and every tinted surface – a card, a dock, an overlay card – is mixed out of that ink, so a card under a warm accent is a cool grey under a warm word.</p>
+  <p><strong>In the four light themes, <code class="nb">A</code> moves only the accent.</strong> The ink stays on a cool hue, and every tinted surface – a card, a dock, an overlay card – is mixed out of that ink, so a card under a warm accent is a cool grey under a warm word.</p>
 <div class="cards rows cards-1 cs-medium ca-left cv-baseline cd-fold cg-clear ck-round cx-veil">
 <ul>
-<li><strong><code class="nb">neutral</code></strong><span class="row-body">the default, and what the tool has always drawn</span></li>
-<li><strong><code class="nb">tinted</code></strong><span class="row-body">the greys take the accent&#39;s own hue, so the slide reads as one palette whichever accent the room gets</span></li>
+<li><strong><code class="nb">neutral</code></strong><span class="row-body">the default: the greys stay on the ink&#39;s cool hue</span></li>
+<li><strong><code class="nb">tinted</code></strong><span class="row-body">the greys take the accent&#39;s own hue, so the slide reads as one palette whichever accent is on</span></li>
 <li><strong><code class="nb">warm</code> / <code class="nb">cool</code></strong><span class="row-body">a fixed hue, the accent notwithstanding</span></li>
 </ul>
 
@@ -3742,12 +3739,12 @@ settings in YAML rather than wearing them.</p>
   <span class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Which line of a title is the loud one</span> <span class="hd-sub"><code class="nb">headline</code>, and <code class="nb">caps</code> beside it</span></h2>
-  <p><strong>A cover carries a pair of lines, and so does a divider and a closing slide</strong> – <code class="nb">title:</code> and <code class="nb">subtitle:</code> in the frontmatter, <code>Heading | Sub</code> in a chunk heading. <code class="nb">headline</code> says which of the two is set large.</p>
+  <p>A cover carries <strong>a pair of lines</strong>, and so do a divider and a closing slide – <code class="nb">title:</code> and <code class="nb">subtitle:</code> in the frontmatter, <code>Heading | Sub</code> in a chunk heading. <code class="nb">headline</code> says which of the two is set large.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">style</span><span style="color:#24292E">:</span></span>
 <span class="line"><span style="color:#22863A">  headline</span><span style="color:#24292E">: </span><span style="color:#032F62">eyebrow</span><span style="color:#6A737D">     # stacked | eyebrow</span></span>
 <span class="line"><span style="color:#22863A">  caps</span><span style="color:#24292E">: </span><span style="color:#005CC5">on</span><span style="color:#6A737D">              # off | on</span></span></code></pre>
 <p><code class="nb">stacked</code> is the default: the title large, the subtitle quieter under it. <code class="nb">eyebrow</code> turns it over, so the title sits small above a subtitle that carries the weight – the shape a lecture title takes when the first line names the field and the second asks the question.</p>
-<p><strong>The words stay where they are and only their type changes</strong>, which is what lets one key serve the cover, the dividers and the closing slide at once. <code class="nb">title:</code> is also the browser tab, the contents entry and what search reads, so putting the hook there would leave the lecture&#39;s own name nowhere.</p>
+<p><strong>The words stay where they are and only their type changes</strong>, so one key serves the cover, the dividers and the closing slide. Keep the lecture&#39;s own name in <code class="nb">title:</code>, which is also the browser tab, the contents entry and what search reads.</p>
 <p><code class="nb">caps</code> sets the small type round a title in capitals: the eyebrow, the presenter, the affiliation, never the headline. The tracking is not a second setting – the build spaces out any line already in capitals, including one you typed that way.</p>
 
   
@@ -3764,8 +3761,8 @@ settings in YAML rather than wearing them.</p>
   <p><strong>The type word above a chunk is drawn in two places, and one setting takes it out of both.</strong></p>
 <div class="cards cards-2 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
-<li><strong><code class="nb">print.html</code> and <code class="nb">print-notes.html</code></strong> set a small line of capitals over every typed chunk. Every type has one except free and figure, so that is where most of them live.</li>
-<li><strong>The projection</strong> prints only the word over an exercise. The rest were taken out: a label naming the kind of slide is only as right as the type was.</li>
+<li><strong><code class="nb">print.html</code> and <code class="nb">print-notes.html</code></strong> set a small line of capitals over every typed chunk. Every type but free, figure and statement has one, so that is where most of them are.</li>
+<li><strong>The projection</strong> shows only the word over an exercise.</li>
 </ul>
 
 </div>
@@ -3794,7 +3791,7 @@ settings in YAML rather than wearing them.</p>
 <span class="line"><span style="color:#22863A">  sans</span><span style="color:#24292E">: </span><span style="color:#032F62">Inter Tight</span><span style="color:#6A737D">                # or IBM Plex Sans, the default</span></span>
 <span class="line"><span style="color:#22863A">  mono</span><span style="color:#24292E">: </span><span style="color:#032F62">Noto Sans Mono Condensed</span><span style="color:#6A737D">   # or JetBrains Mono, the default</span></span></code></pre>
 <p>Only the three a lecture actually asks for are read, so choosing an alternative costs that lecture and no other. A name that is neither one of the nine nor a file in <code class="nb">fonts/</code> stops the build, and the message lists the names available for that role.</p>
-<p><strong>Among the serifs, the question is what a projector does to a typeface.</strong> Bitter has the lowest stroke contrast and the smallest file, which is why it stays legible in a lit room; Roboto Serif has the strongest bold but sets 8% wider, so it re-wraps a deck written against another face.</p>
+<p>Among the serifs, <strong>Bitter has the lowest stroke contrast</strong>, which keeps it legible in a lit room, and the smallest file; Roboto Serif has the strongest bold but sets 8% wider, so it re-wraps a deck written against another face.</p>
 
   
   
@@ -3807,8 +3804,8 @@ settings in YAML rather than wearing them.</p>
   <span class="chunk-num" aria-hidden="true"><i>5</i><i>2</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Type for code</span> <span class="hd-sub">the condensed monospace, and <code class="nb">ligatures:</code></span></h2>
-  <p><strong>The condensed monospace is 17% narrower</strong> – 0.50 em against 0.60 em per character, measured in a browser – so a listing that ran off the slide now fits. It is Noto Sans Mono with its width axis pinned rather than a different typeface, so it costs 54 KB. Slashed zero, and <code class="nb">I</code>, <code class="nb">l</code> and <code class="nb">1</code> are three visibly different shapes.</p>
-<p><strong><code class="nb">ligatures:</code> decides whether letter pairs are drawn joined, and answers separately for prose and for code.</strong> <code class="nb">text</code> is the default: <code class="nb">fi</code> and <code class="nb">fl</code> joined up in prose, nothing joined in code. <code class="nb">none</code> takes them out of prose as well. <code class="nb">all</code> puts the code ones back, so JetBrains Mono draws <code class="nb">-&gt;</code> as a single arrow again. The code ones are off by default because in the figure language <code class="nb">-&gt;</code> and <code class="nb">--</code> are two <em>different</em> arrows, and every listing on a slide is source somebody may retype.</p>
+  <p><strong>The condensed monospace is 17% narrower</strong> – 0.50 em against 0.60 em per character, measured in a browser – so a line of code can run a fifth longer before it reaches the slide&#39;s edge. It is Noto Sans Mono with its width axis pinned rather than a different typeface, so it costs 54 KB. Slashed zero, and <code class="nb">I</code>, <code class="nb">l</code> and <code class="nb">1</code> are three visibly different shapes.</p>
+<p><strong><code class="nb">ligatures:</code> decides whether letter pairs are drawn joined, and answers separately for prose and for code.</strong> <code class="nb">text</code> is the default: <code class="nb">fi</code> and <code class="nb">fl</code> joined up in prose, nothing joined in code. <code class="nb">none</code> takes them out of prose as well. <code class="nb">all</code> puts the code ones back, so JetBrains Mono draws <code class="nb">-&gt;</code> as a single arrow. The code ones are off by default because in the figure language <code class="nb">-&gt;</code> and <code class="nb">--</code> are two <em>different</em> arrows, and every listing on a slide is source somebody may retype.</p>
 
   
   
@@ -3821,7 +3818,7 @@ settings in YAML rather than wearing them.</p>
   <span class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own typefaces</span> <span class="hd-sub"><code class="nb">fonts/</code> beside <code class="nb">source.md</code>, plus a frontmatter block</span></h2>
-  <p><strong>A family that is not inside the file is a family the lecture-hall machine may not have.</strong> Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and <code>fonts: none</code> leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.</p>
+  <p><strong>A typeface that is not embedded in the file</strong> may be missing on the lecture-hall machine. Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and <code>fonts: none</code> leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.</p>
 <p><strong>Each of the three text roles is answered on its own</strong>, so you can replace one and leave the others alone. Put your files in a <code class="nb">fonts/</code> folder beside <code class="nb">source.md</code>:</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">fonts</span><span style="color:#24292E">:</span></span>
 <span class="line"><span style="color:#22863A">  serif</span><span style="color:#24292E">: </span><span style="color:#032F62">Vollkorn</span><span style="color:#6A737D">        # yours – the files are in fonts/</span></span>

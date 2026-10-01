@@ -2502,9 +2502,8 @@ code:not(pre code):not(.chunk-heading code) { font-size: 0.885em; }
     <p class="title-subtitle">A lecture medium that builds four views from one Markdown file</p>
     <div class="title-field"><p>One Markdown file becomes four HTML files: a document to print, the same
 document with your speaker notes, a projection for the audience, and a view of
-your own at the lectern. A <code class="nb">masthead</code> cover leaves a field between the title
-along the top and the credits along the bottom, and this paragraph is what
-goes in it.</p>
+your own at the lectern. This tour is such a file, and it shows each feature
+by using it.</p>
 </div>
     <p class="title-presenter" data-foot="">Dominik Herrmann</p>
     <div class="title-info"><p>Tutorial lecture built with psi-slides itself</p><p>Use the tool to learn the tool</p></div>
@@ -2542,7 +2541,7 @@ goes in it.</p>
   <h2 class="chunk-heading has-sub"><span class="hd-main">One source, four views</span> <span class="hd-sub">the deck, the hand-out and the notes stop drifting apart</span></h2>
   <p><strong>The deck, the hand-out and your notes say the same thing, and they disagree the moment you edit one.</strong> A lecture normally needs all three, and keeping them in step is work you do instead of preparing the lecture.</p>
 <p><strong>Instead, you write one Markdown file that consists of <em>columns</em> and <em>chunks</em>.</strong></p>
-<p><strong>One command turns that file into four HTML files, and the four differ only in what they show you.</strong> <code class="nb">print.html</code> is a reading copy with a cover and a table of contents. <code class="nb">print-notes.html</code> is that same <em>document</em> with your speaker notes folded in under each chunk. <code class="nb">audience.html</code> is the <em>projection</em>, the presentation you show to the audience; whenever the tour says what a slide shows, it means this file. <code class="nb">speaker.html</code> is the speaker view, the screen you keep at the lectern, carrying the notes, a strip of the slides around you and a timer. Nothing in the source is written for one of them and not the others.</p>
+<p><strong>One command turns that file into four HTML files, and the four differ only in what they show you.</strong> <code class="nb">print.html</code> is a reading copy with a cover and a table of contents. <code class="nb">print-notes.html</code> is that same <em>document</em> with your speaker notes folded in under each chunk. <code class="nb">audience.html</code> is the <em>projection</em>, the presentation you show to the audience; whenever the tour says what a slide shows, it means this file. <code class="nb">speaker.html</code> is the speaker view, the screen you keep at the lectern, carrying the notes, a strip of the slides around you and a timer.</p>
 
   
   
@@ -2702,8 +2701,8 @@ shows columns only.</p>
 <li><strong><code class="nb">Shift</code>-<code class="nb">→</code> and <code class="nb">Shift</code>-<code class="nb">←</code> move a whole column</strong>, from any slide and not only the first of one. <code class="nb">Shift</code>-<code class="nb">←</code> goes to the top of the column you are in first, so returning to the start of a part and leaving it are the same key. Press forward now:</li>
 </ul>
 <p><strong>You just uncovered a <em>segment</em>: in the source, a line containing nothing but <code class="nb">---</code> cuts a chunk into segments, as long as it is outside a block of code.</strong> The first segment is on screen when you arrive; forward uncovers the next, back puts it away. Each press that changes the slide is a <em>beat</em>: every <code class="nb">---</code> is one, and so is each step of a figure, which later slides show. So the number of <code class="nb">---</code> lines in a chunk is the number of presses it takes, and you can count them off the source.</p>
-<p><strong>A faint <code class="nb">⌄</code> at the foot of the slide says the next forward press will leave the column.</strong> It is the one thing about where you are that the slide cannot show you by itself. There is nothing to click.</p>
-<p><strong>The <em>cockpit</em> – the speaker view, which is discussed later on – shows you what comes next.</strong> With it open, look at this slide there: the segment the next forward press will reveal is already drawn in place, hatched and inside a dashed frame, so you can read ahead without the audience seeing it. Only the immediately next one; the segments behind it stay hidden.</p>
+<p><strong>A faint <code class="nb">⌄</code> at the foot of the slide says the next forward press will leave the column.</strong> There is nothing to click.</p>
+<p><strong>The speaker view shows you what comes next.</strong> With it open, look at this slide there: the segment the next forward press will reveal is already drawn in place, hatched and inside a dashed frame, so you can read ahead without the audience seeing it. Only the immediately next one; the segments behind it stay hidden.</p>
 <p><strong>Segments let you pace a dense slide during a talk instead of putting all of it up at once, and this third one is here so you can see them chain.</strong> In <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> they run together as one flowing body, so nothing is lost on paper.</p>
 
   
@@ -2794,7 +2793,7 @@ shows columns only.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></span>
   <span class="chunk-label">principle</span>
-  <h2 class="chunk-heading has-sub"><span class="hd-main">A talk rarely runs in the order you planned</span> <span class="hd-sub">so every slide has to be one move away</span></h2>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">A talk rarely runs in the order you planned</span> <span class="hd-sub">so any slide has to be one move away</span></h2>
   <p><strong>A question from the audience can send you forty slides back, and the back arrow is too slow for that.</strong></p>
 <p><strong>Four keys reach any chunk directly.</strong> Which one you want depends on what you still remember about the slide, and none of them passes through the chunks in between.</p>
 <ul>
@@ -2928,7 +2927,7 @@ shortens prose only: a list, a figure, a code block or a formula goes up whole.<
   <p><strong>Unless you say otherwise, the slide is the first sentence of every paragraph plus any <code class="nb">**bold**</code> phrases from the rest.</strong> This chunk is written that way – press <code class="nb">C</code> twice and watch what appears and disappears.</p>
 <p>It asks two things of you. Every paragraph has to <strong>open with a sentence that stands on its own</strong>, because that sentence is the slide. After it, <strong>a bold phrase becomes a bullet of its own, so it has to read as one</strong>. Everything unbolded is for <code class="nb">print.html</code> and <code class="nb">print-notes.html</code>.</p>
 <p>The two bullets above are that rule applied: neither is a list in the source – each is a <code class="nb">**bold**</code> phrase inside a sentence the projection is holding back.</p>
-<p><strong>Bold selects, it does not stress.</strong> A bullet is set like the sentence above it, and <strong>one word inside a bold phrase is stressed with <code class="nb">*em*</code>, like <em>this</em> one</strong>. On paper the phrase is bold and the stressed word bold in the accent colour; <code>style: {bold: …}</code> and <code>style: {print-bold: …}</code> change either look for a whole lecture, and the decoration lecture&#39;s part on type and colour lists the six.</p>
+<p><strong>Bold selects, it does not stress.</strong> A bullet is set like the sentence above it, and <strong>one word inside a bold phrase is stressed with <code class="nb">*em*</code>, like <em>this</em> one</strong>. On paper the phrase is printed bold. The decoration lecture shows how to change either look for a whole lecture.</p>
 <p>That suits a chunk that argues, where every paragraph has a point to open with. It is the wrong fit when the chunk wants continuous explanation instead, and the next chunk shows the alternative.</p>
 
   
@@ -3033,7 +3032,7 @@ shortens prose only: a list, a figure, a code block or a formula goes up whole.<
   
   <aside class="chunk-expansion chunk-expansion-expand" data-label="the classes that are not widths">
 <p><strong><code class="nb">{.bare}</code> and <code class="nb">{.center}</code> act on the projection alone.</strong> <code class="nb">.bare</code> keeps the heading off the slide while leaving it in the printed views and in the search index; <code class="nb">.center</code> sets the chunk on a centre axis – its heading, its own paragraphs and its footnotes, but nothing nested inside a pane, a card or a list – which is what the slide with the four-outputs drawing does under its figure.</p>
-<p><strong>Four more answer a <code class="nb">style:</code> key for one slide</strong>: <code class="nb">{.blocks-left}</code> and <code class="nb">{.blocks-center}</code>, <code class="nb">{.wrap-none}</code> and <code class="nb">{.wrap-balance}</code>. Each is the key&#39;s own name and one of its values, so knowing the frontmatter is enough to guess the class. These four do apply to the printed document, unlike the two above – where a formula sits relative to the sentence that introduces it is the same question on paper.</p>
+<p><strong>Four more change a lecture-wide setting for one slide only</strong>, such as <code class="nb">{.blocks-left}</code> on the formula slide in <em>Authoring layouts</em>. Unlike the two above, they apply to the printed document as well.</p>
 
 </aside>
   
@@ -3044,13 +3043,13 @@ shortens prose only: a list, a figure, a code block or a formula goes up whole.<
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></span>
   <span class="chunk-label">definition</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What the type is for</span> <span class="hd-sub">a word budget, a label in the document, a line over the heading</span></h2>
-  <p><strong>The type changes almost nothing on the slide, and it never sets the width – that is the <code class="nb">{.width}</code> class – but it does three things.</strong></p>
+  <p><strong>The type changes little on the slide and never sets the width – that is the <code class="nb">{.width}</code> class. For most types it does three things.</strong></p>
 <ul>
 <li><strong>It caps how many words the chunk may carry</strong>, from 80 for a principle to 350 for an exercise; <code>node lint.js</code> reports one that runs over.</li>
 <li><strong>It labels the chunk in the printed views</strong>, in small capitals over the heading. The projection prints only <code class="nb">EXERCISE</code>.</li>
 <li><strong>It adds a small mark.</strong> This chunk is typed <code class="nb">definition</code>, hence the hairline above its heading; a <code class="nb">principle</code> gets a short rule there.</li>
 </ul>
-<p><code class="nb">title</code>, <code class="nb">closing</code> and <code class="nb">outline</code> each draw a whole slide instead, and <code class="nb">statement:</code> is the fourth exception – it wears no label and no mark, and the next slide is one.</p>
+<p>Four types work differently: <code class="nb">title</code>, <code class="nb">closing</code> and <code class="nb">outline</code> each draw a whole slide, and <code class="nb">statement</code> wears no label and no mark – the next slide is one.</p>
 <p>Picking the wrong type is not an error; it shows on the overview board, where a principle typed as an example stops standing out.</p>
 
   
@@ -3127,7 +3126,7 @@ shortens prose only: a list, a figure, a code block or a formula goes up whole.<
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Speaker view</span> <span class="hd-sub">the second window, the one <code class="nb">S</code> opens</span></h2>
-  <p><strong>The speaker view is your lectern screen, in four bands.</strong> Press <code class="nb">S</code> here if you have not already – it opens <code class="nb">speaker.html</code> as a second window, and from then on the two windows talk to each other directly.</p>
+  <p><strong>The speaker view, or <em>cockpit</em>, is your lectern screen, in four bands.</strong> Press <code class="nb">S</code> here if you have not already – it opens <code class="nb">speaker.html</code> as a second window, and from then on the two windows talk to each other directly.</p>
 <div class="cols cols-2">
 
 
@@ -3138,7 +3137,7 @@ shortens prose only: a list, a figure, a code block or a formula goes up whole.<
 <li><strong>A notes pane</strong> under it, which you can type into, and which folds away when the chunk has no notes.</li>
 <li><strong>A strip of slide thumbnails</strong> you can scroll and click.</li>
 </ul>
-<p><strong>The two windows stay in sync: they always show the same slide, at the same point in it.</strong> Which chunk you are on, how much of it is uncovered, your annotations, the theme, the font, the zoom, which expansion is open, the overview board, the opened figure and the laser pointer are all synchronised. <code class="nb">V</code> freezes the projection so you can read ahead without the audience following; unfreezing brings the audience to wherever you got to.</p>
+<p><strong>The two windows stay in sync: they show the same slide, at the same point in it.</strong> Which chunk you are on, how much of it is uncovered, your annotations, the theme, the font, the zoom, which expansion is open, the overview board, the opened figure and the laser pointer are all synchronised. <code class="nb">V</code> freezes the projection so you can read ahead without the audience following; unfreezing brings the audience to wherever you got to.</p>
 </div>
   
   
@@ -3151,8 +3150,8 @@ shortens prose only: a list, a figure, a code block or a formula goes up whole.<
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></span>
   
   <h2 class="chunk-heading has-sub"><span class="hd-main">Before the talk starts</span> <span class="hd-sub">the start menu, and <code class="nb">W</code> for fullscreen</span></h2>
-  <p><strong>Open <code class="nb">audience.html</code> and the first slide carries a small menu in its bottom-left corner: <em>Fullscreen</em>, <em>Speaker cockpit</em> and <em>Print view</em>, each with its key – <code class="nb">W</code>, <code class="nb">S</code> and <code class="nb">P</code>.</strong> It is the three things you do before the talk, for the day you have not learnt the keys yet. The first move through the lecture folds it away, and so does its own <code class="nb">‹</code>; the <code class="nb">›</code> beside the <code class="nb">?</code> brings it back.</p>
-<p><strong><code class="nb">W</code> puts the projection into fullscreen, and a second <code class="nb">W</code> takes it out.</strong> Pressed in the speaker view it means the projection too, but a browser lets a window go fullscreen only in answer to a click or a key pressed in that window – so the projection shows a hint, and your next click on it enters. <code class="nb">Shift</code>-<code class="nb">W</code> puts the speaker view itself into fullscreen, for a talk given from one screen.</p>
+  <p><strong>Open <code class="nb">audience.html</code> and the first slide carries a small menu in its bottom-left corner: <em>Fullscreen</em>, <em>Speaker cockpit</em> and <em>Print view</em>, each with its key – <code class="nb">W</code>, <code class="nb">S</code> and <code class="nb">P</code>.</strong> They are the three things you do before a talk, there for the day you have not learnt the keys yet. The first move through the lecture folds it away, and so does its own <code class="nb">‹</code>; the <code class="nb">›</code> beside the <code class="nb">?</code> brings it back.</p>
+<p><strong><code class="nb">W</code> puts the projection into fullscreen, and a second <code class="nb">W</code> takes it out.</strong> Pressed in the speaker view, <code class="nb">W</code> is meant for the projection, but a browser lets a window go fullscreen only in answer to a click or a key pressed in that window – so the projection shows a hint, and your next click on it enters fullscreen. <code class="nb">Shift</code>-<code class="nb">W</code> puts the speaker view itself into fullscreen, for a talk given from one screen.</p>
 
   
   
@@ -3233,7 +3232,7 @@ speaker view and <code class="nb">print-notes.html</code> show it, the projectio
   <h2 class="chunk-heading has-sub"><span class="hd-main">Your notes as cue cards</span> <span class="hd-sub"><code class="nb">K</code>, and what to write so it reads from the corner of an eye</span></h2>
   <p><strong>A talk with a written-out script and minimal slides needs the script where you can glance at it.</strong> <code class="nb">K</code> in the speaker view rearranges the window: your notes for this chunk as cards down a rail, the projection small in the corner, the clock in the header. <code class="nb">Space</code> says the next card; when the cards of this beat are said, it clicks the projector, and the clicks stand in the same column as diamonds, so you read one list from top to bottom. <code class="nb">Backspace</code> takes one press back, whatever it was. <code class="nb">Enter</code> skips to the next slide.</p>
 <p><strong>A paragraph in a <code>&gt; note:</code> is a card, and its bold phrases are the bullets.</strong> Bold the words you want to see, not the words you want to stress. A paragraph with no bold shows whole, in smaller type. A <code>#### Title</code> above a paragraph titles the card, and <code class="nb">@12:30</code> on it is when you meant to reach it: the drift stands beside the clock.</p>
-<p><strong>Where the note stands is when it is said.</strong> A note before the first <code class="nb">---</code> belongs to the beat the slide opens on, a note after it to the beat that <code class="nb">---</code> opens. Open the speaker view on this chunk, press <code class="nb">K</code>, and walk it with <code class="nb">Space</code>: the cards under each diamond are the notes written under the matching <code class="nb">---</code> in the source. A chunk whose notes all sit at the end shows them all on the first beat, so a lecture written before this feature does not move.</p>
+<p><strong>Where the note stands is when it is said.</strong> A note before the first <code class="nb">---</code> belongs to the beat the slide opens on, a note after it to the beat that <code class="nb">---</code> opens. Open the speaker view on this chunk, press <code class="nb">K</code>, and walk it with <code class="nb">Space</code>: the cards under each diamond are the notes written under the matching <code class="nb">---</code> in the source. A chunk whose notes all stand at its end, below the last of its text, shows them all on the first beat.</p>
 
   
   
@@ -3254,7 +3253,7 @@ speaker view and <code class="nb">print-notes.html</code> show it, the projectio
 <li><code class="nb">+</code> <code class="nb">-</code> <code class="nb">0</code> set the <strong>text size</strong>; <code class="nb">#</code> cycles <strong>auto-fit</strong> through its three modes, which is worth trying right here – this chunk is longer than the screen.</li>
 <li><code class="nb">B</code> <strong>blanks the projection</strong>.</li>
 <li><code class="nb">D</code> <strong>puts a live demo on the projection</strong>: a window or a screen of this machine, chosen in a picker, until <code class="nb">D</code> again. The very first capture on a Mac fails while macOS asks for screen-recording rights – allow it and press <code class="nb">D</code> again, so do that once before the talk.</li>
-<li><code class="nb">L</code> cycles the <strong>slide numbers</strong>: in a row (the default since 2.0.0), stacked, or off.</li>
+<li><code class="nb">L</code> cycles the <strong>slide numbers</strong>: in a row (the default), stacked, or off.</li>
 <li><code class="nb">M</code> shows or hides the <strong><code>+ note</code> button</strong> in the slide&#39;s left gutter – the hint for <code class="nb">N</code>, which opens an annotation whether the hint is drawn or not.</li>
 </ul>
 <p><code class="nb">Shift</code> with <code class="nb">C</code>, <code class="nb">F</code>, <code class="nb">A</code> or <code class="nb">L</code> goes backwards. <code class="nb">#</code> has three modes and no <code class="nb">Shift</code>, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme, slide numbers and the note button are remembered for every lecture you open, so the preference follows you; zoom and the <code class="nb">C</code> setting are not remembered beyond the talk you are giving.</p>
@@ -3370,7 +3369,7 @@ speaker view and <code class="nb">print-notes.html</code> show it, the projectio
 </div></div>
 
 
-<p><strong>Code in a pane needs short lines.</strong> A code block never wraps, so at the default zoom <strong>a pane holds about 36 characters against the 78 a block across the slide holds</strong> – and that 78 is the same whatever width the chunk is, because a code block of its own breaks out of the text column and spans the slide. A longer line is not cut off; the build shrinks that one slide until it fits, and the slide then reads noticeably smaller than the ones either side of it. Break the line, or put the code across the full width and keep the panes for prose.</p>
+<p><strong>Code in a pane needs short lines.</strong> A code block never wraps, and a pane holds about half the line a block across the slide does. A longer line is not cut off: the projection shrinks that one slide until it fits, and the slide then reads smaller than the ones either side of it. Break the line, or put the code across the full width and keep the panes for prose.</p>
 
   
   
@@ -3392,7 +3391,7 @@ speaker view and <code class="nb">print-notes.html</code> show it, the projectio
 </aside>
 
 
-<p><strong>A marginalia is the one aside you can click: the frame slides right until all of it is on screen.</strong> A figure or a block of code opens in a card in the middle of the screen; a marginalia gets no card, because it is part of the slide&#39;s layout rather than something laid over it. <strong><code class="nb">Esc</code>, or a click on the slide, moves the frame back.</strong> Try it on the block out to the right, the part of it the edge of the screen has cut off.</p>
+<p><strong>A marginalia is the one aside you can click: the frame slides right until all of it is on screen.</strong> A figure or a block of code opens in a card in the middle of the screen; a marginalia gets no card. <strong><code class="nb">Esc</code>, or a click on the slide, moves the frame back.</strong> Try it on the block out to the right, the part of it the edge of the screen has cut off.</p>
 <p>The body stays in the middle column and only the marginalia moves outward. Keep them short: a marginalia shares the chunk&#39;s height and cannot grow taller than it. One can also go <em>inside</em> a <code>::: side</code> pane, when a tangent belongs to one half in particular – it still goes to the slide&#39;s right margin.</p>
 
   
@@ -3478,7 +3477,7 @@ speaker view and <code class="nb">print-notes.html</code> show it, the projectio
   <aside class="chunk-expansion chunk-expansion-expand" data-label="When a picture is too big">
 <p><strong>The limits are 2 MB for one picture and 10 MB for all of them together.</strong> Under those, every picture is embedded without your asking. Over them the build stops, rather than quietly leaving the file outside – where it would show as a broken figure the moment the HTML arrived somewhere without its <code class="nb">assets/</code> folder.</p>
 <p><strong><code>node build.js &lt;source.md&gt; --optimize-images</code> converts the files over the limit to WebP in place</strong>, which on real lecture assets comes out at 12 to 18 percent of the original with no visible loss. <code class="nb">--no-inline-images</code> is there if you do want the files kept outside.</p>
-<p>It does not shrink the picture&#39;s dimensions. The large files are usually already at slide resolution and large because PNG is a poor fit for photographs. An opened figure zooms to eight times, so the extra pixels in a diagram are ones the audience gets to see. <code class="nb">--max-width</code> exists for the genuine outliers.</p>
+<p>It keeps the picture&#39;s dimensions, unless WebP alone leaves it over 2 MB: then it scales the picture down to 2560 pixels wide. <code class="nb">--max-width</code> caps the width of every picture it converts, for a file that is still too large after that.</p>
 
 </aside>
   
@@ -3507,7 +3506,7 @@ which usually brings it well under the 2 MB limit.</p>
   
   
   <aside class="chunk-expansion chunk-expansion-expand" data-label="Size, and clips on a server">
-<p><strong>A clip goes inside the HTML up to its own limit of 12 MB</strong>, because the 2 MB picture limit would reject every real one. This one is 78 KB and costs 104 KB here: a <code class="nb">data:</code> URI is base64, a third larger than the bytes it carries.</p>
+<p><strong>A clip goes inside the HTML up to a limit of its own, 12 MB</strong>, well above the 2 MB a picture may take.</p>
 <p><strong>Over that limit the clip is stored beside the file</strong>, in a <code class="nb">videos/</code> folder next to the output. The build says so on the terminal and suggests an <code class="nb">ffmpeg</code> line that would make it small enough to go inside – one named folder to copy along with the HTML.</p>
 <p><strong>A clip can also live on a web server:</strong> <code class="nb">![](https://host/clip.mp4)</code> stays an ordinary player, still synchronised between the two windows. The player&#39;s own button is the fullscreen control, and a click on a clip does not open it in a card, which would fight the play button.</p>
 
@@ -3550,10 +3549,10 @@ which usually brings it well under the 2 MB limit.</p>
   <p><strong>Formulas are typeset when the lecture is built, so the finished file needs nothing at the moment you show it.</strong> Maths inside a sentence goes between single dollars – the anonymity set <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi></mrow><annotation encoding="application/x-tex">S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em"></span><span class="mord mathnormal" style="margin-right:0.0576em">S</span></span></span></span></span> has size <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∣</mi><mi>S</mi><mi mathvariant="normal">∣</mi></mrow><annotation encoding="application/x-tex">|S|</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.0576em">S</span><span class="mord">∣</span></span></span></span></span> – and a formula on its own line goes between double ones:</p>
 <div class="math-display"><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>d</mi><mo>=</mo><mfrac><mrow><mi>H</mi><mo stretchy="false">(</mo><mi>S</mi><mo stretchy="false">)</mo></mrow><mrow><msub><mrow><mi>log</mi><mo>⁡</mo></mrow><mn>2</mn></msub><mi mathvariant="normal">∣</mi><mi>S</mi><mi mathvariant="normal">∣</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">d = \frac{H(S)}{\log_2 |S|}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em"></span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2778em"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.363em;vertical-align:-0.936em"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em"><span style="top:-2.314em"><span class="pstrut" style="height:3em"></span><span class="mord"><span class="mop"><span class="mop">lo<span style="margin-right:0.0139em">g</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.207em"><span style="top:-2.4559em;margin-right:0.05em"><span class="pstrut" style="height:2.7em"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.0576em">S</span><span class="mord">∣</span></span></span><span style="top:-3.23em"><span class="pstrut" style="height:3em"></span><span class="frac-line" style="border-bottom-width:0.04em"></span></span><span style="top:-3.677em"><span class="pstrut" style="height:3em"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0813em">H</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0576em">S</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></div>
 <p><strong>A formula on its own line behaves like a figure</strong>: it stays on screen when the prose around it is shortened away, and clicking it opens it large for the audience.</p>
-<p><strong>This chunk carries <code class="nb">{.blocks-left}</code>, which is why the formula starts where this sentence starts.</strong> A code block, a figure and a display formula are centred by default, and <code>style: {blocks: left}</code> says otherwise for a whole deck. Centred is right when the block <em>is</em> the slide; on a slide that is an argument with a formula inside it, three blocks on three axes is what you get instead. Maths inside a sentence follows that sentence – on screen in an opening line, gone with everything else.</p>
+<p><strong>This chunk carries <code class="nb">{.blocks-left}</code>, which is why the formula starts where this sentence starts.</strong> A code block, a figure and a display formula are centred by default, and <code>style: {blocks: left}</code> says otherwise for a whole lecture. Centred suits a slide where the block is the point; on a slide that argues with a formula inside it, a centred formula stands apart from the sentences around it. Maths inside a sentence follows that sentence: it is on screen when the sentence is, and cut away with it otherwise.</p>
 <p><strong>A lone dollar sign is safe.</strong> The delimiters are read as Markdown, not searched for in your text, so <code class="nb">$PATH</code> inside code, a price of $5 and $10 in prose, and a <code> $$</code> inside a code block are all left alone. Write <code class="nb">\$</code> if you want to be explicit.</p>
-<p><strong>Only the mathematical typefaces your formulas use are embedded in the file.</strong> The build prints what that came to: for this lecture, about 120 KB in each printed view and 166 KB in the projection, against the 254 KB a complete set of KaTeX faces would take.</p>
-<p><strong>The maths follows the <code class="nb">F</code> key.</strong> Switch the body font to sans or monospace and the formulas change with it instead of staying serif while the text around them changes. Only the letters change: operators, relations and brackets keep their own shapes, and a character the sans face does not have falls back to the mathematical one. That is where the projection&#39;s extra 46 KB goes – the printed document has no <code class="nb">F</code> key and carries no faces for it.</p>
+<p><strong>Only the mathematical typefaces your formulas use are embedded in the file, and a lecture without formulas carries none.</strong> The build prints how much they added.</p>
+<p><strong>The maths follows the <code class="nb">F</code> key.</strong> Switch the body font to sans or monospace and the formulas change with it instead of staying serif while the text around them changes. Only the letters change: operators, relations and brackets keep their own shapes, and a character the sans face does not have falls back to the mathematical one. The projection carries a few extra faces for this; the printed document has no <code class="nb">F</code> key and does without them.</p>
 
   
   
@@ -3608,7 +3607,7 @@ which usually brings it well under the 2 MB limit.</p>
 
 
 <p>All four read fine inside a paragraph and fall apart the moment the paragraph is taken away, so they show up when you walk the lecture once in the short view before you teach it.</p>
-<p>When several parallel items pile up inside one paragraph, write a real Markdown list instead of scattering bold through the prose. A list stays readable when it is shortened; a paragraph with bold scattered through it almost never does.</p>
+<p>When several parallel items pile up inside one paragraph, write a real Markdown list instead of scattering bold through the prose. A list stays readable when it is shortened; a paragraph with bold scattered through it falls apart.</p>
 
   
   
@@ -3685,7 +3684,7 @@ speaker view leave it out.</p>
 <span class="line"><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold">**Authenticity and integrity**</span><span style="color:#24292E">: only the key holder could have made it,</span></span>
 <span class="line"><span style="color:#24292E">and any change to the message breaks it.</span></span>
 <span class="line"><span style="color:#24292E">:::</span></span></code></pre>
-<p><strong>The question is drawn at the end of its chunk, after the speaker notes in <code class="nb">print-notes.html</code></strong>, because it asks about all of it. Where in the chunk you write the block does not move it.</p>
+<p><strong>The question is drawn at the end of its chunk, after the speaker notes in <code class="nb">print-notes.html</code></strong>. Where in the chunk you write the block does not move it.</p>
 <p><strong>The build refuses a block it cannot read as a question</strong>: no <code class="nb">---</code> or two of them, an empty half, a <code>&gt; note:</code> inside it, or a question on the <code class="nb">title:</code> or <code class="nb">closing:</code> chunk. An answer that needs a rule writes <code class="nb">***</code>.</p>
 
   
@@ -3798,8 +3797,9 @@ and answer. A rule inside either half is written <code class="nb">***</code>.</p
 <span class="line"><span style="color:#24292E">::: backdrop dusk {.cover .invert}</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#24292E">::: overlay {.bottom-left .ink .standard}</span></span>
-<span class="line"><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold">**The backdrop is the slide's ground**</span><span style="color:#24292E">\</span></span>
-<span class="line"><span style="color:#24292E">and this block is an overlay, placed on a 3×3 grid.</span></span>
+<span class="line"><span style="color:#24292E;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold">**The backdrop fills the slide.**</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E">This block is an overlay, set in one of nine places over it.</span></span>
 <span class="line"><span style="color:#24292E">:::</span></span></code></pre>
 <p><strong><code>::: backdrop</code> puts a picture behind the whole slide, edge to edge, and <code>::: overlay</code> sets a block of text on top of it.</strong> Those are the lines that draw the next slide.</p>
 <p><strong><a href="../decoration/audience.html">The decoration lecture</a> shows the rest, one construction per slide</strong>: the ten covers and the closing slide, part dividers, rows of cards, docks and panels, and the type and colour of a whole lecture – the <code class="nb">style:</code> block and the typefaces.</p>
@@ -3818,7 +3818,8 @@ and answer. A rule inside either half is written <code class="nb">***</code>.</p
   
   
   <div class="overlay-layer">
-<div class="overlay-card ov-bottom-left ov-ink ov-w-standard"><p><strong>The backdrop is the slide&#39;s ground</strong><br>and this block is an overlay, placed on a 3×3 grid.</p>
+<div class="overlay-card ov-bottom-left ov-ink ov-w-standard"><p><strong>The backdrop fills the slide.</strong></p>
+<p>This block is an overlay, set in one of nine places over it.</p>
 </div>
 </div>
   
@@ -3839,7 +3840,7 @@ and answer. A rule inside either half is written <code class="nb">***</code>.</p
   <span class="chunk-label">principle</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Start from a talk you have already given</span> <span class="hd-sub">the text already exists, so the work left is cutting it into chunks</span></h2>
   <p><strong>The first lecture takes the most effort, because you are still learning the vocabulary, so start with a talk you have already given.</strong> Its text already exists. Most of the remaining work is deciding where one chunk ends and the next begins, and the vocabulary you have just read is all you need for that.</p>
-<p><strong>The steps are the same for every lecture</strong> – write the prose, sharpen the opening sentences, run the checker, read what <code class="nb">--squint</code> says the room will see, then walk the lecture once in the short view before you teach it.</p>
+<p><strong>After that, each lecture goes through the same steps</strong> – write the prose, sharpen the opening sentences, run the checker, read what <code class="nb">--squint</code> says the room will see, then walk the lecture once in the short view before you teach it.</p>
 
   
   
@@ -3878,8 +3879,7 @@ and answer. A rule inside either half is written <code class="nb">***</code>.</p
 <li><code>node lint.js lectures/</code> checks what can be checked without building: unknown types, unclosed <code class="nb">:::</code> blocks, repeated ids, word budgets, too many segments, one-chunk columns, captions that repeat the heading, frontmatter keys nothing reads. <code class="nb">--strict</code> turns the warnings into failures.</li>
 <li><code>node build.js &lt;source.md&gt; --squint</code> writes <code class="nb">squint.txt</code>: what the projection shows, slide by slide and beat by beat – the squint test from earlier.</li>
 </ul>
-<p>A frontmatter key nothing reads looks like nothing is wrong – the lecture builds, the slides look right, and the key never reached a page. <code class="nb">author:</code> sat in several lectures here doing that.</p>
-<p>One command is for after the writing rather than during it: <code>node build.js &lt;source.md&gt; --slides-pdf</code> prints <code class="nb">slides.pdf</code>, one page per presentation state, for a room where the HTML will not run or for someone who wants a deck to keep. <code class="nb">--print-pdf</code> and <code class="nb">--print-notes-pdf</code> print the two documents as <code class="nb">print.pdf</code> and <code class="nb">print-notes.pdf</code>, and the desktop app exports the same three. None of them is a fifth view and this tutorial does not show them, because a PDF is not something you can open from inside a lecture.</p>
+<p>One command is for after the writing rather than during it: <code>node build.js &lt;source.md&gt; --slides-pdf</code> prints <code class="nb">slides.pdf</code>, one page per presentation state, for a room where the HTML will not run or for someone who wants a deck to keep. <code class="nb">--print-pdf</code> and <code class="nb">--print-notes-pdf</code> print the two documents as <code class="nb">print.pdf</code> and <code class="nb">print-notes.pdf</code>, and the desktop app exports the same three.</p>
 <p>A source file can switch one check off with <code>&lt;!-- linter: ignore reveal-overuse, density --&gt;</code> anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for <code class="nb">density</code>, and says there why.</p>
 
   
@@ -3926,14 +3926,15 @@ and answer. A rule inside either half is written <code class="nb">***</code>.</p
   
   <span class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></span>
   
-  <h2 class="chunk-heading has-sub"><span class="hd-main">The language, and which setting wins</span> <span class="hd-sub"><code class="nb">lang:</code> and the rule for every key above</span></h2>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">The language, and which setting wins</span> <span class="hd-sub"><code class="nb">lang:</code>, and the rule for the eleven keys</span></h2>
   <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">lang</span><span style="color:#24292E">: </span><span style="color:#032F62">de</span><span style="color:#6A737D">                # the language the lecture is written in:</span></span>
 <span class="line"><span style="color:#6A737D">                        # en, de, de-DE, fr and so on, and en</span></span>
 <span class="line"><span style="color:#6A737D">                        # when you leave it out</span></span></code></pre>
-<p><strong><code class="nb">lang:</code> picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.</strong> <code>style: {hyphenate: all}</code> puts it into the projection too, which a German lecture at <code class="nb">.narrow</code> usually wants, and <code class="nb">none</code> takes it out everywhere. It is not one of the eleven above in the other sense either – those are opening settings that override whatever the reader last chose, and the language is a property of the lecture.</p>
-<p><strong>A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.</strong> So a lecture that sets nothing behaves as before – font, theme and slide numbers follow the reader from lecture to lecture.</p>
+<p><strong><code class="nb">lang:</code> picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.</strong> <code>style: {hyphenate: all}</code> puts it into the projection too, which a German lecture at <code class="nb">.narrow</code> usually wants, and <code class="nb">none</code> takes it out everywhere. Unlike the eleven keys on the last slide, it is not a setting the reader could change: it describes the lecture.</p>
+<p><strong>A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.</strong> So in a lecture that sets none of them, font, theme and slide numbers follow the reader from lecture to lecture.</p>
 <p><code class="nb">slide-numbers</code> applies to <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> too, and <code class="nb">print-slide-numbers:</code> overrides it there when the printed document wants different numbering from the projection. A value the tool does not know stops the build and lists the ones it does.</p>
-<p><strong><code class="nb">neighbours</code>, <code class="nb">note-button</code> and <code class="nb">transition</code> are the ones a keynote sets and a lecture does not.</strong> <code>transition: cut</code> lands on the next slide without the camera glide, and <code class="nb">fade</code> dips through the paper; both hide the neighbours unless you also write <code>neighbours: dim</code>. <code>reader: off</code> ships the two documents without the contents sidebar and highlights. <code>neighbours: hidden</code> takes the faint slide above and below off the projection, which is deliberate here – the live view is one long board a camera pans across, and the neighbours are what make a column read as a column. <code>note-button: off</code> hides the <code>+ note</code> hint in the slide&#39;s left gutter; <code class="nb">N</code> still opens an annotation, and <code class="nb">M</code> shows or hides the hint at any time, in either window.</p>
+<p><strong><code class="nb">neighbours</code>, <code class="nb">note-button</code> and <code class="nb">transition</code> are the ones a keynote sets and a lecture does not.</strong> <code>transition: cut</code> lands on the next slide without the camera glide, and <code class="nb">fade</code> dips through the paper; both hide the neighbours unless you also write <code>neighbours: dim</code>. <code>neighbours: hidden</code> takes off the projection the faint slides above and below, which otherwise show where you are in the column. <code>note-button: off</code> hides the <code>+ note</code> hint in the slide&#39;s left gutter; <code class="nb">N</code> still opens an annotation, and <code class="nb">M</code> shows or hides the hint at any time, in either window.</p>
+<p><code>reader: off</code> ships the two documents without the contents sidebar and highlights.</p>
 
   
   
