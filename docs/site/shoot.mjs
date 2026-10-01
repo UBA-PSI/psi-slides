@@ -84,6 +84,26 @@ main { padding-top: 0 !important; margin-top: 0 !important; }
 </style>
 `;
 
+// The documents carry the reader's tools on screen (reader: on, the default):
+// a contents sidebar or a Contents button, and from 920px a reserved column
+// for the reader's notes that pushes the text to the left. `printed` is the
+// third picture in the landing page's "in print" switch, and what it shows is
+// paper, where none of that exists. So it takes the tools away the way a
+// page without scripts would never have had them: READER_EARLY_JS sets
+// rd-ready and unhides the two elements, and this undoes both. Print media
+// itself was tried and is not a picture of paper either - without @page the
+// text sits flush against the window's left edge and loses its margin
+// numbers. The two handout shots keep the tools: they are the file in a
+// browser window, the title bar names it, and the button is what a reader of
+// that file sees.
+const PAPER_RIG = DOC_RIG + `
+<style>.rd-contents, .rd-toggle { display: none !important; }</style>
+<script>
+document.body.classList.remove('rd-ready');
+for (const e of document.querySelectorAll('.rd-contents, .rd-toggle')) e.hidden = true;
+</script>
+`;
+
 // The live view's own chrome is not part of any composition: the help button,
 // the start menu and the edge arrows are controls, and a picture of a slide
 // is a picture of a slide. Same rig shoot-gallery.mjs uses on its tiles, and
@@ -164,34 +184,44 @@ const LIVE_RIG = `
 // it after shooting, and commit the manual with the images.
 
 const SHOTS = [
-  { name: 'collapsed', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true },
-  { name: 'full', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true,
+  { name: 'collapsed', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true, quiet: true },
+  { name: 'full', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true, quiet: true,
     // Long enough for the "collapse: show everything" toast to fade: it is
     // feedback for the lecturer, not part of the slide.
     act: async (p) => { await p.keyboard.press('c'); await p.waitForTimeout(3000); } },
-  { name: 'overview', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true,
+  { name: 'overview', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true, quiet: true,
     act: async (p) => { await p.keyboard.press('o'); await p.waitForTimeout(1500); } },
-  { name: 'search', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true,
+  { name: 'search', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true, quiet: true,
     act: async (p) => {
       await p.keyboard.press('/');
       await p.fill('#psiINT-search-input', 'async');
       await p.waitForTimeout(500);
     } },
   { name: 'cockpit', src: 'speaker.html', w: 1440, h: 900, dsf: 1.5, frag: true },
-  { name: 'printed', src: 'print.html', w: 1000, h: 625, dsf: 2.15, rig: DOC_RIG },
-  // 470 rather than 690, and the reason is DESIGN.md's fifth rule. The frame
-  // held two chunks of the document, and the second one carries nothing the
-  // first does not: the claim beside it is hyphenation, a line length made
-  // for reading, and the margin note as an aside, and all three are in the
-  // first chunk. As two chunks the shot came out 762px tall against 240px of
-  // words in the row beside it - a picture three times its own argument.
-  { name: 'handout', src: 'print-notes.html', w: 860, h: 470, dsf: 2.5, rig: DOC_RIG },
+  // `top` scrolls the document so the chunk opens the frame: the lead-in of
+  // the part above it is not what any of the three document shots is about.
+  { name: 'printed', src: 'print.html', w: 1000, h: 625, dsf: 2.15, rig: PAPER_RIG, top: true },
+  // One chunk rather than two, and the reason is DESIGN.md's fifth rule. The
+  // frame held two chunks of the document, and the second one carries
+  // nothing the first does not: the claim beside it is hyphenation, a line
+  // length made for reading, and the margin note as an aside, and all three
+  // are in the first chunk. As two chunks the shot came out 762px tall
+  // against 240px of words in the row beside it - a picture three times its
+  // own argument.
+  //
+  // The cut went to 470 rows first, and that stopped working when the
+  // screen documents grew to a reading size (15px at this width, where the
+  // frame was composed at 13.3px): 470 rows then ended in the chunk's last
+  // paragraph, above the margin note and the speaker note, so the switch
+  // below swapped two identical pictures and its "with your notes" showed no
+  // note. 640 from the chunk's top is that one chunk down to its note.
+  { name: 'handout', src: 'print-notes.html', w: 860, h: 640, dsf: 2.5, rig: DOC_RIG, top: true },
   // The same frame again from print.html, so the landing page can offer the
   // two handouts as one switch rather than showing the notes version and
   // calling it what the students take away. Identical geometry to `handout`
   // on purpose: a switch that changes the crop as well as the file reads as
   // two pictures, not as one file becoming another.
-  { name: 'handout-plain', src: 'print.html', w: 860, h: 470, dsf: 2.5, rig: DOC_RIG },
+  { name: 'handout-plain', src: 'print.html', w: 860, h: 640, dsf: 2.5, rig: DOC_RIG, top: true },
   // The editor, opened on a figure with beats. 1280 is the narrowest viewport
   // that still fits the whole top bar - at 1200 the Close button is cut in
   // half, and a screenshot of a clipped UI reads as a broken one.
@@ -254,7 +284,7 @@ const SHOTS = [
   // typed rather than pre-seeded: the size is derived from the text, so a
   // shot of it has to go through the same keystrokes a lecturer makes.
   { name: 'annotation', src: 'audience.html', w: 1440, h: 900, dsf: 1.5,
-    live: true, act: typeAnnotation },
+    live: true, quiet: true, act: typeAnnotation },
   // ── the decoration page's five ──────────────────────────────────────────
   // Cards, rows, a backdrop, a panel and a dock, for decoration.html. They
   // belong here rather than in shoot-gallery.mjs, and the split is the one
@@ -639,6 +669,13 @@ try {
     });
     const page = await ctx.newPage();
     const target = targetOf(s);
+    // `quiet`: the runtime's own switch for a probe that photographs the
+    // projection (--frames, --check-fit, --squint set it too). It keeps the
+    // start menu shut and, with it, the chevron that reopens the menu, which
+    // otherwise stands beside the ? circle once the walk has left slide 1.
+    // The python-intro rows keep the ? circle they were composed with, so
+    // LIVE_RIG, which hides that as well, is not theirs.
+    if (s.quiet) await page.addInitScript(() => { window.PSI_NO_START_MENU = true; });
     await page.goto(`http://127.0.0.1:${port}/${s.name}.html` + (s.frag ? `#${target}` : ''),
       { waitUntil: 'networkidle' });
     await page.waitForTimeout(1000);
@@ -646,6 +683,12 @@ try {
     // Checked before the state change: overview and search deliberately
     // cover or shrink the stage, so the assertion belongs to the landing.
     if (s.live || s.frag) await assertOnScreen(page, s.name, target);
+    if (s.top) {
+      await page.evaluate((id) => {
+        window.scrollTo(0, document.getElementById(id).getBoundingClientRect().top + window.scrollY - 32);
+      }, target);
+      await page.waitForTimeout(300);
+    }
     if (s.act) await s.act(page);
 
     const png = path.join(IMG, s.name + '.png');

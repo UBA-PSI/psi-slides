@@ -77,7 +77,10 @@ does:
    the crop is reproducible. The two handout shots went from 690 to 470
    viewport rows for that reason: the second chunk of the document carried
    nothing the first did not, and the shot was 762px tall against 240px of
-   words beside it.
+   words beside it. A crop is measured against the type it was composed
+   at: when the documents' screen type grew from 13.3 to 15px, 470 rows
+   ended above the chunk's notes, and the crop became 640 rows starting at
+   the chunk's own heading.
 
 The cue stays **outside** the stage on purpose. Inside it, the triad
 collapses to two and the device loses the job it was built for.

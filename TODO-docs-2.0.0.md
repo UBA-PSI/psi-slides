@@ -226,7 +226,7 @@ on the pages as they then stand.
 - [x] Browser suite after the prose passes: 1737 passed, 0 failed.
 - [x] Site shots re-shot: `deco-display-cover`, the five decoration tiles (slide numbers moved, `deco-dock` wording), `editor` (figure count 33), `figure` (larger raster, same drawing), `cue-beat-0`/`-1` (invisible but reproducible), `builder-lecture.webp` with its alt texts. `deco-display-divider` unchanged. `shoot.mjs`'s PDF sheet reads the `psiINT-pdf-p` wrapper id.
 - [ ] Prompter shots `prompter-hint` and `prompter-hint-de` are stale (`#two-numbers` note changed) – `shoot-prompter.mjs` costs model calls, not run.
-- [ ] python-intro shots drifted with the engine, not re-shot: `printed`, `handout`, `handout-plain` (the reader tools' Contents button and a shifted column), `full` (the start-menu chevron beside `?`), small drift in `cockpit`, `collapsed`, `overview`, `search`, `annotation`.
+- [x] python-intro shots re-shot: `printed` without the reader tools (paper), `handout` / `handout-plain` with them, 640 rows from the chunk's heading so the notes are in frame; `full` and `overview` with the start menu kept shut (`PSI_NO_START_MENU`). `collapsed`, `search`, `annotation`, `slides-pdf` reproduce the committed files; `cockpit` differs only run to run – kept.
 - [ ] Desktop smoke, parity step: 2 failures – slides.pdf page 9 (`#arrows` beat 1) fits at zoom 0.95 in the app and 0.9 on the command line, so 3 pages' text differs.
 - [ ] python-intro: „the hour ahead“ vs „all afternoon“ – left because of the shots.
 - [ ] spoken-talk `#board`: sub-heading says „six steps“, the drawing has three boxes – check.
