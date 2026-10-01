@@ -49,20 +49,8 @@ key is migrated once), 7 and 8 in `32016f2`, 9 in `4dedd4b`.
 
 ## S7 – Release blockers
 
-1. **CI sees the diagrams views as stale**: built with cwebp, the runner has
-   none (`release.yml:102`). Build tracked views reproducibly regardless of
-   encoder (e.g. `--no-optimize-images` for them, in release.yml and the docs)
-   – encoder versions differ in bytes too.
-2. **The release notes exceed GitHub's 125,000 characters** (~266,000;
-   `release.yml:181–199` extracts the whole section). Consolidate the
-   repeated `### Added` / `### Changed` / `### Fixed` headings and make the
-   release body fit.
-3. **Breaking changes not labelled**: chunk tails 1.0.0 ignored now refuse
-   (`:2126–2137`), new nesting refusals (`:1664–1690`), every `---` is a beat
-   (`:738`), `slide-numbers` default (`:2179`), plus whatever S3 adds.
-4. **`package.json` and the lockfile are at 1.0.0** (`release.yml:45–53`).
-5. **The browser suite last ran on CI on 2026-08-29** – run `browser.yml` on
-   `main` before tagging.
+- **Before tagging, push `main` and run `browser.yml` on it** – the browser
+  suite last ran on CI on 2026-08-29.
 
 ## S8 – Documentation drift
 

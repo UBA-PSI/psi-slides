@@ -9,7 +9,7 @@ collapse: none
 auto-fit: true
 ---
 
-<!-- linter: ignore reveal-overuse -->
+<!-- linter: ignore reveal-overuse, dock-narrows-measure, orphan-column -->
 
 ## title: {#cover}
 
