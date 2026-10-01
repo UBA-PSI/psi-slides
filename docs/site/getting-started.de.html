@@ -94,10 +94,9 @@
     das Fenster ziehen, und die vier Ansichten sind gebaut. Das Fenster neben
     dem Texteditor offen lassen, und die App baut sie nach jedem Speichern
     erneut.</p>
-    <p class="cue">Eine Zeile sagt, ob der letzte Build funktioniert hat, und
-    über vier Knöpfe öffnet man die Ansichten, die er geschrieben hat. Es gibt auch
-    kein Projekt einzurichten und keine Einstellungen, die vor dem ersten Build
-    auszufüllen wären.</p>
+    <p class="cue">Eine Zeile sagt, ob der letzte <strong>Build</strong> (das Bauen der Ansichten aus der <code>source.md</code>) funktioniert hat, und
+    über vier Knöpfe öffnet man die Ansichten, die er geschrieben hat. Ein Projekt ist nicht einzurichten, und vor dem ersten Build sind keine Einstellungen
+    auszufüllen.</p>
     <p class="cue">Darunter zählt das Fenster, was in der Vorlesung steckt
     &ndash; Abschnitte, Folien, Bilder, Zeichnungen und wie viele Wörter ins
     Handout gegangen sind und wie viele in die Sprechernotizen &ndash; sodass
@@ -168,12 +167,12 @@
   <div class="pair-up">
    <div>
     <p><strong>Windows und Linux sind experimentell.</strong> Diese beiden
-    Pakete kommen vom Build-Rechner und sind auf einem echten nicht gestartet
-    worden. Gut möglich, dass sie laufen; getestet ist es nicht. Wer eines
-    ausprobiert: ob es läuft oder umfällt, ist ein
-    <a href="https://github.com/UBA-PSI/psi-slides/issues">Issue</a> wert, in
-    beide Richtungen. Das macOS-Paket ist auf einem echten Mac benutzt worden,
-    und das ist der ganze Unterschied zwischen den drei Blöcken oben.</p>
+    Pakete hat ein CI-Rechner gebaut; auf echter Hardware wurden sie nicht
+    gestartet. Möglich, dass sie laufen, geprüft ist es nicht. Wer eines
+    ausprobiert, meldet das Ergebnis gern als
+    <a href="https://github.com/UBA-PSI/psi-slides/issues">Issue</a> – ob es
+    läuft oder nicht. Das macOS-Paket wurde auf einem echten Mac benutzt; nur
+    darin unterscheiden sich die drei Pakete oben.</p>
    </div>
    <div>
     <p><strong>Die Pakete sind nicht signiert</strong>, außer dem für macOS: Das
@@ -213,7 +212,7 @@
     dieselben drei PDFs wie die Kommandozeile. <strong>Nichts verlässt den Rechner.</strong> Kein
     Konto, keine Telemetrie, kein Update-Aufruf, kein Netzzugriff &ndash; und die
     lokale Webadresse oben hängt an <code>127.0.0.1</code>, erreichbar von
-    diesem Rechner und von sonst nichts.</p>
+    diesem Rechner und von sonst nichts. Das Fenster gibt es auf Deutsch und Englisch: Beim ersten Start entscheidet die Systemsprache, danach eine Einstellung.</p>
    </div>
   </div>
  </div>
@@ -248,7 +247,7 @@
     <code class="flag">--slides-pdf</code> die Folien als eines,
     <code class="flag">--print-pdf</code> und
     <code class="flag">--print-notes-pdf</code> die beiden Handouts auf A4.
-    Diese drei brauchen Chrome auf dem Rechner.</p>
+    Diese drei brauchen einen Chromium-basierten Browser: Der Build sucht ihn in <code>$PSI_CHROME</code>, dann im Playwright-Cache, dann als systemweites Chrome. Die Desktop-App druckt mit ihrem eigenen und braucht nichts zusätzlich.</p>
    </div>
 <pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span>
 <span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
@@ -349,7 +348,7 @@
       <h3>Das Terminal auf den Ordner zeigen</h3>
 <pre><code>cd psi-slides</code></pre>
       <p>Die <code>cd</code>-Zeile muss benennen, wo der Ordner tatsächlich liegt:
-      unter Windows etwa <code>cd C:\Users\du\Downloads\psi-slides</code>. Statt
+      unter Windows etwa <code>cd C:\Users\Name\Downloads\psi-slides</code>. Statt
       den Pfad zu tippen, <code>cd</code> und ein Leerzeichen tippen und dann den
       Ordner aus dem Dateimanager ins Terminalfenster ziehen &ndash; der Pfad schreibt
       sich selbst.</p>
@@ -369,7 +368,7 @@
       Schriften, die QR-Codes, die gesetzten Formeln &ndash; und endet damit, was er
       geschrieben hat. Dieselbe Zeile funktioniert auf Windows und macOS,
       Schrägstriche eingeschlossen: Node nimmt sie auf beiden.</p>
-<pre class="out"><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (12 columns, 92 chunks)</code></pre>
+<pre class="out"><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (13 columns, 104 chunks)</code></pre>
 
       <h3>Öffnen</h3>
       <p>Doppelklick auf <code>lectures/tutorial/audience.html</code>. Es öffnet
@@ -410,8 +409,8 @@
   <h2 id="your-own">Eine eigene Vorlesung schreiben</h2>
   <p class="lede">Eine Vorlesung ist ein Ordner mit einer <code>source.md</code>
   darin. Diese erste Datei lieber schreiben lassen, als von einem leeren Blatt
-  anzufangen: Der Einstellungsblock oben in einer <code>source.md</code>, ihr
-  Vorspann, hat Schlüssel, die ein leeres Blatt nicht erraten kann.</p>
+  anzufangen: Der Einstellungsblock oben in einer <code>source.md</code>, das
+  Frontmatter (YAML zwischen zwei <code>---</code>-Zeilen), hat Schlüssel, die ein leeres Blatt nicht erraten kann.</p>
 
   <!-- Was in die Datei gehört, stand früher als rechte Hälfte einer
        zweispaltigen Zeile am Fuß dieses Abschnitts, unter einem Listing, mit
@@ -419,11 +418,12 @@
        gehört hätte. Es ist die Antwort auf die Überschrift des Abschnitts,
        also ist es dessen zweiter Absatz. -->
   <p>Was in diese Datei gehört, lehrt die
-  <a href="../tutorial/audience.html">Tutorial-Vorlesung</a>, eine Vorlesung
+  <a href="../tutorial/audience.html" hreflang="en">Tutorial-Vorlesung</a> (englisch), eine Vorlesung
   über das Schreiben von Vorlesungen: das Format im Betrieb gezeigt statt
   beschrieben, mit
   <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">ihrer
-  Quelle</a> daneben.</p>
+  Quelle</a> daneben. Ein deutsches Muster zum Abschauen ist das
+  <a href="../example/audience.html">Kurzbeispiel mit sechs Folien</a>.</p>
 
   <!-- Halbleere Zeile, Antwort 1: drei Befehle in der breiten Hälfte, wofür sie
        da sind in der schmalen, und die Seite der App darunter als Absatz. -->
@@ -471,12 +471,12 @@
     <li><b><a href="index.html">Was psi-slides ist</a></b>
       Die Startseite: eine Vorlesung, wie der Raum sie sieht und wie die
       Lesenden sie bekommen, und warum das dieselbe Datei ist.</li>
-    <li><b><a href="../comparison.html">Wie psi-slides sich vergleicht</a></b>
+    <li><b><a href="../comparison.html" hreflang="en">Wie psi-slides sich vergleicht</a> (englisch)</b>
       Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint und andere, in beide
       Richtungen, einschließlich der Stellen, an denen psi-slides verliert.</li>
-    <li><b><a href="../figures.html">Figures you write</a></b>
+    <li><b><a href="../figures.html" hreflang="en">Figures you write</a> (englisch)</b>
       Die Begründung für die Abbildungssprache, und
-      <a href="../figures-you-write.html">das Handbuch</a> daneben, das eine
+      <a href="../figures-you-write.html" hreflang="en">das Handbuch</a> (englisch) daneben, das eine
       Abbildung Zeile für Zeile aufbaut und jede Anweisung auflistet.</li>
     <li><b><a href="https://github.com/UBA-PSI/psi-slides">Das Repository</a></b>
       Die README erklärt das Format und sagt, wofür das Werkzeug taugt und wofür
@@ -485,10 +485,10 @@
 
   <footer>
     <p>Von <a href="https://herdom.net">Dominik Herrmann</a>,
-    <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
+    <a href="https://psi.uni-bamberg.de/">Privatsphäre und Sicherheit in Informationssystemen</a>,
     Universität Bamberg.
-    Werkzeug MIT-lizenziert, Vorlesungsinhalte CC&nbsp;BY-SA&nbsp;4.0. Bei jedem
-    Push aus der Quelle neu gebaut.</p>
+    Werkzeug MIT-lizenziert, Vorlesungsinhalte CC&nbsp;BY-SA&nbsp;4.0. Wird bei
+    jedem Push aus der Quelle neu gebaut.</p>
   </footer>
   </div>
  </div>

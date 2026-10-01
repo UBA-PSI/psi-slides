@@ -205,7 +205,7 @@
     the command line does. <strong>Nothing leaves the computer.</strong> No account,
     no telemetry, no update check, no network access &ndash; and the local web
     address above is bound to <code>127.0.0.1</code>, reachable from this
-    machine and from nothing else.</p>
+    machine and from nothing else. The window comes in English and German: the system language decides the first time, and a setting changes it afterwards.</p>
    </div>
   </div>
  </div>
@@ -238,7 +238,7 @@
     <code class="flag">--slides-pdf</code> writes the slides as one,
     <code class="flag">--print-pdf</code> and
     <code class="flag">--print-notes-pdf</code> the two handouts on A4. These
-    three need Chrome on the machine.</p>
+    three need a Chromium-based browser: the build looks for one in <code>$PSI_CHROME</code>, then in the Playwright cache, then for a system-wide Chrome. The desktop app prints with its own and needs nothing extra.</p>
    </div>
 <pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span>
 <span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
@@ -356,7 +356,7 @@
       QR codes, the rendered maths &ndash; and ends with what it wrote. The same
       line works on Windows and macOS, forward slashes included: Node takes them
       on either system.</p>
-<pre class="out"><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (12 columns, 92 chunks)</code></pre>
+<pre class="out"><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (13 columns, 104 chunks)</code></pre>
 
       <h3>Open it</h3>
       <p>Double-click <code>lectures/tutorial/audience.html</code>. It opens in
@@ -408,7 +408,8 @@
   <a href="tutorial/audience.html">tutorial lecture</a> teaches, a lecture
   about writing lectures: the format shown working rather than described, with
   <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">its
-  source</a> beside it.</p>
+  source</a> beside it. A German lecture to copy from is the
+  <a href="example/audience.html">six-slide example</a>.</p>
 
   <!-- Half-empty row, answer 1: three commands in the wide half, what they are
        for in the narrow one, and the app's side of it as prose underneath. -->
