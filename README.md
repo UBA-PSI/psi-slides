@@ -255,8 +255,7 @@ What is different here is the combination: one text rendered at two densities, a
 | [`lectures/diagrams/`](lectures/diagrams/) | Every `::: draw` statement drawn rather than described, with real lecture figures among them. |
 | [`lectures/decoration/`](lectures/decoration/) | Everything that decorates a slide, drawn rather than described: the cover family, the six dividers and the three kinds of divider content, cards and rows, backdrops with a reveal, overlays and panels, docks, beats below the top level, `{.bare}` headings. |
 | [`figure-design.md`](figure-design.md) | How to lay out a `::: draw` block so a room can read it. Rules with a wrong and a right version each, in real syntax, and a checklist. |
-| [`docs/artifact/`](docs/artifact/) | The manual for the figure language, from nothing: a figure built a line at a time, then beats, then every class and statement, fifteen design rules and a gallery. Every drawing on it is compiled by the build rather than redrawn. |
-| [`docs/site/figures.html`](docs/site/figures.html) | The case for the figure language, published on the project site: why a lecture figure is not a picture, and three figures that show it. Sends the reader to the manual. |
+| [`docs/artifact/`](docs/artifact/) | The figure language, published on the project site as `figures.html`: first the case for it, then the manual from nothing: a figure built a line at a time, then beats, then every class and statement, fifteen design rules and a gallery. Every drawing on it is compiled by the build rather than redrawn. |
 | [`editor.md`](editor.md) | Design and build log for the experimental graphical editor: what it edits, what it refuses to edit, and why. |
 | [`docs/comparison.md`](docs/comparison.md) | Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, compared in both directions. |
 | [`PRD.md`](PRD.md) | Design rationale. Why four views, why this type set, why collapse has two mechanisms and not four. |
