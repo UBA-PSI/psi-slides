@@ -921,7 +921,9 @@ the last step of `npm run smoke`** (`desktop/test/parity.mjs`, also `npm run
 parity -- <folder>` on a folder `PSI_SMOKE_KEEP=1` kept): the command line
 exports a copy of the same tutorial with `--pdf-collapse=topic-bold`, and the
 page counts, `pdftotext -layout` per page and the slides' chunk-and-beat table
-must be equal. It needs the engine's playwright-core, a Chromium and
+must be equal – except a *borderline fit*, a slide the two Chromiums measure a
+few pixels apart at the fit threshold, which may sit one zoom step apart if its
+words are the same (`desktop/test/parity.mjs` says why). It needs the engine's playwright-core, a Chromium and
 poppler; without one it says so and passes, except under `CI`. That is why
 `desktop.yml` installs `poppler-utils` and its path filter names
 `pdf-export.mjs` and `chrome-path.mjs`, which the app does not stage.

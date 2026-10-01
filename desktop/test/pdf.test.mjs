@@ -219,3 +219,29 @@ test('the export window keeps WebRTC off the network', () => {
   assert.match(src, /setWebRTCIPHandlingPolicy\('disable_non_proxied_udp'\)/);
   assert.match(src, /await ses\.setProxy\(\{ proxyRules: 'http:\/\/psi-offline\.invalid:9', proxyBypassRules: '<-loopback>' \}\)/);
 });
+
+// Parity's one allowance, measured on the tutorial's #arrows: Electron's
+// Chromium 152 and Playwright's 153 measured it 845 and 849 px against an
+// 846 px fit limit, so one fitted it a step larger than the other.
+test('parity allows a borderline fit and nothing more', async () => {
+  const { compareBeats, textDifferences, borderlineWithinShare } = await import('./parity.mjs');
+  const r = (chunk, beat, zoom, held = 0) => ({ chunk, beat, zoom, held });
+  const app = [r('pace', 1, '1.35'), r('arrows', 1, '0.95', 2), r('arrows', 2, '0.95', 1)];
+  const cli = [r('pace', 1, '1.35'), r('arrows', 1, '0.9', 2), r('arrows', 2, '0.9', 1)];
+  assert.deepEqual(compareBeats(app, cli), { at: -1, borderline: [1, 2] });
+  // Two steps apart, another beat or another held-back count is a drift.
+  assert.equal(compareBeats(app, [cli[0], r('arrows', 1, '0.85', 2), cli[2]]).at, 1);
+  assert.equal(compareBeats(app, [cli[0], r('arrows', 1, '0.9', 1), cli[2]]).at, 1);
+  assert.equal(compareBeats(app, [cli[0], r('expand', 1, '0.9', 2), cli[2]]).at, 1);
+  // On a borderline page the words have to be the same, on any other the text.
+  const ta = ['a b', 'Two keys move\nyou through', 'x'];
+  const tc = ['a b', 'Two keys\nmove you through', 'x'];
+  assert.deepEqual(textDifferences(ta, tc, [1, 2]), []);
+  assert.deepEqual(textDifferences(ta, tc, []), [2]);
+  assert.deepEqual(textDifferences(ta, ['a b', 'Two keys move you', 'x'], [1]), [2]);
+  // And a deck where most chunks are borderline is not a threshold.
+  assert.equal(borderlineWithinShare(app, [1, 2]).ok, true);
+  const many = Array.from({ length: 20 }, (_, i) => r('c' + i, 1, '1'));
+  assert.equal(borderlineWithinShare(many, [0]).ok, true);
+  assert.equal(borderlineWithinShare(many, [0, 1]).ok, false);
+});
