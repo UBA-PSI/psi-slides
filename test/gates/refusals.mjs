@@ -34,7 +34,7 @@
  *
  * These fixtures are the ones the diagram revision was verified against –
  * items 1, 2, 3, 5, 8, 9, 12, 13, 16, 19, 20, 21, 22, 23, 30 and 31 of
- * `revision-proposal.md` – merged from the two scratch programs that carried
+ * `docs/history/revision-proposal.md` – merged from the two scratch programs that carried
  * them. `item` is the proposal item, for anyone reading back.
  */
 import { render, lintAll } from './harness.mjs';

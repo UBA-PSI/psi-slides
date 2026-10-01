@@ -76,7 +76,7 @@ it is arithmetic rather than taste – past 62 % of the slide the height cap
 takes over and the figure comes out narrower than its own column.
 
 **The height does not come down by the prose under the drawing**, and that was
-measured rather than assumed (`PLAN-figure-defaults.md` §6 item 7). A shorter
+measured rather than assumed (`docs/history/PLAN-figure-defaults.md` §6 item 7). A shorter
 canvas cannot shrink a drawing – the box is the union – so on a slide whose
 drawing fills its canvas the trade reaches only a warning; making it bite would
 mean scaling each figure by how many words its paragraph runs to, which is the
@@ -323,7 +323,7 @@ between two facing boxes the knock-out is the right form and the flowchart in
 information and erasing it erases which box joins which.
 
 **And that is why the ground on a straight run stays opt-in, although a plan
-asked for it as the default.** `PLAN-figure-defaults.md` §2.5 proposed giving
+asked for it as the default.** `docs/history/PLAN-figure-defaults.md` §2.5 proposed giving
 every labelled straight edge the knock-out, and it was written when an
 ungrounded label sat *on* its own line with the stroke through the words – at
 which point the ground was the only fix there was. Two rules have landed since

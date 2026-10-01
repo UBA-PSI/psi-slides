@@ -1,5 +1,5 @@
 /*
- * A muted dot is a plain dot in the muted ink (PLAN-figure-defaults.md §7,
+ * A muted dot is a plain dot in the muted ink (docs/history/PLAN-figure-defaults.md §7,
  * entry 15).
  *
  * .muted thins a stroke to 1.05 and .dotted draws a disc one stroke-width

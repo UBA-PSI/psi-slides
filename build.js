@@ -5058,7 +5058,7 @@ function parseLecture(src) {
         '  dock outside the block, at chunk level.');
     }
     // lint.js: duplicate-dock. One slide has one dock (decision 2 of
-    // PLAN-dock.md): two docks plus content is a frame, and the corner rule
+    // docs/history/PLAN-dock.md): two docks plus content is a frame, and the corner rule
     // of two edges would be arbitrary.
     const host = currentChunk || currentColumn;
     if (host && host.dock) {
@@ -7717,7 +7717,7 @@ function styleSettings(frontmatter = {}) {
 // lay cards into upcoming chunks, `calls-per-hour` the most calls to the
 // model in any sixty minutes - a hard ceiling on what a run can cost, set at
 // one call per ten seconds, the cadence's own floor, so a talk at any legal
-// cadence stays under it. PLAN-souffleuse.md has the reasoning.
+// cadence stays under it. docs/history/PLAN-souffleuse.md has the reasoning.
 const SOUFFLEUSE_SPEC = {
   'model':    { kind: 'text', dflt: 'anthropic/claude-sonnet-5' },
   'language': { kind: 'lang', dflt: null },
@@ -11303,7 +11303,7 @@ const PRINT_READER_JS = `
 // Select words in a slide and a button at the end of the selection marks
 // them yellow and opens a card for a note. A highlight is the reader's, kept
 // in their browser and seen by nobody else - nothing here shares a path or a
-// word with the lecturer's annotations. PLAN-reader-highlights.md §2 to §4.
+// word with the lecturer's annotations. docs/history/PLAN-reader-highlights.md §2 to §4.
 //
 // A highlight is anchored to a chunk, by its frozen id, and to offsets into
 // that chunk's reader text: its text nodes in document order, less what is
@@ -13327,7 +13327,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   const overlayHtml = renderOverlayLayer(chunk.overlays, where);
   // After .chunk-content and before .overlay-layer, as a sibling: outside
   // every .reveal-segment, so the collapse never abridges it (decision 10
-  // of PLAN-dock.md), and under the overlay layer in the z-ladder.
+  // of docs/history/PLAN-dock.md), and under the overlay layer in the z-ladder.
   const dockHtml = renderDock(chunk.dock, where, num, nums);
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdAttr = (bd.html ? ' data-has-backdrop=""' : '') + (overlaysHavePanel(chunk.overlays) ? ' data-has-panel=""' : '');
@@ -25622,7 +25622,7 @@ const souffleuseCues = new Map();
 
 // ── cue cards ───────────────────────────────────────────────────────
 // The notes of the active chunk as cards in a column, the projection small
-// in the corner (speaker.md §4.1, PLAN-cue-cards.md). Everything here is
+// in the corner (speaker.md §4.1, docs/history/PLAN-cue-cards.md). Everything here is
 // local to this window. The one piece of state is the cursor - which card
 // of the current beat is being said - and it sits in FRONT of the reveal
 // counter: goForward asks consumeForward first, and the press reaches
@@ -26642,7 +26642,7 @@ body[data-mode=dark] #psiINT-souffleuse-strip[data-severity=high] { background: 
 
 const SOUFFLEUSE_JS = `
 // ── the live prompter (--prompter) ────────────────────────────────
-// The cockpit's half of PLAN-souffleuse.md: an ear, a switch, and one way
+// The cockpit's half of docs/history/PLAN-souffleuse.md: an ear, a switch, and one way
 // back to the sidecar over the watch socket that is already here. This whole
 // text is spliced into speaker.html only under --prompter, at the end of
 // the same script element SPEAKER_JS is in, so everything below reads the
@@ -28288,7 +28288,7 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
 // The live prompter's Node half. The cockpit listens to the room and sends
 // what it heard over the watch socket; this section holds the deck, the
 // clock and the transcript, calls one model through OpenRouter when there is
-// an occasion, and whispers back at most twelve words. PLAN-souffleuse.md is
+// an occasion, and whispers back at most twelve words. docs/history/PLAN-souffleuse.md is
 // the design; souffleuse.mjs is everything about it that is pure, and is why
 // the restraint can be tested without a network.
 //
@@ -29351,7 +29351,7 @@ async function createSouffleuse({
   }
 
   // Said once, at the start, because it is the one thing about this flag a
-  // person has to know before they use it. PLAN-souffleuse.md § Privacy.
+  // person has to know before they use it. docs/history/PLAN-souffleuse.md § Privacy.
   //
   // The audio half is the browser's, not this process's, and it is not
   // nothing: Chrome's speech recognition runs on the device only where it

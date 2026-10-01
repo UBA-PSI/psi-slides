@@ -53,7 +53,7 @@ export const GENERATED_BASENAMES = new Set([
 // their prose is scanned separately (`proseOf`).
 export const GENERATED_PROSE_PAGES = ['docs/artifact/figures-you-write.html', 'docs/site/figures.html'];
 export const GENERATED_PREFIXES = [...GENERATED_PROSE_PAGES, '_site/', 'node_modules/'];
-export const HISTORY_BASENAMES = new Set(['CHANGELOG.md', 'TODO-inconsistencies.md', 'revision-proposal.md']);
+export const HISTORY_BASENAMES = new Set(['CHANGELOG.md', 'TODO-inconsistencies.md']);
 export const SELF_PREFIXES = [
   'test/gates/legacy-draw-syntax.mjs', 'test/gates/legacy-draw-syntax.txt',
   'tools/migrate-draw-opener.mjs',
@@ -65,7 +65,7 @@ export const TEXT_EXT = new Set(['.md', '.mjs', '.js', '.html', '.yml', '.yaml',
 
 const startsAny = (rel, list) => list.some(p => rel === p || rel.startsWith(p));
 export const isGenerated = (rel) => GENERATED_BASENAMES.has(path.basename(rel)) || startsAny(rel, GENERATED_PREFIXES);
-export const isHistory = (rel) => HISTORY_BASENAMES.has(path.basename(rel)) || /^todo-[^/]*\.md$/i.test(rel);
+export const isHistory = (rel) => rel.startsWith('docs/history/') || HISTORY_BASENAMES.has(path.basename(rel)) || /^todo-[^/]*\.md$/i.test(rel);
 export const isSelf = (rel) => startsAny(rel, SELF_PREFIXES);
 
 // What is left of a spliced page once its generated regions are blanked:
@@ -111,7 +111,7 @@ export function isActiveSurface(rel) {
   if (base === 'source.md') return true;
   if (rel.startsWith('.claude/') || rel.startsWith('docs/site/')) return true;
   if (!rel.includes('/') && base.endsWith('.md')) {
-    return !['editor.md', 'HANDOFF.md', 'CONTRIBUTING.md', 'revision-implementation.md'].includes(base);
+    return !['editor.md', 'HANDOFF.md', 'CONTRIBUTING.md'].includes(base);
   }
   return false;
 }

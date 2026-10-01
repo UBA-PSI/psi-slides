@@ -6,7 +6,7 @@ description: The live prompter in the psi-slides cockpit (`--prompter`, internal
 # The live prompter (`--prompter`)
 
 Lifted out of `CLAUDE.md` so it loads when the prompter is the work rather than
-in every session. `PLAN-souffleuse.md` is the design and, in its *Decisions along
+in every session. `docs/history/PLAN-souffleuse.md` is the design and, in its *Decisions along
 the way*, the record of where the code and the plan parted company; where the two
 disagree the code is right.
 

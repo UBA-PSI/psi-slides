@@ -188,6 +188,6 @@ what "Show build details" shows and what a bug report should carry.
 
 - [`DESIGN.md`](DESIGN.md) – the design brief the interface was built
   against: the tokens, the two screens, and the things the design refuses.
-- [`../PLAN-electron-builder.md`](../PLAN-electron-builder.md) – why the app
+- [`../docs/history/PLAN-electron-builder.md`](../docs/history/PLAN-electron-builder.md) – why the app
   exists, what it deliberately does not do, the packaging decisions, and the
   build log with the decisions taken while building it.

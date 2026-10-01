@@ -9,9 +9,11 @@ CHANGELOG.md	unit=WxH	1
 CHANGELOG.md	{unit=150x56 autoplay=1200 cycle}	1
 build.js	unit=WxH	1
 diagram-core.mjs	unit=WxH	3
+docs/history/revision-proposal.md	unit=150x52	4
+docs/history/revision-proposal.md	unit=170x56	1
+docs/history/todo-review-language-and-docs.md	unit=170x56	4
+docs/history/todo-revision-of-system.md	unit=150x52	1
 editor.md	unit=130x76	1
-revision-proposal.md	unit=150x52	4
-revision-proposal.md	unit=170x56	1
 tails.mjs	autoplay=N	1
 tails.mjs	unit=WxH	1
 tails.mjs	{unit=WxH #id autoplay=N cycle}	1
@@ -40,8 +42,6 @@ test/gates/tails.mjs	{unit=150x56 cycle}	1
 test/settings.mjs	autoplay=1400	2
 test/settings.mjs	unit=150x56	8
 test/settings.mjs	{unit=150x56 autoplay=1400 cycle}	2
-todo-review-language-and-docs.md	unit=170x56	4
-todo-revision-of-system.md	unit=150x52	1
 tools/migrate-draw-opener.mjs	autoplay=N	2
 tools/migrate-draw-opener.mjs	unit=WxH	3
 tools/migrate-draw-opener.mjs	{unit=WxH autoplay=N cycle}	1

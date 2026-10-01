@@ -8,7 +8,7 @@
  * is the whole reason it is one zero-dependency module: the restraint is the
  * requirement, and a requirement nothing can test is a hope.
  *
- * So this gate walks the policy table of PLAN-souffleuse.md row by row, the
+ * So this gate walks the policy table of docs/history/PLAN-souffleuse.md row by row, the
  * drift rule at each of its four references, and the deck payload against a
  * hand-built `lecture` object of the shape `parseLecture` returns – built
  * here rather than read from `lectures/`, so a lecture that is re-worded

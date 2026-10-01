@@ -3,3 +3,8 @@
 # slides should not find an Electron package in it that the README does not
 # explain. The app ships as its own release assets on the same tag.
 desktop/ export-ignore
+
+# Finished plans, reviews and build diaries: the record of how a feature was
+# decided, kept for contributors reading the history, not for someone building
+# slides from the tarball.
+docs/history/ export-ignore

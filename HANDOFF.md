@@ -45,7 +45,7 @@ reads beside prose on a slide.
 `--print-pdf` and `--print-notes-pdf` on the command line and "Export as
 PDF…" in the app, one policy in `pdf-core.mjs`. The export starts from empty
 storage and refuses the network, so a document with questions prints them
-with their answers and tells Pulse nothing. `PLAN-desktop-pdf-export.md` has
+with their answers and tells Pulse nothing. `docs/history/PLAN-desktop-pdf-export.md` has
 the decisions and what is open – among them a self-test sheet without answers
 (`data-print=questions`), deferred to a frontmatter key.
 
@@ -60,7 +60,7 @@ CI only and have never been started.
 the ZfW course had already proved the want: it spliced a highlighter into
 psi-slides' `print.html` with a Python post-processor. This moves the idea
 into the build, in eight commits from `99aae7b` (screen type size and the
-lightbox) to `ffc4aeb` (code and formulas). `PLAN-reader-highlights.md` is the
+lightbox) to `ffc4aeb` (code and formulas). `docs/history/PLAN-reader-highlights.md` is the
 record – every slice appends a *Decided in slice N* list with what it
 measured, so read that before changing any of it.
 
@@ -1278,7 +1278,7 @@ Slot, den diese zwölf Zeilen die ganze Zeit benutzt haben.)
 
 ## Vokabular-Revision: ein Wort, eine Bedeutung – und das Umgekehrte
 
-`revision-proposal.md`, umgesetzt und in `revision-implementation.md`
+`docs/history/revision-proposal.md`, umgesetzt und in `docs/history/revision-implementation.md`
 protokolliert. Der Anlass war nicht Ästhetik, sondern eine Zählung: Vier
 Wortpaare hatten je zwei Bedeutungen und drei Kanäle hatten je zwei
 Schreibweisen. Beides kostet an derselben Stelle – jemand (ein Mensch, ein
@@ -1472,7 +1472,7 @@ Commit-Reihenfolge:
   gemessene Untergrenze ist – beinahe passiert, siehe die verworfene erste
   Fassung des `tinted`-Blocks.
 
-- **`::: dock`** (`PLAN-dock.md`, gebaut in `e019c8a`): das Overlay-Vokabular
+- **`::: dock`** (`docs/history/PLAN-dock.md`, gebaut in `e019c8a`): das Overlay-Vokabular
   mit dem anderen Vertrag – Teil des Rahmens, der Text weicht. Seitendock
   absolut plus Chunk-Padding, Band als Grid-Zeile; `@property --dock-px` als
   `<length>`, weil ein em-Wert dreimal gegen drei Schriften aufgelöst wurde.
@@ -1598,7 +1598,7 @@ angepasst gehört (unter den Text statt daneben?), ist eine offene Frage.
 Anlass: eine 45-Minuten-Keynote mit ausformuliertem Redetext und minimalen
 Folien, bei der das Notes-Textarea im Cockpit zu schmal, zu lang und zu
 scrollbedürftig war, um aus dem Augenwinkel gelesen zu werden. Gebaut auf dem
-Branch `cue-cards`, Plan und Bautagebuch in `PLAN-cue-cards.md` (§11–13:
+Branch `cue-cards`, Plan und Bautagebuch in `docs/history/PLAN-cue-cards.md` (§11–13:
 Fortschritt, Entscheidungen unterwegs, offene Fragen).
 
 Was gelandet ist:
@@ -1705,7 +1705,7 @@ they are catalogues of small specimens on prose slides; `lectures/tutorial`
 keeps the default and carries eight true warnings about documentation
 figures – silence with `frame none` or leave, one line either way.
 
-Fourth round, working down `PLAN-figure-defaults.md` (a Fable-written plan
+Fourth round, working down `docs/history/PLAN-figure-defaults.md` (a Fable-written plan
 from three generations of the keynote; committed): a gap measured in labels
 with an arrow-safe default and `edge-short`; `.left` anchors a free text;
 chains of peers share one size, `row`/`col`, `{.own}`, `same w as`, a
@@ -1738,7 +1738,7 @@ Everyone who heard the idea liked it and warned about the same thing in the same
 breath: a hint that is too long or too fundamental throws the speaker out of the
 sentence. That one requirement ordered everything else. Built on branch
 `souffleuse` in the worktree `../psi-slides-souffleuse`; the plan, the slices and
-the *Decisions along the way* are in `PLAN-souffleuse.md`, and where that
+the *Decisions along the way* are in `docs/history/PLAN-souffleuse.md`, and where that
 document and the code disagree, the code is right and that section says why.
 
 Seven commits, one per slice:
@@ -1825,7 +1825,7 @@ Open items:
 - **No real rehearsal has happened.** Nothing in a log has been read back from a
   talk, and the thresholds – 90 s behind, 240 s ahead, a 60 s cool-down, a 25 s
   cadence – are chosen rather than calibrated. The checklist for that first run
-  is `PLAN-souffleuse.md` § Open for the first rehearsal.
+  is `docs/history/PLAN-souffleuse.md` § Open for the first rehearsal.
 - **On-device recognition is unverified on macOS.** Chromium bug 444393111
   concerns `available({processLocally: true})` there, which is why the fallback
   to server recognition is visible on the badge; the spec's fake claims

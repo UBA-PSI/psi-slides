@@ -89,7 +89,7 @@ the `?` panel is rendered from that registry; the footer is unchanged.
   (`desktop/main/pdf.js`) opens a hidden, sandboxed `BrowserWindow` on a
   non-persistent partition, refuses http(s) and ws(s) at the session, refuses
   navigation and `window.open`, and calls into the page only through the
-  documented `window.psiExport` hook **[read, PLAN-desktop-pdf-export.md]**.
+  documented `window.psiExport` hook **[read, docs/history/PLAN-desktop-pdf-export.md]**.
   That is the template for the presenter windows.
 - Published promises: `desktop/README.md` (“Nothing leaves the computer …
   no network access of any kind”), `start.local` in
@@ -119,7 +119,7 @@ Why:
   watch child, the last good build, the settings file, the signing and
   notarisation path, the engine staging and the `desktop.yml` matrix. A
   second app duplicates all of it and ships a second 130 MB Electron **[read:
-  DMG 134 MB in PLAN-electron-builder.md § Verifikation]**.
+  DMG 134 MB in docs/history/PLAN-electron-builder.md § Verifikation]**.
 - The two jobs are one day for the person: they build while preparing and
   present from the same folder an hour later. One app in the dock is the
   PowerPoint-like cue the request is about.
@@ -136,7 +136,7 @@ Rejected:
   command-line switches for window position and `--kiosk`). It cannot place
   a window on a display reliably, cannot keep the laptop awake, and cannot
   intercept the gesture rule; it also reopens the “which browser” question
-  (E5 in PLAN-electron-builder.md).
+  (E5 in docs/history/PLAN-electron-builder.md).
 
 What it costs: DESIGN.md's first sentence (“one line: whether the last save
 built … must not look as if it does more”) is no longer the whole job and has
@@ -364,7 +364,7 @@ export const COMMANDS = [
   spliced in as text like `window.PSI_CARDS`, for the palette, the
   tooltips and the crib. The app imports `commands.mjs` from the engine
   directory, as it already loads `pdf-core.mjs` from there **[read,
-  PLAN-desktop-pdf-export.md]**, to build the Presentation menu.
+  docs/history/PLAN-desktop-pdf-export.md]**, to build the Presentation menu.
 - **The key map dispatches from it for the plain case.** The context guards
   before the `switch` stay code – they are rules about *where* a key is
   pressed, not about what a command is. The `switch` itself becomes a

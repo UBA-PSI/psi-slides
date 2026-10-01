@@ -2845,7 +2845,7 @@ The suite went from 449 assertions to 493.
 
 ### The grammar revision, and what it cost the panel · **done**
 
-`revision-proposal.md` re-cut the figure language, and the editor is the second
+`docs/history/revision-proposal.md` re-cut the figure language, and the editor is the second
 consumer of every table it touched. Most of the work was not editing the panel
 at all: `DG_KIND_OPTS`, `DG_CLASS_GROUPS`, `DG_PROMINENCE` and `DG_KEYED_ATTRS`
 are read out of `diagram-core.mjs` at run time, so a keyword that moved inside

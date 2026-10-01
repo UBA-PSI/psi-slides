@@ -396,7 +396,7 @@ const countWords = (s) => stripTags(s).split(/\s+/).filter((w) => /[\p{L}\p{N}]/
 /*
  * ── The word count ─────────────────────────────────────────────────────────
  *
- * `--words` after the out-dir. PLAN-website.md sets the home page a budget -
+ * `--words` after the out-dir. docs/history/PLAN-website.md sets the home page a budget -
  * under 1,400 prose words, no section over 400 - and without a measurement
  * that is an opinion. Sections are cut at <h2>, because that is what a reader
  * sees as a section; the words before the first one are the hero.
