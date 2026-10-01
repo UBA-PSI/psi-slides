@@ -6136,7 +6136,23 @@ of them are shown one per slide in
 
   // ── storage ──
   let persistent = true;
-  const valid = (h) => h && typeof h === 'object' && typeof h.id === 'string' && typeof h.chunk === 'string';
+  // An entry's type and a block's kind are looked up in tables, and a name
+  // every object inherits - constructor, __proto__, toString - found
+  // Object's own members there: a painter that was a function, a selector
+  // that was an object. The entry threw in place() after it was stored, and
+  // placeAll() threw on every load after it. Such a name is refused here,
+  // so it is never stored; a type this build does not know is still kept,
+  // because a later version may paint it. So is any field read as text that
+  // is not text: an object with no usable toString throws wherever it is
+  // turned into a string - a quote, a note, a figure's key, a part's name.
+  const inherited = (v) => v != null && (typeof v !== 'string' || v in Object.prototype || v === '__proto__');
+  const isText = (v) => v == null || typeof v === 'string';
+  const rec = (v, keys) => v == null || (typeof v === 'object' && !Array.isArray(v) && keys.every(k => isText(v[k])));
+  const valid = (h) => !!h && typeof h === 'object' && !Array.isArray(h)
+    && typeof h.id === 'string' && typeof h.chunk === 'string' && !inherited(h.type)
+    && ['note', 'quote', 'prefix', 'suffix'].every(k => isText(h[k]))
+    && rec(h.block, ['kind', 'key']) && !(h.block && inherited(h.block.kind))
+    && rec(h.fig, ['kind', 'key']) && rec(h.at, ['el']);
   const parse = (raw) => {
     if (!raw) return [];
     try { const a = JSON.parse(raw); return Array.isArray(a) ? a.filter(valid) : []; } catch (e) { return []; }
@@ -6335,8 +6351,10 @@ of them are shown one per slide in
     const f = h.fig || {};
     const all = figsIn(root);
     const keyed = f.key ? all.filter(x => figKey(x) === f.key) : [];
-    let fig = keyed.includes(all[f.index]) ? all[f.index] : keyed[0];
-    if (!fig && all[f.index] && figKind(all[f.index]) === f.kind) fig = all[f.index];
+    // An index that is not a number is no figure: all['length'] is a number.
+    const at = Number.isInteger(f.index) ? all[f.index] : undefined;
+    let fig = keyed.includes(at) ? at : keyed[0];
+    if (!fig && at && figKind(at) === f.kind) fig = at;
     if (!fig) return null;
     const now = { index: all.indexOf(fig), kind: figKind(fig), key: figKey(fig) };
     const same = now.index === f.index && now.kind === f.kind && now.key === f.key;
@@ -6516,7 +6534,7 @@ of them are shown one per slide in
   // offsets, quote and context within that block - so that the offsets of a
   // slide's prose, which leave code out, stay what they were. A formula takes
   // no selection: KaTeX sets one glyph per box.
-  const BLOCKS = { code: 'pre', formula: '.math-display' };
+  const BLOCKS = Object.assign(Object.create(null), { code: 'pre', formula: '.math-display' });
   const blocksIn = (root, kind) => [...root.querySelectorAll(BLOCKS[kind] || 'x-none')]
     .filter(b => !b.closest('#psiINT-lightbox, .speaker-note, pulse-question, pulse-deck, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
   const blockKind = (el) => el.matches('pre') ? 'code' : 'formula';
@@ -6544,7 +6562,8 @@ of them are shown one per slide in
     const b = h.block || {};
     const all = blocksIn(root, b.kind);
     const keyed = b.key ? all.filter(x => blockKey(x) === b.key) : [];
-    const el = keyed.includes(all[b.index]) ? all[b.index] : (keyed[0] || all[b.index]);
+    const at = Number.isInteger(b.index) ? all[b.index] : undefined;
+    const el = keyed.includes(at) ? at : (keyed[0] || at);
     if (!el) return null;
     const now = { kind: b.kind, index: all.indexOf(el), key: blockKey(el) };
     return { root, el, update: now.index === b.index && now.key === b.key ? null : { block: now } };
@@ -6591,12 +6610,12 @@ of them are shown one per slide in
     if (h.type === 'block') return fill(S[b.kind === 'formula' ? 'reader-formula' : 'reader-code-block'], { key });
     return '';
   };
-  const KINDS = {
+  const KINDS = Object.assign(Object.create(null), {
     text: { locate: locateText, paint: paintText },
     figure: { locate: locateFig, paint: paintFig },
     block: { locate: locateBlock, paint: paintBlock },
     code: { locate: locateCode, paint: paintText },
-  };
+  });
 
   // ── painting ──
   const marksOf = new Map();   // id -> the elements its painter drew
@@ -6620,8 +6639,17 @@ of them are shown one per slide in
     for (const m of marksOf.get(h.id) || []) m.classList.toggle('rd-has-note', has);
   };
   // Places one entry; true when its anchor moved and the store should be
-  // written back.
+  // written back. An entry a painter throws on is listed as not found rather
+  // than thrown: placeAll() runs on every load, and one entry that throws
+  // there used to leave every entry after it unpainted for good.
   const place = (h) => {
+    try { return placeOne(h); } catch (e) {
+      try { unpaint(h.id); } catch (e2) { /* nothing was drawn */ }
+      orphans.add(h.id);
+      return false;
+    }
+  };
+  const placeOne = (h) => {
     // Placed twice, an entry would be drawn twice and taken off once.
     if (marksOf.has(h.id)) unpaint(h.id);
     orphans.delete(h.id);

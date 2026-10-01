@@ -830,6 +830,56 @@ async function transfer({ browser, ok, note }) {
     rep = await importFile(p, junk);
     ok(rep === 'This file holds no highlights. Entries that could not be read: 1.', 'nor does one whose only entry is broken', rep);
 
+    // ── a hostile file ──
+    // A type or a block kind that names something every object inherits
+    // reached a table lookup: `type: "constructor"` found Object's
+    // constructor where a painter was expected, and `kind: "__proto__"` put
+    // an object into querySelectorAll. Both threw in place() after the entry
+    // was stored, save() kept it, and placeAll() threw on every load after,
+    // so no highlight of the lecture was painted again. They are refused at
+    // the door now; an index that is not a number is a figure not found.
+    const markedBefore = (await marks(p)).length;
+    const hostile = path.join(dir, 'hostile.md');
+    fs.writeFileSync(hostile, [
+      '<!-- psi-reader ' + JSON.stringify({ v: 1, id: 'h-ctor', type: 'constructor', chunk: 'fig', note: '', created: 1, edited: 1 }) + ' -->',
+      '<!-- psi-reader ' + JSON.stringify({ v: 1, id: 'h-proto', type: 'block', chunk: 'fig',
+        block: { kind: '__proto__', index: 0, key: '' }, note: '', created: 1, edited: 1 }) + ' -->',
+      '<!-- psi-reader ' + JSON.stringify({ v: 1, id: 'h-len', type: 'figure', chunk: 'fig',
+        fig: { index: 'length', kind: 'diagram', key: '' }, at: null, note: 'No such figure', created: 1, edited: 1 }) + ' -->',
+    ].join('\n\n'));
+    rep = await importFile(p, hostile);
+    st = await stored(p);
+    ok(rep === 'Imported: 1 new, 0 updated, 1 not found in this version. Entries that could not be read: 2.',
+       'a type or a block kind named after an inherited property is refused, not stored', rep);
+    ok(!st.items.some(h => h.id === 'h-ctor' || h.id === 'h-proto') && st.items.some(h => h.id === 'h-len'),
+       'the store holds neither, and the figure that is not there is kept as not found', JSON.stringify(st.items.map(h => h.id)));
+    await p.reload({ waitUntil: 'load' });
+    await p.waitForTimeout(250);
+    ok((await marks(p)).length === markedBefore, 'and the next load paints every highlight it painted before',
+       JSON.stringify(await marks(p)));
+    // A store an older version wrote with both in it - and one whose part
+    // name is an object no string can be made of, which threw in the
+    // painter and again in the card - costs those entries and nothing else.
+    await p.evaluate(([k, extra]) => {
+      const items = JSON.parse(localStorage.getItem(k));
+      localStorage.setItem(k, JSON.stringify(extra.concat(items)));
+    }, [st.key, [
+      { v: 1, id: 'h-ctor', type: 'constructor', chunk: 'fig', note: '', created: 1, edited: 1 },
+      { v: 1, id: 'h-proto', type: 'block', chunk: 'fig', block: { kind: '__proto__', index: 0 }, note: '', created: 1, edited: 1 },
+      { v: 1, id: 'h-throws', type: 'figure', chunk: 'fig', fig: { index: 0, kind: 'diagram', key: 'A figure' },
+        at: { el: { toString: 1 }, x: 0.5, y: 0.5 }, note: '', created: 1, edited: 1 },
+    ]]);
+    await p.reload({ waitUntil: 'load' });
+    await p.waitForTimeout(250);
+    ok((await marks(p)).length === markedBefore,
+       'a stored entry that cannot be placed is skipped, and the ones after it are painted', JSON.stringify(await marks(p)));
+    await p.evaluate(([k]) => {
+      const items = JSON.parse(localStorage.getItem(k));
+      localStorage.setItem(k, JSON.stringify(items.filter(h => !/^h-(ctor|proto|throws|len)$/.test(h.id))));
+    }, [st.key]);
+    await p.reload({ waitUntil: 'load' });
+    await p.waitForTimeout(250);
+
     // ── into a rebuilt document ──
     await p.click('.rd-menu .rd-delete-all');
     await p.waitForTimeout(100);

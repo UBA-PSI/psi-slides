@@ -1463,6 +1463,14 @@ tag:
 
 ### Fixed
 
+- **A highlights file someone sent can no longer stop the reader for good.**
+  An entry whose type was `constructor`, or whose block kind was
+  `__proto__`, was stored on import and then failed on every later load of
+  the document, so none of the lecture's highlights were shown again. Such
+  an entry, and one whose words, note, figure name or part name are not
+  text, is now refused and counted among the entries that could not be
+  read; an entry that still cannot be placed is listed as not found and the
+  rest are shown.
 - **`--prompter-replay` reads the hints the speaker sent away.** It skipped
   the `dismiss` lines of the log, so a hint dismissed live still held the
   one place on the strip in the replay, and every quieter hint after it was
