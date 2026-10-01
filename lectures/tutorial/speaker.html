@@ -4128,7 +4128,7 @@ body:not([data-wrap=none]) .chunk[data-center] .margin-note p { text-wrap: balan
    and on paper. Measured on the tutorial at 1100px, the cover subtitle was
    the last runt left after the rule above. */
 body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
-  .section-heading, figcaption, .tag-label, #toc-panel li) { text-wrap: balance; }
+  .section-heading, figcaption, .tag-label, #psiINT-toc li) { text-wrap: balance; }
 
 /* The same four rules answered on one chunk, from a .wrap-none /
    .wrap-balance in its attribute tail. Both directions: under a deck-wide
@@ -4138,7 +4138,8 @@ body:not([data-wrap=none]) :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
    third behaviour.
 
    #psiINT-stage is load-bearing and not decoration. The heading rule above carries
-   an id (#toc-panel li rides in its :is list), so it sits at one id, and a
+   an id (#psiINT-toc li, the contents panel's entries, rides in its :is
+   list, and :is takes its most specific argument), so it sits at one id, and a
    chunk-scoped rule made of classes alone loses to it however many classes
    it stacks. #psiINT-stage is the element every chunk in both live views is inside,
    which makes it the honest way to say "this is a slide, not the chrome" and
