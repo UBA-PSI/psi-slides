@@ -194,7 +194,7 @@ The browser floor is a real counterweight, though. The stylesheets use `oklch()`
 
 A LaTeX run on a comparable Beamer deck is seconds rather than milliseconds, and TikZ-heavy or `minted` decks are worse; this is the main reason people look at Typst. Quarto with executable cells is slower again by design, because it is running your code. reveal.js, Marp and Slidev have fast dev servers with hot reload and are comparable.
 
-Install weight differs by orders of magnitude and belongs in the same breath. psi-slides is Node 20 plus four small dependencies. Marp offers standalone binaries that bundle Node. Quarto is one installer that bundles Deno, Pandoc, Typst and Dart Sass. Slidev needs a full Node and Vite toolchain. A full TeX Live installation is measured in gigabytes, with TUG's own guide putting the complete scheme at roughly 8 GB, though smaller schemes and TinyTeX exist and a Beamer deck does not need everything.
+Install weight differs by orders of magnitude and belongs in the same breath. psi-slides is Node 22 plus four small dependencies. Marp offers standalone binaries that bundle Node. Quarto is one installer that bundles Deno, Pandoc, Typst and Dart Sass. Slidev needs a full Node and Vite toolchain. A full TeX Live installation is measured in gigabytes, with TUG's own guide putting the complete scheme at roughly 8 GB, though smaller schemes and TinyTeX exist and a Beamer deck does not need everything.
 
 ### Version control, diffs, review, collaboration
 

@@ -42,6 +42,8 @@ holds the full entry.
   1.0.0 let the last win). ([Changed](#changed))
 - `slide-numbers` defaults to `horizontal`; the 1.0.0 rendering is
   `slide-numbers: vertical`. ([Changed](#changed))
+- Building needs Node 22 or newer; Node 20 is no longer supported.
+  ([Changed](#changed))
 
 ### Highlights
 
@@ -1726,6 +1728,12 @@ tag:
 - **Breaking: an `{#id}` may not be the key a chunk without an id gets by
   position** (`c<column>-<chunk>`). The two articles shared one reveal slot
   and one sync target; the build refuses the pair as a duplicate id.
+- **Breaking: building needs Node 22 or newer.** Node 20 reached its end of
+  life in April 2026; `engines` in `package.json` now says `>=22`, and every
+  workflow in `.github/workflows/` runs on 22, which the desktop app's jobs
+  already did. No code changed for it: the change is what the project tests
+  on and says it supports. The
+  built HTML is unaffected: it needs a browser, not Node.
 
 - **The live views' keys are bound in one table, `commands.mjs`.** Internal:
   the `?` panel is rendered from it and the key map looks every press up in

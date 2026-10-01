@@ -49,7 +49,7 @@ built by CI and are experimental, so a report of what breaks is welcome.
 `desktop/README.md` has the details.
 
 **The command line** is the other way, and it is what CI and this repository
-use. It requires Node 20 or newer. Nothing else: no LaTeX, no Pandoc, no
+use. It requires Node 22 or newer. Nothing else: no LaTeX, no Pandoc, no
 server, nothing installed globally.
 
 ```bash
@@ -239,7 +239,7 @@ What is different here is the combination: one text rendered at two densities, a
 
 ## Requirements
 
-- **Node 20+** to build. Nothing at read time: each output carries everything it needs and opens from `file://`.
+- **Node 22+** to build. Nothing at read time: each output carries everything it needs and opens from `file://`.
 - **A current browser** to read. The stylesheets use `oklch()` colours, `:has()`, and `text-wrap: balance` with no fallbacks, which puts the floor at roughly **Chrome/Edge 114, Firefox 121, Safari 17.5**. Lectures with inline-styled SVG assets additionally need `@scope`: Chrome/Edge 118, Safari 17.4, Firefox 146. Development and real use are in Chrome; other browsers are untested rather than unsupported.
 - **A Chromium**, but only if you use `--slides-pdf`, `--print-pdf` or `--print-notes-pdf`. `playwright-core` is an optional dependency, so `npm install` normally provides one; `$PSI_CHROME`, the Playwright cache and a system Google Chrome are searched in that order. Nothing else in the build needs a browser, and the PDF export is the only thing that stops working without one. The desktop builder needs none of this: it prints with its own Chromium.
 - **`cwebp` or `magick`** on `PATH` for WebP. `--optimize-images` needs one and refuses without it; the default build uses one to transcode an inlined PNG or JPEG and, without one, inlines the original bytes and says so. macOS `sips` cannot write WebP, so there is no zero-install fallback.

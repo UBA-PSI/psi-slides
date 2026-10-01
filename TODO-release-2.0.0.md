@@ -18,7 +18,6 @@ Not in this file, because they are decisions rather than defects:
   typed-`w` case has no test.
 - CONTRIBUTING.md:187–201 promises the app shares the engine's version and
   ships on the `v*` release from 2.0.0; no workflow does that.
-- CI and `engines` are on Node 20, end of life since April 2026.
 
 ## S1 – Security (a source.md someone sent you)
 
