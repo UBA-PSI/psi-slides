@@ -21,15 +21,22 @@
   <h1>Die Vorlesung einmal schreiben.</h1>
 
   <div class="hero-said">
-   <p class="lede">Eine Markdown-Datei geht hinein. Vier HTML-Dateien kommen
-   heraus: die <strong>Projektion</strong> für den Raum, ein
-   <strong>Cockpit</strong> für den eigenen Bildschirm und <strong>zwei
-   Handouts</strong>. Aus derselben Datei gebaut, können sie nicht
+   <p class="lede">Aus einer Markdown-Datei entstehen die Folien für den Saal,
+   ein Cockpit für den eigenen Bildschirm und zwei Handouts für die
+   Studierenden. Alle vier kommen aus dieser einen Datei und können nicht
    auseinanderlaufen.</p>
 
+   <!-- Die zwei Wege zum Anfangen, bevor irgendetwas anderes Aufmerksamkeit
+        verlangt: die App für alle ohne Terminal, das Tutorial für alle, die
+        erst eine Vorlesung sehen wollen. -->
+   <p class="cue">Ohne Terminal: die App herunterladen, <b>Neue
+   Vorlesung&hellip;</b> wählen, und eine erste Vorlesung zum Umschreiben ist
+   da. Oder erst ansehen: das Tutorial (englisch), eine Vorlesung über das
+   Schreiben von Vorlesungen.</p>
+
    <div class="cta">
-     <a class="primary" href="#getting-started">Loslegen</a>
-     <a class="secondary" href="#open-them-yourself">Eine Vorlesung öffnen</a>
+     <a class="primary" href="getting-started.html#app">Die App herunterladen</a>
+     <a class="secondary" href="../tutorial/audience.html" hreflang="en">Das Tutorial öffnen</a>
    </div>
   </div>
 
@@ -89,10 +96,9 @@
          gesetzt. Regel 2 aus DESIGN.md will den Satz vor dem Bild, und die
          Zeile wollte ihn auch hier: vier Zeilen Text gegen einen 632 px hohen
          Film ließen 260 px Grund über und noch einmal unter den Worten. -->
-    <p class="cue">Das Video liegt auf einem Server des Lehrstuhls an der
-    Universität Bamberg, nicht auf dieser Seite, und wird erst geladen, wenn man
-    auf Abspielen drückt. Es ist das Einzige auf dieser Website, das überhaupt
-    irgendwohin greift.</p>
+    <p class="cue">Das Video lädt erst beim Druck auf Abspielen, von einem
+    Server des Lehrstuhls an der Universität Bamberg. Sonst kommt auf den Seiten
+    dieser Website nichts von einem anderen Server.</p>
    </div>
 
    <!-- Siehe den Kommentar in index.html: der Film liegt auf
@@ -115,7 +121,7 @@
 <section class="band">
  <div class="wrap">
   <h2>Eine Vorlesung besteht aus drei Sorten Text</h2>
-  <p class="lede">Was <strong>auf die Folie</strong> kommt, muss aus der letzten Reihe lesbar sein. <strong>Das Skript</strong> &ndash; die Sätze, die wirklich erklären &ndash; gehört in ein Handout. Und <strong>die Notizen für einen selbst</strong> gehören auf den eigenen Bildschirm und sonst nirgendwohin. Drei Texte, und eine Folie mit einem Notizfeld darunter fasst zwei davon. Das geht auf drei Arten aus.</p>
+  <p class="lede">Was <strong>auf die Folie</strong> kommt, muss aus der letzten Reihe lesbar sein. <strong>Das Skript</strong> &ndash; die Sätze, die wirklich erklären &ndash; gehört in ein Handout. Und <strong>die Notizen für einen selbst</strong> gehören auf den eigenen Bildschirm und sonst nirgendwohin. Folienprogramme bieten für diese drei Texte zwei Orte: die Folie und das Notizfeld darunter. Unten stehen zwei verbreitete Arten, sie unterzubringen, und die, die psi-slides wählt.</p>
 
   <div class="ways">
     <div class="way" data-tie="1">
@@ -210,7 +216,7 @@
     </div>
     <div class="way" data-tie="3">
       <h3 class="way-label">unser Ansatz</h3>
-      <div class="way-said"><p>Jeden Absatz einmal schreiben und den einen Satz markieren, der ihn trägt. Die Projektion nimmt diesen Satz. Das Handout nimmt den ganzen Absatz. Die Zeilen hinter <code>&gt; note:</code> bleiben auf dem eigenen Bildschirm.</p><p>Die drei Texte stehen in einer Datei und können deshalb nicht auseinanderlaufen.</p></div>
+      <div class="way-said"><p>Jeden Absatz einmal schreiben und den einen Satz markieren, der ihn trägt. Die Projektion, also die Folien an der Wand, nimmt diesen Satz. Das Handout nimmt den ganzen Absatz. Die Zeilen hinter <code>&gt; note:</code> bleiben auf dem eigenen Bildschirm.</p><p>Die drei Texte stehen in einer Datei und können deshalb nicht auseinanderlaufen.</p></div>
       <div class="way-fig">
         <svg class="way-cols" viewBox="0 0 448 20" aria-hidden="true" focusable="false">
           <text x="150" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">die Folie</text>
@@ -281,11 +287,11 @@
     <p class="cue">Auf das Fette achten. Das sind die Stellen, die die
     Projektion behält; die Prosa darum ist das, was das Handout behält. Das
     <code>&gt; note:</code> am Fuß bleibt auf dem eigenen Bildschirm.</p>
-    <p class="cue">Zwei der vier Absätze brechen mit Auslassungspunkten ab,
-    damit der Ausschnitt auf diese Webseite passt &ndash; das macht diese Seite,
-    nicht das Werkzeug. In der Projektion fallen die zwei Spalten der Vorlesung
-    zu einer zusammen, weil sich vier gekürzte Absätze nicht ausbalancieren
-    lassen; ohne Kürzung und im Handout bleiben die Spalten erhalten.</p>
+    <p class="cue">Die zwei Absätze, die mit &bdquo;&hellip;&ldquo; enden, sind
+    nur auf dieser Webseite gekürzt, damit das Listing hineinpasst.
+    <code>::: cols 2</code> setzt die Absätze in zwei Spalten; die Projektion
+    zeigt sie einspaltig, solange der Text gekürzt ist, und das Handout behält
+    beide Spalten.</p>
    </div>
 <pre><code><span class="t-head">## free: Why Playwright | the modern web is rendered, not served</span> <span class="t-punct">{.wide #why-playwright}</span>
 
@@ -313,6 +319,97 @@ browser is for pages meant to be looked at.
 
 <span class="t-note">&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
 &gt; curl it, and let them find the missing text themselves.</span></code></pre>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="open-them-yourself">Vorlesungen selbst öffnen</h2>
+  <p class="lede">Das hier ist das Werkzeug, kein Video davon. Man blättert mit
+  den Pfeiltasten, schaltet mit <kbd>C</kbd> zwischen gekürztem und vollem Text
+  um, sieht mit <kbd>O</kbd> die ganze Vorlesung auf einmal, sucht mit
+  <kbd>/</kbd> und lässt sich mit <kbd>?</kbd> die Tasten auflisten.</p>
+  <!-- Kein Band: Hier gibt es kein Bild, neben dem Worte stehen könnten. Drei
+       Blöcke über die Rahmenbreite, einer unter dem anderen – die zwei
+       Vorlesungen zum Öffnen, der Aufklapper mit den übrigen dreien, und was
+       für alle fünf gilt. Früher war das eine zweispaltige Zeile mit Karten
+       und Aufklapper in der einen und einem weißen Kasten in der anderen
+       Spalte, die ab dem Aufklapper leer blieb. Der Kasten ist Prosa über
+       das, was man gerade bekommen hat, also ist er Prosa: Er war das dritte
+       umrandete Ding in einem Stapel von dreien, und eine Seite, die alles in
+       eine Karte fasst, sagt mit einer Karte nichts mehr. -->
+  <div class="picks">
+    <div class="pick pick-lead">
+      <h3>Hier anfangen: das Tutorial (englisch)</h3>
+      <p class="size">104 Folien &middot; ein Nachschlagewerk</p>
+      <p>Eine Vorlesung über das Schreiben von Vorlesungen: wie das Format
+      funktioniert, gezeigt an einer Vorlesung, die damit gebaut ist. Ihre <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">Quelle</a>
+      ist die Vorlage für die eigene Vorlesung. Ein deutsches Muster ist das Kurzbeispiel unten.</p>
+      <p class="opens"><a href="../tutorial/audience.html" hreflang="en">Projektion</a>
+      <a href="../tutorial/speaker.html" hreflang="en">Cockpit</a>
+      <a href="../tutorial/print.html" hreflang="en">Dokument</a>
+      <a href="../tutorial/print-notes.html" hreflang="en">mit Notizen</a></p>
+    </div>
+    <div class="pick">
+      <h3>Eine echte Vorlesung: <code>python-intro</code></h3>
+      <p class="size">39 Folien &middot; etwa 25 Minuten</p>
+      <p>Die Vorlesung, aus der die Folie oben auf dieser Seite stammt: eine
+      Einführung in Python für Leute, die schon einmal Code geschrieben haben.
+      Die Projektion öffnen und <kbd>C</kbd> drücken zeigt dieselbe Folie erst
+      gekürzt und dann vollständig. Auf Englisch.</p>
+      <p class="opens"><a href="../python-intro/audience.html" hreflang="en">Projektion</a>
+      <a href="../python-intro/speaker.html" hreflang="en">Cockpit</a>
+      <a href="../python-intro/print.html" hreflang="en">Dokument</a>
+      <a href="../python-intro/print-notes.html" hreflang="en">mit Notizen</a></p>
+    </div>
+  </div>
+
+  <details class="setup">
+    <summary>Die drei übrigen Vorlesungen</summary>
+    <div class="setup-body">
+      <p>Das Tutorial und python-intro stehen oben; das hier ist der Rest.
+      Von Decoration sind zwei der vier Ansichten veröffentlicht.</p>
+
+      <div class="more-lectures">
+        <div class="more-lecture">
+          <h4>Kurzbeispiel <span class="size">6 Folien &middot; Deutsch</span></h4>
+          <p>Ein Ausschnitt aus einer Netzwerk-Vorlesung im ersten Semester. Gut
+          80 Zeilen Markdown, kurz genug, um sie ganz zu lesen und daneben zu
+          sehen, was daraus wird.</p>
+          <p class="opens"><a href="../example/audience.html">Projektion</a><span>&middot;</span><a href="../example/speaker.html">Cockpit</a><span>&middot;</span><a href="../example/print.html">Dokument</a><span>&middot;</span><a href="../example/print-notes.html">mit Notizen</a><span>&middot;</span><a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">Quelle</a></p>
+        </div>
+        <div class="more-lecture">
+          <h4>Figures <span class="size">42 Folien</span></h4>
+          <p>Jede Konstruktion, die die Abbildungssprache kennt, gezeichnet statt
+          beschrieben, darunter Abbildungen aus einer echten Vorlesung.</p>
+          <p class="opens"><a href="../diagrams/audience.html">Projektion</a><span>&middot;</span><a href="../diagrams/speaker.html">Cockpit</a><span>&middot;</span><a href="../diagrams/print.html">Dokument</a><span>&middot;</span><a href="../diagrams/print-notes.html">mit Notizen</a></p>
+        </div>
+        <div class="more-lecture">
+          <h4>Decoration <span class="size">40 Folien</span></h4>
+          <p>Was etwas anderes als eine Textspalte auf eine Folie bringt:
+          Titelfolien, Trenner, Karten, Hintergrundbilder, ein Foto, das sich mit
+          <kbd>Leertaste</kbd> öffnet.</p>
+          <p class="opens"><a href="../decoration/audience.html">Projektion</a><span>&middot;</span><a href="../decoration/print.html">Dokument</a></p>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <div class="pair-up">
+   <div>
+    <p>Jede der vier Dateien einer Vorlesung trägt ihre Gestaltung, Skripte,
+    Bilder, gesetzten Formeln und Schriften selbst. Auf einen USB-Stick kopiert
+    oder per Mail verschickt, öffnet sie sich aus einem Ordner auf der Festplatte
+    genauso wie von diesem Server, und außer für ein eingebettetes Online-Video
+    braucht sie keine Netzverbindung.</p>
+   </div>
+   <div>
+    <p>Ein Cockpit, das über einen Link oben geöffnet wird, zeigt zwar das
+    Layout, folgt aber keiner Projektion &ndash; ein verbundenes öffnet man mit
+    <kbd>S</kbd> in einer Projektion. Die vier Links auf jeder Karte öffnen die
+    vier Dateien dieser Vorlesung, genau so, wie psi-slides sie schreibt.</p>
+   </div>
   </div>
  </div>
 </section>
@@ -359,15 +456,16 @@ browser is for pages meant to be looked at.
     <p class="cue">Davon gibt es zwei, und mit dem Schalter in der Titelzeile
     sieht man beide. <code>print.html</code> trägt nur das Skript und ist das Dokument für
     die Studierenden. <code>print-notes.html</code> legt die Sprechernotizen unter
-    die Chunks und bleibt bei einem selbst. Auf Wunsch schreibt der Build beide
+    die Chunks und bleibt bei einem selbst. Auf Wunsch schreibt psi-slides beide
     auch als A4-PDF, und <a href="in-the-room.html#pdf">die Folien als ein PDF</a>.</p>
-    <p class="cue">Im Browser geöffnet, sind beide Dokumente zum Lesen am
-    Bildschirm gemacht: Ein Inhaltsverzeichnis an der Seite, auf seine Teile
-    eingeklappt, zeigt, wo man gerade ist, Wörter, Code, eine Formel oder eine Abbildung lassen sich
-    markieren und mit einer eigenen Notiz versehen, und <kbd>n</kbd> und
-    <kbd>p</kbd> gehen sie der Reihe nach durch. Die Markierungen bleiben im
-    Browser der Studierenden, lassen sich als Markdown-Datei exportieren, die
-    sich an die Lehrenden schicken lässt, und werden gelb gedruckt, die Notizen am Rand.</p>
+    <p class="cue">Im Browser geöffnet, bringen beide Dokumente Werkzeuge zum
+    Lesen am Bildschirm mit. Ein Inhaltsverzeichnis an der Seite zeigt, wo man
+    gerade ist. Studierende können Wörter, Code, eine Formel oder eine
+    Abbildung markieren, jede Markierung mit einer Notiz versehen und mit
+    <kbd>n</kbd> und <kbd>p</kbd> der Reihe nach durchgehen. Die Markierungen
+    bleiben im Browser der Studierenden; sie lassen sich als Markdown-Datei
+    exportieren und an die Lehrenden schicken und werden gelb gedruckt, die
+    Notizen am Rand.</p>
    </div>
    <div class="stage">
      <figure class="shot">
@@ -442,230 +540,13 @@ browser is for pages meant to be looked at.
    </div>
   </div>
 
-  <div class="aside-code second-picture">
-   <div class="said">
-    <p class="cue">Ein Teil der Quelle: die vier Kästen, eine der drei Notizen
-    und der Schritt, der diese Notiz hereinholt.</p>
-    <p class="cue"><strong>Längen zählen in Rasterzellen, nicht in
-    Pixeln</strong> &ndash; die erste Zeile setzt die Zellgröße, also behält eine
-    Abbildung ihre Proportionen, wenn die Zelle sich ändert. Und
-    <code>-- fh.cx,fh.top</code> zeichnet eine <strong>Hilfslinie</strong>: sie zeigt
-    auf eine Stelle an einem anderen Kasten und bleibt daran hängen, wenn dieser
-    sich bewegt.</p>
-   </div>
-<pre><code><span class="t-dir">::: draw</span> 150x54
-<span class="t-dir">default box</span> <span class="t-punct">{.tone-3 .sharp}</span> w 0.88 h 0.85
-<span class="t-dir">box</span> fh <span class="t-strong">"Frame\nHeader"</span>    <span class="t-cmt">at</span> 0,0
-<span class="t-dir">box</span> dh <span class="t-strong">"Datagram\nHeader"</span> <span class="t-cmt">right of</span> fh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
-<span class="t-dir">box</span> sh <span class="t-strong">"Segment\nHeader"</span>  <span class="t-cmt">right of</span> dh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
-<span class="t-dir">box</span> pl <span class="t-strong">"Payload"</span>          <span class="t-cmt">right of</span> sh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh <span class="t-punct">{.paper}</span>
-<span class="t-dir">text</span> lmac <span class="t-strong">"Ethernet source\nand destination\naddresses*"</span>       <span class="t-cmt">above</span> fh <span class="t-cmt">gap</span> 0.5 -- fh.cx,fh.top <span class="t-punct">{.muted @l1}</span>
-<span class="t-dir">step</span> ethernet
-  <span class="t-cmt">show</span> @l1
-  <span class="t-cmt">emph</span> fh</code></pre>
-  </div>
-
   <div class="hint">
-    <p><a href="../figures.html" hreflang="en">Figures you write</a> (englisch) ist die Begründung für die
-    Sprache: was eine Vorlesungsabbildung leisten muss, das ein Zeichenprogramm
-    und eine Auto-Layout-Sprache jeweils schlecht können.
-    <a href="../figures-you-write.html" hreflang="en">Das Handbuch</a> (englisch) baut eine Zeile für
-    Zeile auf, listet jede Anweisung und zeigt den grafischen Editor, mit dem man
-    einen Kasten auf der Folie zieht und die Quelle umgeschrieben bekommt.</p>
+    <p><a href="../figures.html" hreflang="en">Figures you write</a> (englisch):
+    die Begründung für die Abbildungssprache, dann das Handbuch: eine Abbildung
+    Zeile für Zeile aufgebaut, und jede Anweisung. Dazu der grafische Editor, in
+    dem man einen Kasten auf der Folie zieht und die Quelle umgeschrieben
+    bekommt.</p>
   </div>
- </div>
-</section>
-
-<section class="band">
- <div class="wrap">
-  <h2 id="open-them-yourself">Vorlesungen selbst öffnen</h2>
-  <p class="lede">Das hier ist das Werkzeug, kein Video davon. Man blättert mit
-  den Pfeiltasten, schaltet mit <kbd>C</kbd> zwischen gekürztem und vollem Text
-  um, sieht mit <kbd>O</kbd> die ganze Vorlesung auf einmal, sucht mit
-  <kbd>/</kbd> und lässt sich mit <kbd>?</kbd> die Tasten auflisten.</p>
-  <!-- Kein Band: Hier gibt es kein Bild, neben dem Worte stehen könnten. Drei
-       Blöcke über die Rahmenbreite, einer unter dem anderen – die zwei
-       Vorlesungen zum Öffnen, der Aufklapper mit den übrigen dreien, und was
-       für alle fünf gilt. Früher war das eine zweispaltige Zeile mit Karten
-       und Aufklapper in der einen und einem weißen Kasten in der anderen
-       Spalte, die ab dem Aufklapper leer blieb. Der Kasten ist Prosa über
-       das, was man gerade bekommen hat, also ist er Prosa: Er war das dritte
-       umrandete Ding in einem Stapel von dreien, und eine Seite, die alles in
-       eine Karte fasst, sagt mit einer Karte nichts mehr. -->
-  <div class="picks">
-    <div class="pick pick-lead">
-      <h3>Hier anfangen: <code>python-intro</code></h3>
-      <p class="size">39 Folien &middot; etwa 25 Minuten</p>
-      <p>Die Vorlesung, aus der die Folie oben auf dieser Seite stammt: eine
-      Einführung in Python für Leute, die schon einmal Code geschrieben haben.
-      Die Projektion öffnen und <kbd>C</kbd> drücken zeigt dieselbe Folie erst
-      gekürzt und dann vollständig. Auf Englisch.</p>
-      <p class="opens"><a href="../python-intro/audience.html" hreflang="en">Projektion</a>
-      <a href="../python-intro/speaker.html" hreflang="en">Cockpit</a>
-      <a href="../python-intro/print.html" hreflang="en">Dokument</a>
-      <a href="../python-intro/print-notes.html" hreflang="en">mit Notizen</a></p>
-    </div>
-    <div class="pick">
-      <h3>Danach: das Tutorial (englisch)</h3>
-      <p class="size">104 Folien &middot; ein Nachschlagewerk</p>
-      <p>Wie das Format funktioniert, erklärt von einer Vorlesung, die selbst
-      daraus gebaut ist. Ihre <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">Quelle</a>
-      ist die Vorlage für die eigene Vorlesung. Ein deutsches Muster ist das Kurzbeispiel unten.</p>
-      <p class="opens"><a href="../tutorial/audience.html" hreflang="en">Projektion</a>
-      <a href="../tutorial/speaker.html" hreflang="en">Cockpit</a>
-      <a href="../tutorial/print.html" hreflang="en">Dokument</a>
-      <a href="../tutorial/print-notes.html" hreflang="en">mit Notizen</a></p>
-    </div>
-  </div>
-
-  <details class="setup">
-    <summary>Die drei übrigen Vorlesungen</summary>
-    <div class="setup-body">
-      <p>python-intro und das Tutorial stehen oben; das hier ist der Rest. Sie
-      werden aus dem Repository gebaut, nicht aus dem Release, und von
-      Decoration sind nur zwei der vier Ansichten veröffentlicht.</p>
-
-      <div class="more-lectures">
-        <div class="more-lecture">
-          <h4>Kurzbeispiel <span class="size">6 Folien &middot; Deutsch</span></h4>
-          <p>Ein Ausschnitt aus einer Netzwerk-Vorlesung im ersten Semester. Gut
-          80 Zeilen Markdown, kurz genug, um sie ganz zu lesen und daneben zu
-          sehen, was daraus wird.</p>
-          <p class="opens"><a href="../example/audience.html">Projektion</a><span>&middot;</span><a href="../example/speaker.html">Cockpit</a><span>&middot;</span><a href="../example/print.html">Dokument</a><span>&middot;</span><a href="../example/print-notes.html">mit Notizen</a><span>&middot;</span><a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">Quelle</a></p>
-        </div>
-        <div class="more-lecture">
-          <h4>Figures <span class="size">42 Folien</span></h4>
-          <p>Jede Konstruktion, die die Abbildungssprache kennt, gezeichnet statt
-          beschrieben, darunter Abbildungen aus einer echten Vorlesung.</p>
-          <p class="opens"><a href="../diagrams/audience.html">Projektion</a><span>&middot;</span><a href="../diagrams/speaker.html">Cockpit</a><span>&middot;</span><a href="../diagrams/print.html">Dokument</a><span>&middot;</span><a href="../diagrams/print-notes.html">mit Notizen</a></p>
-        </div>
-        <div class="more-lecture">
-          <h4>Decoration <span class="size">40 Folien</span></h4>
-          <p>Was etwas anderes als eine Textspalte auf eine Folie bringt:
-          Titelfolien, Trenner, Karten, Hintergrundbilder, ein Foto, das sich mit
-          <kbd>Leertaste</kbd> öffnet.</p>
-          <p class="opens"><a href="../decoration/audience.html">Projektion</a><span>&middot;</span><a href="../decoration/print.html">Dokument</a></p>
-        </div>
-      </div>
-    </div>
-  </details>
-
-  <div class="pair-up">
-   <div>
-    <p>Die vier Dateien einer Vorlesung sind in sich geschlossen: die
-    Gestaltung, die Skripte,
-    die Bilder, die gesetzten Formeln und die Schriften stecken in der HTML-Datei
-    selbst. Zur Laufzeit wird nichts nachgeladen, und die Dateien lassen sich aus
-    einem Ordner auf der Festplatte (<code>file://</code>) genauso öffnen wie von
-    diesem Server.</p>
-   </div>
-   <div>
-    <p>Ein Cockpit, das über einen Link oben geöffnet wird, zeigt zwar das
-    Layout, folgt aber keiner Projektion &ndash; ein verbundenes öffnet man mit
-    <kbd>S</kbd> in einer Projektion. Die vier Links auf jeder Karte öffnen die
-    vier Dateien dieser Vorlesung, und jede davon ist die Datei, die man selbst
-    gebaut hätte.</p>
-   </div>
-  </div>
- </div>
-</section>
-
-<section class="band">
- <div class="wrap">
-  <!-- Der ganze Abschnitt ist ein Band, und die Textspalte ist der Abschnitt
-       selbst: Überschrift, Lead, die Reiter, der Text der Option und der
-       Satz mit dem Knopf, der weiterschickt. Spalte zwei ist das Bild der
-       Option und überspannt das Ganze. Früher standen vier Blöcke an der
-       linken Rahmenkante über einer Zeile, deren Text erst auf halber Höhe
-       anfing, und der Nachsatz begann unter einem Viertelbildschirm Nichts.
-       `.two-ways` in site.css. -->
-  <div class="two-ways">
-  <h2 id="getting-started">Loslegen</h2>
-  <p class="lede">Zwei Wege, und beide bauen dieselben vier Dateien.</p>
-
-  <!-- Die zwei Wege, gesehen statt nur gelesen, und zwar mit demselben
-       Umschalter, der oben die drei Wege und auf „Im Hörsaal“ die vier
-       Cockpit-Bilder trägt. Ein viertes Bedienelement wäre eine vierte Sache
-       zum Lernen und eine vierte, die mit der Tastatur bedienbar bleiben muss.
-       Der Handout-Umschalter ist der nähere Verwandte in dem, was er
-       beantwortet - eine Sache, zwei Ausführungen -, aber er tauscht ein
-       <img>-src, und die eine Hälfte dieses Paars ist kein Bild: Sie ist die
-       Ausgabe des Builds selbst, gesetzt wie jedes andere Listing der Seite.
-       Das ist Absicht. Ein Terminal ist Text, und ein Bild von Text ist eine
-       Datei, die veraltet - diese Seite musste gerade sechs Screenshots
-       ersetzen, die einen Zustand zeigten, den das Werkzeug nicht mehr
-       herstellt -, es wird bei jedem Zoom unscharf, es lässt sich nicht
-       markieren und es braucht einen Fensterrahmen, den nie jemand gesehen
-       hat. Die Zeilen unten wurden in diesem Repository ausgeführt und
-       eingefügt, nichts gekürzt: der Bau, dann ein `ls -al` dessen, was er
-       geschrieben hat - die Hälfte der Geschichte, die ein Build-Log nicht
-       erzählt. Die vier HTML-Dateien SIND die Vorlesung; darum sind sie je
-       zwei Megabyte groß, und darum sind die acht Zeilen `ls` es wert.
-       Beide Hälften stehen in einer Rasterzelle (`.ways-two` in site.css),
-       damit die Zeile so hoch ist wie die höhere der beiden und beim Umschalten
-       nichts springt. -->
-  <div class="ways ways-two">
-   <div class="way" data-tie="app">
-    <p class="way-label">die App</p>
-    <div class="way-said">
-     <p><strong>Die App</strong> lädt man herunter, und sie baut auf Knopfdruck:
-     Man öffnet darin eine <code>source.md</code>, und bei jedem Speichern baut
-     sie neu. Sonst muss nichts installiert werden &ndash; kein Node, kein
-     Terminal &ndash;, und nichts verlässt den Rechner: Sie führt denselben Build
-     auf der eigenen Maschine aus und schreibt die vier Dateien neben die
-     Quelle.</p>
-    </div>
-    <div class="stage">
-     <figure class="shot">
-      <div class="bar"><b>psi-slides Builder</b></div>
-      <img src="../img/builder.webp" alt="Das Builder-Fenster mit einer offenen Vorlesung: der Ordnername und der Pfad zur source.md, die Zeile „Ready. Built at 06:35 in 0.2 s.“, ein Knopf „Build now“ neben einem gesetzten Häkchen „Build again whenever source.md is saved“ und vier Knöpfe für die Projektion, das Cockpit und die beiden Handouts.">
-     </figure>
-    </div>
-   </div>
-   <div class="way" data-tie="cli">
-    <p class="way-label">die Kommandozeile</p>
-    <div class="way-said">
-     <p><strong>Die Kommandozeile</strong> beginnt mit einem Clone des
-     Repositorys und einem <code>npm install</code>, für Leute, die ohnehin im
-     Terminal arbeiten &ndash; und über sie schreibt man eine Vorlesung mit einem
-     Sprachmodell daneben, weil das Repository die Skills mitbringt, die einem
-     das Format beibringen.</p>
-    </div>
-    <div class="stage">
-     <figure class="shot">
-      <div class="bar"><b>~/psi-slides</b></div>
-<pre class="out"><code>$ node build.js lectures/tutorial/source.md
-[inline-images] auto-inlining 8 image(s), 0.20 MB total (under 10 MB budget). Use --no-inline-images to disable.
-[fonts] 6 bundled face(s) embedded &ndash; Literata, IBM Plex Sans, JetBrains Mono &ndash; 279 KB per view (OFL-1.1). Use `fonts: none` to ship without them.
-[qr] 1 link address(es) carry a QR code, 3 KB per live view.
-[math] 5 KaTeX font families inlined, 166 KB of woff2 per live view (of 254 KB for the full set); print carries only the families its formulas use. A lecture without math inlines nothing.
-Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (13 columns, 104 chunks)
-$ ls -al lectures/tutorial/*.html
--rw-r--r--  1 dh  staff  3077723 Oct  1 12:00 lectures/tutorial/audience.html
--rw-r--r--  1 dh  staff  1501149 Oct  1 12:00 lectures/tutorial/print-notes.html
--rw-r--r--  1 dh  staff  1491242 Oct  1 12:00 lectures/tutorial/print.html
--rw-r--r--  1 dh  staff  3222782 Oct  1 12:00 lectures/tutorial/speaker.html</code></pre>
-     </figure>
-    </div>
-   </div>
-  </div>
-
-  <!-- Der Nachsatz, und er steht in der Textspalte neben dem Bild statt unter
-       der Zeile. Er liegt außerhalb jedes `.way`, schaltet also nicht mit und
-       gehört zu keiner der beiden Optionen - er ist der Abschnitt, der nach
-       dem Beleg wieder spricht. Früher folgte er dem Band über die volle
-       Rahmenbreite, was richtig ist, wenn die Spalte eines Bandes voll ist,
-       und hier falsch war: 230px Spalte gegen 530px Bild, also begannen Satz
-       und Knopf unter 300px Nichts. -->
-  <div class="ways-on">
-   <p>Auf der nächsten Seite stehen die Downloads für macOS, Windows und Linux,
-   die Befehle und eine Anleitung, die auf einem Rechner ohne alles anfängt.</p>
-   <div class="cta">
-     <a class="primary" href="getting-started.html">Beide Wege, ausführlich</a>
-   </div>
-  </div>
-  </div>
-
  </div>
 </section>
 
@@ -674,13 +555,15 @@ $ ls -al lectures/tutorial/*.html
   <div class="middle">
   <h2>Zum Weiterlesen</h2>
   <ul class="reads">
+    <li><b><a href="getting-started.html">Loslegen</a></b>
+      Die App für macOS, Windows und Linux, die Kommandozeile und eine erste
+      eigene Vorlesung.</li>
     <li><b><a href="../comparison.html" hreflang="en">Wie psi-slides sich vergleicht</a> (englisch)</b>
       Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint und andere, in beide
       Richtungen, einschließlich der Stellen, an denen psi-slides verliert.</li>
     <li><b><a href="../figures.html" hreflang="en">Figures you write</a> (englisch)</b>
-      Die Begründung für die Abbildungssprache, und
-      <a href="../figures-you-write.html" hreflang="en">das Handbuch</a> (englisch) daneben, das eine
-      Abbildung Zeile für Zeile aufbaut.</li>
+      Die Begründung für die Abbildungssprache, dann das Handbuch: eine
+      Abbildung Zeile für Zeile aufgebaut, und jede Anweisung.</li>
     <li><b><a href="../tutorial/audience.html" hreflang="en">Die Tutorial-Vorlesung</a> (englisch)</b>
       Das Format im Betrieb gezeigt statt beschrieben, mit
       <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">ihrer

@@ -21,14 +21,20 @@
   <h1>Write the lecture once.</h1>
 
   <div class="hero-said">
-   <p class="lede">One Markdown file goes in. Four HTML files come out: the
-   <strong>projection</strong> for the room, a <strong>cockpit</strong> for your
-   own screen, and <strong>two handouts</strong>. Built from the same file, they
-   cannot drift apart.</p>
+   <p class="lede">From one Markdown file you get the slides the room sees, a
+   cockpit for your own screen and two handouts for the students. All four are
+   built from that one file, so they cannot drift apart.</p>
+
+   <!-- The two ways to start, before anything else asks for attention: the app
+        for a reader who has no terminal, the tutorial for one who wants to see
+        a lecture before deciding. -->
+   <p class="cue">No terminal needed: download the app, choose <b>New
+   lecture&hellip;</b>, and a first lecture is there to change. Or see one
+   first: the tutorial, a lecture about writing lectures.</p>
 
    <div class="cta">
-     <a class="primary" href="#getting-started">Get started</a>
-     <a class="secondary" href="#open-them-yourself">Open a live lecture</a>
+     <a class="primary" href="getting-started.html#app">Download the app</a>
+     <a class="secondary" href="tutorial/audience.html">Open the tutorial</a>
    </div>
   </div>
 
@@ -87,9 +93,9 @@
          DESIGN.md's second rule wants the sentence before the picture, and
          the row wanted it here too: four lines of words against a 632px film
          left 260px of ground over the words and again under them. -->
-    <p class="cue">The video sits on a server of our research group at the
-    University of Bamberg, not in this page, and it is fetched only once you
-    press play. It is the one thing on this site that reaches anywhere at all.</p>
+    <p class="cue">The video loads only when you press play, from a server of
+    our research group at the University of Bamberg. Nothing else on the
+    site&rsquo;s pages comes from another server.</p>
    </div>
 
    <!-- The film is rendered in ../psi-slides-screencast (pitch/renders/) and lives
@@ -113,7 +119,7 @@
 <section class="band">
  <div class="wrap">
   <h2>A lecture holds three kinds of text</h2>
-  <p class="lede">What goes <strong>on the slide</strong> has to read from the back row. <strong>The script</strong> &ndash; the sentences that do the explaining &ndash; belongs in a handout. And <strong>the notes to yourself</strong> belong on your own screen and nowhere else. Three texts, and a slide with a notes field under it holds two of them. That ends in one of three ways.</p>
+  <p class="lede">What goes <strong>on the slide</strong> has to read from the back row. <strong>The script</strong> &ndash; the sentences that do the explaining &ndash; belongs in a handout. And <strong>the notes to yourself</strong> belong on your own screen and nowhere else. Slide software offers two places for these three texts: the slide, and the notes field under it. Below are two common ways to fit them in, and the one psi-slides takes.</p>
 
   <div class="ways">
     <div class="way" data-tie="1">
@@ -208,7 +214,7 @@
     </div>
     <div class="way" data-tie="3">
       <h3 class="way-label">our approach</h3>
-      <div class="way-said"><p>Write each paragraph once, and mark the one sentence that carries it. The projection takes that sentence. The handout takes the whole paragraph. The lines you start with <code>&gt; note:</code> stay on your own screen.</p><p>The three texts live in one file, so they cannot fall out of step.</p></div>
+      <div class="way-said"><p>Write each paragraph once, and mark the one sentence that carries it. The projection, the slides on the wall, takes that sentence. The handout takes the whole paragraph. The lines you start with <code>&gt; note:</code> stay on your own screen.</p><p>The three texts live in one file, so they cannot fall out of step.</p></div>
       <div class="way-fig">
         <svg class="way-cols" viewBox="0 0 448 20" aria-hidden="true" focusable="false">
           <text x="150" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">the slide</text>
@@ -279,11 +285,10 @@
     <p class="cue">Read the bold. Those are the phrases the projection keeps;
     the prose around them is what the handout keeps. The
     <code>&gt; note:</code> at the foot stays on your own screen.</p>
-    <p class="cue">Two of the four paragraphs are trimmed to an ellipsis so the
-    listing fits this web page &ndash; that is this page&rsquo;s doing, not the
-    tool&rsquo;s. In the projection the lecture&rsquo;s two columns fold into
-    one, because four shortened paragraphs do not balance; with the shortening
-    off, and in the handout, the columns stay.</p>
+    <p class="cue">The two paragraphs ending in &ldquo;&hellip;&rdquo; are cut
+    short on this web page only, so that the listing fits. <code>::: cols 2</code>
+    sets the paragraphs in two columns; the projection shows them in one while
+    the text is shortened, and the handout keeps both columns.</p>
    </div>
 <pre><code><span class="t-head">## free: Why Playwright | the modern web is rendered, not served</span> <span class="t-punct">{.wide #why-playwright}</span>
 
@@ -311,6 +316,94 @@ browser is for pages meant to be looked at.
 
 <span class="t-note">&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
 &gt; curl it, and let them find the missing text themselves.</span></code></pre>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="open-them-yourself">Open the lectures yourself</h2>
+  <p class="lede">These are the tool, not a video of it. Move with the arrow
+  keys, press <kbd>C</kbd> to switch between the shortened text and the full
+  text, <kbd>O</kbd> to see the whole lecture at once, <kbd>/</kbd> to search,
+  and <kbd>?</kbd> to list the keys.</p>
+  <!-- Not a band: there is no picture here, so there is nothing for words to
+       stand beside. Three blocks at the frame's width, one under the other -
+       the two lectures to open, the fold that holds the other three, and what
+       is true of all five. It used to be a two-column row with the cards and
+       the fold in one column and a white note beside them, which left the
+       note's column empty from the fold downwards. The note is prose about
+       what a reader has just been handed, so it is prose: the box it stood in
+       was the third bordered thing in a stack of three, and a page that puts
+       a card round everything has stopped saying anything by one. -->
+  <div class="picks">
+    <div class="pick pick-lead">
+      <h3>Start here: the tutorial</h3>
+      <p class="size">104 slides &middot; a reference to dip into</p>
+      <p>A lecture about writing lectures: how the format works, shown in a
+      lecture built with it. Its <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">source</a>
+      is the model to write your own lecture against.</p>
+      <p class="opens"><a href="tutorial/audience.html">projection</a>
+      <a href="tutorial/speaker.html">cockpit</a>
+      <a href="tutorial/print.html">document</a>
+      <a href="tutorial/print-notes.html">with notes</a></p>
+    </div>
+    <div class="pick">
+      <h3>A real lecture: <code>python-intro</code></h3>
+      <p class="size">39 slides &middot; about 25 minutes</p>
+      <p>The lecture the slide at the top of this page comes from: an
+      introduction to Python for people who have written some code before. Open the projection
+      and press <kbd>C</kbd> to see the same slide shortened and then in full.</p>
+      <p class="opens"><a href="python-intro/audience.html">projection</a>
+      <a href="python-intro/speaker.html">cockpit</a>
+      <a href="python-intro/print.html">document</a>
+      <a href="python-intro/print-notes.html">with notes</a></p>
+    </div>
+  </div>
+
+  <details class="setup">
+    <summary>The other three lectures</summary>
+    <div class="setup-body">
+      <p>The tutorial and python-intro are the two above; these are the rest.
+      Of Decoration, two of the four views are published here.</p>
+
+      <div class="more-lectures">
+        <div class="more-lecture">
+          <h4>Short example <span class="size">6 slides &middot; German</span></h4>
+          <p>One section of a first-year networking lecture. Eighty-odd lines of
+          Markdown, short enough to read end to end beside what it produces.</p>
+          <p class="opens"><a href="example/audience.html">projection</a><span>&middot;</span><a href="example/speaker.html">cockpit</a><span>&middot;</span><a href="example/print.html">document</a><span>&middot;</span><a href="example/print-notes.html">with notes</a><span>&middot;</span><a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a></p>
+        </div>
+        <div class="more-lecture">
+          <h4>Figures <span class="size">42 slides</span></h4>
+          <p>Every construction the figure language has, drawn rather than
+          described, with figures from a real course among them.</p>
+          <p class="opens"><a href="diagrams/audience.html">projection</a><span>&middot;</span><a href="diagrams/speaker.html">cockpit</a><span>&middot;</span><a href="diagrams/print.html">document</a><span>&middot;</span><a href="diagrams/print-notes.html">with notes</a></p>
+        </div>
+        <div class="more-lecture">
+          <h4>Decoration <span class="size">40 slides</span></h4>
+          <p>What puts something other than a text column on a slide: title
+          slides, dividers, cards, backdrops, a photograph that opens as you
+          press <kbd>Space</kbd>.</p>
+          <p class="opens"><a href="decoration/audience.html">projection</a><span>&middot;</span><a href="decoration/print.html">document</a></p>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <div class="pair-up">
+   <div>
+    <p>Each of a lecture&rsquo;s four files carries its own styling, scripts,
+    images, typeset maths and typefaces. Copied to a USB stick or sent by mail,
+    it opens from a folder on disk as it does from this server, and apart from
+    an embedded online video it needs no network connection.</p>
+   </div>
+   <div>
+    <p>A cockpit opened from a link above shows the layout but does not follow a
+    projection &ndash; press <kbd>S</kbd> inside a projection to open one that
+    does. The four links on each card open the four files of that lecture,
+    exactly as psi-slides writes them.</p>
+   </div>
   </div>
  </div>
 </section>
@@ -357,15 +450,15 @@ browser is for pages meant to be looked at.
     <p class="cue">There are two such documents, and you see them both with the
     switch in the title bar. <code>print.html</code> carries the script alone and is the one
     to hand out. <code>print-notes.html</code> folds your speaker notes in under
-    each chunk and stays with you. On request the build also writes both as A4
+    each chunk and stays with you. On request psi-slides also writes both as A4
     PDFs, and <a href="in-the-room.html#pdf">the slides as one PDF</a>.</p>
-    <p class="cue">Opened in a browser, both documents are made for reading
-    on a screen: a contents list down the side, folded to its parts, marks
-    where the reader is, a
-    selection of words, code, a formula or a figure can be highlighted with a
-    note of its own, and <kbd>n</kbd> and <kbd>p</kbd> walk through them. The
-    highlights stay in the student's browser, export to a Markdown file they
-    can send you, and print in yellow with the notes in the margin.</p>
+    <p class="cue">Opened in a browser, both documents have tools for reading
+    on screen. A contents list down the side marks where the reader is.
+    Students can highlight words, code, a formula or a figure, add a note to
+    each highlight, and step through them with <kbd>n</kbd> and <kbd>p</kbd>.
+    The highlights stay in the student&rsquo;s browser; they export to a
+    Markdown file the student can send you, and they print in yellow with the
+    notes in the margin.</p>
    </div>
    <div class="stage">
      <figure class="shot">
@@ -438,218 +531,12 @@ browser is for pages meant to be looked at.
    </div>
   </div>
 
-  <div class="aside-code second-picture">
-   <div class="said">
-    <p class="cue">Part of its source: the four boxes, one of the three notes,
-    and the step that brings that note in.</p>
-    <p class="cue"><strong>Lengths are in grid cells, not pixels</strong> &ndash;
-    the opening line sets the cell, so a figure keeps its proportions when the
-    cell changes. And <code>-- fh.cx,fh.top</code> draws a <strong>leader
-    line</strong>: it points at a spot on another box and stays attached when
-    that box moves.</p>
-   </div>
-<pre><code><span class="t-dir">::: draw</span> 150x54
-<span class="t-dir">default box</span> <span class="t-punct">{.tone-3 .sharp}</span> w 0.88 h 0.85
-<span class="t-dir">box</span> fh <span class="t-strong">"Frame\nHeader"</span>    <span class="t-cmt">at</span> 0,0
-<span class="t-dir">box</span> dh <span class="t-strong">"Datagram\nHeader"</span> <span class="t-cmt">right of</span> fh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
-<span class="t-dir">box</span> sh <span class="t-strong">"Segment\nHeader"</span>  <span class="t-cmt">right of</span> dh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
-<span class="t-dir">box</span> pl <span class="t-strong">"Payload"</span>          <span class="t-cmt">right of</span> sh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh <span class="t-punct">{.paper}</span>
-<span class="t-dir">text</span> lmac <span class="t-strong">"Ethernet source\nand destination\naddresses*"</span>       <span class="t-cmt">above</span> fh <span class="t-cmt">gap</span> 0.5 -- fh.cx,fh.top <span class="t-punct">{.muted @l1}</span>
-<span class="t-dir">step</span> ethernet
-  <span class="t-cmt">show</span> @l1
-  <span class="t-cmt">emph</span> fh</code></pre>
-  </div>
-
   <div class="hint">
-    <p><a href="figures.html">Figures you write</a> is the case for the language:
-    what a lecture figure has to do that a drawing program and an auto-layout
-    language each do badly. <a href="figures-you-write.html">The manual</a> builds
-    one a line at a time, lists every statement, and shows the graphical editor
-    that lets you drag a box on the live slide and have the source rewritten.</p>
+    <p><a href="figures.html">Figures you write</a> is the case for the figure
+    language, then the manual: one figure built a line at a time, and every
+    statement. It also shows the graphical editor, in which you drag a box on
+    the live slide and the source is rewritten.</p>
   </div>
- </div>
-</section>
-
-<section class="band">
- <div class="wrap">
-  <h2 id="open-them-yourself">Open the lectures yourself</h2>
-  <p class="lede">These are the tool, not a video of it. Move with the arrow
-  keys, press <kbd>C</kbd> to switch between the shortened text and the full
-  text, <kbd>O</kbd> to see the whole lecture at once, <kbd>/</kbd> to search,
-  and <kbd>?</kbd> to list the keys.</p>
-  <!-- Not a band: there is no picture here, so there is nothing for words to
-       stand beside. Three blocks at the frame's width, one under the other -
-       the two lectures to open, the fold that holds the other three, and what
-       is true of all five. It used to be a two-column row with the cards and
-       the fold in one column and a white note beside them, which left the
-       note's column empty from the fold downwards. The note is prose about
-       what a reader has just been handed, so it is prose: the box it stood in
-       was the third bordered thing in a stack of three, and a page that puts
-       a card round everything has stopped saying anything by one. -->
-  <div class="picks">
-    <div class="pick pick-lead">
-      <h3>Start here: <code>python-intro</code></h3>
-      <p class="size">39 slides &middot; about 25 minutes</p>
-      <p>The lecture the slide at the top of this page comes from: an
-      introduction to Python for people who have written some code before. Open the projection
-      and press <kbd>C</kbd> to see the same slide shortened and then in full.</p>
-      <p class="opens"><a href="python-intro/audience.html">projection</a>
-      <a href="python-intro/speaker.html">cockpit</a>
-      <a href="python-intro/print.html">document</a>
-      <a href="python-intro/print-notes.html">with notes</a></p>
-    </div>
-    <div class="pick">
-      <h3>Then: the tutorial</h3>
-      <p class="size">104 slides &middot; a reference to dip into</p>
-      <p>How the format works, explained by a lecture that is itself
-      built out of it. Its <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">source</a>
-      is the model to write your own lecture against.</p>
-      <p class="opens"><a href="tutorial/audience.html">projection</a>
-      <a href="tutorial/speaker.html">cockpit</a>
-      <a href="tutorial/print.html">document</a>
-      <a href="tutorial/print-notes.html">with notes</a></p>
-    </div>
-  </div>
-
-  <details class="setup">
-    <summary>The other three lectures</summary>
-    <div class="setup-body">
-      <p>python-intro and the tutorial are the two above; these are the rest.
-      They are built from the repository rather than the release, and of
-      Decoration only two of the four views are published here.</p>
-
-      <div class="more-lectures">
-        <div class="more-lecture">
-          <h4>Short example <span class="size">6 slides &middot; German</span></h4>
-          <p>One section of a first-year networking lecture. Eighty-odd lines of
-          Markdown, short enough to read end to end beside what it produces.</p>
-          <p class="opens"><a href="example/audience.html">projection</a><span>&middot;</span><a href="example/speaker.html">cockpit</a><span>&middot;</span><a href="example/print.html">document</a><span>&middot;</span><a href="example/print-notes.html">with notes</a><span>&middot;</span><a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a></p>
-        </div>
-        <div class="more-lecture">
-          <h4>Figures <span class="size">42 slides</span></h4>
-          <p>Every construction the figure language has, drawn rather than
-          described, with figures from a real course among them.</p>
-          <p class="opens"><a href="diagrams/audience.html">projection</a><span>&middot;</span><a href="diagrams/speaker.html">cockpit</a><span>&middot;</span><a href="diagrams/print.html">document</a><span>&middot;</span><a href="diagrams/print-notes.html">with notes</a></p>
-        </div>
-        <div class="more-lecture">
-          <h4>Decoration <span class="size">40 slides</span></h4>
-          <p>What puts something other than a text column on a slide: title
-          slides, dividers, cards, backdrops, a photograph that opens as you
-          press <kbd>Space</kbd>.</p>
-          <p class="opens"><a href="decoration/audience.html">projection</a><span>&middot;</span><a href="decoration/print.html">document</a></p>
-        </div>
-      </div>
-    </div>
-  </details>
-
-  <div class="pair-up">
-   <div>
-    <p>A lecture&rsquo;s four files are self-contained: the styling, the scripts, the images,
-    the typeset maths and the typefaces sit inside the HTML file itself. Nothing
-    is fetched at run time, and they open as happily from a folder on disk
-    (<code>file://</code>) as from this server.</p>
-   </div>
-   <div>
-    <p>A cockpit opened from a link above shows the layout but does not follow a
-    projection &ndash; press <kbd>S</kbd> inside a projection to open one that
-    does. The four links on each card open the four files of that lecture, and
-    every one of them is the file you would have built yourself.</p>
-   </div>
-  </div>
- </div>
-</section>
-
-<section class="band">
- <div class="wrap">
-  <!-- The whole section is one band, and the words column is the section
-       itself: heading, lede, the tabs, the option's words, and the sentence
-       and button that send a reader on. Column two is the option's picture,
-       spanning all of it. It used to be four blocks stacked at the frame's
-       left edge over a row whose words started halfway down, so the tail
-       began under a quarter-screen of nothing. `.two-ways` in site.css. -->
-  <div class="two-ways">
-  <h2 id="getting-started">Getting started</h2>
-  <p class="lede">Two ways in, and they build the same four files.</p>
-
-  <!-- The two ways, seen rather than only read, and the same chooser that
-       carries the three ways above and the four cockpit frames on "In the
-       room". A fourth switching device would be a fourth thing to learn and a
-       fourth thing to keep operable from a keyboard.
-       The handout switch is the nearer relative in what it answers - one
-       thing, two executions - but it swaps an <img> src, and half of this
-       pair is not an image: it is the build's own output, set as a listing.
-       That is deliberate. A terminal is text, and a picture of text is a file
-       that goes stale - this site has had to replace six screenshots that
-       showed a state the tool no longer produces - blurs at any zoom, cannot
-       be selected and needs a window frame nobody ever saw. The lines below
-       were run in this repository and pasted, nothing cut: the build, then an
-       `ls -al` of what it wrote, which is the half of the story a build log
-       does not tell. The four HTML files ARE the lecture - that is why they
-       are two megabytes each and why the `ls` is worth the eight lines.
-       Both halves stand in one grid cell (`.ways-two` in site.css), so the
-       row is as tall as the taller of the two and neither side moves when the
-       switch is pressed. -->
-  <div class="ways ways-two">
-   <div class="way" data-tie="app">
-    <p class="way-label">the app</p>
-    <div class="way-said">
-     <p><strong>The app</strong> you download, and it builds at the press of a
-     button: open a <code>source.md</code> in it, and it builds again every time
-     you save. Nothing else has to be installed &ndash; no Node, no
-     terminal &ndash; and nothing leaves the computer: it runs the same build on
-     your own machine and writes the four files beside your source.</p>
-    </div>
-    <div class="stage">
-     <figure class="shot">
-      <div class="bar"><b>psi-slides Builder</b></div>
-      <img src="img/builder.webp" alt="The builder window with a lecture open: the folder name and the path to its source.md, the line &ldquo;Ready. Built at 06:35 in 0.2 s.&rdquo;, a Build now button beside a ticked box reading &ldquo;Build again whenever source.md is saved&rdquo;, and four buttons for the presentation, the cockpit and the two handouts.">
-     </figure>
-    </div>
-   </div>
-   <div class="way" data-tie="cli">
-    <p class="way-label">the command line</p>
-    <div class="way-said">
-     <p><strong>The command line</strong> starts with a clone of the repository
-     and one <code>npm install</code>, for people who already work in a
-     terminal &ndash; and it is the way to write a lecture with a language model
-     beside you, because the repository carries the skills that teach one the
-     format.</p>
-    </div>
-    <div class="stage">
-     <figure class="shot">
-      <div class="bar"><b>~/psi-slides</b></div>
-<pre class="out"><code>$ node build.js lectures/tutorial/source.md
-[inline-images] auto-inlining 8 image(s), 0.20 MB total (under 10 MB budget). Use --no-inline-images to disable.
-[fonts] 6 bundled face(s) embedded &ndash; Literata, IBM Plex Sans, JetBrains Mono &ndash; 279 KB per view (OFL-1.1). Use `fonts: none` to ship without them.
-[qr] 1 link address(es) carry a QR code, 3 KB per live view.
-[math] 5 KaTeX font families inlined, 166 KB of woff2 per live view (of 254 KB for the full set); print carries only the families its formulas use. A lecture without math inlines nothing.
-Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (13 columns, 104 chunks)
-$ ls -al lectures/tutorial/*.html
--rw-r--r--  1 dh  staff  3077723 Oct  1 12:00 lectures/tutorial/audience.html
--rw-r--r--  1 dh  staff  1501149 Oct  1 12:00 lectures/tutorial/print-notes.html
--rw-r--r--  1 dh  staff  1491242 Oct  1 12:00 lectures/tutorial/print.html
--rw-r--r--  1 dh  staff  3222782 Oct  1 12:00 lectures/tutorial/speaker.html</code></pre>
-     </figure>
-    </div>
-   </div>
-  </div>
-
-  <!-- The tail, and it stands in the words column beside the picture rather
-       than under the row. It is outside every `.way`, so it does not switch
-       and belongs to neither of the two options - it is the section speaking
-       again after the evidence. It used to follow the band at the frame's
-       width, which is right where a band's column is full and wrong here:
-       the column was 230px against a 530px picture, so the sentence and the
-       button began under 300px of nothing. -->
-  <div class="ways-on">
-   <p>The next page has the downloads for macOS, Windows and Linux, the commands,
-   and a walkthrough that starts on a machine with nothing installed on it.</p>
-   <div class="cta">
-     <a class="primary" href="getting-started.html">Both ways, in full</a>
-   </div>
-  </div>
-  </div>
-
  </div>
 </section>
 
@@ -658,13 +545,15 @@ $ ls -al lectures/tutorial/*.html
   <div class="middle">
   <h2>Where to read further</h2>
   <ul class="reads">
+    <li><b><a href="getting-started.html">Getting started</a></b>
+      The app for macOS, Windows and Linux, the command line, and a first
+      lecture of your own.</li>
     <li><b><a href="comparison.html">How psi-slides compares</a></b>
       Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, in both
       directions, including where psi-slides loses.</li>
     <li><b><a href="figures.html">Figures you write</a></b>
-      The case for the figure language, and
-      <a href="figures-you-write.html">the manual</a> beside it, which builds one
-      a line at a time.</li>
+      The case for the figure language, then the manual: one figure built a
+      line at a time, and every statement.</li>
     <li><b><a href="tutorial/audience.html">The tutorial lecture</a></b>
       The format shown working rather than described, with
       <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">its

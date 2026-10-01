@@ -38,26 +38,26 @@
        Zeile und nicht als Ziffer darüber. -->
   <div class="pair-up trio hero-ways">
    <div>
-    <p class="lede">Zwei Wege, und beide enden am selben Ort: Beide führen
-    dasselbe <code>build.js</code> aus und schreiben neben die
-    <code>source.md</code> dieselben vier Ansichten &ndash; die Projektion für den
-    Raum, das Cockpit für die Vortragenden, zwei Handouts zum Drucken.</p>
+    <p class="lede">Eine Vorlesung ist eine Textdatei, <code>source.md</code>.
+    Zwei Wege machen daraus vier Webseiten, die Ansichten: die Folien für den
+    Saal, ein Cockpit für die Vortragenden und zwei Handouts. Beide schreiben
+    dieselben vier Ansichten daneben.</p>
    </div>
    <div>
     <p><b>Option 1:</b> Man lädt <strong><a href="#app">eine App</a></strong>
     herunter, die die Dateien auf Knopfdruck baut. Man öffnet darin eine
-    <code>source.md</code>, und nach jedem Speichern baut sie neu. Sonst muss
-    nichts installiert werden: kein Node, kein Terminal, nicht einmal
-    psi-slides selbst &ndash; die App trägt die Kopie, mit der sie paketiert
-    wurde.</p>
+    <code>source.md</code>, und nach jedem Speichern baut sie neu, oder man
+    lässt <b>Neue Vorlesung&hellip;</b> eine erste anlegen. Sonst muss nichts
+    installiert werden, und ein Terminal braucht es nicht: Die App bringt ihr
+    eigenes psi-slides mit.</p>
    </div>
    <div>
-    <p><b>Option 2:</b> Man baut seine Folien auf
-    <strong><a href="#command-line">der Kommandozeile</a></strong> &ndash; oder
-    lässt einen KI-Agenten das tun. Das Repository bringt die Skills mit, die
-    einem Sprachmodell das Format beibringen. Dieser Weg beginnt mit den Quellen
-    und einem <code>npm install</code>, und so baut auch ein CI-Job
-    unbeaufsichtigt.</p>
+    <p><b>Option 2:</b> Man baut die Ansichten auf
+    <strong><a href="#command-line">der Kommandozeile</a></strong>. Dieser Weg
+    beginnt mit einer Kopie des Repositorys und einem <code>npm install</code>.
+    Danach kann ein Server Vorlesungen bauen, ohne dass jemand zusieht, und ein
+    Programmierassistent wie Claude Code findet im Repository Anleitungen, die
+    ihm das Format beibringen.</p>
    </div>
   </div>
  </div>
@@ -112,9 +112,8 @@
 
   <h3>Herunterladen</h3>
   <p>Das Paket für das eigene System aus den dreien unten holen. Sie gehören
-  zum neuesten Release von psi-slides und tragen dessen <code>build.js</code>
-  in sich, also baut die App eine Vorlesung genau so wie die Kommandozeile
-  derselben Version.</p>
+  zum neuesten Release von psi-slides, und die App baut eine Vorlesung genau
+  so wie die Kommandozeile derselben Version.</p>
 
   <!-- Halbleere Zeile, Antwort 2: Die Pakete nehmen die Rahmenbreite, als
        Zeile aus drei Systemen statt als Tabelle.
@@ -155,7 +154,7 @@
    <div class="get">
     <p class="sys">Linux <span class="size">64 Bit</span> <span class="try">(experimentell)</span></p>
     <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides-builder-linux-x86_64.AppImage">
-     <b>AppImage</b><span>ausführbar machen und starten, auf jeder Distribution</span>
+     <b>AppImage</b><span>ausführbar machen und starten</span>
      <code>psi-slides-builder-linux-x86_64.AppImage</code></a>
     <p class="alt"><a href="https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides-builder-linux-amd64.deb">psi-slides-builder-linux-amd64.deb</a></p>
    </div>
@@ -167,12 +166,10 @@
   <div class="pair-up">
    <div>
     <p><strong>Windows und Linux sind experimentell.</strong> Diese beiden
-    Pakete hat ein CI-Rechner gebaut; auf echter Hardware wurden sie nicht
-    gestartet. Möglich, dass sie laufen, geprüft ist es nicht. Wer eines
-    ausprobiert, meldet das Ergebnis gern als
-    <a href="https://github.com/UBA-PSI/psi-slides/issues">Issue</a> – ob es
-    läuft oder nicht. Das macOS-Paket wurde auf einem echten Mac benutzt; nur
-    darin unterscheiden sich die drei Pakete oben.</p>
+    Pakete werden automatisch gebaut und wurden noch auf keinem echten Windows-
+    oder Linux-Rechner gestartet. Wer eines ausprobiert, meldet bitte in einem
+    <a href="https://github.com/UBA-PSI/psi-slides/issues">Issue</a>, ob es
+    lief. Das macOS-Paket wurde auf einem echten Mac benutzt.</p>
    </div>
    <div>
     <p><strong>Die Pakete sind nicht signiert</strong>, außer dem für macOS: Das
@@ -190,8 +187,8 @@
        ablehnt, sind zwei Antworten auf eine Frage und gehören in eine Zeile. -->
   <div class="pair-up">
    <div>
-    <p>Schlägt ein Build fehl, steht die Meldung von <code>build.js</code>
-    unverändert da, mit der Zeile in der Quelle. Die vier Ansichten behalten
+    <p>Schlägt ein Build fehl, zeigt das Fenster die Meldung des Builds selbst,
+    mit der Zeile in der Quelle. Die vier Ansichten behalten
     den letzten Build, der lief; ein kaputtes Speichern nimmt einem nicht
     mitten in der Vorlesung die Folien weg.</p>
     <p>Es gibt zwei Schalter. Setzt man <strong>Die Ansichten über eine lokale
@@ -215,17 +212,42 @@
     diesem Rechner und von sonst nichts. Das Fenster gibt es auf Deutsch und Englisch: Beim ersten Start entscheidet die Systemsprache, danach eine Einstellung.</p>
    </div>
   </div>
+
+  <h3 id="first-lecture">Die erste eigene Vorlesung</h3>
+  <!-- Der Weg der App endet hier, bei dem, was man tut, sobald das Fenster
+       offen ist. Zwei Antworten auf eine Frage nebeneinander, wie in den
+       beiden Zeilen darüber. -->
+  <div class="pair-up">
+   <div>
+    <p><b>Neue Vorlesung&hellip;</b>, auf dem Startbildschirm der App und im
+    Menü „Datei“, fragt nach einem Ordnernamen und einem Ort. Dort legt es eine
+    Starter-Vorlesung an &ndash; eine Titelfolie, eine Textfolie und eine
+    kleine Abbildung, die der Diagramm-Editor öffnen kann &ndash; und öffnet
+    sie, schon gebaut. Den Text im eigenen Editor ändern, speichern, und die
+    vier Ansichten ziehen nach.</p>
+    <p><b>Hilfe &#9656; Wie man eine Vorlesung schreibt</b> öffnet das
+    <a href="../tutorial/audience.html" hreflang="en">Tutorial</a> (englisch) im
+    Browser: eine Vorlesung über das Schreiben von Vorlesungen, mit
+    <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">ihrer
+    Quelle</a> zum Abschauen.</p>
+   </div>
+   <div>
+    <p>Wer die Beispielvorlesungen auf dem eigenen Rechner haben will, nimmt
+    das <a href="https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.zip">Release-Archiv</a>,
+    <code>psi-slides.zip</code>. Darin stehen die fünf Vorlesungen, auf die die
+    Startseite verweist, schon gebaut, mit ihren <code>source.md</code>-Dateien
+    daneben. Entpacken und <code>lectures/tutorial/audience.html</code>
+    doppelklicken; installiert werden muss dafür nichts.</p>
+   </div>
+  </div>
  </div>
 </section>
 
 <section class="band">
  <div class="wrap">
   <h2 id="command-line">Die Kommandozeile</h2>
-  <p class="lede">Derselbe Build wie in der App, nur selbst getippt: für
-  einen Rechner, auf dem ohnehin ein
-  Terminal offen ist &ndash; und das, was ein CI-Job ausführt. Es braucht
-  <strong>Node 22 oder neuer</strong>, womit
-  <code>build.js</code> läuft, und sonst nichts: kein LaTeX, kein Pandoc, keinen
+  <p class="lede">Derselbe Build wie in der App, in ein Terminal getippt. Er
+  braucht <strong>Node 22 oder neuer</strong> und sonst nichts: kein LaTeX, kein Pandoc, keinen
   Server, nichts systemweit Installiertes. Nicht einmal git: Der Clone unten ist
   der schnellste Weg zu den Dateien, und das
   <a href="https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.zip">Release-Archiv</a> enthält dasselbe Werkzeug als ein ZIP.</p>
@@ -236,7 +258,7 @@
    <div class="said">
     <h3>Das Tutorial bauen</h3>
     <p class="cue">Man führt <code>npm install</code> einmal aus. Es holt die Schriften,
-    die psi-slides in jede Vorlesung einbettet, und die Handvoll Pakete, die der
+    die psi-slides in eine Vorlesung einbettet, und die Handvoll Pakete, die der
     Build benutzt &ndash; alles in einen Ordner <code>node_modules</code> neben
     <code>build.js</code>.</p>
     <p class="cue">Die vier Ansichten erscheinen als HTML-Dateien neben der
@@ -262,6 +284,29 @@
 <span class="t-cmt"># die Folien als PDF, eine Seite je Schritt; die zwei Handouts als A4-PDF</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span> <span class="t-flag">--slides-pdf</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span> <span class="t-flag">--print-pdf</span> <span class="t-flag">--print-notes-pdf</span></code></pre>
+  </div>
+
+  <!-- Eine eigene Vorlesung, auf dieser Seite: „Neue Vorlesung…“ in der App
+       ist dasselbe --new, beide Wege beginnen also mit derselben
+       Starter-Vorlesung. -->
+  <div class="aside-code words-first second-picture">
+   <div class="said">
+    <h3 id="your-own">Eine eigene Vorlesung</h3>
+    <p class="cue"><code class="flag">--new</code> legt einen Vorlesungsordner
+    an, mit ausgefülltem Einstellungsblock oben, einer Titelfolie, einer
+    Textfolie und einer kleinen Abbildung &ndash; dieselbe Starter-Vorlesung,
+    die <b>Neue Vorlesung&hellip;</b> in der App anlegt. Sie umschreiben ist
+    leichter, als mit einer leeren Datei anzufangen.</p>
+    <p class="cue">Was hineingehört, lehrt das
+    <a href="../tutorial/audience.html" hreflang="en">Tutorial</a> (englisch);
+    ein deutsches Muster zum Abschauen ist das
+    <a href="../example/audience.html">Kurzbeispiel mit sechs Folien</a>.</p>
+   </div>
+<pre><code><span class="t-cmt"># einen neuen Vorlesungsordner anlegen, Einstellungsblock inklusive</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
+
+<span class="t-cmt"># bauen und bei jedem Speichern neu bauen</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch</span></code></pre>
   </div>
 
   <div class="aside-code words-first second-picture">
@@ -356,7 +401,7 @@
       <h3>Holen, was der Build benutzt</h3>
 <pre><code>npm install</code></pre>
       <p>Man führt <code>npm install</code> einmal aus, in diesem Ordner, und es
-      dauert ein paar Sekunden. Es holt die Schriften, die psi-slides in jede Vorlesung
+      dauert ein paar Sekunden. Es holt die Schriften, die psi-slides in eine Vorlesung
       einbettet, und die Handvoll Pakete, die der Build benutzt. Alles landet in
       einem Ordner <code>node_modules</code> neben <code>build.js</code>:
       systemweit wird nichts installiert, und die gebauten Vorlesungen öffnen
@@ -385,84 +430,6 @@
  </div>
 </section>
 
-<!--
-  Was die Versionsnummer verspricht, und der eine Satz, den braucht, wer
-  aktualisiert. Den Unterschied zwischen zwei Versionen beschreibt das
-  Changelog, nicht diese Seite. Dasselbe in en.
--->
-<section class="band">
- <div class="wrap">
-  <h2 id="version">Versionen</h2>
-  <p class="lede">Das Quellformat ist die Schnittstelle: Eine Änderung, nach
-  der eine bestehende <code>source.md</code> nicht mehr genauso baut, ist eine
-  Major-Version.</p>
-  <p>2.0.0 ist eine Major-Version: Eine Vorlesung, die für 1.0.0 geschrieben
-  wurde, kann eine Änderung brauchen, damit sie genauso baut, und die Liste
-  „Breaking“ am Kopf von 2.0.0 im
-  <a href="https://github.com/UBA-PSI/psi-slides/blob/main/CHANGELOG.md">Changelog</a>
-  sagt, welche.</p>
- </div>
-</section>
-
-<section class="band">
- <div class="wrap">
-  <h2 id="your-own">Eine eigene Vorlesung schreiben</h2>
-  <p class="lede">Eine Vorlesung ist ein Ordner mit einer <code>source.md</code>
-  darin. Diese erste Datei lieber schreiben lassen, als von einem leeren Blatt
-  anzufangen: Der Einstellungsblock oben in einer <code>source.md</code>, das
-  Frontmatter (YAML zwischen zwei <code>---</code>-Zeilen), hat Schlüssel, die ein leeres Blatt nicht erraten kann.</p>
-
-  <!-- Was in die Datei gehört, stand früher als rechte Hälfte einer
-       zweispaltigen Zeile am Fuß dieses Abschnitts, unter einem Listing, mit
-       einer halben Bildschirmhöhe Nichts darüber und nichts daneben, wozu es
-       gehört hätte. Es ist die Antwort auf die Überschrift des Abschnitts,
-       also ist es dessen zweiter Absatz. -->
-  <p>Was in diese Datei gehört, lehrt die
-  <a href="../tutorial/audience.html" hreflang="en">Tutorial-Vorlesung</a> (englisch), eine Vorlesung
-  über das Schreiben von Vorlesungen: das Format im Betrieb gezeigt statt
-  beschrieben, mit
-  <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">ihrer
-  Quelle</a> daneben. Ein deutsches Muster zum Abschauen ist das
-  <a href="../example/audience.html">Kurzbeispiel mit sechs Folien</a>.</p>
-
-  <!-- Halbleere Zeile, Antwort 1: drei Befehle in der breiten Hälfte, wofür sie
-       da sind in der schmalen, und die Seite der App darunter als Absatz. -->
-  <div class="aside-code words-first">
-   <div class="said">
-    <h3>Drei Befehle</h3>
-    <p class="cue">Mit <code class="flag">--new</code> bekommt man einen Ordner mit gültigem
-    Einstellungsblock und ein paar Beispiel-Chunks &ndash; ein Chunk, eine Folie.
-    Danach lässt man <code class="flag">--watch</code> mitlaufen.</p>
-    <p class="cue"><code>lint.js</code> laufen lassen, bevor man etwas
-    weitergibt: doppelte Chunk-IDs, offene <code>:::</code>-Blöcke, Folien über
-    ihrem Wortbudget, Dateien zu groß zum Einbetten.</p>
-   </div>
-<pre><code><span class="t-cmt"># einen neuen Vorlesungsordner anlegen, Einstellungsblock inklusive</span>
-<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
-
-<span class="t-cmt"># bei jedem Speichern neu bauen und alle offenen Tabs neu laden</span>
-<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch</span>
-
-<span class="t-cmt"># Chunk-IDs, Wortbudgets, offene :::-Blöcke, zu große Dateien</span>
-<span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
-  </div>
-
-  <!-- Ein Absatz auf Lesebreite, und bewusst keine halbe Zeile. Die andere
-       Hälfte war der Tutorial-Absatz, der jetzt der zweite Absatz des
-       Abschnitts ist; die beiden zu paaren machte eine Zeile aus zwei Dingen,
-       die verschiedene Fragen beantworten. Der Grund rechts neben einem Absatz
-       ist hier der Rand der Seite, wie unter jedem Anriss. -->
-  <p>In der App fragt <b>Neue Vorlesung&hellip;</b> nach einem Ordnernamen und
-  einem Ort und legt dieselbe Starter-Vorlesung an, die <code class="flag">--new</code>
-  anlegt, bis hin zu einer kleinen Abbildung, die der Editor öffnen kann. Bei
-  jedem Speichern neu zu bauen ist der Normalzustand des Fensters und kein
-  Schalter, den man setzt, und es zeigt, was der Build sagt, und nicht mehr
-  als das &ndash; weshalb <code>lint.js</code> etwas bleibt, das man tippt; seine
-  Meldungen nennen die Regel und die Zeilennummer, man liest sie also neben der
-  eigenen Quelle.</p>
- </div>
-</section>
-
 <section class="band band-close">
  <div class="wrap">
   <div class="middle">
@@ -475,12 +442,16 @@
       Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint und andere, in beide
       Richtungen, einschließlich der Stellen, an denen psi-slides verliert.</li>
     <li><b><a href="../figures.html" hreflang="en">Figures you write</a> (englisch)</b>
-      Die Begründung für die Abbildungssprache, und
-      <a href="../figures-you-write.html" hreflang="en">das Handbuch</a> (englisch) daneben, das eine
-      Abbildung Zeile für Zeile aufbaut und jede Anweisung auflistet.</li>
+      Die Begründung für die Abbildungssprache, dann das Handbuch: eine
+      Abbildung Zeile für Zeile aufgebaut, und jede Anweisung.</li>
     <li><b><a href="https://github.com/UBA-PSI/psi-slides">Das Repository</a></b>
       Die README erklärt das Format und sagt, wofür das Werkzeug taugt und wofür
       nicht.</li>
+    <li><b><a href="https://github.com/UBA-PSI/psi-slides/blob/main/CHANGELOG.md">Versionen</a></b>
+      Nur eine Major-Version darf ändern, wie eine bestehende
+      <code>source.md</code> baut. 2.0.0 ist eine: Eine Vorlesung für 1.0.0
+      kann eine Änderung brauchen, und die Liste „Breaking“ am Kopf von 2.0.0
+      im Changelog sagt, welche.</li>
   </ul>
 
   <footer>
