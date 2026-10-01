@@ -10450,6 +10450,12 @@ const viewHooks = {
   onActiveChange: () => {},
   onStateChange: () => {},
   shouldBroadcast: () => true,
+  // A frozen cockpit is the lecturer's private look-ahead: the slide it shows
+  // is not the room's. While this says so, incoming snapshots and pans do not
+  // move it (only the blank and the projection's size are taken), it stores
+  // no position a reloaded projection would boot onto, and it sends no laser
+  // pointer. The audience is never looking ahead.
+  lookingAhead: () => false,
   // The cockpit's cue cards sit in front of the reveal counter: a forward
   // press is consumed by a card before it reaches advanceReveal, and a back
   // press by the card before it. Both default to "not consumed", so the
@@ -10764,6 +10770,10 @@ function saveAnnotations() {
   try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
 }
 function saveActive() {
+  // One key for both windows, so a cockpit looking ahead must not write it:
+  // a projection reloaded under a freeze read the cockpit's look-ahead and
+  // put it on the wall. Thawing stores the position the room then gets.
+  if (viewHooks.lookingAhead()) return;
   try { localStorage.setItem(storageKey('activeIdx'), String(state.activeIdx)); } catch (e) {}
 }
 function applyFontTheme() {
@@ -10977,6 +10987,17 @@ function applyRemoteCamera(dx, dy, ovScale, selIdx, anchorIdx) {
   }
   if (inRange(anchorIdx)) overviewAnchorIdx = anchorIdx;
 }
+// What a frozen cockpit takes from a projection snapshot: the facts about the
+// room rather than about the deck. See the 'state' branch of the listener.
+function applyFrozenState(payload) {
+  if (!payload) return;
+  state.blanked = !!payload.blanked;
+  document.body.classList.toggle('blanked', state.blanked);
+  applyBlankBadge();
+  if (VIEW === 'speaker' && payload.audienceW > 0 && payload.audienceH > 0) {
+    setSlideRef(payload.audienceW, payload.audienceH);
+  }
+}
 function applyRemoteState(payload) {
   // A remote apply that changes which chunk is live is a slide change and
   // wears the deck's transition, exactly as a local one does. The whole
@@ -10990,14 +11011,31 @@ function applyRemoteState(payload) {
   // projection on the message that follows the cockpit's swap. 130ms, on a
   // pair of screens nobody sees at once, was judged cheaper than teaching
   // the snapshot to carry a phase.
+  settleFade();
   const changed = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0)) !== state.activeIdx;
   if (changed) landSlide(() => applyRemoteStateNow(payload, true));
-  else applyRemoteStateNow(payload, false);
+  else {
+    // A snapshot on the slide already up is the other window's hand on it -
+    // a press, a zoom, a collapse - and that is a take-over of an autoplay
+    // figure, exactly as a key on this window's own keyboard is. The cockpit
+    // never rebroadcasts what it received, so the projection's own ticks do
+    // not come back here.
+    const cur = flatChunks[state.activeIdx];
+    if (cur && autoplayTimer) { autoplayStoppedOn = cur.id; stopAutoplay(); }
+    applyRemoteStateNow(payload, false);
+  }
 }
 function applyRemoteStateNow(payload, changed) {
   isApplyingRemote = true;
   try {
-    unfocusFigure();
+    // Only a slide change takes a focused figure down. A snapshot is also how
+    // a knob arrives - a zoom, a theme, a reveal - and closing the card on
+    // every one of them closed it on the projection alone while the cockpit
+    // kept it open and went on sending figure-view into nothing. The card is
+    // a clone in the overlay, so the apply below cannot leave it stale; a
+    // stepped figure's clone follows the step runtime. Closing it on purpose
+    // travels as figure-unfocus.
+    if (changed) unfocusFigure();
     state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0));
     state.collapse = COLLAPSE_MODES.includes(payload.collapse) ? payload.collapse : 'topic-bold';
     state.zoom = payload.zoom || 1.35;
@@ -11131,6 +11169,12 @@ window.addEventListener('message', (ev) => {
     return;
   }
   if (m.type === 'state') {
+    // Frozen, the cockpit keeps its own slide, reveals, camera and drafts -
+    // the projection's autoplay ticks, or a key pressed on its keyboard,
+    // used to drag the look-ahead back to the room's slide. Two things are
+    // still the room's to say: whether it is blanked, and how big it is.
+    // Thawing pushes this window's snapshot, which is the re-sync.
+    if (viewHooks.lookingAhead()) { applyFrozenState(m.payload); return; }
     applyRemoteState(m.payload);
     return;
   }
@@ -11234,6 +11278,7 @@ window.addEventListener('message', (ev) => {
     return;
   }
   if (m.type === 'pan') {
+    if (viewHooks.lookingAhead()) return;
     isApplyingRemote = true;
     try {
       applyRemoteCamera(m.dx, m.dy, m.overviewScale, m.selectedIdx, m.overviewAnchorIdx);
@@ -11513,6 +11558,21 @@ function chunkBeats(el) {
   let segIdx = 0;
   let pos = 0;
   const push = (b) => { if (b.at == null) b.pos = pos++; out.push(b); };
+  // Beats inside a container held to a beat count from the container's own:
+  // from 3 with a marker and a figure step inside is the container on 3, the
+  // marker on 4, the step on 5. One counter per container, in document order,
+  // so a marker and a diagram step inside one interleave as they are written.
+  // Diagram steps used to be pushed positionally wherever they stood, and a
+  // figure in an overlay held to from 2 played its steps behind a card that
+  // was not yet on the slide.
+  const inner = new Map();
+  const innerAt = (node) => {
+    const c = node.closest(FROM_SEL);
+    if (!c) return null;
+    const k = (inner.get(c) || 0) + 1;
+    inner.set(c, k);
+    return Number(c.dataset.from) + k;
+  };
   el.querySelectorAll('.reveal-segment, svg.psi-diagram, .beat-mark').forEach(node => {
     // A diagram inside an expansion body is not on the projection, so its
     // steps must not consume beats – Space would advance a counter and the
@@ -11551,16 +11611,13 @@ function chunkBeats(el) {
       // A written number wins over the position; inside a container that is
       // itself held to a beat the two cannot both be present, which the
       // parser refuses, so this is a choice between one answer and none.
-      const ov = node.closest(FROM_SEL);
-      const at = fromOf(node) ?? (ov
-        ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node)
-        : null);
+      const at = fromOf(node) ?? innerAt(node);
       push({ type: 'mark', els, at });
       return;
     }
     const d = node.psiDiagram;
     if (!d || d.data.n < 2) return;
-    for (let s = 1; s < d.data.n; s++) push({ type: 'diag', d, step: s });
+    for (let s = 1; s < d.data.n; s++) push({ type: 'diag', d, step: s, at: innerAt(node) });
   });
   return out;
 }
@@ -11621,7 +11678,7 @@ function applyReveal(el, id, instant) {
         e.toggleAttribute('data-beat-hidden', !shown);
         e.toggleAttribute('data-next', !shown && next && k === 0);
       });
-    } else if (on) {
+    } else if (b.at != null ? consumed >= b.at : on) {
       steps.set(b.d, Math.max(steps.get(b.d) || 0, b.step));
     }
   });
@@ -11947,9 +12004,27 @@ function fadeSwap(land) {
 // carries everything that has to happen at the moment of the change - the
 // index, the fit, the paint, the camera - so that a fade can hold all of it
 // until the stage is invisible rather than only some of it.
+//
+// It is also the one place a slide is arrived at, so what every arrival owes
+// the slide is done here rather than by each caller: autoplay starts on any
+// slide reached by a key here, by a snapshot from the other window, or by
+// leaving the overview - it used to start from jumpTo alone, so a figure the
+// cockpit drove onto never played.
 function landSlide(land) {
-  if (SLIDE_TRANSITION === 'fade') fadeSwap(land);
-  else land();
+  const arrive = () => { land(); restartAutoplay(); };
+  if (SLIDE_TRANSITION === 'fade') fadeSwap(arrive);
+  else arrive();
+}
+// A slide change still waiting for the bottom of a fade is done now. Every
+// reader of state.activeIdx that is about to act on it calls this first: a
+// press within the dip otherwise read the slide being left, so a second
+// forward press was lost and a back press reversed the first one. The fade
+// itself carries on from where it is.
+function settleFade() {
+  if (!fadePending) return;
+  const p = fadePending;
+  fadePending = null;
+  p();
 }
 
 // Overview camera: translate-and-scale to center the anchor chunk at
@@ -12042,12 +12117,16 @@ function setOverviewMode(on, opts = {}) {
   overview = false;
   document.body.classList.remove('overview-mode');
   manualPan = { dx: 0, dy: 0 };
-  if (opts.landOnSelected && selectedIdx !== state.activeIdx) {
-    state.activeIdx = selectedIdx;
-    applyState();
-    saveActive();
-  }
   flatChunks.forEach(c => c.el.classList.remove('overview-selected'));
+  // Landing on the selected slide is a slide change like any other, so it
+  // goes through jumpTo: it used to assign the index and repaint, which
+  // skipped auto-fit, the open expansion, the reveal of a slide never seen
+  // and autoplay - O, Enter, a click on the board and G all came this way.
+  // The direction is the one G uses outside the overview.
+  if (opts.landOnSelected && selectedIdx !== state.activeIdx) {
+    jumpTo(selectedIdx, selectedIdx > state.activeIdx ? 'forward' : 'back');
+    return;
+  }
   focusCamera(false);
 }
 
@@ -12368,6 +12447,7 @@ function commitSearchHit() {
 // Nav
 function jumpTo(idx, direction) {
   if (idx < 0 || idx >= flatChunks.length) return;
+  settleFade();
   if (annotEditingId) blurAnnotation();
   // Moving on retires the address: it belonged to the slide you left.
   dismissLinkOverlay();
@@ -12407,7 +12487,6 @@ function jumpTo(idx, direction) {
     applyState();
     focusCamera(SLIDE_TRANSITION !== 'pan');
     saveActive();
-    restartAutoplay();
   });
 }
 
@@ -12604,11 +12683,13 @@ function unfocusAsStage() {
   return true;
 }
 function goForward() {
+  settleFade();
   if (viewHooks.consumeForward()) return;
   if (advanceReveal() || unfocusAsStage()) { viewHooks.onStateChange(); return; }
   nextChunk();
 }
 function goBack() {
+  settleFade();
   if (viewHooks.consumeBack()) return;
   if (retreatReveal() || unfocusAsStage()) { viewHooks.onStateChange(); return; }
   prevChunk();
@@ -14460,10 +14541,29 @@ const COMMAND_RUN = {
   // its own export.
   'export-annotations': (e) => { exportAnnotationsPlain(); e.preventDefault(); },
   // Only in audience: open the speaker window and remember it as our peer.
+  //
+  // A cockpit that is already open is brought forward, never opened again:
+  // window.open with a URL re-navigates the named window, which reloaded the
+  // cockpit and lost its freeze, its clock and its cue cursor. Opening with
+  // an empty URL finds the named window without navigating it; only when
+  // that is not already this deck's cockpit is it sent to speaker.html. A
+  // cockpit page on file:// is another origin, so reading its address
+  // throws - which says it is the cockpit and not a blank window this call
+  // just made.
   'cockpit': (e) => {
-    const w = window.open('speaker.html', 'psi-slides-speaker', 'width=1400,height=900');
-    setPeer(w);
     e.preventDefault();
+    if (hasLivePeer()) { try { peer.focus(); } catch (err) {} return; }
+    const w = window.open('', 'psi-slides-speaker', 'width=1400,height=900');
+    if (!w) return;
+    // Readable means same origin: a blank window, or under --serve a page
+    // that may be another deck's cockpit - either way, unless it already is
+    // this deck's cockpit, it is sent there.
+    const want = new URL('speaker.html', location.href).href;
+    let here = null;
+    try { here = String(w.location.href).split(/[?#]/)[0]; } catch (err) { here = null; }
+    if (here !== null && here !== want) w.location.href = want;
+    setPeer(w);
+    try { w.focus(); } catch (err) {}
   },
   'help': (e) => { toggleHelp(); e.preventDefault(); },
 };

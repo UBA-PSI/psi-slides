@@ -36,33 +36,10 @@ All twelve fixed; the seven **Breaking** bullets at the head of the first
 `[Unreleased]` in CHANGELOG.md say what changed. Item 10 has no linter half beyond `missing-id`, which
 already refuses a chunk without an id.
 
-## S4 – Live runtime (all confirmed in Chrome)
+## S4 – Live runtime
 
-1. **A frozen cockpit is dragged back by any projection snapshot**
-   (build.js:19598 applies every `state`; `frozen` gates only outgoing,
-   25046). `autoplay` on the projection does it every tick; so does B on the
-   projection's keyboard. Also overwrites `revealed` and annotation drafts.
-2. **Reloading the projection while frozen shows the cockpit's look-ahead**
-   (`saveActive` 19231 writes one shared `activeIdx` from both views,
-   `loadPersisted` 19188).
-3. **A second S on the projection reloads the cockpit** (22929,
-   `window.open` re-navigates the named window): freeze, clock, cue cursor
-   reset.
-4. **`autoplay` never starts when the cockpit drives**: `restartAutoplay`
-   only from `jumpTo` (20875) and boot, not `applyRemoteStateNow` (19462).
-5. **`transition: fade` loses or reverses a second press within 130 ms**:
-   `state.activeIdx` is set late in `landSlide`/`fadeSwap` (20384–20412,
-   20867), `goForward`/`goBack` (21071) read the stale index.
-6. **Leaving the overview onto a slide skips `jumpTo`** (20510): no auto-fit,
-   no `closeAnyExpansion`, no `restartAutoplay`; O, Enter, click, `gotoCommit`.
-7. **Diagram steps inside `::: overlay … from N` play while the card is
-   hidden** (`chunkBeats` 20026 pushes `diag` beats without `at`). *Read*:
-   the same for a `--- from N` segment.
-8. **A figure focused in the cockpit closes on the projection only**, on any
-   knob press (`applyRemoteStateNow` begins with `unfocusFigure()`, 19465);
-   the cockpit's +/−/0 then send `figure-view` into nothing.
-9. *Read*: the audience's `pan` overwrites a frozen cockpit's `manualPan`;
-   the laser pointer ignores freeze.
+All nine fixed: 1, 2 and 9 in `f5b4b31`, 3 in `7511b53`, 4–6 in `0ecdf7f`,
+7 in `722513e`, 8 in `9a48cc3`; `test/live-sync.mjs` reproduces each.
 
 ## S5 – Prompter, reader, PDF
 

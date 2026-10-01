@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Twenty-one gates, about two seconds,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 49 specs, about 1,500
+- **`test/`** – the things that only break in a built page. 50 specs, about 1,500
   assertions, about twelve minutes, one Chromium for the whole run. One of
   them, `souffleuse`, starts an engine of its own beside that browser – see
   below.
@@ -140,7 +140,7 @@ fixture is compiled *and* linted.
 ## The browser suite: four families
 
 **Navigation** – `nav`, `nav-cockpit`, `nav-goto`, `nav-fullscreen`, `help-search`, `transition`,
-`cue-cards`, `autoplay`. The navigation
+`cue-cards`, `autoplay`, `live-sync`. The navigation
 model, and what a slide change looks like under `transition: pan | cut | fade` –
 the one spec here that samples per animation frame rather than after a settle,
 because its whole subject is what happens between two states.
@@ -272,7 +272,7 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The eighteen specs that build a deck of their own
+### The nineteen specs that build a deck of their own
 
 Four different reasons, and the last is the one to remember.
 
@@ -284,7 +284,15 @@ fixture carries the parser's note-position rule, read off the built page,
 and lint.js's mirror of it, because both need `parseLecture` and the gates
 cannot load it – and one chunk written the way a question slide is, heading,
 `---`, the answer, because whether the empty opening segment is a beat is a
-question only `countSegments` in a page can answer.
+question only `countSegments` in a page can answer. `live-sync` is the rest of
+the pair's contract, on two decks of its own (one fades): a frozen cockpit
+neither moved by the projection's snapshots and pans nor sending it a laser
+pointer, a projection reloaded under a freeze booting onto the room's slide,
+a second `S` focusing the open cockpit rather than reloading it, autoplay
+starting when the cockpit drives onto the figure, a figure step inside an
+overlay held to `from 2` waiting for the card, a figure focused from the
+cockpit surviving a knob there, leaving the overview through the landing
+path, and two presses inside one fade acting on the slide being arrived at.
 
 **Because nothing that ships can reach the case** – `math-focus` (no lecture has
 a two-row display formula), `side-anchor` (nothing writes `::: side {.middle}`

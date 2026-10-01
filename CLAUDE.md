@@ -259,7 +259,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
 # against what build.js reads, and `image-refs` holds the two readers of the
 # image-reference set against the one collector both go through.
-# test/ is the things that only break in a built page - 49 specs, ~12 min,
+# test/ is the things that only break in a built page - 50 specs, ~12 min,
 # one Chromium; one of them, souffleuse, starts an engine of its own beside
 # that browser. `npm test` also runs test/reproducible.mjs, which needs
 # neither: it builds a lecture under a partial flag and under a full one and
@@ -273,7 +273,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # createSpanTable, or anything that moves a label or an extent. Anything
 # checkable without a browser belongs in lint.js or in test/gates/, never here.
 #
-# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the eighteen specs that build a
+# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the nineteen specs that build a
 # deck of their own rather than hunting shapes in a real one: test/README.md.
 npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
@@ -916,7 +916,7 @@ plan, its decisions and its build log are `docs/history/PLAN-electron-builder.md
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
 - `SECURITY.md` – **what a deck someone sent can do, what the build refuses from a `source.md` someone else wrote, and what `--watch`, `--serve` and `--prompter` expose** – written for lecturers and evaluators, its claims checked against the code or in a browser. Change it in the same commit as a refusal, a `--serve` rule or a prompter data flow it describes.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-one gates guards, the four browser-spec families, and the eighteen specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-one gates guards, the four browser-spec families, and the nineteen specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.

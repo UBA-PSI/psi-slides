@@ -43,6 +43,7 @@ const SPECS = [
   './beats-footnote.mjs',
   './dock.mjs',
   './autoplay.mjs',
+  './live-sync.mjs',
   './camera-fit.mjs',
   './transition.mjs',
   './squint.mjs',
