@@ -4,7 +4,7 @@ Two suites, split by one question: **can this be decided without a browser?**
 
 - **`test/gates/`** – everything that can, which is no longer only the figure
   language and the `{…}` tail grammar: a gate is the right home for any
-  hand-mirrored list one file keeps of another's. Twenty-one gates, about two seconds,
+  hand-mirrored list one file keeps of another's. Twenty-one gates, about three seconds,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
 - **`test/`** – the things that only break in a built page. 50 specs, about 1,500
@@ -12,8 +12,8 @@ Two suites, split by one question: **can this be decided without a browser?**
   them, `souffleuse`, starts an engine of its own beside that browser – see
   below.
 
-`npm test` runs the gates first, so a compiler regression fails in a second
-rather than in four minutes.
+`npm test` runs the gates first, so a compiler regression fails in seconds
+rather than in twelve minutes.
 
 Anything checkable without a browser belongs in `lint.js`, where it runs on
 every commit, or in `test/gates/`, where it runs on every push. The browser
@@ -55,9 +55,9 @@ npm run reproducible                # same bytes under any flag set
 
 ## The gates: twenty-one contracts
 
-`diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`, `souffleuse.mjs`, `pdf-core.mjs`
-and `lint.js` are all zero-dependency, which is what makes this suite runnable
-with nothing installed. Twenty-one gates, about 1,700 assertions, about two
+`diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`, `souffleuse.mjs`, `pdf-core.mjs`,
+`commands.mjs` and `lint.js` are all zero-dependency, which is what makes this suite runnable
+with nothing installed. Twenty-one gates, about 1,800 assertions, about three
 seconds.
 
 | gate | the contract |

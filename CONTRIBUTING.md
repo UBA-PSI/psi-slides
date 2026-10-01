@@ -1,8 +1,8 @@
 # Contributing
 
 Thank you for looking. Be aware of what this project is before you invest
-time in it: one author, and a test suite that covers only what a browser can
-break. It is used for real teaching, which is why it is public. Since 1.0.0
+time in it: one author, a suite of fast checks that need no browser, and a
+browser suite for what only a built page can break. It is used for real teaching, which is why it is public. Since 1.0.0
 the **source format** is stable – a change
 that stops an existing `source.md` from building the same way is a major
 version – but the code behind it is rearranged whenever that helps.
@@ -35,17 +35,17 @@ node test/run.mjs                           # the browser suite, see below
 ```
 
 `npm test` runs the fast gates and then the browser suite, in that order, so a
-compiler regression fails in a second rather than after four minutes.
+compiler regression fails in seconds rather than after twelve minutes.
 
 **`node lint.js lectures/` is the gate**, and `node test/run.mjs` is the
 safety net. The linter is zero-dependency and runs anywhere, so run it on every
 commit. The suite drives built lectures in a headless Chromium and covers what
 can only break in a built page, in three families: the navigation model, the
 diagram editor's gestures and panel, and the geometry of an emitted figure. It
-said "three things" for as long as it had three specs; it has twenty-two, and
-577 assertions. It builds and serves the lectures itself, so it never reports
-on stale HTML. It needs a browser (`$PSI_CHROME`, else the Playwright cache,
-else the browser the host installed) and takes about five minutes.
+said "three things" for as long as it had three specs; it has fifty, and
+about 1,500 assertions. It builds and serves the lectures itself, so it never
+reports on stale HTML. It needs a browser (`$PSI_CHROME`, else the Playwright
+cache, else the browser the host installed) and takes about twelve minutes.
 `node test/run.mjs nav` runs the specs whose name matches.
 
 `no page errors` is asserted by the runner after every spec rather than by
@@ -64,17 +64,19 @@ somebody remembered.
 ### The fast gates
 
 ```bash
-npm run gate                   # all of them, about a fifth of a second
+npm run gate                   # all twenty-one, about three seconds
 node test/gates/run.mjs corpus # only the gates whose name matches
 ```
 
-`test/gates/` is everything about the **figure language** that can be decided
-without a browser. It needs no `npm install` and no Chromium, because
-`diagram-core.mjs` and `lint.js` are both zero-dependency, and it runs on every
-push in CI, which the browser suite cannot be: it needs `npm ci`, a Chromium
-and five minutes. Where the suite *does* run is a version tag, in
+`test/gates/` is everything that can be decided without a browser: the
+**figure language** first, and any hand-mirrored list one file keeps of
+another's. It needs no `npm install` and no Chromium, because the modules it
+loads and `lint.js` are zero-dependency, and it runs on every push in CI,
+which the browser suite cannot be: it needs `npm ci`, a Chromium and twelve
+minutes. Where the suite *does* run is a version tag, in
 `release.yml`, and on demand from `browser.yml` – start that one from the
-Actions tab to put a branch through it before tagging. Five gates:
+Actions tab to put a branch through it before tagging. [`test/README.md`](test/README.md)
+says what each gate guards; five of them hold the figure language:
 
 - **`refusals.mjs`** – 170 fixtures, each compiled through `diagram-core.mjs`
   *and* run through `lint.js`, asserting the two agree on every refusal. This
@@ -185,9 +187,12 @@ archive does not pretend otherwise.
 **The desktop app is packaged by a third workflow.** `.github/workflows/desktop.yml`
 runs on a push that touches `desktop/` or one of the engine files the app
 stages (`build.js`, `diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`,
-`editor.mjs`, `editor.css`, `LICENSE`, the root `package.json` and lockfile –
-`desktop/test/stage-engine.test.mjs` holds that filter against the staging
-script's own list, because it is the third hand-written copy of it): it runs the app's tests
+`commands.mjs`, `pdf-core.mjs`, `pulse-embed.js`, `editor.mjs`, `editor.css`,
+`LICENSE`, the root `package.json` and lockfile – `desktop/test/stage-engine.test.mjs`
+holds that filter against the staging script's own list, because it is the
+third hand-written copy of it), or one of the two the app does not stage but
+its smoke test runs (`pdf-export.mjs`, `chrome-path.mjs`, behind the parity
+check): it runs the app's tests
 and its smoke test, then builds unsigned packages for macOS, Windows and Linux
 and attaches them to the run as artefacts, for testing.
 

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 psi-slides is a **lecture medium**: one Markdown `source.md` per lecture produces four static HTML views – `print.html` (document), `print-notes.html` (document + speaker notes), `audience.html` (live projection), `speaker.html` (cockpit). All four are self-contained, `file://`-openable, no runtime server required.
 
-Status: released, 1.0.0, one maintainer. **From 1.0.0 the source format is the interface** – a change that stops an existing `source.md` from building the same way is a major version. The internals carry no such promise. The `lectures/` folder holds the canonical examples of what the tool supports; the design rationale is in `PRD.md`. A separate content repo `../psi-slides-mylectures/` consumes this engine via `node ../psi-slides/build.js` and holds the lectures actively being authored.
+Status: released, 2.0.0, one maintainer. **From 1.0.0 the source format is the interface** – a change that stops an existing `source.md` from building the same way is a major version. The internals carry no such promise. The `lectures/` folder holds the canonical examples of what the tool supports; the design rationale is in `PRD.md`. A separate content repo `../psi-slides-mylectures/` consumes this engine via `node ../psi-slides/build.js` and holds the lectures actively being authored.
 
 ## Commands
 
@@ -258,7 +258,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
 # tail grammar that can, plus the cue-card grammar, the prompter's policy and
-# the PDF export's - twenty-one gates, about two seconds, no browser and no
+# the PDF export's - twenty-one gates, about three seconds, no browser and no
 # `npm install` (diagram-core.mjs, tails.mjs, cue-cards.mjs, souffleuse.mjs,
 # pdf-core.mjs, commands.mjs and lint.js are all zero-dep).
 # It is also where a hand-mirrored list one file keeps of another's belongs,
@@ -272,8 +272,8 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # asserts the shared view is the same bytes, because release.yml's
 # tracked-output check is only meaningful if a rebuild is a function of the
 # source alone.
-# `npm test` runs the gates first so a compiler regression fails in a second
-# rather than in four minutes; gates.yml runs them on push and PR.
+# `npm test` runs the gates first so a compiler regression fails in seconds
+# rather than in twelve minutes; gates.yml runs them on push and PR.
 #
 # Run the browser suite after touching AUDIENCE_JS, the key map (commands.mjs, COMMAND_RUN), editor.mjs,
 # createSpanTable, or anything that moves a label or an extent. Anything
@@ -406,7 +406,7 @@ document's pagination. The plan and its decisions per stage are in
 **`commands.mjs` is the sixth zero-dep module, and the one place a key is bound.** One entry per row of the `?` panel, in the panel's order: a *command* has `keys` and is dispatched, a *doc row* has none (a mouse gesture, or a key answered by a guard before the lookup – the overview board, the search field, a focused figure, the editor), and a command with `row: '<id>'` is listed in another command's row (`Shift`-`C F A L` is four commands, one line). `renderHelpOverlay` renders its rows through `helpGroups(view, {editor, prompter})`; the same text is spliced into both live views as `window.PSI_COMMANDS`, the `cue-cards.mjs` treatment, and the keydown listener in `AUDIENCE_JS` ends in `commandFor(keyMap(VIEW), e)` → `COMMAND_RUN[id](e)`. Each run function is the body of the `case` it replaced; `SPEAKER_JS` and `SOUFFLEUSE_JS` add the cockpit's commands by assigning into `COMMAND_RUN`, the way they set `viewHooks`. **The listener's head stays code** – text fields, the panel's and the search's own keys, the link mark, any Cmd/Ctrl/Alt chord, the go-to prompt, the overview board's arrows – because those are rules about *where* a key is pressed, not about what a command is; so does the editor's `E` and everything under `dgeKeydown`, a modal that runs in capture ahead of the map. **A shifted press with no binding of its own falls back to the plain key**, which is what the switch's `case 'b': case 'B':` meant: `Shift`-`B` blanks, and `?` and `#`, which arrive with Shift held, reach their commands. The module asserts at load that no key is bound twice in one view; the `commands` gate holds a fixture of every press the switch answered, a run function for every command a view answers, and a row for every key – see `test/README.md`.
 
 Navigate build.js by the `// ── section ──` banners – `grep -n '^// ── ' build.js`
-lists all sixty in order, which is the map that cannot go stale. Two of them carry
+lists all seventy-one in order, which is the map that cannot go stale. Two of them carry
 a decision the name does not:
 
 - `// ── math (KaTeX, rendered at build time) ──` – the family→class map is **parsed out of `katex.min.css`** (`node_modules/katex/dist/`, reached with `nodeRequire.resolve`), never hard-coded, so it survives a KaTeX upgrade; and the stylesheet is emitted only for views that actually contain a formula, because the inlined woff2 faces are 254 KB for the full set. The live views additionally carry `KATEX_TOGGLE_FAMS` (sans + typewriter, ~46 KB) so the maths can follow the `F` toggle; print passes no `fontToggle` flag and pays nothing extra.
@@ -479,7 +479,7 @@ Checks enforced:
 - Orphan columns (columns with <2 chunks).
 - Figure caption redundancy (`figure:` chunk opens with an image whose alt text becomes a `<figcaption>` stacked under the heading – discourages three-label pile-ups of heading + sub-heading + caption).
 
-**`build.js` and `lint.js` are a deliberate duplication, and keeping them congruent is the work.** A code review over the decoration family found eight defects, seven of which were places the two disagreed – four in the direction that matters, where the build *accepted* what the linter refuses. That direction merges green, because CI lints `lectures/network-security` and `lectures/diagrams` but never builds them. **When you add a refusal to one file, grep the other for the same key in the same commit.** And when a rule already exists – a pre-flight, a fallback refusal for an unreadable directive – the question is not whether to write it but which other constructs are still missing from it.
+**`build.js` and `lint.js` are a deliberate duplication, and keeping them congruent is the work.** A code review over the decoration family found eight defects, seven of which were places the two disagreed – four in the direction that matters, where the build *accepted* what the linter refuses. That direction merges green, because `gates.yml`, the CI job that runs on every push, lints `lectures/network-security` and `lectures/diagrams` but builds neither; only `pages.yml` on `main` and `release.yml` on a tag build them. **When you add a refusal to one file, grep the other for the same key in the same commit.** And when a rule already exists – a pre-flight, a fallback refusal for an unreadable directive – the question is not whether to write it but which other constructs are still missing from it.
 
 ### Four outputs, three renderers, one source
 
@@ -652,10 +652,9 @@ both were learned the hard way:
 
 ### Animated infographics (`::: draw`) and the diagram editor
 
-**Development state, not in any tagged release.** `package.json` still reports
-1.0.0 and the latest tag does not include the feature; the changelog entry stays
-under `## [Unreleased]`. Publishing `main` and cutting a release are separate
-events – `pages.yml` redeploys the project site on every push.
+**New in 2.0.0**, the first release that carries it; 1.0.0 does not.
+Publishing `main` and cutting a release are separate events – `pages.yml`
+redeploys the project site on every push.
 
 A boxes-and-arrows compiler: a line-oriented DSL inside the lecture markdown
 compiles to one inline `<svg>` plus, where the author wrote `step` blocks, a
@@ -949,9 +948,9 @@ plan, its decisions and its build log are `docs/history/PLAN-electron-builder.md
 - `lectures/tutorial/source.md` – the canonical authoring reference (self-referential lecture). Build and open its `audience.html` to see every directive live.
 - `lectures/diagrams/source.md` – every `::: draw` construct, including two of the stepped figures the feature was built for (CBC decryption, a stack frame being overrun) and, in `#sequence` and `#seqmore`, the whole of the `sequence` sub-grammar with two annotations hung off its generated names. The class vocabulary is spread over four chunks, each on the slide that explains it: `#look` (every fill and every family), `#outlines`, `#prominence`, and `#typefit` (the three answers to how type meets its box).
 
-  **Most of the browser suite drives this lecture, and it addresses the figures
-  by chunk id, so a drawing here has tests on it.** (Twenty-four specs at the
-  time of writing, twenty-one of them naming a chunk.) Keep a chunk's id and its `::: draw`
+  **Half the browser suite drives this lecture, and it addresses the figures
+  by chunk id, so a drawing here has tests on it.** (Twenty-five specs at the
+  time of writing, eighteen of them naming a chunk.) Keep a chunk's id and its `::: draw`
   block together and they stay green; move a row onto another slide and the spec
   that measured it has to follow. The current map is a command rather than a
   table here, because a table would rot:
@@ -970,12 +969,12 @@ plan, its decisions and its build log are `docs/history/PLAN-electron-builder.md
   and `test/README.md` says why and lists the others that do it.
 
   The lecture-wide `draw-defaults` block is in its frontmatter.
-- `lectures/decoration/source.md` – **every slide-decoration construct, shown rather than described**: the card and row vocabulary, `::: side` with a ratio, `::: backdrop` with a `reveal` in both directions, `::: overlay` with `from`, `{.bare}`, `::: draw … autoplay N cycle`, a `## outline:` chunk, a `## closing:` slide, the three kinds of divider content – a quotation, a photograph and a figure, one per column – and, since the frame work, the three panel compositions (`::: overlay {.panel}` as a column, a band and the whole frame), a part with an inherited `::: dock` beside prose, columns, a band at the head and a `from 2` column, the slot cards for overlay and dock, and the beats below the top level (six beats through two panes and a card row; rows arriving one at a time). `lectures/frame-lab/` is the untracked edge-case deck those were chosen from. It is the third tracked lecture, for the same reason `lectures/diagrams/` is the second: a reader should be able to see a construct working before writing it.
+- `lectures/decoration/source.md` – **every slide-decoration construct, shown rather than described**: the card and row vocabulary, `::: side` with a ratio, `::: backdrop` with a `reveal` in both directions, `::: overlay` with `from`, `{.bare}`, `::: draw … autoplay N cycle`, a `## outline:` chunk, a `## closing:` slide, the three kinds of divider content – a quotation, a photograph and a figure, one per column – and, since the frame work, the three panel compositions (`::: overlay {.panel}` as a column, a band and the whole frame), a part with an inherited `::: dock` beside prose, columns, a band at the head and a `from 2` column, the slot cards for overlay and dock, and the beats below the top level (six beats through two panes and a card row; rows arriving one at a time). `lectures/frame-lab/` is the edge-case deck those were chosen from, tracked as a source with no views. It is the third tracked lecture, for the same reason `lectures/diagrams/` is the second: a reader should be able to see a construct working before writing it.
 
   **A deck has exactly one cover and one `section:` variant, so one lecture cannot show ten and six.** This one wears `cover: quote` and `section: outline` and names the rest in a card row; the gallery of all ten compositions lives on the project site, where ten compositions side by side is what the page is for.
 
 - `lectures/network-security/source.md` – **thirty-six real lecture slides rebuilt as figures**, and the reason the outlines, `.turn`, `bars`, `grid`, `plot` and `.smooth` exist. Rebuilt from two PowerPoint decks with the wording kept verbatim (original typos included, each marked in a `#` comment) and the arrangement redrawn. Read it for what the vocabulary looks like at scale; `figure-design.md` is the rules it was built against. Linted **and built** by CI, as a compiler check on the largest body of real figures there is, but not published – unlike `lectures/diagrams/`, which is now both. Its views are not tracked, so a build here is the only thing that compiles it.
-- `lectures/python-intro/source.md` – richest example of `::: cols`, `::: side`, and `::: marginalia` in combination, 36 chunks. It is also what the project site's screenshots come from, so a change to `#why-playwright` means re-running `docs/site/shoot.mjs`.
+- `lectures/python-intro/source.md` – richest example of `::: cols`, `::: side`, and `::: marginalia` in combination, 39 chunks. It is also what the project site's screenshots come from, so a change to `#why-playwright` means re-running `docs/site/shoot.mjs`.
 - `lectures/spoken-talk/source.md` – **a short talk written out word for word**, and the only lecture here whose `> note:` blocks are a script rather than reminders. It exists so the cockpit's cue-card mode can be photographed doing its job: `#second-time` is a figure with three `step` blocks and three notes pinned to those beats with `> note: from N`, so one press moves a card and the projection in turn. `docs/site/shoot.mjs` takes four frames of that chunk for `in-the-room.html`, addressed by id – **its chunk ids are the contract with that script**, like `docs/artifact/figure-rules/`. Six chunks, views not tracked.
 - `lectures/spoken-talk-de/source.md` – **the same talk in German, chunk ids unchanged**, for the one German picture that needs a German deck: the prompter answers in the lecture's language, so `docs/site/shoot-prompter.mjs de` shoots it. Views not tracked.
 - `lectures/title-block/source.md` – **the title pair and the credit block, shown rather than described.** Six chunks, views not tracked. It wears `style: {headline: eyebrow, caps: on}`, all four credit ranks and `closing-credits: cover`, which is why it exists as a deck of its own: `lectures/decoration/` wears `cover: quote` and a deck has exactly one cover, so it can show the credit slots but never the eyebrow. Read it for what `title:` and `subtitle:` look like the other way up.

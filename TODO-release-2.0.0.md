@@ -51,19 +51,3 @@ key is migrated once), 7 and 8 in `32016f2`, 9 in `4dedd4b`.
 
 - **Before tagging, push `main` and run `browser.yml` on it** – the browser
   suite last ran on CI on 2026-08-29.
-
-## S8 – Documentation drift
-
-- `docs/site/getting-started.html:421–422` "keeps building the same way, and
-  that will not change" is false; it, its `.de` twin and
-  `decoration.html:48–56` (+ `.de`) present post-1.0 features as unreleased.
-- SECURITY.md:99–100 and README.md:357 "until 2.0.0 is tagged" wording.
-- CLAUDE.md: "sixty" sections (70); CI "never builds" network-security and
-  diagrams (release.yml does); `lectures/frame-lab/` called untracked (it is
-  tracked, and the only reason `lint --strict` exits 2); "Twenty-four specs …
-  twenty-one" (25 / 18); python-intro "36 chunks" (39, also README:254).
-- CONTRIBUTING.md:67 gates "a fifth of a second" (2.4 s); :179–181 desktop.yml
-  filter misses five files.
-- README.md:136 documents `::: margin` and "Fourteen directives" (16);
-  :245 cwebp "only if you use `--optimize-images`"; :231 "fourteen thousand
-  lines" (32,062) and tests "only what a browser can break".

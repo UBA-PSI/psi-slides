@@ -96,8 +96,7 @@ ends up inside the HTML you send.
 
 ## Running node build.js on a source.md someone else wrote
 
-**Use psi-slides 2.0.0 or later.** Until 2.0.0 is tagged, that means `main`
-at commit `a2fb43b` or later. In earlier versions a `source.md` could run
+**Use psi-slides 2.0.0 or later.** In earlier versions a `source.md` could run
 code while `node build.js` read it, and copy any file you can read into the
 four HTML files.
 
