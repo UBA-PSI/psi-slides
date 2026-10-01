@@ -3283,9 +3283,10 @@ console.log('\nlayout generations');
     ok(none.code === 0 && en.code === 0, 'both the no-lang and the lang: en deck build', none.out + en.out);
     ok(none.html === en.html, 'lang: en and no lang: emit byte-identical audience HTML');
     // The documents' reader tools key their storage by the source folder's
-    // name, and raw() builds each deck in a temporary folder of its own, so
-    // that one field differs by construction and is taken out first.
-    const unkey = (h) => h && h.replace(/\{"key":"[^"]*"/, '{"key":""');
+    // name (and a hash of the folder above), and raw() builds each deck in a
+    // temporary folder of its own, so those two fields differ by
+    // construction and are taken out first.
+    const unkey = (h) => h && h.replace(/\{"key":"[^"]*","name":"[^"]*"/, '{"key":"","name":""');
     ok(unkey(none.print) === unkey(en.print), 'byte-identical print HTML');
     ok(unkey(none.notes) === unkey(en.notes), 'byte-identical print-notes HTML');
   }
