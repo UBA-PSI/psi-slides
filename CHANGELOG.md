@@ -3317,6 +3317,21 @@ tag:
   in `lectures/diagrams` now land exactly on the margin on both sides; what is
   left is the generosity of the text-width estimate, which is about
   11% on the bundled faces and never clips.
+- **The desktop builder ships on the engine's release, at the engine's
+  version.** Up to 2.0.0 it had a 0.x version of its own and went out as a
+  pre-release under a `builder-<version>` tag. From 2.0.0
+  `desktop/package.json` carries the engine's version, and a `v*` tag builds
+  the three platforms' packages with the same jobs that test the app on every
+  push and attaches them to the release beside `psi-slides.tar.gz` and
+  `psi-slides.zip`, whose names do not change. The release is published by
+  one job that needs both halves, so a failure on either side publishes
+  nothing rather than an engine without its app; the job also refuses a tag
+  that `desktop/package.json` disagrees with. `desktop-release.yml` and the
+  `builder-*` tags are retired; a package between two releases is the
+  artefact of a `desktop.yml` run. The macOS package CI attaches is still
+  unsigned until the signed and notarised one is uploaded over it, and the
+  Windows and Linux packages are still experimental; the release notes say
+  both.
 
 ### Removed
 

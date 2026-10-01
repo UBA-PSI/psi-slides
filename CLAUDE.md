@@ -873,7 +873,12 @@ no root script that touches `desktop/`, `desktop/ export-ignore` in
 `.gitattributes` so the engine tarball stays what the README says it is, and
 `desktop.yml` is path-filtered so a lecture commit does not run a
 three-platform matrix. Its tests live in `desktop/test/` with their own
-runner; `npm test` in the root does not run them.
+runner; `npm test` in the root does not run them. **From 2.0.0 it ships on the
+engine's `v*` release, at the engine's version**: `release.yml` calls
+`desktop.yml` as a reusable workflow, refuses a tag either `package.json`
+disagrees with, and publishes the archives and the packages in one job that
+needs both, so a failure on either side publishes nothing. The `builder-*`
+pre-release tag and `desktop-release.yml` are gone; CONTRIBUTING.md has why.
 
 **The app drives `build.js` through `--events`, never through the human log.**
 It spawns the engine as a child (`ELECTRON_RUN_AS_NODE`, argument array, no

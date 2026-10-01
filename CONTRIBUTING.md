@@ -167,13 +167,14 @@ python3 -m http.server -d _site 8000
 ```
 
 **A version tag publishes a release.** `.github/workflows/release.yml` fires on
-`v*`, and it refuses to publish if the tag disagrees with `package.json`, if
-the lint fails, if a tracked view is not what `npm run build:tracked` makes
+`v*`, and it refuses to publish if the tag disagrees with `package.json` or
+with `desktop/package.json`, if the lint fails, if a tracked view is not what `npm run build:tracked` makes
 of the current source, if the release notes would not fit, or if the browser suite finds a regression – it runs there, last of
 the checks because it is the only one that costs minutes. If that is a
 surprise at tag time, it should not be: run `browser.yml` from the Actions tab
 on the branch first. Then it attaches two archives, `psi-slides.tar.gz` and
-`psi-slides.zip`. **Do not rename those assets**: the README and the site link
+`psi-slides.zip`, and the desktop app's packages. **Do not rename those
+archives**: the README and the site link
 `releases/latest/download/psi-slides.tar.gz`, which only resolves while the
 file is called exactly that.
 
@@ -194,32 +195,50 @@ third hand-written copy of it), or one of the two the app does not stage but
 its smoke test runs (`pdf-export.mjs`, `chrome-path.mjs`, behind the parity
 check): it runs the app's tests
 and its smoke test, then builds unsigned packages for macOS, Windows and Linux
-and attaches them to the run as artefacts, for testing.
+and attaches them to the run as artefacts, for testing. Run by hand from the
+Actions tab (`workflow_dispatch`), it is also how a package between two
+releases is made.
 
-**Until 2.0.0 the app has its own version and its own tag.** `desktop/package.json`
-is at 0.x, and a tag `builder-<version>` runs
-`.github/workflows/desktop-release.yml`, which reuses `desktop.yml` as a
-reusable workflow and attaches the three platforms' packages to a
-**pre-release** – never a release, so `releases/latest/download/` keeps
-pointing at the last engine release. The tag is deliberately outside the
-`v*` pattern: a `v2.0.0-beta.1` would run `release.yml`, which creates
-releases without `--prerelease`, and every reader of the site would be
-handed a beta engine. The asset names carry no version (`artifactName` in
+**From 2.0.0 the app ships on the engine's tag, at the engine's version.**
+`desktop/package.json` carries the same version as `package.json`, and
+`release.yml` calls `desktop.yml` as a reusable workflow and attaches the three
+platforms' packages to the same release as the two archives. The jobs are
+ordered so the release is created once and whole: `check` compares the tag
+with both `package.json` files and cuts the release notes; `engine` (every
+engine check, then the archives) and `desktop` (the app's tests, its smoke
+test, then the packages) both need it and run side by side; `publish` needs
+all three and is the only job that writes to the release. If any of them
+fails, `publish` does not run and there is no release at all – not an engine
+release without its app. The tag stays: "Re-run failed jobs" on the run
+retries a flaky runner and then publishes, or delete the tag, fix and tag
+again. `gh release create` with assets makes a draft, uploads and only then
+publishes, so an upload that fails leaves a draft to delete, never a
+half-published release. The asset names carry no version (`artifactName` in
 `desktop/package.json`), so the site links
-`releases/download/builder-<version>/psi-slides-builder-mac-arm64.dmg` and
-the link is the package that was tested. From 2.0.0 the app and the engine
-carry the same version number, and the desktop packages become additional
-assets on the same release tag beside `psi-slides.tar.gz` and
-`psi-slides.zip`, whose names do not change.
+`releases/download/v<version>/psi-slides-builder-mac-arm64.dmg` and the link
+is the package that was tested; `publish` checks that all five are there
+before it creates anything.
+
+**There is no separate desktop pre-release any more.** Up to 2.0.0 the app
+had its own 0.x version and its own `builder-<version>` tag, which ran
+`desktop-release.yml` and attached the packages to a pre-release. That
+workflow is gone: with one version for both, a pre-release of the app between
+two engine releases would need a version neither of them has, and a tag
+`release.yml` refuses. A package to try between releases is the artefact of a
+`desktop.yml` run, started by hand if no push has run it. The `builder-0.1.x`
+pre-releases stay on GitHub as they are. Do not push a `v*` tag with a
+suffix (`v2.1.0-beta.1`) to get a beta either: `release.yml` creates releases
+without `--prerelease`, and `releases/latest/download/` would hand every
+reader of the site a beta engine.
 
 **The site's download links change after the tag, never with it.** The link
 gate in `docs/site/build-site.js` resolves internal targets and fragments; it
 does not fetch an external URL, so a page pointing at
-`releases/download/builder-<next>/…` passes the gate whether or not that
+`releases/download/v<next>/…` passes the gate whether or not that
 release exists – and `pages.yml` redeploys on every push to `main`, which
 makes a commit that changes a download link a publish rather than a staging
-step. So: push the tag, wait for `desktop-release.yml` to attach all five
-assets, check them (`gh release view builder-<version> --json assets`, or a
+step. So: push the tag, wait for `release.yml` to publish all seven
+assets, check them (`gh release view v<version> --json assets`, or a
 `curl -sIL -o /dev/null -w '%{http_code}'` per link), and only then commit
 the version strings in `docs/site/getting-started.html` and
 `getting-started.de.html` – six URLs and one `<code>` per page.
@@ -230,7 +249,7 @@ certificate in the keychain and the three notarisation variables in a
 gitignored `desktop/.env`, exactly as the Booklet Tool is released;
 `desktop/README.md` has the steps. Nothing of that is a repository secret.
 The signed package is uploaded over CI's unsigned one, under the same name:
-`gh release upload builder-<version> "desktop/dist/psi-slides-builder-mac-arm64.dmg" --clobber`,
+`gh release upload v<version> "desktop/dist/psi-slides-builder-mac-arm64.dmg" --clobber`,
 and the `.zip` the same way.
 
 **`npm run dist:signed` notarises the app, not the disk image.** Read its log:
@@ -277,7 +296,9 @@ Cutting a release:
    the full section stays readable too.
 5. Bump `version` to match, in `package.json` and in both places in
    `package-lock.json`: `npm version --no-git-tag-version 1.2.3` does all
-   three and neither commits nor tags.
+   three and neither commits nor tags. Run the same command in `desktop/`,
+   for `desktop/package.json` and its lockfile; the release job refuses a
+   tag that either `package.json` disagrees with.
 6. Commit, then tag and push:
 
 ```bash
@@ -286,9 +307,14 @@ git push origin main v1.2.3
 ```
 
 Pushing `main` redeploys the site; pushing the tag publishes the release. If
-the release job fails, delete the tag on both sides (`git push --delete origin
+a job of the release run fails, nothing is published. A runner that failed
+for no reason of the tree's is retried with "Re-run failed jobs"; otherwise
+delete the tag on both sides (`git tag -d v1.2.3`, `git push --delete origin
 v1.2.3`), fix, and tag again – a partially published release is worse than a
 late one.
+
+7. Upload the signed macOS packages over CI's unsigned ones (see above), then
+   commit the version in the site's download links.
 
 ## Conventions
 

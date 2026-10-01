@@ -26,22 +26,26 @@ round.
 
 Download the package for your system from the project's
 [releases page](https://github.com/UBA-PSI/psi-slides/releases) and install it
-the way you install anything else. Until 2.0.0 the app is published as a
-**pre-release** under its own tag, `builder-<version>`; the macOS package has
-been tried on a real Mac, the Windows and Linux packages are built by CI and
-are **experimental** – not yet tried on a real machine.
+the way you install anything else. From 2.0.0 the app is part of every
+psi-slides release, at the same version as the engine it bundles, beside the
+engine's two archives (up to then it had its own 0.x version and was published
+as a pre-release under a `builder-<version>` tag). The macOS package has been
+tried on a real Mac; the Windows and Linux packages are built by CI and are
+**experimental** – not yet tried on a real machine.
 
-The packages are **not signed yet**, so each system will warn you the first
-time. On macOS, a double click says the app cannot be opened because the
+The packages CI builds are **not signed**, so each system will warn you the
+first time. On macOS, a double click says the app cannot be opened because the
 developer cannot be verified; open it once with a right click and "Open"
 instead, and the warning does not come back. On Windows, SmartScreen shows a
 blue "Windows protected your PC" panel; "More info" then "Run anyway" installs
 it. On Linux, an AppImage needs the executable bit (`chmod +x`), and the `.deb`
 installs with your usual package tool.
 
-A release will be signed and, on macOS, notarised, so that nobody who is
-handed the app has to read the paragraph above. Windows has no certificate
-yet and keeps its one SmartScreen warning until it does.
+On macOS, the unsigned package on a release is replaced by a signed and
+notarised one under the same name, built on the maintainer's machine (see
+*Signing the macOS release* below); the release notes say so until it has
+happened. Windows has no certificate yet and keeps its one SmartScreen
+warning until it does.
 
 ## Using it
 

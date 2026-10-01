@@ -16,8 +16,6 @@ Not in this file, because they are decisions rather than defects:
   `psiPresent` has no member saying "inside the app"; the `present` channel
   name is overloaded; the fallback badge state has no path from main; the
   typed-`w` case has no test.
-- CONTRIBUTING.md:187–201 promises the app shares the engine's version and
-  ships on the `v*` release from 2.0.0; no workflow does that.
 
 ## S1 – Security (a source.md someone sent you)
 

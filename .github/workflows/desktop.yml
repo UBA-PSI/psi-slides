@@ -60,10 +60,12 @@ on:
       - 'package-lock.json'
       - 'LICENSE'
       - '.github/workflows/desktop.yml'
+  # Run by hand from the Actions tab, this is also how a package between two
+  # releases is made: the run's artefacts are the packages, unsigned.
   workflow_dispatch:
-  # desktop-release.yml runs this same matrix for a `builder-*` tag and
-  # then attaches the packages to a pre-release, so the release is built by
-  # exactly the jobs that test every push.
+  # release.yml runs this same matrix for a `v*` tag and then attaches the
+  # packages to the release beside the engine archives, so the release is
+  # built by exactly the jobs that test every push.
   workflow_call:
 
 permissions:
@@ -140,10 +142,12 @@ jobs:
       # GitHub. Windows has no code-signing certificate at all, so its
       # installer is unsigned wherever it is built and SmartScreen warns once.
       # What this job produces is for testing, and it is attached to the run
-      # rather than to a release – except when desktop-release.yml is the
-      # caller, which downloads these artefacts and attaches them to a
-      # pre-release under the names `artifactName` in desktop/package.json
-      # gives them (no version in the name, so a link keeps working).
+      # rather than to a release – except when release.yml is the caller,
+      # which downloads these artefacts and attaches them to the `v*` release
+      # under the names `artifactName` in desktop/package.json gives them (no
+      # version in the name, so a link keeps working). release.yml checks for
+      # those five names, so a change to `artifactName` or to the targets
+      # changes its list in the same commit.
       - name: Package
         working-directory: desktop
         env:
