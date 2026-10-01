@@ -611,6 +611,31 @@ export async function run({ report }) {
   ok(replayAnswers([{ type: 'tick', elapsed: 5 },
     { type: 'answer', body: answer({ action: 'hint', kind: 'fact', text: 'Zu früh' }) }])[0].reason === 'start-quiet',
      'a log too old to say when the switch was thrown measures the quiet from the first tick');
+  // A dismissal is an answer, and the live policy acts on it: the standing
+  // slot is free again. The replay used to skip `dismiss` lines, so the
+  // second hint below met a slot the speaker had already emptied.
+  const dismissRows = replayAnswers([
+    { type: 'status', state: 'listening', elapsed: 0 },
+    { type: 'tick', elapsed: 120, chunkId: 'vorgesetzter', cueTargets: [], timeHintAllowed: false },
+    { type: 'answer', body: answer({ action: 'hint', kind: 'example', text: 'Den Fall jetzt nennen' }) },
+    { type: 'hint', hintId: 'hint1', kind: 'example', text: 'Den Fall jetzt nennen', at: 120 },
+    { type: 'dismiss', hintId: 'hint1', how: 'key' },
+    { type: 'tick', elapsed: 145, chunkId: 'vorgesetzter', cueTargets: [], timeHintAllowed: false },
+    { type: 'answer', body: answer({ action: 'hint', kind: 'fact', text: 'Es waren zwei' }) },
+  ]);
+  ok(dismissRows.length === 2 && dismissRows[1].show === true,
+     'a replay applies a dismiss line: the slot the speaker emptied is empty', j(dismissRows));
+  const keptRows = replayAnswers([
+    { type: 'status', state: 'listening', elapsed: 0 },
+    { type: 'tick', elapsed: 120, chunkId: 'vorgesetzter', cueTargets: [], timeHintAllowed: false },
+    { type: 'answer', body: answer({ action: 'hint', kind: 'example', text: 'Den Fall jetzt nennen' }) },
+    { type: 'hint', hintId: 'hint1', kind: 'example', text: 'Den Fall jetzt nennen', at: 120 },
+    { type: 'dismiss', hintId: 'hint9', how: 'key' },
+    { type: 'tick', elapsed: 145, chunkId: 'vorgesetzter', cueTargets: [], timeHintAllowed: false },
+    { type: 'answer', body: answer({ action: 'hint', kind: 'fact', text: 'Es waren zwei' }) },
+  ]);
+  ok(keptRows[1].show === false && keptRows[1].reason === 'standing',
+     'and a dismiss of some other hint frees nothing', j(keptRows));
 
   // ── the policy, row by row ───────────────────────────────────────
   const hint = (kind, text, severity = 'low') => ({ action: 'hint', kind, text, severity });

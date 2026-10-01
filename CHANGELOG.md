@@ -1463,6 +1463,10 @@ tag:
 
 ### Fixed
 
+- **`--prompter-replay` reads the hints the speaker sent away.** It skipped
+  the `dismiss` lines of the log, so a hint dismissed live still held the
+  one place on the strip in the replay, and every quieter hint after it was
+  reported as held back.
 - **The live prompter measures the clock against a part's own `@mm:ss`.** A
   `> note:` under a `#` heading belongs to that part's divider slide, and the
   cockpit counted its time mark; the prompter did not see the note at all, so

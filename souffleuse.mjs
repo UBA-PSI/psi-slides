@@ -1477,7 +1477,9 @@ export function createPolicy(opts = {}) {
  * The switch being thrown is a `status` line carrying the clock it was thrown
  * on, and that is where the opening quiet is measured from; an `idle` or an
  * `off` un-throws it. A log too old to carry that falls back to the first
- * `tick`. Each answer is judged in the state line of the tick before it.
+ * `tick`. Each answer is judged in the state line of the tick before it, and
+ * a `dismiss` line sends the replay's hint for the same answer away, as the
+ * speaker's did live.
  *
  * @param {Array} lines   parsed JSONL objects, or the raw lines
  * @param {object} opts   passed straight to `createPolicy`
@@ -1488,6 +1490,7 @@ export function replayAnswers(lines, opts = {}) {
   const policy = createPolicy(opts || {});
   const rows = [];
   let at = 0, chunkId = null, allowed = false, targets = [], onAt = null, n = 0;
+  const liveToReplay = new Map();
   for (const raw of (Array.isArray(lines) ? lines : [])) {
     const line = typeof raw === 'string' ? safeJson(raw) : raw;
     if (!line || typeof line !== 'object') continue;
@@ -1503,6 +1506,21 @@ export function replayAnswers(lines, opts = {}) {
       allowed = !!line.timeHintAllowed;
       targets = Array.isArray(line.cueTargets) ? line.cueTargets.map(String) : [];
       if (onAt == null) onAt = at;
+      continue;
+    }
+    // The live run names a hint it showed on the `hint` line after the
+    // answer; the replay names its own `replay<n>`. A `dismiss` names the live
+    // id, so it is mapped onto the replay's hint for the same answer – which
+    // the replay may never have shown, and then there is nothing to send
+    // away. Without this the standing slot the speaker had emptied stayed
+    // full in the replay, and every low hint after it read `standing`.
+    if (line.type === 'hint') {
+      if (line.hintId != null && n > 0) liveToReplay.set(String(line.hintId), 'replay' + n);
+      continue;
+    }
+    if (line.type === 'dismiss') {
+      const mapped = liveToReplay.get(String(line.hintId == null ? '' : line.hintId));
+      if (mapped) policy.dismissed(mapped);
       continue;
     }
     if (line.type !== 'answer' || line.dryRun) continue;
