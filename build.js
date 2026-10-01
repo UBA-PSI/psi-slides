@@ -514,6 +514,11 @@ let noOptimizeImages = false;    // --no-optimize-images
 const WEBP_INLINE_EXTS = new Set(['png', 'jpg', 'jpeg']);
 let webpEncoder;                 // undefined = not probed, null = none found
 let webpNoticeShown = false;
+// absPath -> { hash, out }. Keyed on the bytes as well as the path, and kept
+// across --watch rebuilds on purpose, so an unchanged picture is encoded once
+// a session. A path alone kept the old pixels of a picture replaced under the
+// same name - by hand, or by the editor's upload with `replace` - for as long
+// as the watch ran.
 const webpInlineCache = new Map();
 let webpInlineCount = 0, webpInlineSaved = 0;
 
@@ -528,11 +533,14 @@ function noteImageOutcome(absPath, entry) {
   imageOutcomes.set(absPath, { ...(imageOutcomes.get(absPath) || {}), ...entry });
 }
 
-function webpInlineBytes(absPath, origBytes) {
+function webpInlineBytes(absPath, buf) {
   if (noOptimizeImages) return null;
   const ext = path.extname(absPath).slice(1).toLowerCase();
   if (!WEBP_INLINE_EXTS.has(ext)) return null;
-  if (webpInlineCache.has(absPath)) return webpInlineCache.get(absPath);
+  const origBytes = buf.length;
+  const hash = crypto.createHash('sha256').update(buf).digest('hex');
+  const hit = webpInlineCache.get(absPath);
+  if (hit && hit.hash === hash) return hit.out;
   if (webpEncoder === undefined) webpEncoder = detectWebpEncoder();
   if (!webpEncoder) {
     if (!webpNoticeShown) {
@@ -541,7 +549,7 @@ function webpInlineBytes(absPath, origBytes) {
         + ' Install one (brew install webp) and they shrink to roughly a sixth.');
     }
     noteImageOutcome(absPath, { orig: origBytes, note: 'original bytes (no encoder)' });
-    webpInlineCache.set(absPath, null);
+    webpInlineCache.set(absPath, { hash, out: null });
     return null;
   }
   const tmp = path.join(os.tmpdir(), 'psi-webp-' + crypto.randomBytes(6).toString('hex') + '.webp');
@@ -564,7 +572,7 @@ function webpInlineBytes(absPath, origBytes) {
     webpInlineCount++; webpInlineSaved += origBytes - out.length;
     noteImageOutcome(absPath, { orig: origBytes, out: out.length });
   }
-  webpInlineCache.set(absPath, out);
+  webpInlineCache.set(absPath, { hash, out });
   return out;
 }
 
@@ -611,7 +619,7 @@ function toDataUri(absPath) {
     uri = `data:${mime};utf8,${encodeURIComponent(text)}`;
   } else {
     const buf = fs.readFileSync(absPath);
-    const webp = webpInlineBytes(absPath, buf.length);
+    const webp = webpInlineBytes(absPath, buf);
     uri = webp
       ? `data:image/webp;base64,${webp.toString('base64')}`
       : `data:${mime};base64,${buf.toString('base64')}`;
@@ -27786,11 +27794,12 @@ function integrateAnnotations(src) {
   const startIdx = src.indexOf(ANNOT_MARKER_START);
   if (startIdx < 0) return { src, moved: 0, unresolved: [], warnings: [], hadMarker: false };
   const endMarkerIdx = src.indexOf(ANNOT_MARKER_END, startIdx + ANNOT_MARKER_START.length);
-  const blockEnd = endMarkerIdx >= 0 ? endMarkerIdx + ANNOT_MARKER_END.length : src.length;
-  const blockInner = src.slice(
-    startIdx + ANNOT_MARKER_START.length,
-    endMarkerIdx >= 0 ? endMarkerIdx : src.length,
-  );
+  // No end marker is refused, never read as "to the end of the file": the
+  // block is removed from the source, so that reading deleted every slide
+  // written after a pasted snippet whose last line had not come along.
+  if (endMarkerIdx < 0) return { src, moved: 0, unresolved: [], warnings: [], hadMarker: true, noEnd: true };
+  const blockEnd = endMarkerIdx + ANNOT_MARKER_END.length;
+  const blockInner = src.slice(startIdx + ANNOT_MARKER_START.length, endMarkerIdx);
 
   const warnings = [];
   const orphanLines = [];
@@ -27857,6 +27866,12 @@ function runIntegrate(absIn) {
   const result = integrateAnnotations(src);
   if (!result.hadMarker) {
     console.error('No <!-- annotations:start --> block found in ' + absIn);
+    process.exit(1);
+  }
+  if (result.noEnd) {
+    console.error('The <!-- annotations:start --> block in ' + absIn + ' has no <!-- annotations:end --> line after it.');
+    console.error('Without one there is no telling where the snippet stops and the lecture goes on, so nothing was changed.');
+    console.error('Add the end marker under the last `> annot:` block, then run --integrate-annotations again.');
     process.exit(1);
   }
   if (result.moved === 0 && result.unresolved.length === 0 && !result.warnings.length) {
@@ -28172,10 +28187,33 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
     // no reference to rewrite, only a narrower picture at the same path.
     const inPlace = ref.ext === 'webp';
     const dst = inPlace ? ref.absPath : ref.absPath.replace(/\.[^.]+$/, '.webp');
-    // A .webp already sitting next to the original would be shadowed by it
-    // anyway (IMG_EXTS puts png before webp), so overwriting is the right
-    // move – but say so rather than clobbering silently.
-    const dstExisted = !inPlace && fs.existsSync(dst);
+    // The new name has to be free, and so does the stem. logo.png and
+    // logo.jpg both became one logo.webp and both originals were deleted; a
+    // logo.webp the lecture shows as a picture of its own was overwritten;
+    // and a shorthand ![](logo) that found logo.png finds logo.jpg once the
+    // PNG is gone. Any other picture or clip with this stem in the folder is
+    // refused by name, before anything is encoded, and the author renames.
+    if (!inPlace) {
+      const stem = path.basename(ref.absPath).replace(/\.[^.]+$/, '').toLowerCase();
+      const own = path.basename(ref.absPath).toLowerCase();
+      let siblings = [];
+      try {
+        siblings = fs.readdirSync(path.dirname(ref.absPath)).filter((f) => {
+          const lower = f.toLowerCase();
+          const ext = path.extname(lower).slice(1);
+          return lower !== own && lower.replace(/\.[^.]+$/, '') === stem
+            && (IMG_EXTS.includes(ext) || VIDEO_EXTS.includes(ext));
+        });
+      } catch (e) { /* an unreadable folder: the encode below will say so */ }
+      if (siblings.length) {
+        rows.push({
+          name: path.basename(ref.absPath), from: ref.size, to: null, dims: '?',
+          note: `skipped: ${siblings.join(', ')} has the same name – rename one and rerun`,
+        });
+        before += ref.size; after += ref.size;
+        continue;
+      }
+    }
     // A fresh name, not dst + '.tmp': the encoder writes wherever a path
     // points, and a fixed name is one a folder can arrive with as a link.
     const tmpName = (tag) => path.join(path.dirname(dst),
@@ -28237,7 +28275,6 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
     }
     before += ref.size; after += outSize; converted++;
     const notes = [];
-    if (dstExisted) notes.push('overwrote existing .webp');
     if (rescued) notes.push(`downscaled to ${CAP_RESCUE_WIDTH}w to clear the ${capMb} MB cap`);
     else if (inPlace) notes.push('re-encoded in place');
     const stillOver = outSize > MAX_INLINE_BYTES;

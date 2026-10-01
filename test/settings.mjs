@@ -4022,6 +4022,103 @@ console.log('\nlayout generations');
      'an escape sequence in a heading reaches the terminal as spaces', JSON.stringify(esc.out.slice(0, 80)));
 }
 
+// ── three verbs that write the author's files, and what they must not lose ──
+//
+// Each case is a defect a review reproduced: --integrate-annotations read a
+// missing end marker as "to the end of the file" and deleted every slide
+// after the snippet; --optimize-images turned logo.png and logo.jpg into one
+// logo.webp and deleted both, and overwrote a logo.webp the lecture showed on
+// its own; and --watch kept the pixels of a picture replaced under the same
+// name, because the WebP it inlines was cached by path alone.
+{
+  console.log('\nnothing the author wrote is lost');
+  const fresh = (src) => {
+    const d = tmpDir('psi-keep-');
+    fs.mkdirSync(path.join(d, 'assets'));
+    fs.writeFileSync(path.join(d, 'source.md'), src);
+    return d;
+  };
+  const cli = (d, args) => {
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(d, 'source.md'), ...args],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
+  };
+
+  const noEnd = '---\ntitle: T\n---\n\n## free: One {#one}\n\nText.\n\n<!-- annotations:start -->\n\n'
+    + '### one\n\n> annot: hello\n\n## free: Two {#two}\n\nA slide written after the snippet.\n';
+  const a = fresh(noEnd);
+  const ia = cli(a, ['--integrate-annotations']);
+  ok(ia.code !== 0 && /no <!-- annotations:end -->/.test(ia.out)
+     && fs.readFileSync(path.join(a, 'source.md'), 'utf8') === noEnd,
+     '--integrate-annotations refuses a block with no end marker and leaves source.md as it was',
+     ia.out.split('\n')[0]);
+  const withEnd = noEnd.replace('## free: Two', '<!-- annotations:end -->\n\n## free: Two');
+  const b = fresh(withEnd);
+  const ib = cli(b, ['--integrate-annotations']);
+  const after = fs.readFileSync(path.join(b, 'source.md'), 'utf8');
+  ok(ib.code === 0 && /\{#one\}\n\n> annot: hello\n/.test(after) && /written after the snippet/.test(after)
+     && !/annotations:/.test(after),
+     'and with the marker it moves the annotation and keeps the rest', ib.out.split('\n')[0]);
+
+  const hasMagick = !spawnSync('magick', ['-version'], { stdio: 'ignore' }).error;
+  if (!hasMagick) {
+    console.log('  · no magick on PATH to draw fixtures, so the two picture cases are skipped');
+  } else {
+    const noise = (file, grad) => spawnSync('magick',
+      ['-size', '200x100', `gradient:${grad}`, '+noise', 'Gaussian', file], { stdio: 'ignore' });
+    const c = fresh('---\ntitle: T\n---\n\n## free: One {#one}\n\n![](assets/logo.png)\n\n![](assets/logo.jpg)\n\n'
+      + '![](assets/mark.png)\n\n![](assets/mark.webp)\n\n![](assets/solo.png)\n');
+    const A = (n) => path.join(c, 'assets', n);
+    noise(A('logo.png'), 'red-blue'); noise(A('logo.jpg'), 'green-yellow');
+    noise(A('mark.png'), 'white-black'); noise(A('mark.webp'), 'navy-orange'); noise(A('solo.png'), 'white-red');
+    const keep = ['logo.png', 'logo.jpg', 'mark.png', 'mark.webp'].map(n => [n, fs.readFileSync(A(n))]);
+    const oi = cli(c, ['--optimize-images', '--all']);
+    ok(oi.code === 0 && keep.every(([n, bytes]) => fs.existsSync(A(n)) && fs.readFileSync(A(n)).equals(bytes))
+       && !fs.existsSync(A('logo.webp')),
+       '--optimize-images leaves two pictures with one name alone, and a .webp of the same name untouched',
+       oi.out.split('\n').filter(l => /skipped|overwrote/.test(l)).join(' | '));
+    ok(/logo\.png.*skipped: logo\.jpg has the same name/.test(oi.out) && /mark\.png.*skipped: mark\.webp/.test(oi.out),
+       'and says which name is in the way');
+    ok(fs.existsSync(A('solo.webp')) && !fs.existsSync(A('solo.png'))
+       && /assets\/solo\.webp/.test(fs.readFileSync(path.join(c, 'source.md'), 'utf8')),
+       'while a picture whose name is free is still converted and its reference rewritten');
+
+    {
+      // The watcher answers to source.md alone, so the picture is replaced
+      // and then the source touched - the order the editor's upload uses.
+      const w = fresh('---\ntitle: T\n---\n\n## figure: F {#f}\n\n![A photograph](photo)\n');
+      noise(path.join(w, 'assets', 'photo.png'), 'navy-orange');
+      const { spawn } = await import('node:child_process');
+      const child = spawn(process.execPath, [path.join(ROOT, 'build.js'), path.join(w, 'source.md'),
+        '--watch', '--events', '--audience-only', '--inline-images'], { cwd: ROOT });
+      const picture = () => (fs.readFileSync(path.join(w, 'audience.html'), 'utf8')
+        .match(/data:image\/webp;base64,[A-Za-z0-9+/=]+/) || [''])[0];
+      const seen = await new Promise((resolve) => {
+        const got = [];
+        let buf = '';
+        const timer = setTimeout(() => resolve(got), 60000);
+        child.stdout.on('data', (d) => {
+          buf += d;
+          let i;
+          while ((i = buf.indexOf('\n')) >= 0) {
+            const line = buf.slice(0, i); buf = buf.slice(i + 1);
+            if (!line.startsWith('{"type":"build-success"')) continue;
+            got.push(picture());
+            if (got.length === 1) {
+              noise(path.join(w, 'assets', 'photo.png'), 'green-yellow');
+              fs.appendFileSync(path.join(w, 'source.md'), '\nMore.\n');
+            } else { clearTimeout(timer); resolve(got); }
+          }
+        });
+      });
+      child.kill();
+      ok(seen.length === 2 && seen[0] && seen[1] && seen[0] !== seen[1],
+         '--watch draws a picture replaced under the same name, not the pixels it had before',
+         `${seen.length} builds`);
+    }
+  }
+}
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 if (failures.length) {
   console.log(failures.map(f => '  ✗ ' + f).join('\n'));

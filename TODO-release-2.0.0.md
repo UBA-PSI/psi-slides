@@ -27,20 +27,11 @@ CHANGELOG.md says what changed.
 
 ## S2 – Data loss
 
-1. **`--integrate-annotations` deletes the rest of source.md when the end
-   marker is missing** (`build.js:27772`: `blockEnd = src.length`). Refuse.
-2. **`--optimize-images`: two sources with one stem become one picture**
-   (`build.js:28157, 28239`): `logo.png` and `logo.jpg` → one `logo.webp`,
-   both originals deleted; also overwrites an unrelated referenced
-   `logo.webp`. Refuse or pick a free name.
 3. **The editor's localStorage key does not name the lecture**
    (`editor.mjs:7802, 7811`, `'psi-slides:diagram:' + chunkId + '#' + nth`).
    Chrome shares one `file://` store, so an edit in lecture A is drawn in B's
    `#fig` (confirmed in Chrome). `dgeNewFigure` suggests `#figure-1`
    everywhere; dividers share `unnamed#N`. Key it like the reader does.
-4. **`--watch` keeps a replaced picture's old pixels**: `webpInlineCache`
-   (`build.js:500, 518`) is never cleared in `buildOnce`; also the editor's
-   asset upload with `replace: true`.
 
 ## S3 – Parser, build and lint congruence
 

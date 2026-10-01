@@ -1411,6 +1411,27 @@ tag:
 
 ### Fixed
 
+- **`--integrate-annotations` deleted every slide after a pasted snippet
+  whose end marker was missing.** A `<!-- annotations:start -->` with no
+  `<!-- annotations:end -->` after it was read as a block running to the end
+  of the file, and the block is removed from `source.md`, so the lecture
+  below it went with it. It is now refused, exit 1, with `source.md`
+  untouched and a message saying where the end marker goes.
+- **`--optimize-images` turned two pictures with one name into one.**
+  `logo.png` and `logo.jpg` both became `logo.webp`, the second overwriting
+  the first, and both originals were deleted; a `logo.webp` the lecture
+  showed as a picture of its own was overwritten by the converted
+  `logo.png`; and a shorthand `![](logo)` that found the PNG found the JPEG
+  once the PNG was gone. A picture with another picture or clip of the same
+  name beside it is now skipped before anything is encoded, and its row in
+  the report names the file in the way. Every other picture is converted as
+  before.
+- **`--watch` kept showing the old pixels of a picture replaced under the
+  same name** – by hand, or by the diagram editor's upload with `replace` –
+  for as long as the watch ran, because the WebP that PNG and JPEG are
+  inlined as was cached by path. The cache now also checks the file's
+  bytes, so an unchanged picture is still encoded once a session.
+
 - **Nothing held `KNOWN_FRONTMATTER_KEYS` against what `build.js` reads, and
   the shape of that failure is a false warning on a valid deck.** The list is
   `lint.js`'s closed set of top-level frontmatter keys some renderer reads;
