@@ -8918,6 +8918,24 @@ function stripDarkTokenColors(html) {
     .replace(/style="([^"]*);"/, 'style="$1"'));
 }
 
+// The key a reader's highlights are filed under in the browser: the source
+// folder's name, then a short hash of the name of the folder above it. The
+// folder's name alone was the key up to 2.0.0, and in a browser that keeps
+// one store for every file:// page two lectures in two week1 folders (of two
+// courses) shared it. The folder above tells them apart; it goes in as a
+// hash so a page sent on does not name it - it may be the author's home
+// folder, and the home folder's name is their user name. Only names, never a
+// path: the key is the same on any machine that builds the same tree, so the
+// tracked views do not depend on where the checkout is. A lecture moved under
+// another folder files under a new key and its readers start empty there;
+// the page copies the old name-only store across once (PRINT_HIGHLIGHTS_JS,
+// LEGACY), and that is the one migration there is.
+function readerStoreKey(dir) {
+  const name = path.basename(dir);
+  const above = path.basename(path.dirname(dir));
+  return name + '@' + crypto.createHash('sha256').update('psi-reader\0' + above).digest('hex').slice(0, 8);
+}
+
 function renderDocument(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const S = opts.strings || lectureStrings(frontmatter);
@@ -8967,16 +8985,17 @@ function renderDocument(lecture, opts = {}) {
   const readerOn = (viewDefaults(frontmatter).reader || 'on') === 'on';
   const readerHtml = readerOn ? renderReaderContents(columns, nums, S) : '';
   // What the highlights script needs from the build: the key its store is
-  // filed under, the title its export is headed with, and the words it puts
-  // on the page. The key is the source
-  // folder's name, the slug --new makes, so print.html and print-notes.html
-  // file under one key and a copied folder does not inherit a store it was
-  // not given. JSON in a data block rather than in the script, so the script
+  // filed under, the folder name its export file is named by and the store
+  // used to be filed under, the title its export is headed with, and the
+  // words it puts on the page. The key is readerStoreKey's, the same for
+  // print.html and print-notes.html, so the two share a store and a copied
+  // folder does not inherit a store it was not given. JSON in a data block rather than in the script, so the script
   // stays one constant for every lecture; a less-than sign is escaped, which
   // is all it takes to keep a closing script tag out of a label.
   const readerData = readerOn
     ? `<script type="application/json" id="psiINT-reader-data">${JSON.stringify({
-        key: opts.lectureKey || 'lecture',
+        key: opts.readerKey || opts.lectureKey || 'lecture',
+        name: opts.lectureKey || 'lecture',
         title,
         s: Object.fromEntries(Object.entries(S).filter(([k]) => k.startsWith('reader-'))),
       }).replace(/</g, '\\u003c')}</script>\n`
@@ -11501,8 +11520,8 @@ const PRINT_READER_JS = `
 // the note beside it in the outer margin: the number and the note are
 // written into the text for print alone (see paper below).
 //
-// Storage is localStorage under psi-reader:v1:<source folder>, and every
-// access is in a try: a browser that refuses it gets highlights that last as
+// Storage is localStorage under psi-reader:v1:<source folder>@<hash of the
+// folder above it> (readerStoreKey), and every access is in a try: a browser that refuses it gets highlights that last as
 // long as the tab, and one line in the sidebar's foot that says so. Where two
 // tabs share the store, a write in one is picked up by the other.
 //
@@ -11518,6 +11537,12 @@ const PRINT_HIGHLIGHTS_JS = `
   try { data = JSON.parse(dataEl.textContent) || {}; } catch (e) { return; }
   const S = data.s || {};
   const KEY = 'psi-reader:v1:' + (data.key || 'lecture');
+  // The key up to this version: the source folder's name alone, which two
+  // lectures in two week1 folders shared - one store, each lecture's
+  // highlights listed as not found in the other. A store under it is copied
+  // to the new key the first time the new key is empty, and left where it
+  // is, so a document built before still finds it.
+  const LEGACY = 'psi-reader:v1:' + (data.name || 'lecture');
   const foot = document.querySelector('[data-reader-slot=tools]');
   const narrowMq = window.matchMedia('(max-width: ${READER_NOTES_PX - 0.02}px)');
   const WS = /\\s/;
@@ -11558,7 +11583,14 @@ const PRINT_HIGHLIGHTS_JS = `
     try { const a = JSON.parse(raw); return Array.isArray(a) ? a.filter(valid) : []; } catch (e) { return []; }
   };
   const load = () => {
-    try { return parse(window.localStorage.getItem(KEY)); } catch (e) { persistent = false; return []; }
+    try {
+      let raw = window.localStorage.getItem(KEY);
+      if (raw == null && LEGACY !== KEY) {
+        raw = window.localStorage.getItem(LEGACY);
+        if (raw != null) window.localStorage.setItem(KEY, raw);
+      }
+      return parse(raw);
+    } catch (e) { persistent = false; return []; }
   };
   const save = () => {
     if (!persistent) return;
@@ -12656,7 +12688,7 @@ const PRINT_HIGHLIGHTS_JS = `
     return lines.join('\\n');
   };
   const exportFile = () => {
-    const name = (data.key || 'lecture') + '-' + (S['reader-export-file'] || 'highlights') + '.md';
+    const name = (data.name || 'lecture') + '-' + (S['reader-export-file'] || 'highlights') + '.md';
     const url = URL.createObjectURL(new Blob([toMarkdown()], { type: 'text/markdown;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
@@ -30076,7 +30108,10 @@ function buildOnce(absIn, only, opts = {}) {
   // The documents file a reader's highlights under the source folder's name
   // (see renderDocument), and the live views' editor a reader's kept figure
   // edits (see editorPayload).
-  const renderOpts = { ...opts, fontEmbed, strings, codeSizing, lectureKey: path.basename(outDir) };
+  const renderOpts = {
+    ...opts, fontEmbed, strings, codeSizing,
+    lectureKey: path.basename(outDir), readerKey: readerStoreKey(outDir),
+  };
 
   const targets = [
     ['print',       renderDocument],

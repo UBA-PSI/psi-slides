@@ -254,7 +254,37 @@ async function highlights({ browser, ok, note }) {
        && first.note === 'Why the IV?' && first.kind === 'mark' && first.v === 1
        && typeof first.start === 'number' && first.prefix.endsWith('The ') && first.suffix.startsWith(' into'),
        'the store holds one entry: chunk, offsets, quote, context, note', JSON.stringify(st));
-    ok(/^psi-reader:v1:psi-reader-hl-/.test(st.key || ''), 'filed under the source folder\'s name', st.key);
+    ok(/^psi-reader:v1:psi-reader-hl-[^@]+@[0-9a-f]{8}$/.test(st.key || ''),
+       'filed under the source folder\'s name and a hash of the folder above it', st.key);
+
+    // ── two week1 folders, and the key before that ──
+    // The key was the folder's name alone, and in a browser with one store
+    // for every file:// page two lectures in two week1 folders shared it.
+    // The folder above now tells them apart - as a hash, so the page does
+    // not name it - and a store under the old key is carried across once.
+    {
+      const twins = ['a', 'b'].map((x) => {
+        const d = path.join(tmpDir('psi-reader-twin-'), 'course-' + x, 'week1');
+        fs.mkdirSync(d, { recursive: true });
+        build(d, hlDeck());
+        const html = fs.readFileSync(path.join(d, 'print.html'), 'utf8');
+        return JSON.parse((html.match(/id="psiINT-reader-data">(.*?)<\/script>/) || [])[1] || '{}');
+      });
+      ok(twins[0].name === 'week1' && twins[1].name === 'week1' && twins[0].key !== twins[1].key
+         && !JSON.stringify(twins).includes('course-'),
+         'two lectures in two week1 folders file under two keys, and neither page names the folder above',
+         JSON.stringify(twins.map(t => [t.key, t.name])));
+      const legacy = 'psi-reader:v1:' + path.basename(dir);
+      const c = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      await c.addInitScript(([k, v]) => { if (!localStorage.getItem(k)) localStorage.setItem(k, v); },
+        [legacy, JSON.stringify([first])]);
+      const q = await page('print.html', c);
+      const moved = await q.evaluate(([k, l]) => ({ now: localStorage.getItem(k), old: localStorage.getItem(l) }), [st.key, legacy]);
+      ok((await marks(q)).join('') === 'initialisation vector is XORed'
+         && JSON.parse(moved.now || '[]').length === 1 && JSON.parse(moved.old || '[]').length === 1,
+         'a store under the old key is painted, copied to the new key, and left where it was', JSON.stringify(moved));
+      await c.close();
+    }
 
     // ── the card stands in the notes column, level with its highlight ──
     const geo = await p.evaluate(() => {

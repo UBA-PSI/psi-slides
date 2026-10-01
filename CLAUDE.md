@@ -518,8 +518,14 @@ Three anchoring decisions are not guessable from the code:
   a figure is added above. A name that is gone falls back to the stored x/y
   and the card says the spot is approximate.
 
-Storage is `localStorage` under `psi-reader:v1:<source folder name>` – per
-lecture, not per file. Measured from `file://`: Chrome and Safari share one
+Storage is `localStorage` under `psi-reader:v1:<source folder name>@<hash>` –
+per lecture, not per file. The hash is of the *name* of the folder above
+(`readerStoreKey`), so two `week1/` lectures of two courses no longer share
+one `file://` store, the page names no folder beyond its own, and the tracked
+views stay the same bytes on any machine; the old name-only key is copied
+across once on first load and left in place. A lecture moved under another
+folder starts its readers on a new, empty store – the export is the way
+across. Measured from `file://`: Chrome and Safari share one
 store between the two documents, Firefox keeps one per file (the export
 carries highlights across); under `--serve` all three share. `test/reader.mjs`
 guards it on fixture decks of its own. The decisions and the browser

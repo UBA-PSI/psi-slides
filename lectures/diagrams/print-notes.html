@@ -4104,7 +4104,7 @@ renames the thing it is about.</p>
   });
 })();
 </script>
-<script type="application/json" id="psiINT-reader-data">{"key":"diagrams","title":"Animated Infographics","s":{"reader-close":"Close contents","reader-mark":"Highlight","reader-note":"Note (optional)","reader-remove":"Remove","reader-removed":"Highlight removed.","reader-undo":"Undo","reader-orphans":"No longer found in this version","reader-orphan-remove":"remove","reader-session":"This browser does not let the page save highlights – they are lost when the tab is closed.","reader-nav":"Highlights","reader-prev":"Previous highlight","reader-next":"Next highlight","reader-filter-all":"all","reader-filter-notes":"with note","reader-export":"Export highlights (.md)","reader-import":"Import","reader-delete-all":"Delete all","reader-help":"About highlights","reader-help-what":"Select words to highlight them and add a note. Figures, diagrams, images, code and formulas have a button in their corner that marks them whole; open a figure to mark a spot in it.","reader-help-keys":"On a keyboard: n and p step through the highlights, m marks a spot in an open figure.","reader-help-where":"Highlights and notes are stored only in this browser, on this device.","reader-help-risk":"That storage can be lost: clearing site data or closing a private window deletes it, and browsers may delete it on their own – Safari, notably on iPhone and iPad, after seven days of Safari use in which this page was not used.","reader-help-backup":"So export regularly, as a backup: the export is a readable .md file, and importing it brings the highlights back – here, in another browser or on another device.","reader-fold":"Slides in this part","reader-export-file":"highlights","reader-export-line":"Exported on {date}. Highlights: {n}, with a note: {notes}.","reader-imported":"Imported: {added} new, {updated} updated, {orphaned} not found in this version.","reader-import-none":"This file holds no highlights.","reader-import-skipped":"Entries that could not be read: {n}.","reader-deleted-all":"All highlights deleted.","reader-fig-mark":"Highlight this figure","reader-lb-spot":"Mark a spot","reader-lb-close":"Close","reader-fig":"Figure “{key}”","reader-fig-at":"Figure “{key}”, at “{label}”","reader-fig-spot":"Figure “{key}”, a spot in it","reader-fig-approx":"Approximate: that part is no longer in this version of the figure.","reader-code-mark":"Highlight this code","reader-formula-mark":"Highlight this formula","reader-code":"Code, line {line}","reader-code-block":"Code “{key}”","reader-formula":"Formula “{key}”"}}</script>
+<script type="application/json" id="psiINT-reader-data">{"key":"diagrams@7f0951ad","name":"diagrams","title":"Animated Infographics","s":{"reader-close":"Close contents","reader-mark":"Highlight","reader-note":"Note (optional)","reader-remove":"Remove","reader-removed":"Highlight removed.","reader-undo":"Undo","reader-orphans":"No longer found in this version","reader-orphan-remove":"remove","reader-session":"This browser does not let the page save highlights – they are lost when the tab is closed.","reader-nav":"Highlights","reader-prev":"Previous highlight","reader-next":"Next highlight","reader-filter-all":"all","reader-filter-notes":"with note","reader-export":"Export highlights (.md)","reader-import":"Import","reader-delete-all":"Delete all","reader-help":"About highlights","reader-help-what":"Select words to highlight them and add a note. Figures, diagrams, images, code and formulas have a button in their corner that marks them whole; open a figure to mark a spot in it.","reader-help-keys":"On a keyboard: n and p step through the highlights, m marks a spot in an open figure.","reader-help-where":"Highlights and notes are stored only in this browser, on this device.","reader-help-risk":"That storage can be lost: clearing site data or closing a private window deletes it, and browsers may delete it on their own – Safari, notably on iPhone and iPad, after seven days of Safari use in which this page was not used.","reader-help-backup":"So export regularly, as a backup: the export is a readable .md file, and importing it brings the highlights back – here, in another browser or on another device.","reader-fold":"Slides in this part","reader-export-file":"highlights","reader-export-line":"Exported on {date}. Highlights: {n}, with a note: {notes}.","reader-imported":"Imported: {added} new, {updated} updated, {orphaned} not found in this version.","reader-import-none":"This file holds no highlights.","reader-import-skipped":"Entries that could not be read: {n}.","reader-deleted-all":"All highlights deleted.","reader-fig-mark":"Highlight this figure","reader-lb-spot":"Mark a spot","reader-lb-close":"Close","reader-fig":"Figure “{key}”","reader-fig-at":"Figure “{key}”, at “{label}”","reader-fig-spot":"Figure “{key}”, a spot in it","reader-fig-approx":"Approximate: that part is no longer in this version of the figure.","reader-code-mark":"Highlight this code","reader-formula-mark":"Highlight this formula","reader-code":"Code, line {line}","reader-code-block":"Code “{key}”","reader-formula":"Formula “{key}”"}}</script>
 <script>
 (() => {
   const body = document.body;
@@ -4237,6 +4237,12 @@ renames the thing it is about.</p>
   try { data = JSON.parse(dataEl.textContent) || {}; } catch (e) { return; }
   const S = data.s || {};
   const KEY = 'psi-reader:v1:' + (data.key || 'lecture');
+  // The key up to this version: the source folder's name alone, which two
+  // lectures in two week1 folders shared - one store, each lecture's
+  // highlights listed as not found in the other. A store under it is copied
+  // to the new key the first time the new key is empty, and left where it
+  // is, so a document built before still finds it.
+  const LEGACY = 'psi-reader:v1:' + (data.name || 'lecture');
   const foot = document.querySelector('[data-reader-slot=tools]');
   const narrowMq = window.matchMedia('(max-width: 919.98px)');
   const WS = /\s/;
@@ -4277,7 +4283,14 @@ renames the thing it is about.</p>
     try { const a = JSON.parse(raw); return Array.isArray(a) ? a.filter(valid) : []; } catch (e) { return []; }
   };
   const load = () => {
-    try { return parse(window.localStorage.getItem(KEY)); } catch (e) { persistent = false; return []; }
+    try {
+      let raw = window.localStorage.getItem(KEY);
+      if (raw == null && LEGACY !== KEY) {
+        raw = window.localStorage.getItem(LEGACY);
+        if (raw != null) window.localStorage.setItem(KEY, raw);
+      }
+      return parse(raw);
+    } catch (e) { persistent = false; return []; }
   };
   const save = () => {
     if (!persistent) return;
@@ -5375,7 +5388,7 @@ renames the thing it is about.</p>
     return lines.join('\n');
   };
   const exportFile = () => {
-    const name = (data.key || 'lecture') + '-' + (S['reader-export-file'] || 'highlights') + '.md';
+    const name = (data.name || 'lecture') + '-' + (S['reader-export-file'] || 'highlights') + '.md';
     const url = URL.createObjectURL(new Blob([toMarkdown()], { type: 'text/markdown;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;

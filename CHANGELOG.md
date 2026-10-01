@@ -1463,6 +1463,15 @@ tag:
 
 ### Fixed
 
+- **Two lectures in folders of the same name keep their highlights apart.**
+  The reader's highlights were kept in the browser under the lecture
+  folder's name alone, and a browser that keeps one store for every page
+  opened from disk gave two `week1/` lectures of two courses one store. The
+  name of the folder above now goes into the key, as a hash, so the
+  document does not name it. Highlights made before are carried across the
+  first time a document is opened. A lecture moved under another folder
+  starts its readers with no highlights there; the export carries them
+  across.
 - **A highlights file someone sent can no longer stop the reader for good.**
   An entry whose type was `constructor`, or whose block kind was
   `__proto__`, was stored on import and then failed on every later load of
