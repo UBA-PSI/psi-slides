@@ -3348,6 +3348,12 @@ tag:
   `### Breaking` list and a `### Highlights` list, the body is those two plus
   a link to `CHANGELOG.md` at the tag, and its size is checked right after
   checkout, before anything is built.
+- **`npm test` no longer leaves the tracked views modified.** The browser
+  suite builds `lectures/tutorial` and `lectures/diagrams` in place, and with
+  the default flags a machine with `cwebp` or `magick` re-encoded their
+  inlined PNG as WebP, so every test run left the four diagrams views
+  changed. It now builds with `--no-optimize-images`, as `npm run
+  build:tracked` does, and the views come out the bytes that are committed.
 - **The desktop builder no longer exports a PDF a save behind.** With
   auto-build turned off, a save, auto-build turned back on (which builds
   nothing) and an export, the PDF was printed from the build before the
