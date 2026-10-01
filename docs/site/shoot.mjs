@@ -84,12 +84,12 @@ main { padding-top: 0 !important; margin-top: 0 !important; }
 </style>
 `;
 
-// The live view's own chrome is not part of any composition: the help button
-// and the edge arrows are controls, and a picture of a slide is a picture of a
-// slide. Same rig shoot-gallery.mjs uses on its tiles, and for the same
-// reason - the two sets stand on one page.
+// The live view's own chrome is not part of any composition: the help button,
+// the start menu and the edge arrows are controls, and a picture of a slide
+// is a picture of a slide. Same rig shoot-gallery.mjs uses on its tiles, and
+// for the same reason - the two sets stand on one page.
 const LIVE_RIG = `
-<style>#psiINT-help-button, #psiINT-nav-hints, .annot-add { display: none !important; }</style>
+<style>#psiINT-help-button, #psiINT-start-menu, #psiINT-nav-hints, .annot-add { display: none !important; }</style>
 `;
 
 // ── when these shots are stale ───────────────────────────────────────────

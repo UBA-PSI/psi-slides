@@ -42,6 +42,15 @@
  *     against the editor's own section, since its F and the slide's F are
  *     two keys.
  *
+ *   - **The panel as a palette, and the start menu.** A row names its
+ *     command on the dt only where runsFromPanel says the panel may run it -
+ *     never a doc row, a row shared by several commands, or the panel's own;
+ *     both panels list Ctrl/Cmd-K; the listener answers Cmd-K before the
+ *     field's keys and before the guard that hands chords to the browser.
+ *     renderStartMenu is lifted out as text like renderHelpOverlay: its
+ *     three buttons are START_MENU, run by the audience, spliced into one
+ *     view.
+ *
  * Not read: gotoKey, which is modal and whose Enter / Esc / digits the prompt
  * names on its own foot; the editor's arrow nudge, a startsWith written as
  * prose in its row; and the documents, whose reader keys are the
@@ -160,7 +169,7 @@ export function dtCombos(dt) {
 export function helpSections(html) {
   return [...html.matchAll(/<section>\s*<h3>([\s\S]*?)<\/h3>([\s\S]*?)<\/section>/g)].map((m) => ({
     title: m[1],
-    combos: [...m[2].matchAll(/<dt>([\s\S]*?)<\/dt>/g)].flatMap((d) => dtCombos(d[1])),
+    combos: [...m[2].matchAll(/<dt(?: [^>]*)?>([\s\S]*?)<\/dt>/g)].flatMap((d) => dtCombos(d[1])),
   }));
 }
 
@@ -386,9 +395,51 @@ export async function run({ report }) {
   // The gate has to be able to fail: take the B row out of a rendered panel
   // and the blank key must come back as missing.
   const html = render('audience', false, false);
-  const cut = html.replace(/<dt><kbd>B<\/kbd> · <kbd>\.<\/kbd><\/dt><dd>[^<]*<\/dd>/, '');
+  const cut = html.replace(/<dt(?: [^>]*)?><kbd>B<\/kbd> · <kbd>\.<\/kbd><\/dt><dd>[^<]*<\/dd>/, '');
   ok(cut !== html, 'the B row is found in the rendered panel');
   const cutRows = new Set(helpSections(cut).flatMap((s) => s.combos));
   ok(missing(answered.audience, cutRows, NOT_A_ROW.audience).includes('b'),
     'and a panel without it is caught');
+
+  // ── the panel as a palette ──
+  // A row the panel may run names its command on the dt; the runtime adds
+  // whether this view has a run function. Only a command whose row is its
+  // own: a doc row names nothing, and a row that lists several commands
+  // (Shift-C F A L) or the panel's own row would run the wrong thing.
+  for (const view of CMD.VIEWS) {
+    const panel = render(view, true, true);
+    const named = [...panel.matchAll(/<dt data-cmd="([a-z0-9-]+)">/g)].map((m) => m[1]);
+    const byId = new Map(CMD.COMMANDS.map((c) => [c.id, c]));
+    const wrong = named.filter((id) => !byId.has(id) || !byId.get(id).keys || byId.get(id).row
+      || id === 'help' || CMD.COMMANDS.some((m) => m.row === id));
+    ok(named.length > 20 && wrong.length === 0,
+      `the ${view} panel names a command on every row it may run, and on no doc row or shared row`,
+      `${named.length} named; wrong: ${wrong.join(', ')}`);
+    ok(named.includes('blank') && !named.includes('collapse-back') && !named.includes('sideways'),
+      `in the ${view} panel B runs, Shift-C F A L and the → ← doc row do not`);
+    ok(helpSections(panel).some((sec) => sec.combos.includes('mod+k')),
+      `the ${view} panel has a row for Ctrl/Cmd-K`);
+  }
+  const head = A.slice(lStart, lEnd);
+  const kAt = head.indexOf('openPalette();');
+  const guardAt = head.indexOf('if (e.metaKey || e.ctrlKey || e.altKey) return;');
+  ok(kAt > 0 && guardAt > kAt && head.indexOf('if (e.target === helpSearch) {') > kAt,
+    'Cmd-K is answered in the listener\'s head, before the field\'s keys and before the guard that hands chords to the browser');
+
+  // ── the start menu ──
+  // Rendered from START_MENU, into audience.html alone, and every button a
+  // command the audience runs.
+  const smStart = buildJs.indexOf('function renderStartMenu(');
+  const smSrc = buildJs.slice(smStart, buildJs.indexOf('\n}\n', smStart) + 2);
+  // eslint-disable-next-line no-new-func
+  const startMenu = new Function('COMMANDS', 'START_MENU', 'keyText', 'escapeHtml', smSrc + '\nreturn renderStartMenu;')(
+    CMD.COMMANDS, CMD.START_MENU, CMD.keyText, (x = '') => String(x))();
+  const menuIds = [...startMenu.matchAll(/data-cmd="([a-z0-9-]+)"/g)].map((m) => m[1]);
+  ok(menuIds.join() === 'fullscreen,cockpit,print', 'the start menu is fullscreen, the cockpit and the print view', menuIds.join());
+  ok(menuIds.every((id) => runA.has(id)), 'and the audience has a run function for each');
+  ok(/<kbd>W<\/kbd>/.test(startMenu) && /Speaker cockpit/.test(startMenu) && /id="psiINT-start-menu"[^>]* hidden>/.test(startMenu),
+    'its names and keys come from the table, and it is rendered hidden', startMenu);
+  ok((buildJs.match(/\$\{renderStartMenu\(\)\}/g) || []).length === 1
+    && buildJs.indexOf('${renderStartMenu()}') < buildJs.indexOf('function renderSpeaker('),
+  'it is spliced into one view, and that view is the audience');
 }

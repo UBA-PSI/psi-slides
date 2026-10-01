@@ -2454,7 +2454,7 @@ code:not(pre code):not(.chunk-heading code) { font-size: 0.885em; }
 <nav id="psiINT-reader-contents" class="rd-contents" aria-label="Contents" hidden>
   <div class="rd-head"><span class="rd-label">Contents</span><button type="button" class="rd-close" aria-label="Close contents">×</button></div>
   <ol class="rd-list">
-<li><a href="#preview" data-rd="preview"><span class="rd-num">3</span><span class="rd-text">None of this is in the 1.0.0 release</span></a></li>
+<li><a href="#preview" data-rd="preview"><span class="rd-num">3</span><span class="rd-text">Every picture here is text</span></a></li>
 <li class="rd-group"><div class="rd-part-row"><span class="rd-part">Memory safety</span><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-1" aria-label="Slides in this part: Memory safety"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-1"><li><a href="#unsafety" data-rd="unsafety"><span class="rd-num">4</span><span class="rd-text">Types of memory unsafety</span></a></li><li><a href="#overflow" data-rd="overflow"><span class="rd-num">5</span><span class="rd-text">Your first buffer overflow</span></a></li></ol></li>
 <li class="rd-group"><div class="rd-part-row"><span class="rd-part">Block ciphers</span><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-2" aria-label="Slides in this part: Block ciphers"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-2"><li><a href="#cbc" data-rd="cbc"><span class="rd-num">6</span><span class="rd-text">Cipher Block Chaining, decryption</span></a></li><li><a href="#ctr" data-rd="ctr"><span class="rd-num">7</span><span class="rd-text">Counter mode, encryption</span></a></li></ol></li>
 <li class="rd-group"><div class="rd-part-row"><span class="rd-part">Identity and authentication</span><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-3" aria-label="Slides in this part: Identity and authentication"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-3"><li><a href="#lifecycle" data-rd="lifecycle"><span class="rd-num">8</span><span class="rd-text">Identity lifecycle</span></a></li><li><a href="#mac" data-rd="mac"><span class="rd-num">9</span><span class="rd-text">Message authentication</span></a></li></ol></li>
@@ -2498,13 +2498,14 @@ the pictures now and read the notes again after.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>3</i></span>
   
-  <h2 class="chunk-heading">None of this is in the 1.0.0 release</h2>
-  <p><strong><code>::: draw</code> was added after the 1.0.0 release</strong>, so the archive on the
-releases page does not have it and a lecture that uses it will not build
-against that download.</p>
-<p>What you need instead is the repository: a clone, or <strong>Download ZIP</strong> from the
-project page. The figure language may still change before it is tagged, so a
-figure you write today may need an edit. The editor is experimental too.</p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Every picture here is text</span> <span class="hd-sub">change one in the source or in the editor</span></h2>
+  <p><strong>Each drawing in this lecture is a <code>::: draw</code> block in <code class="nb">source.md</code>, under the
+heading of the slide it stands on</strong>, so a figure you want to borrow is a
+passage you can copy into a lecture of your own.</p>
+<p><strong>Click a figure, then the button in the corner of its focus card, and the
+editor opens on it.</strong> With the lecture built under <code class="nb">--watch</code>, <code class="nb">Cmd</code>-<code class="nb">S</code> writes
+the change back into <code class="nb">source.md</code>; opened as a file on its own, the editor
+copies the changed block to the clipboard instead. The editor is experimental.</p>
 
   
   

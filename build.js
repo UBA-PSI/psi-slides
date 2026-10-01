@@ -50,7 +50,7 @@ import {
 // Imported here to render the panel; its text is also spliced into both
 // live views as window.PSI_COMMANDS, where the key map dispatches from it -
 // see the header of commands.mjs.
-import { helpGroups } from './commands.mjs';
+import { helpGroups, COMMANDS, START_MENU, keyText } from './commands.mjs';
 
 // KaTeX ships its stylesheet and fonts as plain files next to the module.
 // They are not importable as ESM, so resolve them the CommonJS way.
@@ -13848,11 +13848,13 @@ function renderHelpOverlay(view, withEditor, withSouffleuse, S = STRINGS.en) {
   const groups = helpGroups(view, { editor: !!withEditor, prompter: !!withSouffleuse });
 
   // Both columns are static author-written HTML (kbd markup and en-dashes),
-  // never user content, so they go through verbatim.
+  // never user content, so they go through verbatim. A row the panel can run
+  // as a palette names its command on the dt (runsFromPanel in commands.mjs);
+  // whether this view has a run function for it is the runtime's question.
   const sections = groups.map(([title, rows]) => `    <section>
       <h3>${title}</h3>
       <dl>
-${rows.map(([k, v]) => `        <dt>${k}</dt><dd>${v}</dd>`).join('\n')}
+${rows.map(([k, v, id]) => `        <dt${id ? ` data-cmd="${id}"` : ''}>${k}</dt><dd>${v}</dd>`).join('\n')}
       </dl>
     </section>`).join('\n');
 
@@ -13871,6 +13873,30 @@ ${sections}
   </div>
 </div>
 <button id="psiINT-help-button" type="button" aria-label="Keyboard and mouse reference" title="Keyboard and mouse reference (?)">?</button>`;
+}
+
+// The projection's start menu, beside the ? corner: the three things a
+// lecturer does before the first slide moves - fullscreen, the cockpit, the
+// print view - for somebody who has not learnt W, S and P yet. Rendered
+// hidden into audience.html alone, and shown by the runtime only before the
+// talk starts (see the start menu in AUDIENCE_JS), so a view that runs no
+// script, the cockpit and every document never carry it, and the PDF export
+// builds its print DOM by inclusion and never reaches it.
+//
+// Names, keys and order come from commands.mjs (START_MENU, short, keys), and
+// a click runs COMMAND_RUN for the command, as the key does. The chevron is
+// the touch rail's glyph.
+function renderStartMenu() {
+  const items = START_MENU.map((id) => {
+    const c = COMMANDS.find((x) => x.id === id);
+    const key = keyText(c.keys[0]);
+    const plain = key.replace(/<[^>]+>/g, '');
+    return `  <button type="button" data-cmd="${id}" title="${escapeHtml(c.label)} (${escapeHtml(plain)})">${escapeHtml(c.short)} ${key}</button>`;
+  }).join('\n');
+  return `<nav id="psiINT-start-menu" aria-label="Before the talk" hidden>
+${items}
+  <button type="button" id="psiINT-start-menu-hide" aria-label="Put this menu away" title="Put this menu away – the ? panel has the same keys">&#x2039;</button>
+</nav>`;
 }
 
 function renderTocNav(columns, S) {
@@ -13965,6 +13991,7 @@ ${columnsHtml}
 <div id="psiINT-figure-overlay" aria-hidden="true"></div>
 ${TOUCH_CONTROLS_HTML}
 ${renderHelpOverlay('audience', !!editorPayload(frontmatter, columnsHtml, 'audience'), false, S)}
+${renderStartMenu()}
 <div id="psiINT-mode-badge"></div>
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
@@ -14295,7 +14322,8 @@ body[data-mode=dark] #psiINT-stage-viewport { background: var(--paper); }
    the terminal modes inherit the fix – they had exactly the same problem
    and only the help-sheet kbd had ever been patched. */
 body[data-mode=dark] #psiINT-help-inner kbd { background: var(--paper-warm); color: var(--ink); }
-body[data-mode=dark] #psiINT-help-button {
+body[data-mode=dark] #psiINT-help-button,
+body[data-mode=dark] #psiINT-start-menu {
   background: oklch(from var(--paper) calc(l + 0.08) c h / 0.85);
   color: var(--ink-soft);
 }
@@ -18417,8 +18445,12 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
 /* overlays */
 
 /* Help overlay – the self-documentation surface for both live views.
-   Grouped by task, not by key. Scrolls internally on short windows so a
-   1280x800 laptop still reaches the last section. */
+   Grouped by task, not by key. The panel is one fixed box: its width and
+   height do not follow the rows, so typing into the search field changes
+   what is inside it and nothing else - a panel that shrank round every
+   keystroke moved the field the reader was typing into. The head stays put
+   and the rows scroll inside, which is also how a 1280x800 laptop reaches
+   the last section. */
 #psiINT-help-overlay {
   position: fixed;
   inset: 0;
@@ -18437,12 +18469,15 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
      otherwise shrink to its content and squeeze the description column to
      one word per line. */
   width: min(1180px, 95vw);
-  max-height: 95vh;
-  overflow-y: auto;
-  padding: 1.4rem 1.7rem 1.7rem;
+  height: min(860px, 95vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1.4rem 1.7rem 0;
   font-family: var(--sans-font);
 }
 #psiINT-help-inner header {
+  flex: none;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -18480,13 +18515,22 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
 }
 #psiINT-help-search::placeholder { color: var(--ink-soft); opacity: 0.8; }
 #psiINT-help-search:focus { border-bottom-color: var(--ink-soft); }
-#psiINT-help-inner .help-none { margin: 0 0 0.6rem; font-size: 0.78rem; color: var(--ink-soft); }
+#psiINT-help-inner .help-none { flex: none; margin: 0 0 0.6rem; font-size: 0.78rem; color: var(--ink-soft); }
 #psiINT-help-inner [hidden] { display: none; }
+/* auto-fill, not auto-fit: auto-fit collapses the tracks a filter empties, and
+   the one section left standing then stretched across the whole panel. The
+   min() lets a phone's one column be narrower than 330px. */
 .help-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
   gap: 0.9rem 2.4rem;
   align-items: start;
+  align-content: start;
+  padding-bottom: 1.7rem;
 }
 .help-grid h3 {
   margin: 0 0 0.4rem;
@@ -18510,6 +18554,29 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
 }
 .help-grid dt { color: var(--ink); text-wrap: balance; }
 .help-grid dd { margin: 0; color: var(--ink-soft); }
+/* A row the panel can run (data-cmd, and a run function in this view). The
+   selection is a tint across both cells; the shadows carry it into half of
+   the column gap on either side, so the key and its description read as one
+   line rather than as two boxes. */
+.help-grid .help-run { cursor: pointer; }
+.help-grid .help-sel {
+  background: oklch(from var(--emph) l c h / 0.12);
+  box-shadow: -0.45rem 0 0 oklch(from var(--emph) l c h / 0.12), 0.45rem 0 0 oklch(from var(--emph) l c h / 0.12);
+  border-radius: var(--radius-tight);
+}
+.help-grid dd.help-sel { color: var(--ink); }
+/* A phone: the title, the field and the dismiss line take a line each, and a
+   row puts its description under its key rather than beside a 9.5em column
+   that left the description three words a line. */
+@media (max-width: 560px) {
+  #psiINT-help-inner { padding: 1rem 1rem 0; }
+  #psiINT-help-inner header { flex-wrap: wrap; gap: 0.4rem 1em; }
+  #psiINT-help-inner h2 { flex: 1 0 100%; }
+  #psiINT-help-search { margin-left: 0; max-width: none; }
+  .help-grid dl { grid-template-columns: 1fr; gap: 0 0; }
+  .help-grid dd { margin-bottom: 0.45rem; }
+  .help-grid .help-sel { box-shadow: none; }
+}
 #psiINT-help-inner kbd {
   font-family: var(--mono-font);
   font-size: 0.9em;
@@ -18546,6 +18613,79 @@ body:not([data-view=speaker]).blanked #psiINT-help-button { display: none; }
    floating circle is a second door to the same room – and it sits bottom-left
    on top of the timer, which the lecturer reads far more often than the help. */
 body[data-view=speaker] #psiINT-help-button { display: none; }
+
+/* The start menu beside it: audience.html only, and only before the talk
+   starts - the runtime takes the hidden attribute off on the first slide of a
+   fresh page load and puts it back for good on the first move, on fullscreen
+   or on the chevron. Set like the fullscreen line: the chrome's small capitals,
+   half-lit until the pointer is on it, and the same ground as the circle. */
+#psiINT-start-menu {
+  position: fixed;
+  bottom: 12px; left: 42px;
+  z-index: 22;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 2px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: oklch(0.98 0 0 / 0.8);
+  opacity: 0.62;
+  transition: opacity 140ms ease;
+}
+#psiINT-start-menu:hover, #psiINT-start-menu:focus-within { opacity: 1; }
+#psiINT-start-menu[hidden] { display: none; }
+#psiINT-start-menu button {
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 0.6em;
+  cursor: pointer;
+}
+#psiINT-start-menu button:hover { color: var(--ink); }
+#psiINT-start-menu kbd {
+  font-family: var(--mono-font);
+  font-variant-caps: normal;
+  letter-spacing: 0;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-tight);
+  padding: 1px 0.35em;
+  margin-left: 0.35em;
+}
+#psiINT-start-menu #psiINT-start-menu-hide {
+  font-variant-caps: normal;
+  font-size: 15px;
+  padding: 0 0.55em 0.1em;
+}
+body.overview-mode #psiINT-start-menu,
+body.blanked #psiINT-start-menu { display: none; }
+/* A finger needs the targets the rail gives it, and the rail takes the
+   bottom edge: on a touchscreen the menu stands as a column above the circle,
+   and the keys, which a tablet has none of, are left out. */
+@media (pointer: coarse) {
+  #psiINT-start-menu {
+    left: 12px;
+    /* Over the rail, whose height is its buttons' clamp plus its padding's,
+       on the rail's own floor. */
+    bottom: calc(max(10px, env(safe-area-inset-bottom)) + clamp(44px, 13.5vw, 56px) + 2 * clamp(4px, 1vw, 7px) + 12px);
+    flex-direction: column;
+    align-items: stretch;
+    height: auto;
+    padding: 2px 0;
+    opacity: 0.9;
+  }
+  #psiINT-start-menu button { min-height: 44px; text-align: left; padding: 0 1em; font-size: 15px; }
+  #psiINT-start-menu kbd { display: none; }
+}
 
 /* Link address overlay. Shift-click on a link shows the URL on both
    screens instead of opening it on either: a lecture wants the room to be
@@ -19714,6 +19854,10 @@ function applyRemoteState(payload) {
   }
 }
 function applyRemoteStateNow(payload, changed) {
+  // The cockpit moving the projection is a move: it ends the start menu
+  // as a press here would. Read before the apply, on the slide that was up.
+  const was = flatChunks[state.activeIdx];
+  if (changed || (was && payload.revealed && (payload.revealed[was.id] ?? null) !== (revealed[was.id] ?? null))) endStartMenu();
   isApplyingRemote = true;
   try {
     // Only a slide change takes a focused figure down. A snapshot is also how
@@ -21135,6 +21279,7 @@ function commitSearchHit() {
 // Nav
 function jumpTo(idx, direction) {
   if (idx < 0 || idx >= flatChunks.length) return;
+  endStartMenu();
   settleFade();
   if (annotEditingId) blurAnnotation();
   // Moving on retires the address: it belonged to the slide you left.
@@ -21371,12 +21516,14 @@ function unfocusAsStage() {
   return true;
 }
 function goForward() {
+  endStartMenu();
   settleFade();
   if (viewHooks.consumeForward()) return;
   if (advanceReveal() || unfocusAsStage()) { viewHooks.onStateChange(); return; }
   nextChunk();
 }
 function goBack() {
+  endStartMenu();
   settleFade();
   if (viewHooks.consumeBack()) return;
   if (retreatReveal() || unfocusAsStage()) { viewHooks.onStateChange(); return; }
@@ -22281,8 +22428,13 @@ function helpRows() {
       const range = dt.innerHTML.match(/<kbd>(\\d)<\\/kbd>–<kbd>(\\d)<\\/kbd>/);
       if (range) for (let d = +range[1] + 1; d < +range[2]; d++) keys.push(String(d));
       const words = keys.map((k) => HELP_KEY_WORDS[k] || '').join(' ');
+      // Runnable when the build named a command on the row and this view
+      // has a run function for it - a cockpit without the prompter lists no
+      // Shift-S, and a doc row names nothing.
+      const cmd = dt.dataset.cmd && COMMAND_RUN[dt.dataset.cmd] ? dt.dataset.cmd : null;
+      if (cmd) for (const el of [dt, dd]) if (el) el.classList.add('help-run');
       rows.push({
-        dt, dd, keys,
+        dt, dd, keys, cmd,
         hay: helpFold(dt.textContent + ' ' + (dd ? dd.textContent : '') + ' ' + words + ' ' + title),
       });
     }
@@ -22305,14 +22457,136 @@ function filterHelp() {
     sec.hidden = !any;
   }
   if (helpNone) helpNone.hidden = shown > 0;
+  // A query selects its first runnable row, so typing a word and Enter runs
+  // it; an empty field selects nothing, so Enter there runs nothing. The
+  // rows start at the top again whatever was scrolled before.
+  const grid = helpOverlay.querySelector('.help-grid');
+  if (grid) grid.scrollTop = 0;
+  const runnable = helpRunnable();
+  setHelpSel(terms.length && runnable.length ? runnable[0] : null);
+}
+
+// ── the panel as a command palette ──────────────────────────────────
+// Cmd-K or Ctrl-K opens the panel with the field focused; the arrows move a
+// selection through the rows still standing that the panel can run, and
+// Enter or a click runs one. Running closes the panel first and then calls
+// COMMAND_RUN for the command with an event shaped like its first key, so
+// the row does what the key does and nothing is implemented twice: in the
+// cockpit, W from a row arms the projection as the cockpit's W does. A doc
+// row - a gesture, a key answered by a guard - is not selectable.
+let helpSel = null;
+function helpRunnable() {
+  const out = [];
+  for (const { sec, rows } of helpRows()) {
+    if (sec.hidden) continue;
+    for (const r of rows) if (r.cmd && !r.dt.hidden) out.push(r);
+  }
+  return out;
+}
+// The pointer selects too, without scrolling: the row is already under it.
+function setHelpSel(row, scroll = true) {
+  if (helpSel) for (const el of [helpSel.dt, helpSel.dd]) if (el) el.classList.remove('help-sel');
+  helpSel = row;
+  if (!row) return;
+  for (const el of [row.dt, row.dd]) if (el) el.classList.add('help-sel');
+  if (scroll && row.dd && row.dd.scrollIntoView) row.dd.scrollIntoView({ block: 'nearest' });
+}
+function helpRowOf(cell) {
+  for (const { rows } of helpRows()) for (const r of rows) if (r.dt === cell || r.dd === cell) return r;
+  return null;
+}
+function moveHelpSel(step) {
+  const list = helpRunnable();
+  if (!list.length) return;
+  const at = list.indexOf(helpSel);
+  const next = at < 0 ? (step > 0 ? 0 : list.length - 1) : Math.max(0, Math.min(list.length - 1, at + step));
+  setHelpSel(list[next]);
+}
+// A command run from anywhere but its key: the panel, the start menu.
+function runCommand(id) {
+  const run = COMMAND_RUN[id];
+  if (!run) return;
+  const c = PSI_COMMANDS.COMMANDS.find((x) => x.id === id);
+  const combo = c && c.keys ? c.keys[0] : '';
+  const shift = combo.indexOf('shift+') === 0;
+  run({
+    key: shift ? combo.slice(6) : combo, shiftKey: shift,
+    metaKey: false, ctrlKey: false, altKey: false,
+    target: document.body, preventDefault() {}, stopPropagation() {},
+  });
+}
+function runHelpRow(row) {
+  if (!row || !row.cmd) return;
+  toggleHelp(false);
+  runCommand(row.cmd);
+}
+function openPalette() {
+  if (!helpOverlay || !helpSearch) return;
+  if (helpVisible() && document.activeElement === helpSearch) { toggleHelp(false); return; }
+  if (!helpVisible()) toggleHelp(true);
+  // A chord is a keyboard, so the field takes the focus on a touchscreen
+  // too, where toggleHelp alone leaves it.
+  helpSearch.focus({ preventScroll: true });
 }
 if (helpSearch) helpSearch.addEventListener('input', filterHelp);
 if (helpButton) helpButton.addEventListener('click', () => toggleHelp(true));
 // Click anywhere on the scrim closes; clicks inside the panel do not, so
-// the reference stays open while you read it and try a key.
+// the reference stays open while you read it and try a key - except a click
+// on a runnable row, which runs it.
 if (helpOverlay) {
   helpOverlay.addEventListener('click', (e) => {
-    if (e.target === helpOverlay) toggleHelp(false);
+    if (e.target === helpOverlay) { toggleHelp(false); return; }
+    const cell = e.target.closest && e.target.closest('.help-run');
+    if (cell) runHelpRow(helpRowOf(cell));
+  });
+  helpOverlay.addEventListener('mousemove', (e) => {
+    const cell = e.target.closest && e.target.closest('.help-run');
+    const row = cell ? helpRowOf(cell) : null;
+    if (row && row !== helpSel) setHelpSel(row, false);
+  });
+}
+
+// ── the start menu (audience only) ──────────────────────────────────
+// Fullscreen, the cockpit and the print view, beside the ? corner, for the
+// minutes before a talk in which somebody who has not learnt W, S and P sets
+// the projection up. Shown only then: on the first slide of a page load that
+// opened on it - no chunk in the address, no remembered position elsewhere -
+// outside fullscreen, before anything has moved. The first move ends it for
+// this page load, from either window (a forward press, a jump, a column, the
+// cockpit driving the projection), and so do W, fullscreen and the chevron;
+// the chevron is also remembered, globally, like the other reading
+// preferences, because a lecturer who put it away once knows the three keys.
+// The room never sees it once the talk runs.
+//
+// A probe that photographs or reads the projection (--frames, --check-fit,
+// --squint) sets window.PSI_NO_START_MENU before the page runs: its first
+// frame is the room's first slide mid-talk, not a lecturer's set-up.
+const startMenu = VIEW === 'audience' ? document.getElementById('psiINT-start-menu') : null;
+const START_MENU_KEY = 'psi-slides:start-menu';
+let startMenuDone = !startMenu;
+function endStartMenu() {
+  if (startMenuDone) return;
+  startMenuDone = true;
+  if (startMenu) startMenu.hidden = true;
+}
+function initStartMenu() {
+  if (startMenuDone) return;
+  let away = false;
+  try { away = localStorage.getItem(START_MENU_KEY) === 'away'; } catch (e) {}
+  if (away || window.PSI_NO_START_MENU || state.activeIdx !== 0
+      || chunkIdxFromHash() >= 0 || fullscreenOn()) { endStartMenu(); return; }
+  startMenu.hidden = false;
+}
+if (startMenu) {
+  startMenu.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('button');
+    if (!b) return;
+    if (b.id === 'psiINT-start-menu-hide') {
+      try { localStorage.setItem(START_MENU_KEY, 'away'); } catch (err) {}
+      endStartMenu();
+      return;
+    }
+    if (b.dataset.cmd) runCommand(b.dataset.cmd);
   });
 }
 
@@ -23015,7 +23289,7 @@ function toggleFullscreenHere() {
   else requestFullscreenHere().catch(() => flashMode('this browser would not go fullscreen'));
 }
 function toggleProjectionFullscreen() {
-  if (VIEW !== 'speaker') { toggleFullscreenHere(); return; }
+  if (VIEW !== 'speaker') { endStartMenu(); toggleFullscreenHere(); return; }
   if (!hasLivePeer()) { flashMode('no projection window open – Shift-W fills this one'); return; }
   const want = !peerFullscreen;
   sendToPeer({ type: 'fullscreen', source: VIEW, action: want ? 'enter' : 'exit' });
@@ -23032,7 +23306,7 @@ function announceFullscreen() {
 }
 ['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) => {
   document.addEventListener(ev, () => {
-    if (fullscreenOn()) disarmFullscreen();
+    if (fullscreenOn()) { disarmFullscreen(); endStartMenu(); }
     announceFullscreen();
   });
 });
@@ -23257,7 +23531,18 @@ const COMMAND_RUN = {
 };
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('.annot-textarea')) return;
-  // The ? panel's search field: every key types, except the two that close.
+  // Cmd-K / Ctrl-K: the ? panel as a command palette. Ahead of the guard
+  // further down that hands every Cmd and Ctrl chord to the browser, and
+  // nowhere a person is typing - except the panel's own field, where it
+  // closes the panel again.
+  if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === 'k' || e.key === 'K')) {
+    if (e.target !== helpSearch && (e.target.matches('input,textarea,select') || e.target.isContentEditable)) return;
+    openPalette();
+    e.preventDefault();
+    return;
+  }
+  // The ? panel's search field: every key types, except the two that close
+  // and the three that pick and run a row.
   if (e.target === helpSearch) {
     if (e.key === 'Escape') {
       if (helpSearch.value) { helpSearch.value = ''; filterHelp(); }
@@ -23265,6 +23550,12 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
     } else if (e.key === '?' && !helpSearch.value) {
       toggleHelp(false);
+      e.preventDefault();
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      moveHelpSel(e.key === 'ArrowDown' ? 1 : -1);
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      if (helpSel) runHelpRow(helpSel);
       e.preventDefault();
     }
     return;
@@ -24028,6 +24319,7 @@ buildNavHints();
 initDiagrams();
 applyRevealAll();
 applyState();
+initStartMenu();
 // Two rAFs so fonts have a chance to settle before the first camera solve.
 requestAnimationFrame(() => requestAnimationFrame(() => {
   // A lecture that opens with auto-fit has to fit its *first* slide too.
@@ -30890,6 +31182,10 @@ async function openAudienceProbe(absIn, label, viewport, verb = 'read') {
     return { code: 0 };
   }
   const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
+  // What the three probes look at is the room's projection mid-talk, so the
+  // start menu a lecturer sees before the first slide moves stays down: frame
+  // 1 of --frames would otherwise carry it.
+  await page.addInitScript(() => { window.PSI_NO_START_MENU = true; });
   await page.goto(pathToFileURL(audience).href, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1200);
   return { browser, page };

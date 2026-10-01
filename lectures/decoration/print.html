@@ -2454,7 +2454,7 @@ code:not(pre code):not(.chunk-heading code) { font-size: 0.885em; }
 <nav id="psiINT-reader-contents" class="rd-contents" aria-label="Contents" hidden>
   <div class="rd-head"><span class="rd-label">Contents</span><button type="button" class="rd-close" aria-label="Close contents">×</button></div>
   <ol class="rd-list">
-<li><a href="#preview" data-rd="preview"><span class="rd-num">3</span><span class="rd-text">None of this is in the 1.0.0 release</span></a></li>
+<li><a href="#preview" data-rd="preview"><span class="rd-num">3</span><span class="rd-text">Read each slide beside its source</span></a></li>
 <li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#covers">The cover, and the slide that closes it</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-1" aria-label="Slides in this part: The cover, and the slide that closes it"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-1"><li><a href="#cover-list" data-rd="cover-list"><span class="rd-num">4</span><span class="rd-text">Ten ways to open a lecture</span></a></li><li><a href="#cover-keys" data-rd="cover-keys"><span class="rd-num">5</span><span class="rd-text">Three keys the cover reads</span></a></li><li><a href="#cover-quote" data-rd="cover-quote"><span class="rd-num">6</span><span class="rd-text"><code class="nb">quote</code> draws no quotation mark</span></a></li><li><a href="#closing-tag" data-rd="closing-tag"><span class="rd-num">7</span><span class="rd-text">The last slide closes the arc</span></a></li></ol></li>
 <li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#dividers">Dividers carry their own slide</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-2" aria-label="Slides in this part: Dividers carry their own slide"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-2"><li><a href="#section-list" data-rd="section-list"><span class="rd-num">8</span><span class="rd-text">Six treatments, every one quieter than the cover</span></a></li><li><a href="#outline-why" data-rd="outline-why"><span class="rd-num">9</span><span class="rd-text">What a running agenda says that a coloured field cannot</span></a></li><li><a href="#outline-states" data-rd="outline-states"><span class="rd-num">10</span><span class="rd-text">Three states, two greys</span></a></li><li><a href="#divider-body" data-rd="divider-body"><span class="rd-num">11</span><span class="rd-text">The lines under a <code class="nb">#</code> heading are the divider&#39;s slide</span></a></li><li><a href="#divider-beside" data-rd="divider-beside"><span class="rd-num">12</span><span class="rd-text">A figure divider lays out beside the heading</span></a></li><li><a href="#divider-stack" data-rd="divider-stack"><span class="rd-num">13</span><span class="rd-text">…unless the figure is the point of the part</span></a></li></ol></li>
 <li class="rd-group"><div class="rd-part-row"><a class="rd-part" href="#grounds">Cards, rows and panes</a><button type="button" class="rd-fold" aria-expanded="false" aria-controls="psiINT-rd-part-3" aria-label="Slides in this part: Cards, rows and panes"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="psiINT-rd-part-3"><li><a href="#cards-why" data-rd="cards-why"><span class="rd-num">14</span><span class="rd-text"><code>::: cards</code> makes boxes, not columns</span></a></li><li><a href="#cards-grounds" data-rd="cards-grounds"><span class="rd-num">15</span><span class="rd-text">What a card sits on</span></a></li><li><a href="#cards-size" data-rd="cards-size"><span class="rd-num">16</span><span class="rd-text">The row size reads the longest item</span></a></li><li><a href="#cards-fold" data-rd="cards-fold"><span class="rd-num">17</span><span class="rd-text">One row serves two views</span></a></li><li><a href="#rows" data-rd="rows"><span class="rd-num">18</span><span class="rd-text"><code>::: rows</code> turns a card row on its side</span></a></li><li><a href="#side" data-rd="side"><span class="rd-num">19</span><span class="rd-text"><code>::: side</code> takes a ratio</span></a></li></ol></li>
@@ -2499,13 +2499,13 @@ describes it.</p>
   
   <span class="chunk-num" aria-hidden="true"><i>3</i></span>
   
-  <h2 class="chunk-heading">None of this is in the 1.0.0 release</h2>
-  <p><strong>What this lecture shows was added after the 1.0.0 release</strong>, so the
-archive on the releases page does not have it and a lecture that uses it will
-not build against that download.</p>
-<p>What you need instead is the repository: a clone, or <strong>Download ZIP</strong> from the
-project page, and the <code class="nb">build.js</code> inside it. The source format is frozen from
-1.0.0 onwards, so these constructions may still change before they are tagged.</p>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Read each slide beside its source</span> <span class="hd-sub">the slide that describes a construct uses it</span></h2>
+  <p><strong>Each slide in this lecture uses the construct it describes, so its chunk in
+<code class="nb">source.md</code> is a working example of that construct.</strong> Find the heading you see
+on the slide in the source, and the lines under it are what drew the slide.</p>
+<p><strong>Build the lecture with <code class="nb">--watch</code> and change one of those lines</strong>: the open
+views reload on every save, which is the quickest way to learn what a word in
+a card row&#39;s braces or a backdrop&#39;s <code class="nb">reveal</code> does.</p>
 
   
   

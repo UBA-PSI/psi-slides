@@ -37,6 +37,8 @@
  *             which is how Shift-B still blanks and Shift-S still opens the
  *             cockpit, as they always did
  *   label     a verb phrase, sentence case, for a menu or a palette row
+ *   short     a name of one or two words, where the click is the verb: the
+ *             projection's start menu (START_MENU) reads it
  *   hint      the panel's second column (HTML), or { audience, speaker }
  *   show      the panel's key column (HTML) where keyText(keys) would spell
  *             it differently; mouse is the same for a row with no key
@@ -315,7 +317,7 @@ export const COMMANDS = [
     show: '<kbd>Esc</kbd> in a note',
     hint: 'back to the slide, so the arrows work again – the annotation stays as a margin note' },
   { id: 'fullscreen', group: 'knobs', views: BOTH, keys: ['w'],
-    label: 'Fullscreen on the projection', reach: 'ungated', state: 'fullscreen',
+    label: 'Fullscreen on the projection', short: 'Fullscreen', reach: 'ungated', state: 'fullscreen',
     hint: {
       audience: 'fullscreen on the projection – nothing of the browser round the slide, and <kbd>Esc</kbd> leaves it again',
       speaker: 'fullscreen on the projection – nothing of the browser round the slide. The browser only grants this to a press in the window itself, so the projection puts up a line to click once, and <kbd>Esc</kbd> leaves',
@@ -375,15 +377,26 @@ export const COMMANDS = [
 
   // ── the other windows ──
   { id: 'cockpit', group: 'windows', views: AUD, keys: ['s'],
-    label: 'Open the speaker cockpit', reach: 'local',
+    label: 'Open the speaker cockpit', short: 'Speaker cockpit', reach: 'local',
     hint: 'open the speaker cockpit – both windows then stay in sync' },
   { id: 'print', group: 'windows', views: BOTH, keys: ['p'],
-    label: 'Open the print view', reach: 'local',
+    label: 'Open the print view', short: 'Print view', reach: 'local',
     hint: 'open the print view in a new tab' },
   { id: 'help', group: 'windows', views: BOTH, keys: ['?'],
     label: 'Show the keyboard and mouse reference', reach: 'local',
     hint: 'this panel' },
+  // Answered in the listener's head, ahead of the guard that lets every
+  // Cmd and Ctrl chord through to the browser, so it is a doc row: the
+  // table spells no modifier but Shift.
+  { id: 'palette', group: 'windows', views: BOTH,
+    show: '<kbd>Ctrl/Cmd</kbd>-<kbd>K</kbd>',
+    hint: 'this panel as a command palette: the field has the keys, <kbd>↑</kbd> <kbd>↓</kbd> pick a row, <kbd>Enter</kbd> or a click runs it' },
 ];
+
+// The projection's start menu: the three things a lecturer does before the
+// first slide moves, in this order. audience.html only, and only until the
+// talk starts (see the start menu in AUDIENCE_JS).
+export const START_MENU = ['fullscreen', 'cockpit', 'print'];
 
 // ── reading the table ─────────────────────────────────────────────────
 
@@ -433,8 +446,17 @@ export function keyText(combo) {
 
 const pick = (v, view) => (v && typeof v === 'object' ? v[view] : v);
 
-// The panel's sections for one view: [[title, [[keyColumn, hint], …]], …],
-// both columns HTML. `ships` says which optional modules this view carries.
+// Whether the panel may run this entry's row as a palette: a command whose
+// row is its own. A row that lists other commands too (Shift-C F A L, + - 0,
+// Shift-→ Shift-←) names more than one thing to do, and the panel's own row
+// would only open the panel again.
+export function runsFromPanel(c) {
+  return !!(c.keys && !c.row && c.id !== 'help' && !COMMANDS.some((m) => m.row === c.id));
+}
+
+// The panel's sections for one view: [[title, [[keyColumn, hint, runId], …]], …],
+// both columns HTML, runId the command a click on the row runs (null for a
+// doc row). `ships` says which optional modules this view carries.
 export function helpGroups(view, ships = {}) {
   const out = [];
   for (const g of GROUPS) {
@@ -444,7 +466,7 @@ export function helpGroups(view, ships = {}) {
       if (c.row || !c.views.includes(view) || pick(c.group, view) !== g.id) continue;
       if (c.requires && !ships[c.requires]) continue;
       const keys = c.show || c.mouse || c.keys.map(keyText).join(' · ');
-      rows.push([keys, pick(c.hint, view)]);
+      rows.push([keys, pick(c.hint, view), runsFromPanel(c) ? c.id : null]);
     }
     if (rows.length) out.push([g.title, rows]);
   }
@@ -476,6 +498,10 @@ export function helpGroups(view, ships = {}) {
     if (!c.row) continue;
     const host = COMMANDS.find((h) => h.id === c.row);
     if (!host || host.row || !host.show) fail(c.id + ' is listed in the row of ' + c.row + ', which spells no keys of its own');
+  }
+  for (const id of START_MENU) {
+    const c = COMMANDS.find((x) => x.id === id);
+    if (!c || !c.keys || !c.short || !c.views.includes('audience')) fail('the start menu names ' + id + ', which is no audience command with a short name');
   }
   for (const view of VIEWS) {
     const seen = Object.create(null);

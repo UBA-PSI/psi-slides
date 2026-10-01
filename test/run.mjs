@@ -25,6 +25,7 @@ const SPECS = [
   './nav-cockpit.mjs',
   './nav-goto.mjs',
   './help-search.mjs',
+  './palette.mjs',
   './nav-fullscreen.mjs',
   './cue-cards.mjs',
   './souffleuse.mjs',

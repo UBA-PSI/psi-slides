@@ -171,13 +171,13 @@ function buildDecks(tiles, dir) {
   }
 }
 
-// The live view's own chrome is not part of any composition: the help button
-// and the edge arrows are controls, and a gallery tile is a picture of a
-// slide. Everything else on these decks is already quiet - a title chunk
-// drops its slide number by design, and a divider is auto-inserted and never
-// carried one.
+// The live view's own chrome is not part of any composition: the help button,
+// the start menu and the edge arrows are controls, and a gallery tile is a
+// picture of a slide. Everything else on these decks is already quiet - a
+// title chunk drops its slide number by design, and a divider is
+// auto-inserted and never carried one.
 const RIG = `
-<style>#psiINT-help-button, #psiINT-nav-hints { display: none !important; }</style>
+<style>#psiINT-help-button, #psiINT-start-menu, #psiINT-nav-hints { display: none !important; }</style>
 `;
 
 const argv = process.argv.slice(2);
