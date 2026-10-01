@@ -19639,9 +19639,19 @@ function applyRemoteState(payload) {
   // projection on the message that follows the cockpit's swap. 130ms, on a
   // pair of screens nobody sees at once, was judged cheaper than teaching
   // the snapshot to carry a phase.
+  settleFade();
   const changed = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0)) !== state.activeIdx;
   if (changed) landSlide(() => applyRemoteStateNow(payload, true));
-  else applyRemoteStateNow(payload, false);
+  else {
+    // A snapshot on the slide already up is the other window's hand on it -
+    // a press, a zoom, a collapse - and that is a take-over of an autoplay
+    // figure, exactly as a key on this window's own keyboard is. The cockpit
+    // never rebroadcasts what it received, so the projection's own ticks do
+    // not come back here.
+    const cur = flatChunks[state.activeIdx];
+    if (cur && autoplayTimer) { autoplayStoppedOn = cur.id; stopAutoplay(); }
+    applyRemoteStateNow(payload, false);
+  }
 }
 function applyRemoteStateNow(payload, changed) {
   isApplyingRemote = true;
@@ -20603,9 +20613,27 @@ function fadeSwap(land) {
 // carries everything that has to happen at the moment of the change - the
 // index, the fit, the paint, the camera - so that a fade can hold all of it
 // until the stage is invisible rather than only some of it.
+//
+// It is also the one place a slide is arrived at, so what every arrival owes
+// the slide is done here rather than by each caller: autoplay starts on any
+// slide reached by a key here, by a snapshot from the other window, or by
+// leaving the overview - it used to start from jumpTo alone, so a figure the
+// cockpit drove onto never played.
 function landSlide(land) {
-  if (SLIDE_TRANSITION === 'fade') fadeSwap(land);
-  else land();
+  const arrive = () => { land(); restartAutoplay(); };
+  if (SLIDE_TRANSITION === 'fade') fadeSwap(arrive);
+  else arrive();
+}
+// A slide change still waiting for the bottom of a fade is done now. Every
+// reader of state.activeIdx that is about to act on it calls this first: a
+// press within the dip otherwise read the slide being left, so a second
+// forward press was lost and a back press reversed the first one. The fade
+// itself carries on from where it is.
+function settleFade() {
+  if (!fadePending) return;
+  const p = fadePending;
+  fadePending = null;
+  p();
 }
 
 // Overview camera: translate-and-scale to center the anchor chunk at
@@ -20698,12 +20726,16 @@ function setOverviewMode(on, opts = {}) {
   overview = false;
   document.body.classList.remove('overview-mode');
   manualPan = { dx: 0, dy: 0 };
-  if (opts.landOnSelected && selectedIdx !== state.activeIdx) {
-    state.activeIdx = selectedIdx;
-    applyState();
-    saveActive();
-  }
   flatChunks.forEach(c => c.el.classList.remove('overview-selected'));
+  // Landing on the selected slide is a slide change like any other, so it
+  // goes through jumpTo: it used to assign the index and repaint, which
+  // skipped auto-fit, the open expansion, the reveal of a slide never seen
+  // and autoplay - O, Enter, a click on the board and G all came this way.
+  // The direction is the one G uses outside the overview.
+  if (opts.landOnSelected && selectedIdx !== state.activeIdx) {
+    jumpTo(selectedIdx, selectedIdx > state.activeIdx ? 'forward' : 'back');
+    return;
+  }
   focusCamera(false);
 }
 
@@ -21024,6 +21056,7 @@ function commitSearchHit() {
 // Nav
 function jumpTo(idx, direction) {
   if (idx < 0 || idx >= flatChunks.length) return;
+  settleFade();
   if (annotEditingId) blurAnnotation();
   // Moving on retires the address: it belonged to the slide you left.
   dismissLinkOverlay();
@@ -21063,7 +21096,6 @@ function jumpTo(idx, direction) {
     applyState();
     focusCamera(SLIDE_TRANSITION !== 'pan');
     saveActive();
-    restartAutoplay();
   });
 }
 
@@ -21260,11 +21292,13 @@ function unfocusAsStage() {
   return true;
 }
 function goForward() {
+  settleFade();
   if (viewHooks.consumeForward()) return;
   if (advanceReveal() || unfocusAsStage()) { viewHooks.onStateChange(); return; }
   nextChunk();
 }
 function goBack() {
+  settleFade();
   if (viewHooks.consumeBack()) return;
   if (retreatReveal() || unfocusAsStage()) { viewHooks.onStateChange(); return; }
   prevChunk();

@@ -1452,6 +1452,15 @@ tag:
 
 ### Fixed
 
+- **Every way onto a slide lands the same way.** A figure with `autoplay`
+  never played when the cockpit drove the projection onto it; it now starts
+  wherever a slide is arrived at, and a press in the cockpit takes it over as
+  a key on the projection does. Leaving the overview onto a slide (`O`,
+  `Enter`, a click on the board, `G`) skipped auto-fit, the closing of an open
+  expansion and autoplay; it now goes through the same jump as an arrow key.
+  Under `transition: fade` a second press within the dip read the slide being
+  left, so two forward presses moved one slide and forward then back moved
+  two back; a press now acts on the slide being arrived at.
 - **A second `S` on the projection brings the cockpit forward instead of
   reloading it.** `window.open` with the address re-navigated the open
   cockpit, which lost its freeze, its clock and its cue cursor.
