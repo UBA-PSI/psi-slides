@@ -1463,6 +1463,11 @@ tag:
 
 ### Fixed
 
+- **The desktop builder no longer exports a PDF a save behind.** With
+  auto-build turned off, a save, auto-build turned back on (which builds
+  nothing) and an export, the PDF was printed from the build before the
+  save. The export now builds first whenever a save has not been built,
+  whatever the switch says at that moment.
 - **A link the slide PDF cannot follow no longer stops or corrupts it.** A
   link to `#50%`, which is not valid percent-encoding, ended
   `--slides-pdf` (and the app's slide export) with an error, and a link to

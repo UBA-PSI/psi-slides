@@ -95,14 +95,20 @@ test('a current build is exported as it stands', () => {
   assert.deepEqual(exportPlan(ready({ phase: 'starting' })), { action: 'wait' });
 });
 
-test('auto-build off and source.md changed: build first', () => {
+test('source.md changed since the last build: build first', () => {
   let s = reduceState(ready({ auto: false }), { type: 'changed', modifiedMs: 5 });
   assert.deepEqual(exportPlan(s), { action: 'rebuild' });
-  // Auto on, the same save: no rebuild is asked for.
-  s = reduceState(ready(), { type: 'changed', modifiedMs: 5 });
-  assert.notEqual(exportPlan(s).action, 'rebuild');
-  // Off, nothing changed: the build on disk is the one in the editor.
+  // The engine reports `changed` only while auto-build is off, and turning it
+  // back on builds nothing - so off, save, on, export still has an unbuilt
+  // save on disk. It used to be exported as it stood, a build behind.
+  s = reduceState(s, { type: 'auto', enabled: true });
+  assert.equal(s.auto, true);
+  assert.deepEqual(exportPlan(s), { action: 'rebuild' });
+  // A build already running is waited for rather than asked for twice.
+  assert.deepEqual(exportPlan(reduceState(s, { type: 'build-start' })), { action: 'wait' });
+  // Nothing changed: the build on disk is the one in the editor, auto or not.
   assert.deepEqual(exportPlan(ready({ auto: false })), { action: 'now' });
+  assert.deepEqual(exportPlan(ready()), { action: 'now' });
 });
 
 test('after a failed save the last good build is what is exported', () => {

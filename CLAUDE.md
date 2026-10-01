@@ -899,8 +899,9 @@ on a non-`persist:` partition of its own (so the audience runtime's
 `will-navigate` refused and `setWindowOpenHandler` denying, printed with
 `webContents.printToPDF` after the media is set over CDP (`Page.printToPDF`
 does not exist over `webContents.debugger` in a window that is not headless).
-It exports the watch build on disk; with auto-build off and a save pending it
-rebuilds first. One export at a time, refused rather than queued; closing the
+It exports the watch build on disk; with a save pending that no build has
+taken – auto-build off, or turned off for the save and on again, which builds
+nothing – it rebuilds first. One export at a time, refused rather than queued; closing the
 lecture or the window aborts it and leaves no temporary file. **The window's
 slide default is slide text** (`collapse: 'topic-bold'`), where the command
 line follows the lecture's own collapse unless `--pdf-collapse` says

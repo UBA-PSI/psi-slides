@@ -69,17 +69,22 @@ function pdfRequest(kind, opts) {
 // author has already changed, and says nothing.
 //
 //   refuse   nothing to export from
-//   rebuild  auto-build is off and source.md changed since the last build:
-//            send `rebuild`, export on the next build-success
 //   wait     a build is running already: export on its build-success
+//   rebuild  source.md changed since the last build and none is running:
+//            send `rebuild`, export on the next build-success
 //   now      the views on disk are the current ones – or, after a failed
 //            save, the last that worked, which is the app's promise
+//
+// The rebuild does not ask whether auto-build is on now. The engine reports a
+// save as `changed` only while it is off, and turning it on builds nothing,
+// so a save made with auto-build off is still unbuilt after it is turned
+// back on: off, save, on, export used to print the build before the save.
 function exportPlan(state) {
   if (!state || state.phase === 'closed' || !state.dir) {
     return { action: 'refuse', error: 'pdf.noProject' };
   }
-  if (state.auto === false && state.changedSinceBuild) return { action: 'rebuild' };
   if (state.phase === 'starting' || state.phase === 'building') return { action: 'wait' };
+  if (state.changedSinceBuild) return { action: 'rebuild' };
   return { action: 'now' };
 }
 
