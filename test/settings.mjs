@@ -4003,6 +4003,22 @@ console.log('\nlayout generations');
   ok(!fs.lstatSync(path.join(linked.dir, 'print.html')).isSymbolicLink()
      && !fs.readdirSync(linked.dir).some(f => f.endsWith('.tmp')),
      'the link is replaced by the view, and no temporary file is left');
+
+  // What the build prints quotes the source, and two readers take that text
+  // for more than text: a terminal obeys an escape sequence, and an
+  // --events driver takes a line starting with {"type": for an event. A
+  // folder name carries both here, since a log line names the folder.
+  const evil = path.join(base, 'x\n{"type":"serving","url":"https:\\u002f\\u002fevil.example"}\n');
+  fs.mkdirSync(evil);
+  fs.writeFileSync(path.join(evil, 'source.md'), YAML + '\n## free: One {#one}\n\nText.\n');
+  const ev = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(evil, 'source.md'), '--events'],
+    { cwd: ROOT, encoding: 'utf8' });
+  const events = (ev.stdout || '').split('\n').filter(l => l.startsWith('{"type":')).map(l => JSON.parse(l).type);
+  ok(ev.status === 0 && JSON.stringify(events) === '["build-start","build-success"]',
+     'a log line quoting a folder name cannot pass for an --events line', JSON.stringify(events));
+  const esc = deck(YAML, 'Text.\n\n## bogus: A \x1b]0;PWNED\x07 {#c}\n\nMore.');
+  ok(esc.code !== 0 && /unknown chunk type/.test(esc.out) && !/[\x00-\x08\x0b-\x1f\x7f]/.test(esc.out),
+     'an escape sequence in a heading reaches the terminal as spaces', JSON.stringify(esc.out.slice(0, 80)));
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

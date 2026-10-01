@@ -137,3 +137,22 @@ test('patch, asset and anything unknown leave the state alone', () => {
   assert.equal(reduceState(before, { type: 'asset', file: 'x.png', bytes: 1 }), before);
   assert.equal(reduceState(before, { type: 'something-newer' }), before);
 });
+
+test('serving takes only an http address on loopback', () => {
+  for (const url of ['https://evil.example', 'http://evil.example:80', 'http://localhost:1/x',
+    'javascript:alert(1)', 'file:///etc/passwd', 'http://127.0.0.1.evil.example:80', 42, undefined]) {
+    const s = reduceState(initialState(), { type: 'serving', url });
+    assert.equal(s.serve.url, null, String(url));
+  }
+  for (const url of ['http://localhost:8080', 'http://127.0.0.1:51234', 'http://[::1]:3000']) {
+    assert.equal(reduceState(initialState(), { type: 'serving', url }).serve.url, url);
+  }
+});
+
+test('watching cannot move a source the app opened', () => {
+  const opened = { ...initialState(), source: '/a/b/source.md', dir: '/a/b', name: 'b' };
+  const s = reduceState(opened, { type: 'watching', source: '/etc/evil.app', dir: '/etc', auto: true });
+  assert.equal(s.source, '/a/b/source.md');
+  assert.equal(s.dir, '/a/b');
+  assert.equal(s.name, 'b');
+});

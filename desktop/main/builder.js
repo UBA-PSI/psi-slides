@@ -47,6 +47,11 @@ function classifyLine(line) {
   return { kind: 'log', line };
 }
 
+function loopbackServeUrl(url) {
+  return typeof url === 'string'
+    && /^http:\/\/(localhost|127\.0\.0\.1|\[::1\]):\d{1,5}$/.test(url) ? url : null;
+}
+
 function initialState() {
   return {
     phase: 'closed',
@@ -79,15 +84,21 @@ function initialState() {
 function reduceState(state, event, now = Date.now()) {
   switch (event.type) {
     case 'watching':
+      // The app chose the source and set it in open(); an event names one
+      // only for a state that has none. The two things done with it are
+      // shell.openPath and the folder the views are opened from, so a line
+      // that only looks like an event must not be able to move them.
       return {
         ...state,
-        source: event.source || state.source,
-        dir: event.dir || state.dir,
-        name: event.dir ? path.basename(event.dir) : state.name,
+        source: state.source || event.source || null,
+        dir: state.dir || event.dir || null,
+        name: state.dir ? state.name : (event.dir ? path.basename(event.dir) : state.name),
         auto: typeof event.auto === 'boolean' ? event.auto : state.auto,
       };
     case 'serving':
-      return { ...state, serve: { enabled: true, url: event.url || null } };
+      // The views are opened at this address, so it is taken only when it is
+      // what --serve binds: http on loopback, a port and nothing else.
+      return { ...state, serve: { enabled: true, url: loopbackServeUrl(event.url) } };
     case 'build-start':
       return { ...state, phase: 'building' };
     case 'build-success':

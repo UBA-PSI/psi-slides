@@ -22,18 +22,6 @@ Not in this file, because they are decisions rather than defects:
 
 ## S1 – Security (a source.md someone sent you)
 
-4. **Desktop: a spoofed `--events` line** (`desktop/main/builder.js:37,81–90`,
-   `ipc.js:184,222`; source build.js `[fonts]` notes at 2063/2082, printed at
-   29637). A font file name or `fonts:` family with a newline and
-   `{"type":"serving","url":"https://evil.example"}` makes the app open a
-   foreign URL; a spoofed `watching` retargets "Open source" (`shell.openPath`)
-   and the view/export folder. Fix: under `--events`, strip control
-   characters from human log lines (or nonce the events), and accept only a
-   loopback `http://` `serve.url`.
-5. **Escape sequences from the source reach the terminal raw**
-   (`build.js:32049` and log lines echoing source text). `## bogus: A ESC]0;PWNED BEL`
-   retitles the terminal; OSC 52 can write the clipboard. The prompter already
-   uses `terminalSafe`; the build's own error/log path does not.
 6. **`source.md` is written through a symlink** (`build.js:27849`
    `--integrate-annotations`, `:28276` `--optimize-images`, `:30088` editor
    patch) with `fs.writeFileSync`; SECURITY.md:126–128 says every write goes

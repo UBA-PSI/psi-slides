@@ -168,6 +168,22 @@ tag:
   scripts can change: an id of `../../../x` wrote pictures two folders above
   the lecture. Characters other than letters, digits, `_` and `-` in that
   part of the name are now replaced by `_`.
+- **What `node build.js` prints is text, and nothing else.** Its messages
+  quote the source – a heading in an error, a folder or file name in a note –
+  and an escape sequence written there reached the terminal raw:
+  `## bogus: A ESC]0;PWNED BEL` retitled the terminal window, and the same
+  kind of sequence can write the clipboard. Every control character other
+  than a line break or a tab, and the characters that reverse the direction
+  of text, are now printed as spaces, in every line the build writes.
+- **The desktop builder cannot be steered by a line that looks like an
+  event.** Under `--events`, a lecture folder or font file whose name held a
+  line break followed by `{"type":"serving",…}` printed a line the app took
+  for an event, and the app then opened the views at a foreign address; a
+  forged `watching` line moved the file “Open source” opens. Under
+  `--events`, a printed line that starts with a brace is now indented by a
+  space, so only an event can start one; the app takes a `serving` address
+  only when it is `http` on this computer, and keeps the lecture it opened
+  whatever a `watching` line says.
 
 ### Added
 

@@ -29437,7 +29437,54 @@ let oneShotStart = 0;
 
 function emitEvent(obj) {
   if (!eventsEnabled) return;
-  process.stdout.write(JSON.stringify(obj) + '\n');
+  const write = rawStdoutWrite || ((t) => process.stdout.write(t));
+  // A log line written without its newline would otherwise swallow the
+  // event's opening brace into itself.
+  if (!stdoutAtLineStart) write('\n');
+  write(JSON.stringify(obj) + '\n');
+  stdoutAtLineStart = true;
+}
+
+// ── what the build prints ────────────────────────────────────────────
+//
+// The log quotes the source: a heading in an error, a file or folder name in
+// a note, a path in every `Wrote` line. Two readers take that text for
+// something other than text. A terminal obeys an escape sequence in it -
+// `## bogus: A ESC]0;PWNED BEL` retitled the terminal, and OSC 52 writes the
+// clipboard - and an --events driver takes a line that starts with
+// `{"type":` for an event: a lecture folder whose name held a newline and a
+// `serving` event made the desktop app open a foreign address. So every
+// human line goes out through one guard, installed first thing in main():
+// control characters except a newline and a tab, and the bidi overrides,
+// become spaces (terminalSafe's rule), and under --events a human line that
+// starts with a brace is indented by one space, so that only emitEvent,
+// which writes past the guard, can start one.
+let rawStdoutWrite = null;
+let stdoutAtLineStart = true;
+
+function consoleSafe(text) {
+  return String(text).replace(/[\p{Cc}\u202a-\u202e\u2066-\u2069]/gu,
+    (c) => (c === '\n' || c === '\t' ? c : ' '));
+}
+
+function guardConsole() {
+  if (rawStdoutWrite) return;
+  const asText = (chunk) => (typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'));
+  const callback = (rest) => rest.find((a) => typeof a === 'function');
+  const out = process.stdout;
+  const err = process.stderr;
+  rawStdoutWrite = out.write.bind(out);
+  const rawErr = err.write.bind(err);
+  out.write = (chunk, ...rest) => {
+    let text = consoleSafe(asText(chunk));
+    if (eventsEnabled) {
+      if (stdoutAtLineStart && text.startsWith('{')) text = ' ' + text;
+      text = text.replace(/\n\{/g, '\n {');
+    }
+    if (text.length) stdoutAtLineStart = text.endsWith('\n');
+    return rawStdoutWrite(text, 'utf8', callback(rest));
+  };
+  err.write = (chunk, ...rest) => rawErr(consoleSafe(asText(chunk)), 'utf8', callback(rest));
 }
 
 // Self-check on the inlined stylesheets. Every CSS block in this file lives
@@ -31675,6 +31722,7 @@ function pdfJobsFrom(argv, flags, absIn) {
 }
 
 async function main() {
+  guardConsole();
   const argv = process.argv.slice(2);
   const flags = new Set(argv.filter(a => a.startsWith('--')));
   // Set before anything else can emit: the pre-flights inside buildOnce throw
