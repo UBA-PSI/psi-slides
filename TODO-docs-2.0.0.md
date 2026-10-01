@@ -145,7 +145,7 @@ Ground rules for every slice:
 
 ### S2 – Landing page and getting started
 
-`[x]` site-s2 – 5e4d0f3c · site-cmp – f8d325d9 · polish (hero fold, details style, unused CSS, DESIGN.md) `[~]` site-polish (Opus)
+`[x]` site-s2 – 5e4d0f3c · site-cmp – f8d325d9 · site-polish – ce2b34b2
 
 - [x] Hero: a two-line „Start here“ – no terminal → app, *New lecture…*; see it
       first → the tutorial („a lecture about writing lectures“). Links straight
@@ -160,32 +160,32 @@ Ground rules for every slice:
 
 ### S3 – Tutorial: basics in the tutorial, advanced into the reference decks
 
-`[~]` lec-s3 (Opus)
+`[x]` lec-s3 – 1b998c31 (refs 04f769c9, views 78f18613). Tutorial 61 chunks; diagrams 47 (new part after the vocabulary, so nav-goto holds); decoration 54 (Type and colour last)
 
-- [ ] `lectures/tutorial` keeps the basics (~55 chunks: welcome, moving,
+- [x] `lectures/tutorial` keeps the basics (~55 chunks: welcome, moving,
       finding, on-screen, vocabulary, cockpit, layouts, craft, next) plus a 3–4
       chunk „Beyond the basics“ part that links on. Add what 2.0.0 added and the
       basics need: Cmd-K, start menu, `G`/`W`, reader tools in `print.html`,
       „every `---` is a beat“, `--squint` instead of the hand-walked exercise.
-- [ ] Figures part → `diagrams` as an opening „The language in five lines“ part
+- [x] Figures part → `diagrams` as an opening „The language in five lines“ part
       (`#diagram-beats-rule`, `#diagram-beats-pinned`, `#diagram-slots`,
       `#diagram-placement`, `#diagram-coords`); keep `#drawn-from-text`,
       `#diagram`, `#diagram-beats` in the tutorial. Add chunks to `diagrams`,
       never touch existing figure ids (≈25 specs drive them).
-- [ ] Decoration part → dedupe against `decoration` (`#cover-list`,
+- [x] Decoration part → dedupe against `decoration` (`#cover-list`,
       `#cover-keys`, `#rows` exist in both); keep `#deco-idea`, `#deco-picture`.
-- [ ] `style:` block and fonts (`#style-block` … `#fonts`) → a „Type and colour“
+- [x] `style:` block and fonts (`#style-block` … `#fonts`) → a „Type and colour“
       part in `decoration`.
-- [ ] Pulse to 2 chunks, video + embed to 1–2.
-- [ ] `test/gates/corpus.mjs:47` pins the tutorial at 11 figures – same commit.
+- [x] Pulse to 2 chunks, video + embed to 1–2.
+- [x] `test/gates/corpus.mjs:47` pins the tutorial at 11 figures – same commit.
 
 ### S4 – Lectures nobody explains
 
-- [ ] **Decided: move all three demo-* decks under `test/`** (update pages.yml). `demo-deco` → test fixture (it is a coverage probe). `demo-tracking`,
+- [x] **Done (see git log): moved all three demo-* decks to `test/corpus/`**. Was: move all three demo-* decks under `test/`** (update pages.yml). `demo-deco` → test fixture (it is a coverage probe). `demo-tracking`,
       `demo-responsibility`: document as corpus decks or move beside the
       fixtures; fix or accept their 15 canvas warnings; `pages.yml:76–82` builds
       them. **Decision for the maintainer.**
-- [ ] `display-face` into CLAUDE.md's reference list; `title-block` and
+- [x] `display-face` into CLAUDE.md's reference list; `title-block` and
       `display-face` into README beside decoration.
 
 ## Phase 3 – prose passes (prose-passes skill, EN + DE together)
@@ -214,6 +214,11 @@ on the pages as they then stand.
 - [ ] Credits: one scheme across the decks (`presenter:` + `affiliation:`).
 
 ## Phase 4 – close
+
+- [~] Site counts and tutorial descriptions after the split (site-counts, Sonnet).
+- [ ] Browser suite after the split (running).
+- [ ] `img/builder.webp` is used by no page any more; `shoot.mjs` still takes it (owned by the other session – tell it).
+- [ ] Dark mode of the changed site pages not checked.
 
 - [ ] `comparison`'s details: a `summary` style in `site.css` (it is the
       browser default now) and open the block a `#fragment` names (`site.js`,
