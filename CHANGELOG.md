@@ -1452,6 +1452,15 @@ tag:
 
 ### Fixed
 
+- **A frozen cockpit stays where the lecturer took it.** Every snapshot from
+  the projection used to be applied in full, so an `autoplay` tick there, or
+  `B` pressed on its keyboard, dragged the look-ahead back to the room's
+  slide and overwrote its reveals and annotation drafts. Frozen, the cockpit
+  now takes only the blank and the projection's size, ignores the
+  projection's drag-pan, and sends no laser pointer. A projection reloaded
+  under a freeze booted onto the cockpit's look-ahead, because both windows
+  share the stored position; the cockpit no longer writes it while frozen,
+  and thawing does.
 - **The linter reports what the build refuses in the frontmatter.** A
   byte-order mark before the opening `---` and a closing `--- ` with a
   trailing blank hid the whole block from it; a value on the line under its

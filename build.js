@@ -19078,6 +19078,12 @@ const viewHooks = {
   onActiveChange: () => {},
   onStateChange: () => {},
   shouldBroadcast: () => true,
+  // A frozen cockpit is the lecturer's private look-ahead: the slide it shows
+  // is not the room's. While this says so, incoming snapshots and pans do not
+  // move it (only the blank and the projection's size are taken), it stores
+  // no position a reloaded projection would boot onto, and it sends no laser
+  // pointer. The audience is never looking ahead.
+  lookingAhead: () => false,
   // The cockpit's cue cards sit in front of the reveal counter: a forward
   // press is consumed by a card before it reaches advanceReveal, and a back
   // press by the card before it. Both default to "not consumed", so the
@@ -19392,6 +19398,10 @@ function saveAnnotations() {
   try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
 }
 function saveActive() {
+  // One key for both windows, so a cockpit looking ahead must not write it:
+  // a projection reloaded under a freeze read the cockpit's look-ahead and
+  // put it on the wall. Thawing stores the position the room then gets.
+  if (viewHooks.lookingAhead()) return;
   try { localStorage.setItem(storageKey('activeIdx'), String(state.activeIdx)); } catch (e) {}
 }
 function applyFontTheme() {
@@ -19605,6 +19615,17 @@ function applyRemoteCamera(dx, dy, ovScale, selIdx, anchorIdx) {
   }
   if (inRange(anchorIdx)) overviewAnchorIdx = anchorIdx;
 }
+// What a frozen cockpit takes from a projection snapshot: the facts about the
+// room rather than about the deck. See the 'state' branch of the listener.
+function applyFrozenState(payload) {
+  if (!payload) return;
+  state.blanked = !!payload.blanked;
+  document.body.classList.toggle('blanked', state.blanked);
+  applyBlankBadge();
+  if (VIEW === 'speaker' && payload.audienceW > 0 && payload.audienceH > 0) {
+    setSlideRef(payload.audienceW, payload.audienceH);
+  }
+}
 function applyRemoteState(payload) {
   // A remote apply that changes which chunk is live is a slide change and
   // wears the deck's transition, exactly as a local one does. The whole
@@ -19759,6 +19780,12 @@ window.addEventListener('message', (ev) => {
     return;
   }
   if (m.type === 'state') {
+    // Frozen, the cockpit keeps its own slide, reveals, camera and drafts -
+    // the projection's autoplay ticks, or a key pressed on its keyboard,
+    // used to drag the look-ahead back to the room's slide. Two things are
+    // still the room's to say: whether it is blanked, and how big it is.
+    // Thawing pushes this window's snapshot, which is the re-sync.
+    if (viewHooks.lookingAhead()) { applyFrozenState(m.payload); return; }
     applyRemoteState(m.payload);
     return;
   }
@@ -19862,6 +19889,7 @@ window.addEventListener('message', (ev) => {
     return;
   }
   if (m.type === 'pan') {
+    if (viewHooks.lookingAhead()) return;
     isApplyingRemote = true;
     try {
       applyRemoteCamera(m.dx, m.dy, m.overviewScale, m.selectedIdx, m.overviewAnchorIdx);
@@ -25207,6 +25235,7 @@ requestAnimationFrame(sizeStageViewport);
 // broadcast does is hand the room our current state.
 let frozen = false;
 viewHooks.shouldBroadcast = () => !frozen;
+viewHooks.lookingAhead = () => frozen;
 // The cockpit's own commands, assigned into the key map's COMMAND_RUN the way
 // viewHooks are set: what the letters mean is in commands.mjs, what they do
 // here is in this file, next to the code that does it.
@@ -25238,11 +25267,16 @@ function applyFreezeIndicator() {
 function toggleFreeze() {
   frozen = !frozen;
   applyFreezeIndicator();
+  // A dot already on the wall stays there until its timeout otherwise.
+  if (frozen) sendToPeer({ type: 'cursor', source: 'speaker', chunkIdx: -1, x: 0, y: 0 });
   // Thawing has to push immediately. Without this the room keeps the frozen
   // slide until the next navigation, so unfreezing on the slide you want to
   // land on would look like it did nothing at all.
   if (!frozen && !isApplyingRemote) {
     sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
+    // The room is now on this window's slide, so this is the position a
+    // reloaded projection should come back to.
+    saveActive();
     // Edits made while frozen were held back, not dropped: the editor kept
     // the latest source per figure, and thawing is when the room gets the
     // finished picture – the exact promise the freeze workflow makes.
@@ -26478,6 +26512,10 @@ function maybeSendLaser() {
   if (!laserPending) return;
   const { x, y, chunkIdx, target } = laserPending;
   laserPending = null;
+  // The pointer is drawn on the room's slide, and a frozen cockpit is not
+  // showing the room's slide: the dot would land on a page the room is not
+  // looking at, or on the held one at a spot that means something else.
+  if (frozen) return;
   sendToPeer({ type: 'cursor', source: 'speaker', chunkIdx, x, y, target });
 }
 viewport.addEventListener('pointermove', (ev) => {

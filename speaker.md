@@ -30,6 +30,12 @@ The audience is the **state root**. The speaker owns a **local shadow** of the s
 
 `frozen` is the projector's metaphor, not the protocol's. It started life as a `pushEnabled` toggle with a companion `.` key that force-pushed one snapshot – two controls describing what the code does (send a snapshot) rather than what the lecturer wants (hold the image while I read ahead). Inverting and renaming it collapses the pair into one: thawing *is* the resync, because the first thing an ungated broadcast does is hand the room the current state. `toggleFreeze()` therefore sends a snapshot directly on the way out of frozen, or unfreezing on the slide you meant to land on would appear to do nothing.
 
+**Frozen is private in both directions.** A frozen cockpit is the lecturer's look-ahead, so the gate holds incoming traffic as well as outgoing (`viewHooks.lookingAhead()`, which the audience answers `false`):
+
+- An incoming `state` snapshot does not move it. It used to: the projection's `autoplay` ticks, or `B` pressed on the projection's keyboard, each sent a snapshot that dragged the look-ahead back to the room's slide and overwrote its reveals and annotation drafts. Of a snapshot a frozen cockpit takes two facts about the room and nothing about the deck – `blanked` and the projection's size (`applyFrozenState`). What the projection changed meanwhile is lost on thaw, because thawing pushes the cockpit's whole snapshot; that is the promise of the key.
+- An incoming `pan` does not move its camera, and it sends no laser pointer (`cursor`): the dot would land on a slide the room is not looking at. Freezing takes a dot already on the wall down.
+- It does not write the stored position (§5). The two windows share one `activeIdx` key, so a projection reloaded under a freeze booted onto the cockpit's look-ahead. Thawing writes it, since the room is then on the cockpit's slide.
+
 Seven message families deliberately bypass the freeze gate, because all of them are commands to the projector rather than shared state:
 
 - `blank` – `B` must reach the projection whether or not the cockpit is frozen. It is the key you hit when something has to come off the screen *now*, and a gated `B` would toast “projection blanked” at a projection that stayed lit.
@@ -178,7 +184,7 @@ The `figure-*` and `cursor` messages are the one remaining deliberately one-dire
 
 `figure-pan` / `figure-unpan` carry the `::: marginalia` aside being brought into the frame and let go again. They are their own message types for the reason the three gated ones above are: a snapshot sent to say "the aside is in" is a full apply and would drag the receiver's slide position with it. What travels is **which aside**, never how far to move – each window solves the offset against its own frame, and the cockpit's scaled stage is a different size, so a shared pixel count would be wrong in one of them by construction. Same reasoning as `clampZoomToWidth` and the focused formula's fit.
 
-Receive rule: any incoming `state` replaces the local state wholesale (except for the always-local fields in §2). No merging, no conflict resolution. If both sides edit the same field within one tick, last write wins.
+Receive rule: any incoming `state` replaces the local state wholesale (except for the always-local fields in §2) – unless the receiver is a frozen cockpit, which takes only `blanked` and the projection's size (§2). No merging, no conflict resolution. If both sides edit the same field within one tick, last write wins.
 
 Rebroadcast rule: **never** rebroadcast a received state. The sender is the single source of truth for that state-tick.
 
@@ -318,6 +324,8 @@ If speaker opens standalone (URL typed directly, bookmark) there is no `window.o
 Key: `psi-slides:<title>:speaker`. Written every 5 s on change. Same schema as the snapshot payload, plus `elapsedSeconds`. On speaker reload, this is applied locally and then broadcast so the audience catches up if it also restarted.
 
 Annotations use the existing `psi-slides:<title>:annotations` key – already wired in audience. Speaker writes to the same key.
+
+The position both windows boot onto is `psi-slides:<title>:activeIdx`, one key for the two of them, written on every slide change – except by a frozen cockpit, whose slide is not the room's (§2).
 
 **The prompter's six keys, and why four of them are sessions.** `sessionStorage psi-slides:souffleuse` = `on` remembers that the prompter is listening, and it is deliberately *not* `localStorage`: a microphone is an act of consent, the switch is where it is given, and the answer should last as long as this tab and no longer. It exists at all because `--watch` reloads the page on every save, and a rehearsal should not have to press the switch again for each of them – on such a reload the cockpit waits for the socket and starts again by itself, and if the browser refuses recognition without a gesture the badge says so and the switch stays off. The two preferences are the other way round, because how someone likes to rehearse is a property of them and not of a tab: `localStorage psi-slides:souffleuse-heard` (show what the ear hears) and `psi-slides:souffleuse-cues` (may it lay cards into upcoming slides). The deck's `prompter: {cues: off}` is a **ceiling** on the second, not a default – a lecture that switched cards off does not get them because a browser preference says otherwise. Neither the hints, the history panel's list of ten nor the cards laid into upcoming slides are persisted: they are a record of this talk, and the next run of it is a different talk.
 
