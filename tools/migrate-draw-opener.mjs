@@ -48,10 +48,10 @@ import { parseLegacyDrawTail, formatDrawOpener } from '../tails.mjs';
 export const GENERATED_BASENAMES = new Set([
   'audience.html', 'speaker.html', 'print.html', 'print-notes.html', 'squint.txt',
 ]);
-// The two spliced figure pages: their figure regions are generated, their
-// prose shell is hand-written - so they are excluded from the rewrite and
-// their prose is scanned separately (`proseOf`).
-export const GENERATED_PROSE_PAGES = ['docs/artifact/figures-you-write.html', 'docs/site/figures.html'];
+// The spliced figure page: its figure regions are generated, its prose shell
+// is hand-written - so it is excluded from the rewrite and its prose is
+// scanned separately (`proseOf`).
+export const GENERATED_PROSE_PAGES = ['docs/artifact/figures-you-write.html'];
 export const GENERATED_PREFIXES = [...GENERATED_PROSE_PAGES, '_site/', 'node_modules/'];
 export const HISTORY_BASENAMES = new Set(['CHANGELOG.md', 'TODO-inconsistencies.md']);
 export const SELF_PREFIXES = [
