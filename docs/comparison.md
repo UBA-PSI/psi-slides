@@ -22,7 +22,7 @@ Numbers about psi-slides were measured here; claims about the other tools follow
 | In-deck text search | yes | whatever the PDF viewer offers | yes | not found | not found | not found | in the editor, not while presenting |
 | Needed at the lectern | a browser, or a PDF viewer for the PDF deck | a PDF viewer | a browser, plus a server for the speaker view | a browser | a browser | a browser | the application, or a browser |
 | Ecosystem | none | very large | very large | large, company-backed | large | large | enormous |
-| Maturity | Phase 1, `0.1.0` | about two decades | since 2011 | 1.0 in 2022, Posit PBC | since 2018 | since 2021 | decades |
+| Maturity | since 2026, `2.0.0` | about two decades | since 2011 | 1.0 in 2022, Posit PBC | since 2018 | since 2021 | decades |
 | Licence | MIT | LPPL / GPL | MIT | MIT | MIT | MIT | proprietary |
 
 The table flattens things that matter. The rest of this page is the nuance.
@@ -142,9 +142,9 @@ What is still missing is a diagram pipeline that *computes* anything. The chart 
 
 ### Fonts and typographic control
 
-An opinionated tool can be genuinely better than a general one here. psi-slides has a chunk-type vocabulary that sets treatment, four width classes on the internal measure, an OKLCH palette, and a documented list of ornaments the design refuses (PRD §10). Fonts embed from a `fonts/` directory in woff2, woff, ttf or otf, with weight and style read off the filename; naming a family with no matching file fails the build rather than falling back silently.
+An opinionated tool can be genuinely better than a general one here. psi-slides has a chunk-type vocabulary that sets treatment, four width classes on the internal measure, an OKLCH palette, and a documented list of ornaments the design refuses (PRD §10). Typefaces come from a bundled roster of open-licence faces, embedded without a file of your own, or from a `fonts/` directory in woff2, woff, ttf or otf, with weight and style read off the filename; naming a family that is neither bundled nor matched by a file fails the build rather than falling back silently.
 
-The flip side is that there is exactly one design and no template gallery. You get the project's taste. Beamer has many themes and most universities ship an official one; PowerPoint, Keynote and Google Slides have vast template markets; reveal.js, Marp and Slidev all have theme ecosystems and Marp themes are plain CSS. Deckset is an interesting middle case: it has 25 or so built-in themes but custom theming is style commands layered on those built-ins rather than authoring a theme from scratch. If your faculty requires a corporate slide master, psi-slides cannot give you one, and there is no export path to a tool that can.
+The flip side is that there is one design and no template gallery: seven colour themes, a choice of typefaces and ten cover compositions vary it, but you get the project's taste. Beamer has many themes and most universities ship an official one; PowerPoint, Keynote and Google Slides have vast template markets; reveal.js, Marp and Slidev all have theme ecosystems and Marp themes are plain CSS. Deckset is an interesting middle case: it has 25 or so built-in themes but custom theming is style commands layered on those built-ins rather than authoring a theme from scratch. If your faculty requires a corporate slide master, psi-slides cannot give you one, and there is no export path to a tool that can.
 
 On embedding: it redistributes the font file. SIL OFL and Apache-2.0 permit it, most commercial desktop licences do not. The build prints a reminder and verifies nothing.
 
@@ -162,7 +162,7 @@ Beamer's overlays are still richer for text. reveal.js has fragments with effect
 
 Video: a clip is written `![](clip-id)` like a still, and play, pause and seek are synced between the projection and the cockpit. Under 12 MB it is inlined and the file stays self-contained; over that it is copied to a `videos/` folder that then has to travel with the output, which is the tension between video and a single file showing through. reveal.js has video backgrounds, which psi-slides does not.
 
-Interactivity is likewise absent: no polls, no quizzes, no widgets. Slidev is the opposite pole, since a slide can be a Vue component and therefore anything at all, and Quarto has Observable JS natively.
+Interactivity during the talk is likewise absent: no polls, no quizzes, no widgets on the projection. What exists is `::: pulse`, a question placed in the two documents that a reader answers afterwards, through a separate Pulse server. Slidev is the opposite pole, since a slide can be a Vue component and therefore anything at all, and Quarto has Observable JS natively.
 
 ### Live annotation during a talk
 
@@ -190,11 +190,11 @@ The browser floor is a real counterweight, though. The stylesheets use `oklch()`
 
 ### Build time and the authoring loop
 
-`node build.js lectures/python-intro/source.md` – nine columns, 36 chunks, three images – writes all four outputs in 0.21 s. `--watch` rebuilds on save and pushes a reload over a WebSocket to every open tab, so editor, audience view and cockpit can all be visible at once.
+`node build.js lectures/python-intro/source.md` – ten columns, 39 chunks, one image – writes all four outputs in about half a second of wall-clock time on the maintainer's laptop, Node's start-up included. `--watch` rebuilds on save and pushes a reload over a WebSocket to every open tab, so editor, audience view and cockpit can all be visible at once.
 
 A LaTeX run on a comparable Beamer deck is seconds rather than milliseconds, and TikZ-heavy or `minted` decks are worse; this is the main reason people look at Typst. Quarto with executable cells is slower again by design, because it is running your code. reveal.js, Marp and Slidev have fast dev servers with hot reload and are comparable.
 
-Install weight differs by orders of magnitude and belongs in the same breath. psi-slides is Node 22 plus four small dependencies. Marp offers standalone binaries that bundle Node. Quarto is one installer that bundles Deno, Pandoc, Typst and Dart Sass. Slidev needs a full Node and Vite toolchain. A full TeX Live installation is measured in gigabytes, with TUG's own guide putting the complete scheme at roughly 8 GB, though smaller schemes and TinyTeX exist and a Beamer deck does not need everything.
+Install weight differs by orders of magnitude and belongs in the same breath. psi-slides is Node 22 plus six runtime dependencies and a set of `@fontsource` packages that carry nothing but font files; `playwright-core` is optional and needed only for the PDF exports. Marp offers standalone binaries that bundle Node. Quarto is one installer that bundles Deno, Pandoc, Typst and Dart Sass. Slidev needs a full Node and Vite toolchain. A full TeX Live installation is measured in gigabytes, with TUG's own guide putting the complete scheme at roughly 8 GB, though smaller schemes and TinyTeX exist and a Beamer deck does not need everything.
 
 ### Version control, diffs, review, collaboration
 
@@ -230,7 +230,7 @@ Nothing in a psi-slides output phones home. No account, no telemetry, no cloud s
 
 ### Maturity, ecosystem, bus factor, licence
 
-From this repository: 132 commits, one author, 37 tracked files, version `0.1.0`, not published to npm. **No test suite.** CI exists but is a smoke check: install, run the linter over `lectures/`, build the tutorial, deploy it to GitHub Pages. No releases, no changelog, no plugin API, no community, no Stack Overflow answers, and nobody else who knows how `build.js` works. The bus factor is one.
+From this repository: about 1,100 commits since April 2026, one maintainer, about 330 tracked files, version `2.0.0`, not published to npm. Releases are tagged on GitHub with a changelog, and each one carries the desktop builder for macOS, Windows and Linux beside the engine's two archives; the macOS package has been tried on a real machine, the Windows and Linux ones are built by CI and not yet tried. There are two test suites: twenty-one gates that need no browser, run by CI on every push and pull request, and a browser suite of fifty specs. A release is published only after both pass, together with the linter and a check that the committed example views match their sources. No plugin API, no community, no Stack Overflow answers, and nobody else who knows how `build.js` works. The bus factor is one.
 
 Set that against the alternatives, in rough order of institutional durability: **Quarto** is backed by Posit PBC with paid developers, near-daily pre-releases, and a publicly announced Rust rewrite for version 2. **Slidev** is org-owned with a dominant maintainer and at least one substantial second, and around 48,000 GitHub stars. **reveal.js** has about 72,000 stars, a huge plugin ecosystem, and a single creator with a commercial sponsor behind it. **Marp** is MIT, actively released through 2026, and effectively one maintainer, who has publicly described being overloaded. **Deckset** is a proprietary one-person commercial operation shipping roughly monthly. **Beamer** has decades and books written about it.
 
@@ -318,10 +318,10 @@ If you want a distributable artefact, a presenter console or a handout, you will
 
 Collected in one place.
 
-1. **It is a young project with a bus factor of one.** Version `0.1.0`, one author, 132 commits, no test suite, no releases, no changelog, no plugin API, no community, and a format still in motion. CI runs a linter and builds the tutorial; that is the whole safety net. Every other tool here is a safer bet on this axis and several are far safer.
+1. **It is a young project with a bus factor of one.** First released in 2026, one maintainer, no plugin API, no community, and a source format that is stable within a major version and has already had a second one. The test suites and the release checks are a real safety net, but the person who keeps them is the person who writes the code. Every other tool here is a safer bet on this axis and several are far safer.
 2. **Maths and citations.** KaTeX is a subset of LaTeX and there is no bibliography support at all. Beamer wins outright; Quarto and Pandoc-to-Beamer win outright.
 3. **Anything involving other people.** No co-editing, no comments, no review interface, no `.pptx` export, no way for a colleague who does not use git to touch your lecture. Google Slides wins outright, and PowerPoint's ubiquity is a genuine advantage that no argument about file formats answers.
-4. **Design, animation and diagrams.** One design, no template gallery, no institutional master, no slide transitions, no interactivity, and a diagram DSL that draws but never computes. PowerPoint and Keynote win on motion, reveal.js and Marp and Slidev on themes, Quarto on figures generated from data.
+4. **Design, animation and diagrams.** One design, no template gallery, no institutional master, no slide transitions beyond a pan, a cut or a fade, no interactivity during the talk, and a diagram DSL that draws but never computes. PowerPoint and Keynote win on motion, reveal.js and Marp and Slidev on themes, Quarto on figures generated from data.
 5. **The PDF export needs a Chromium** (Chrome on the command line, the app's own in the desktop builder), the slide PDF has no bookmarks, and there are no n-up handout layouts.
 6. **Live annotation is typed text only.** No pen, no highlighter, no freehand. Slidev, Quarto's chalkboard, PowerPoint and pdfpc all beat it for marking up a figure in the room.
 7. **The speaker view is locked to one machine and one browser.** No tablet remote, no second-device mode. Architectural, not a missing feature.

@@ -215,7 +215,7 @@ again. `gh release create` with assets makes a draft, uploads and only then
 publishes, so an upload that fails leaves a draft to delete, never a
 half-published release. The asset names carry no version (`artifactName` in
 `desktop/package.json`), so the site links
-`releases/download/v<version>/psi-slides-builder-mac-arm64.dmg` and the link
+`releases/latest/download/psi-slides-builder-mac-arm64.dmg` and the link
 is the package that was tested; `publish` checks that all five are there
 before it creates anything.
 
@@ -231,17 +231,21 @@ suffix (`v2.1.0-beta.1`) to get a beta either: `release.yml` creates releases
 without `--prerelease`, and `releases/latest/download/` would hand every
 reader of the site a beta engine.
 
-**The site's download links change after the tag, never with it.** The link
-gate in `docs/site/build-site.js` resolves internal targets and fragments; it
-does not fetch an external URL, so a page pointing at
-`releases/download/v<next>/…` passes the gate whether or not that
-release exists – and `pages.yml` redeploys on every push to `main`, which
-makes a commit that changes a download link a publish rather than a staging
-step. So: push the tag, wait for `release.yml` to publish all seven
-assets, check them (`gh release view v<version> --json assets`, or a
-`curl -sIL -o /dev/null -w '%{http_code}'` per link), and only then commit
-the version strings in `docs/site/getting-started.html` and
-`getting-started.de.html` – six URLs and one `<code>` per page.
+**The site's download links never change.** They point at
+`releases/latest/download/<asset>`, and the asset names carry no version, so
+a release needs no edit on the site. What they do depend on is timing:
+`pages.yml` redeploys the site on every push to `main`, and until
+`release.yml` has published the new release, `latest` is the previous one.
+A site that describes the new version therefore goes out together with the
+tag – push `main` and the tag in one `git push` (step 6 below), never `main`
+on its own ahead of it, or the site describes a version the download links
+do not deliver yet, and an asset the previous release did not carry is a
+404. The link gate in `docs/site/build-site.js` resolves internal targets
+and fragments; it does not fetch an external URL, so it cannot see this.
+Once `release.yml` has published all seven assets, check them
+(`gh release view v<version> --json assets`, or a
+`curl -sIL -o /dev/null -w '%{http_code}'` per link on
+`getting-started.html`).
 
 **The macOS release is signed and notarised on the maintainer's machine**, not
 in CI – `npm run dist:signed` in `desktop/`, with the Developer ID
@@ -313,8 +317,8 @@ delete the tag on both sides (`git tag -d v1.2.3`, `git push --delete origin
 v1.2.3`), fix, and tag again – a partially published release is worse than a
 late one.
 
-7. Upload the signed macOS packages over CI's unsigned ones (see above), then
-   commit the version in the site's download links.
+7. Upload the signed macOS packages over CI's unsigned ones (see above), and
+   check the site's download links resolve. They need no edit.
 
 ## Conventions
 

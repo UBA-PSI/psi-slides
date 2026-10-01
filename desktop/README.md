@@ -26,10 +26,9 @@ round.
 
 Download the package for your system from the project's
 [releases page](https://github.com/UBA-PSI/psi-slides/releases) and install it
-the way you install anything else. From 2.0.0 the app is part of every
-psi-slides release, at the same version as the engine it bundles, beside the
-engine's two archives (up to then it had its own 0.x version and was published
-as a pre-release under a `builder-<version>` tag). The macOS package has been
+the way you install anything else. The app is part of every psi-slides
+release, at the same version as the engine it bundles, beside the engine's two
+archives. The macOS package has been
 tried on a real Mac; the Windows and Linux packages are built by CI and are
 **experimental** – not yet tried on a real machine.
 
