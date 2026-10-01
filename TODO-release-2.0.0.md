@@ -43,30 +43,9 @@ All nine fixed: 1, 2 and 9 in `f5b4b31`, 3 in `7511b53`, 4–6 in `0ecdf7f`,
 
 ## S5 – Prompter, reader, PDF
 
-1. **The prompter's rate limits can be bypassed by a page with the nonce**
-   (`souffleuse.mjs:653` `clampSpan` credits 2 s per message measured from
-   the previous say; the 8 s slide floor is on page-supplied `elapsed`,
-   1176; build.js:28784). 73 ticks in 20 s, dry run. Clamp on wall time.
-2. **The prompter log is unbounded** (build.js:28815, `dismissed()`,
-   `hello()`): `chunkId`, `hintId`, `how`, `stt.engine`, `lang` uncapped.
-3. **Divider notes and their `@mm:ss` never reach the prompter**
-   (`souffleuse.mjs:377–379`, `notes: [], marks: []`), so its drift differs
-   from the cockpit's.
-4. **`--prompter-replay` ignores `dismiss` lines** (`souffleuse.mjs:1468–1489`).
-5. **A hostile highlights import breaks the reader for good**
-   (build.js:12499, 11874, 11766, 13029): `type: "constructor"` / block kind
-   `__proto__` throw in `place()`; the entry is already stored, `save()`
-   persists it, `placeAll()` throws on every load. Whitelist with own-property
-   checks or `Object.create(null)`.
-6. *Read*: **the reader's key is only the folder's name** (build.js:29675):
-   two `week1/` lectures share a store.
-7. **`%` in a fragment link kills the slide export** (`pdf-core.mjs:574`,
-   `decodeURIComponent` unguarded; `docCollect` guards it).
-8. **`#constructor` is rewritten to `function Object()…`**
-   (`pdf-core.mjs:575, 597`, plain-object link table).
-9. *Read*: **the app can export a stale PDF** (`desktop/main/pdf.js:81`):
-   auto off, save, auto on, export – no rebuild, not flagged.
-   `desktop/test/pdf.test.mjs:101–103` asserts the wrong assumption.
+All nine fixed: 1 and 2 in `2897f5b`, 3 in `a68c6c6`, 4 in `cfd3ebb`, 5 in
+`648a0d0`, 6 in `eebf58a` (the key gains a hash of the folder above; the old
+key is migrated once), 7 and 8 in `32016f2`, 9 in `4dedd4b`.
 
 ## S7 – Release blockers
 
