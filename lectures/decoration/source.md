@@ -30,15 +30,15 @@ A slide is a frame, and the frame can carry more than a column of text.
 Every way psi-slides has of decorating a slide, each one used on the slide that
 describes it.
 
-## free: None of this is in the 1.0.0 release {.standard #preview}
+## free: Read each slide beside its source | the slide that describes a construct uses it {.standard #preview}
 
-**What this lecture shows was added after the 1.0.0 release**, so the
-archive on the releases page does not have it and a lecture that uses it will
-not build against that download.
+**Each slide in this lecture uses the construct it describes, so its chunk in
+`source.md` is a working example of that construct.** Find the heading you see
+on the slide in the source, and the lines under it are what drew the slide.
 
-What you need instead is the repository: a clone, or **Download ZIP** from the
-project page, and the `build.js` inside it. The source format is frozen from
-1.0.0 onwards, so these constructions may still change before they are tagged.
+**Build the lecture with `--watch` and change one of those lines**: the open
+views reload on every save, which is the quickest way to learn what a word in
+a card row's braces or a backdrop's `reveal` does.
 
 # The cover, and the slide that closes it {#covers}
 

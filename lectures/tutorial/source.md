@@ -719,89 +719,7 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 > note: Worth doing once per lecture, the day before. Reading the short version is close enough to giving the talk that it doubles as a rehearsal.
 
-# Next steps {#next}
-
-## principle: Start from a talk you have already given | the text already exists, so the work left is cutting it into chunks {.standard #start-writing}
-
-**The first lecture takes the most effort, because you are still learning the vocabulary, so start with a talk you have already given.** Its text already exists. Most of the remaining work is deciding where one chunk ends and the next begins, and the vocabulary you have just read is all you need for that.
-
-**The steps are the same for every lecture** – write the prose, sharpen the opening sentences, run the checker, then walk the lecture once in the short view before you teach it.
-
-## free: Read more | three finished lectures to open {.wide #read-more}
-
-**psi-slides comes with three finished lectures. Open them, and take whatever you need out of their sources.**
-
-::: cols 2
-
-**1. A 36-chunk teaching lecture: `lectures/python-intro/audience.html`.** Open its speaker window with `S` and watch the layout vocabulary you have just learned in real use, running through segments, expansions and opened figures.
-
-**2. Every construction that puts something other than a column of text on a slide, one per slide: `lectures/decoration/audience.html`.** The covers, the six kinds of divider and the three kinds of divider content, cards and rows, a backdrop whose window opens on a keypress.
-
-**3. Every `::: draw` statement drawn rather than described: `lectures/diagrams/audience.html`.** Real lecture figures are among them.
-
-:::
-
-## free: Writing your own | `--new`, `--watch`, `lint.js` {.wide #authoring}
-
-**These are the commands you need while writing a lecture:**
-
-- `node build.js --new <slug>` makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.
-- `node build.js <source.md> --watch` rebuilds and reloads every open tab on every save.
-- `node lint.js lectures/` checks what can be checked without building: unknown types, unclosed `:::` blocks, repeated ids, word budgets, too many segments, one-chunk columns, captions that repeat the heading, frontmatter keys nothing reads. `--strict` turns the warnings into failures.
-
-A frontmatter key nothing reads looks like nothing is wrong – the lecture builds, the slides look right, and the key never reached a page. `author:` sat in several lectures here doing that.
-
-One command is for after the writing rather than during it: `node build.js <source.md> --slides-pdf` prints `slides.pdf`, one page per presentation state, for a room where the HTML will not run or for someone who wants a deck to keep. It is not a fifth view and this tutorial does not show it, because a PDF is not something you can open from inside a lecture.
-
-A source file can switch one check off with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for `density`, and says there why.
-
-## free: Deciding how a lecture opens | seven frontmatter keys, and `lang:` beside them {.wide #view-defaults}
-
-**A lecture can set its own starting look instead of inheriting whatever the reader last chose.**
-
-```yaml
----
-title: Anonymous Communication
-font: mono              # serif | sans | mono
-theme: terminal-green   # light-{red,teal,blue,orange}
-                        # dark | terminal-{amber,green}
-collapse: none          # topic-bold | none     – the C key
-auto-fit: shrink        # true | false | shrink – the # key
-slide-numbers: off      # vertical | horizontal | off
-print-slide-numbers: vertical
-                        # the same three. Left out, it follows
-                        # whatever slide-numbers says
-editor: speaker         # both | speaker | none – the diagram editor
-note-button: off        # on | off – the + note button in the
-                        # slide's left gutter. The M key
-neighbours: hidden      # dim | hidden – whether the slide
-                        # before and after show through
----
-```
-
-## free: The language, and which setting wins | `lang:` and the rule for every key above {.wide #view-lang}
-
-```yaml
-lang: de                # the language the lecture is written in:
-                        # en, de, de-DE, fr and so on, and en
-                        # when you leave it out
-```
-
-**`lang:` picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.** `style: {hyphenate: all}` puts it into the projection too, which a German lecture at `.narrow` usually wants, and `none` takes it out everywhere. It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.
-
-**A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.** So a lecture that sets nothing behaves as before – font, theme and slide numbers follow the reader from lecture to lecture.
-
-`slide-numbers` applies to `print.html` and `print-notes.html` too, and `print-slide-numbers:` overrides it there when the printed document wants different numbering from the projection. A value the tool does not know stops the build and lists the ones it does.
-
-**The last two are the ones a keynote sets and a lecture does not.** `neighbours: hidden` takes the faint slide above and below off the projection, which is deliberate here – the live view is one long board a camera pans across, and the neighbours are what make a column read as a column. `note-button: off` hides the `+ note` hint in the slide's left gutter; `N` still opens an annotation, and `M` shows or hides the hint at any time, in either window.
-
-> note: When you finish this tour with a first-timer, ask them what they found on their own and what they did not. That is the most useful feedback the tool gets.
-
-# Beyond 1.0.0: figures {#beyond}
-
-> Everything from here on is newer than the 1.0.0 download, so build these
-> parts from a clone of the repository, and expect them to change before they
-> are tagged into a release.
+# Figures {#beyond}
 
 ## principle: A figure written as text is a figure you can still change | you say what sits beside what, and the placing is worked out {.standard #drawn-from-text}
 
@@ -1253,9 +1171,7 @@ step probe
   emph det
 :::
 
-# Beyond 1.0.0: questions for the reader {#pulse}
-
-> Newer than the 1.0.0 download as well, and out of the same clone.
+# Questions for the reader {#pulse}
 
 ## principle: A document can test its reader | the question stands under the chunk it asks about {.standard #pulse-idea}
 
@@ -1392,9 +1308,7 @@ The build refuses it: the first question takes the key `hashes`, and the second
 would take it too. The second has to name itself, say `::: pulse {#hashes-2}`.
 :::
 
-# Beyond 1.0.0: slide decoration {#decoration}
-
-> Newer than the 1.0.0 download as well, and out of the same clone.
+# Slide decoration {#decoration}
 
 ## principle: A slide can be more than a column of text | and what makes it one is not written inside the text {.standard #deco-idea}
 
@@ -1798,6 +1712,84 @@ The one line a last slide is often asked for anyway is where the slides can be f
 **A closing slide never uses `cover-image` by itself** – ending on the opening picture unasked would be the repetition a closing slide is meant to avoid. `closing-image: cover` in the frontmatter asks for it, and the deck closes on the picture it opened with; any other value names a different one, in the same three forms `cover-image` takes. A `::: backdrop` on the chunk is the other way and a different thing – a full-bleed ground behind the words, which works on all ten compositions and wins over both.
 
 > note: The checker warns if a `closing:` chunk is not the last chunk in the lecture, and if there is more than one – both of which are lectures that end twice.
+
+# Next steps {#next}
+
+## principle: Start from a talk you have already given | the text already exists, so the work left is cutting it into chunks {.standard #start-writing}
+
+**The first lecture takes the most effort, because you are still learning the vocabulary, so start with a talk you have already given.** Its text already exists. Most of the remaining work is deciding where one chunk ends and the next begins, and the vocabulary you have just read is all you need for that.
+
+**The steps are the same for every lecture** – write the prose, sharpen the opening sentences, run the checker, then walk the lecture once in the short view before you teach it.
+
+## free: Read more | three finished lectures to open {.wide #read-more}
+
+**psi-slides comes with three finished lectures. Open them, and take whatever you need out of their sources.**
+
+::: cols 2
+
+**1. A teaching lecture of 39 chunks: `lectures/python-intro/audience.html`.** Open its speaker window with `S` and watch the layout vocabulary you have just learned in real use, running through segments, expansions and opened figures.
+
+**2. Every construction that puts something other than a column of text on a slide, one per slide: `lectures/decoration/audience.html`.** The covers, the six kinds of divider and the three kinds of divider content, cards and rows, a backdrop whose window opens on a keypress.
+
+**3. Every `::: draw` statement drawn rather than described: `lectures/diagrams/audience.html`.** Real lecture figures are among them.
+
+:::
+
+## free: Writing your own | `--new`, `--watch`, `lint.js` {.wide #authoring}
+
+**These are the commands you need while writing a lecture:**
+
+- `node build.js --new <slug>` makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.
+- `node build.js <source.md> --watch` rebuilds and reloads every open tab on every save.
+- `node lint.js lectures/` checks what can be checked without building: unknown types, unclosed `:::` blocks, repeated ids, word budgets, too many segments, one-chunk columns, captions that repeat the heading, frontmatter keys nothing reads. `--strict` turns the warnings into failures.
+
+A frontmatter key nothing reads looks like nothing is wrong – the lecture builds, the slides look right, and the key never reached a page. `author:` sat in several lectures here doing that.
+
+One command is for after the writing rather than during it: `node build.js <source.md> --slides-pdf` prints `slides.pdf`, one page per presentation state, for a room where the HTML will not run or for someone who wants a deck to keep. It is not a fifth view and this tutorial does not show it, because a PDF is not something you can open from inside a lecture.
+
+A source file can switch one check off with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for `density`, and says there why.
+
+## free: Deciding how a lecture opens | seven frontmatter keys, and `lang:` beside them {.wide #view-defaults}
+
+**A lecture can set its own starting look instead of inheriting whatever the reader last chose.**
+
+```yaml
+---
+title: Anonymous Communication
+font: mono              # serif | sans | mono
+theme: terminal-green   # light-{red,teal,blue,orange}
+                        # dark | terminal-{amber,green}
+collapse: none          # topic-bold | none     – the C key
+auto-fit: shrink        # true | false | shrink – the # key
+slide-numbers: off      # vertical | horizontal | off
+print-slide-numbers: vertical
+                        # the same three. Left out, it follows
+                        # whatever slide-numbers says
+editor: speaker         # both | speaker | none – the diagram editor
+note-button: off        # on | off – the + note button in the
+                        # slide's left gutter. The M key
+neighbours: hidden      # dim | hidden – whether the slide
+                        # before and after show through
+---
+```
+
+## free: The language, and which setting wins | `lang:` and the rule for every key above {.wide #view-lang}
+
+```yaml
+lang: de                # the language the lecture is written in:
+                        # en, de, de-DE, fr and so on, and en
+                        # when you leave it out
+```
+
+**`lang:` picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.** `style: {hyphenate: all}` puts it into the projection too, which a German lecture at `.narrow` usually wants, and `none` takes it out everywhere. It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.
+
+**A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.** So a lecture that sets nothing behaves as before – font, theme and slide numbers follow the reader from lecture to lecture.
+
+`slide-numbers` applies to `print.html` and `print-notes.html` too, and `print-slide-numbers:` overrides it there when the printed document wants different numbering from the projection. A value the tool does not know stops the build and lists the ones it does.
+
+**The last two are the ones a keynote sets and a lecture does not.** `neighbours: hidden` takes the faint slide above and below off the projection, which is deliberate here – the live view is one long board a camera pans across, and the neighbours are what make a column read as a column. `note-button: off` hides the `+ note` hint in the slide's left gutter; `N` still opens an annotation, and `M` shows or hides the hint at any time, in either window.
+
+> note: When you finish this tour with a first-timer, ask them what they found on their own and what they did not. That is the most useful feedback the tool gets.
 
 ## closing: That is the tour | now write your own `source.md` {#end}
 

@@ -31,15 +31,16 @@ build time, and stepped with the same key that advances a reveal.
 each says what holds the drawing together, in words Part 4 defines – so watch
 the pictures now and read the notes again after.
 
-## free: None of this is in the 1.0.0 release {.standard #preview}
+## free: Every picture here is text | change one in the source or in the editor {.standard #preview}
 
-**`::: draw` was added after the 1.0.0 release**, so the archive on the
-releases page does not have it and a lecture that uses it will not build
-against that download.
+**Each drawing in this lecture is a `::: draw` block in `source.md`, under the
+heading of the slide it stands on**, so a figure you want to borrow is a
+passage you can copy into a lecture of your own.
 
-What you need instead is the repository: a clone, or **Download ZIP** from the
-project page. The figure language may still change before it is tagged, so a
-figure you write today may need an edit. The editor is experimental too.
+**Click a figure, then the button in the corner of its focus card, and the
+editor opens on it.** With the lecture built under `--watch`, `Cmd`-`S` writes
+the change back into `source.md`; opened as a file on its own, the editor
+copies the changed block to the clipboard instead. The editor is experimental.
 
 # Memory safety
 
