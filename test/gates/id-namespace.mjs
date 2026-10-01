@@ -27,8 +27,21 @@
  * (`getElementById(h.chunk)`, `'[id="' + prefix + key + '"]'`) is a read of
  * an id something else emitted, and that emitter is what is checked.
  *
- * Not read: the inlined CSS's `#id` selectors (a hex colour looks the same to
- * a scanner), and pulse-embed.js, a verbatim copy of the Pulse client that
+ * The stylesheets are the third half. Every `#id` that stands in a selector
+ * of an inlined stylesheet - the six CSS literals in build.js (DIAGRAM_CSS,
+ * PRINT_CSS, PULSE_PRINT_CSS, AUDIENCE_CSS, SPEAKER_CSS, SOUFFLEUSE_CSS),
+ * editor.css and pdf-core.mjs's PDF_CSS - has to start with psiINT- (or be on
+ * CSS_ALLOWED), and has to name an id some site above emits. The second rule
+ * is the one that matters: `#toc-panel li` stood in the heading rule's :is
+ * list from the day it was written and matched nothing, because the contents
+ * panel was `nav#toc` - a selector naming no element is not an error to a
+ * browser. A selector is told from a hex colour by position: comments,
+ * template expressions, strings, `[…]` attribute tests and `url(…)` are
+ * blanked first, and only the text before a `{` (a rule's prelude, not an
+ * at-rule's other than @scope) is read for `#word`. Declarations end in `;`
+ * or `}`, so `#fff` never stands there.
+ *
+ * Not read: pulse-embed.js, a verbatim copy of the Pulse client that
  * this repository does not edit. The widget names its own pieces pulse-N,
  * pulse-N-a and pulse-email-N; the question element's id is set by the build
  * (psiINT-pulse-<key>), so only those inner pieces are left in the author's
@@ -67,6 +80,18 @@ const ALLOWED = [
   ['diagram-core.mjs', 'attr', '${prefix}${e.id}', 1, 'an element group'],
   ['diagram-core.mjs', 'attr', '${svgId}', 1, 'the figure root, ${prefix}root'],
 ];
+
+// The stylesheets whose selectors are read: [file, literal name or null for
+// a whole .css file].
+const CSS_SOURCES = [
+  ['build.js', 'DIAGRAM_CSS'], ['build.js', 'PRINT_CSS'], ['build.js', 'PULSE_PRINT_CSS'],
+  ['build.js', 'AUDIENCE_CSS'], ['build.js', 'SPEAKER_CSS'], ['build.js', 'SOUFFLEUSE_CSS'],
+  ['pdf-core.mjs', 'PDF_CSS'], ['editor.css', null],
+];
+// A selector id that is not psiINT-, or that no site emits: id, why. Empty,
+// and should stay so - a chrome selector names a psiINT- id, and a selector
+// aimed at an author's {#id} would be a stylesheet styling one lecture.
+const CSS_ALLOWED = [];
 
 const isComment = (t) => t.startsWith('//') || t.startsWith('*') || t.startsWith('/*');
 const literal = (v) => /^(['"`])(.*)\1$/.exec(v.trim());
@@ -109,6 +134,69 @@ function scan(file, text) {
   return out;
 }
 
+// The lines of `const NAME = \`…\`;` in a file, or the whole file.
+function cssLines(text, name) {
+  const lines = text.split('\n');
+  if (!name) return lines.map((t, i) => ({ no: i + 1, text: t }));
+  const open = new RegExp(`^(?:export )?const ${name} = \``);
+  const i = lines.findIndex(l => open.test(l));
+  if (i < 0) return null;
+  const out = [];
+  for (let j = i; j < lines.length; j++) {
+    let t = j === i ? lines[j].replace(open, '') : lines[j];
+    const end = /(^|[^\\])`\s*;\s*$/.test(t);
+    if (end) t = t.replace(/`\s*;\s*$/, '');
+    out.push({ no: j + 1, text: t });
+    if (end) break;
+  }
+  return out;
+}
+
+// Every #id standing in a selector of the given lines, as {id, line}.
+function selectorIds(lines) {
+  let s = lines.map(l => l.text).join('\n');
+  const starts = [];
+  let p = 0;
+  for (const l of lines) { starts.push(p); p += l.text.length + 1; }
+  const lineAt = (off) => {
+    let k = 0;
+    while (k + 1 < starts.length && starts[k + 1] <= off) k++;
+    return lines[k].no;
+  };
+  // Same length, newlines kept, so an offset still finds its line.
+  const blank = (m) => m.replace(/[^\n]/g, ' ');
+  s = s.replace(/\/\*[\s\S]*?\*\//g, blank)
+    .replace(/\$\{(?:[^{}]|\{[^{}]*\})*\}/g, blank)
+    .replace(/"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'/g, blank)
+    .replace(/\[[^\]\n]*\]/g, blank)
+    .replace(/url\([^)]*\)/g, blank);
+  const out = [];
+  let from = 0;
+  for (let k = 0; k < s.length; k++) {
+    const c = s[k];
+    if (c === '{') {
+      const prelude = s.slice(from, k);
+      const t = prelude.trim();
+      if (!t.startsWith('@') || t.startsWith('@scope')) {
+        for (const m of prelude.matchAll(/#(-?[A-Za-z_][\w-]*)/g)) out.push({ id: m[1], line: lineAt(from + m.index) });
+      }
+      from = k + 1;
+    } else if (c === '}' || c === ';') from = k + 1;
+  }
+  return out;
+}
+
+// The psiINT- ids the emission sites write, as patterns: a template
+// expression inside one (psiINT-pulse-${…}) stands for any id word.
+function emittedPatterns(text) {
+  const vals = new Set();
+  for (const m of text.matchAll(/(?<![\w.-])id=\\?(["'])((?:\$\{[^}]*\}|[^"'\\\s>])*)/g)) vals.add(m[2]);
+  for (const m of text.matchAll(/\.id\s*=(?![=>])\s*(['"`])([^'"`]*)/g)) vals.add(m[2]);
+  for (const m of text.matchAll(/(?<![\w.-])id:\s*(['"`])([^'"`]*)/g)) vals.add(m[2]);
+  return [...vals].filter(v => v.startsWith(P)).map(v => new RegExp('^' + v.split(/\$\{[^}]*\}/)
+    .map(x => x.replace(/[.*+?^$()|[\]\\]/g, '\\$&')).join('[\\w-]+') + '$'));
+}
+
 // The scanner on its own, against lines that must and must not be reported -
 // a gate that reads nothing passes everything.
 function selfTest(ok) {
@@ -135,6 +223,18 @@ function selfTest(ok) {
   const quiet = scan('clean', clean);
   ok(quiet.length === 0, 'and nothing for a psiINT- id, a computed lookup, a data-*-id, a JS variable or a comment',
     quiet.map(s => `${s.kind} ${s.value}`).join(' | '));
+
+  const css = [
+    '/* #in-comment { } */',
+    '#bare li, .x { color: #fff; background: url(#grad); }',
+    '[href="#frag"], a[href^=#x] { border: 1px solid #1a2b3c }',
+    '@media (min-width: 1px) { body :is(p, #psiINT-ok) { content: "#str {"; } }',
+    '.y { fill: ${dark ? "#000" : "#fff"}; }',
+    '@scope (svg#psiINT-root) { g { color: #abc; } }',
+  ].map((t, i) => ({ no: i + 1, text: t }));
+  const ids = selectorIds(css).map(x => `${x.id}@${x.line}`).join(' ');
+  ok(ids === 'bare@2 psiINT-ok@4 psiINT-root@6',
+    'the selector scanner reads #ids in selectors and not hex colours, url(#), strings, attribute values or comments', ids);
 }
 
 export async function run({ report }) {
@@ -174,5 +274,31 @@ export async function run({ report }) {
   const stale = [...allowed.keys()].filter(k => !found.has(k));
   ok(stale.length === 0, 'and every allow-list entry still matches a site - a stale one is deleted, not kept',
     stale.join('\n           '));
+  // ── the stylesheets ──
+  const pats = FILES.flatMap(f => emittedPatterns(texts[f]));
+  const cssAllowed = new Map(CSS_ALLOWED);
+  const bareSel = [], deadSel = [];
+  let selCount = 0;
+  const usedAllowed = new Set();
+  for (const [file, lit] of CSS_SOURCES) {
+    const text = texts[file] ?? fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const lines = cssLines(text, lit);
+    ok(lines !== null, lit ? `${file} still holds ${lit}` : `${file} is read whole`);
+    if (!lines) continue;
+    for (const { id, line } of selectorIds(lines)) {
+      selCount++;
+      if (cssAllowed.has(id)) { usedAllowed.add(id); continue; }
+      const where = `${file}${lit ? ' ' + lit : ''} #${id} @${line}`;
+      if (!id.startsWith(P)) bareSel.push(where);
+      else if (!pats.some(r => r.test(id))) deadSel.push(where);
+    }
+  }
+  ok(bareSel.length === 0, `every #id selector in the inlined stylesheets starts with ${P}`,
+    bareSel.join('\n           '));
+  ok(deadSel.length === 0, 'and names an id some site emits - a selector for an id nothing writes matches nothing',
+    deadSel.join('\n           '));
+  const staleCss = CSS_ALLOWED.map(([id]) => id).filter(id => !usedAllowed.has(id));
+  ok(staleCss.length === 0, 'and every stylesheet allow-list entry still matches a selector', staleCss.join(' '));
+  note(`${selCount} #id selectors in ${CSS_SOURCES.length} stylesheets, ${pats.length} emitted ${P} ids`);
   note(`${ALLOWED.length} allow-list entries, ${[...found.values()].reduce((n, l) => n + l.length, 0)} allowed sites`);
 }
