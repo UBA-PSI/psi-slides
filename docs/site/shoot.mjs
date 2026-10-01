@@ -89,7 +89,7 @@ main { padding-top: 0 !important; margin-top: 0 !important; }
 // is a picture of a slide. Same rig shoot-gallery.mjs uses on its tiles, and
 // for the same reason - the two sets stand on one page.
 const LIVE_RIG = `
-<style>#psiINT-help-button, #psiINT-start-menu, #psiINT-nav-hints, .annot-add { display: none !important; }</style>
+<style>#psiINT-help-button, #psiINT-start-menu, #psiINT-start-menu-show, #psiINT-nav-hints, .annot-add { display: none !important; }</style>
 `;
 
 // ── when these shots are stale ───────────────────────────────────────────

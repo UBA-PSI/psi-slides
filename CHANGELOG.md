@@ -290,15 +290,17 @@ tag:
   key would, so in the cockpit `W` from the panel still arms the projection.
   Rows that describe a gesture or a key with a special meaning cannot be
   selected. The panel keeps one size while you type; the rows scroll inside
-  it.
+  it, and while the field has text the matches are one list across the
+  panel's width rather than a strip of the reference's columns.
 - **A start menu on the projection, before the talk starts.** Beside the `?`
   button in `audience.html`: *Fullscreen*, *Speaker cockpit* and *Print view*
   with their keys (`W`, `S`, `P`), for someone who does not know the keys
   yet. It is only there on the first slide of a freshly opened page, and the
   first move from either window, `W` or fullscreen takes it away until the
   page is opened again. The `‹` beside it puts it away for good on this
-  browser. It is never in the cockpit, the two documents, a PDF or the
-  `--frames` pictures.
+  browser. Whenever it is gone – by a move or by `‹` – a small `›` beside the
+  `?` button brings it back on any slide and forgets the `‹`. It is never in the cockpit, the two
+  documents, a PDF or the `--frames` pictures.
 - **The `?` panel in both live views has a search field.** It has the focus
   when the panel opens, and typing filters the rows by key and by what the key
   does: every word has to match, case and accents are ignored, and a single

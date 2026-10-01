@@ -162,7 +162,11 @@ a word and `Enter` run the row (`blank` blanks), a doc row is never selected,
 measured unchanged across the typing; the start menu stands on slide 1 of a
 fresh load and goes on the first beat, on `W`, on its chevron (and stays gone
 across a reload), on a press in the cockpit it opened, answers a tap, and is
-in no other view and not in frame 1 of `--frames`. `nav-cockpit` carries its own two lines of it, because
+in no other view and not in frame 1 of `--frames`; a filter lays the panel's
+hits out as one column across the box, and the folded menu leaves a `›`
+beside the `?` circle – mid-talk too, hidden on a blanked projection, a
+fingertip wide on a touchscreen – that opens it again and clears the stored
+choice, so a reload on slide 1 shows the menu. `nav-cockpit` carries its own two lines of it, because
 the cockpit is where the prompt's id could collide with a slide's. `demo` sits
 beside them: the two windows handing a live demo across, over both transports.
 `nav-fullscreen` is `W`, and it is here for a reason no other navigation spec

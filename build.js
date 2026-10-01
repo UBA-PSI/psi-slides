@@ -13885,7 +13885,9 @@ ${sections}
 //
 // Names, keys and order come from commands.mjs (START_MENU, short, keys), and
 // a click runs COMMAND_RUN for the command, as the key does. The chevron is
-// the touch rail's glyph.
+// the touch rail's glyph; its mirror image, a button of its own beside the ?
+// circle, is the way back once the menu is folded, and stands wherever the
+// circle does.
 function renderStartMenu() {
   const items = START_MENU.map((id) => {
     const c = COMMANDS.find((x) => x.id === id);
@@ -13896,7 +13898,8 @@ function renderStartMenu() {
   return `<nav id="psiINT-start-menu" aria-label="Before the talk" hidden>
 ${items}
   <button type="button" id="psiINT-start-menu-hide" aria-label="Put this menu away" title="Put this menu away – the ? panel has the same keys">&#x2039;</button>
-</nav>`;
+</nav>
+<button type="button" id="psiINT-start-menu-show" aria-label="Show the start menu" title="Show the start menu again" hidden>&#x203A;</button>`;
 }
 
 function renderTocNav(columns, S) {
@@ -14323,7 +14326,8 @@ body[data-mode=dark] #psiINT-stage-viewport { background: var(--paper); }
    and only the help-sheet kbd had ever been patched. */
 body[data-mode=dark] #psiINT-help-inner kbd { background: var(--paper-warm); color: var(--ink); }
 body[data-mode=dark] #psiINT-help-button,
-body[data-mode=dark] #psiINT-start-menu {
+body[data-mode=dark] #psiINT-start-menu,
+body[data-mode=dark] #psiINT-start-menu-show {
   background: oklch(from var(--paper) calc(l + 0.08) c h / 0.85);
   color: var(--ink-soft);
 }
@@ -18554,6 +18558,25 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
 }
 .help-grid dt { color: var(--ink); text-wrap: balance; }
 .help-grid dd { margin: 0; color: var(--ink-soft); }
+/* While the field has text, the few rows left are one list across the
+   panel's whole width rather than the reference's columns, which left them a
+   narrow strip at the left of an empty box: each section heading over its
+   rows, one key column for every hit, as wide as its keys up to a cap, and
+   the descriptions on the rest. The sections and lists step aside
+   (display: contents) so every row sits on the one grid; the box itself
+   keeps its size. A phone already has one column and keeps its layout. */
+@media (min-width: 561px) {
+  .help-grid[data-filtered] {
+    grid-template-columns: fit-content(16em) minmax(0, 1fr);
+    gap: 0.3rem 0.9rem;
+    font-size: 0.78rem;
+    line-height: 1.38;
+  }
+  .help-grid[data-filtered] section,
+  .help-grid[data-filtered] dl { display: contents; }
+  .help-grid[data-filtered] h3 { grid-column: 1 / -1; margin: 0.7rem 0 0.1rem; }
+  .help-grid[data-filtered] section:not([hidden]) ~ section h3 { margin-top: 1.1rem; }
+}
 /* A row the panel can run (data-cmd, and a run function in this view). The
    selection is a tint across both cells; the shadows carry it into half of
    the column gap on either side, so the key and its description read as one
@@ -18666,8 +18689,33 @@ body[data-view=speaker] #psiINT-help-button { display: none; }
   font-size: 15px;
   padding: 0 0.55em 0.1em;
 }
+/* The way back once the menu is folded, by its chevron or by the talk
+   moving: the mirrored chevron in a circle the size of the ? one, beside it
+   where the menu stood, half-lit until the pointer is on it, and hidden
+   wherever the circle is. */
+#psiINT-start-menu-show {
+  position: fixed;
+  bottom: 12px; left: 42px;
+  z-index: 22;
+  width: 24px; height: 24px;
+  padding: 0 0 0.1em;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  background: oklch(0.98 0 0 / 0.8);
+  color: var(--ink-soft);
+  font-family: var(--sans-font);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 140ms ease;
+}
+#psiINT-start-menu-show:hover, #psiINT-start-menu-show:focus-visible { opacity: 1; color: var(--ink); }
+#psiINT-start-menu-show[hidden] { display: none; }
 body.overview-mode #psiINT-start-menu,
-body.blanked #psiINT-start-menu { display: none; }
+body.blanked #psiINT-start-menu,
+body.overview-mode #psiINT-start-menu-show,
+body.blanked #psiINT-start-menu-show { display: none; }
 /* A finger needs the targets the rail gives it, and the rail takes the
    bottom edge: on a touchscreen the menu stands as a column above the circle,
    and the keys, which a tablet has none of, are left out. */
@@ -18685,6 +18733,14 @@ body.blanked #psiINT-start-menu { display: none; }
   }
   #psiINT-start-menu button { min-height: 44px; text-align: left; padding: 0 1em; font-size: 15px; }
   #psiINT-start-menu kbd { display: none; }
+  /* Where the menu's column stands, a fingertip wide. */
+  #psiINT-start-menu-show {
+    left: 12px;
+    bottom: calc(max(10px, env(safe-area-inset-bottom)) + clamp(44px, 13.5vw, 56px) + 2 * clamp(4px, 1vw, 7px) + 12px);
+    width: 44px; height: 44px;
+    font-size: 20px;
+    opacity: 0.6;
+  }
 }
 
 /* Link address overlay. Shift-click on a link shows the URL on both
@@ -22461,7 +22517,10 @@ function filterHelp() {
   // it; an empty field selects nothing, so Enter there runs nothing. The
   // rows start at the top again whatever was scrolled before.
   const grid = helpOverlay.querySelector('.help-grid');
-  if (grid) grid.scrollTop = 0;
+  if (grid) {
+    grid.scrollTop = 0;
+    grid.toggleAttribute('data-filtered', terms.length > 0);
+  }
   const runnable = helpRunnable();
   setHelpSel(terms.length && runnable.length ? runnable[0] : null);
 }
@@ -22549,33 +22608,47 @@ if (helpOverlay) {
 // ── the start menu (audience only) ──────────────────────────────────
 // Fullscreen, the cockpit and the print view, beside the ? corner, for the
 // minutes before a talk in which somebody who has not learnt W, S and P sets
-// the projection up. Shown only then: on the first slide of a page load that
-// opened on it - no chunk in the address, no remembered position elsewhere -
-// outside fullscreen, before anything has moved. The first move ends it for
-// this page load, from either window (a forward press, a jump, a column, the
-// cockpit driving the projection), and so do W, fullscreen and the chevron;
-// the chevron is also remembered, globally, like the other reading
-// preferences, because a lecturer who put it away once knows the three keys.
-// The room never sees it once the talk runs.
+// the projection up. It opens by itself only then: on the first slide of a
+// page load that opened on it - no chunk in the address, no remembered
+// position elsewhere - outside fullscreen, before anything has moved. The
+// first move folds it, from either window (a forward press, a jump, a
+// column, the cockpit driving the projection), and so do W, fullscreen and
+// the chevron; the chevron is also remembered, globally, like the other
+// reading preferences, because a lecturer who put it away once knows the
+// three keys.
+//
+// Folded, the menu leaves the mirrored chevron beside the ? circle, which
+// stands where the circle stands and is hidden where it is (the overview, a
+// blanked projection). A click on it opens the menu again on whatever slide
+// is up and forgets the stored choice, so the next page load on slide 1
+// opens with the menu; the menu then folds on the next move, W, fullscreen
+// or its own chevron, as it does before the talk.
 //
 // A probe that photographs or reads the projection (--frames, --check-fit,
-// --squint) sets window.PSI_NO_START_MENU before the page runs: its first
-// frame is the room's first slide mid-talk, not a lecturer's set-up.
+// --squint) sets window.PSI_NO_START_MENU before the page runs: its frames
+// are the room's slides, not a lecturer's set-up, so neither the menu nor
+// the chevron stands there.
 const startMenu = VIEW === 'audience' ? document.getElementById('psiINT-start-menu') : null;
+const startMenuShow = startMenu ? document.getElementById('psiINT-start-menu-show') : null;
 const START_MENU_KEY = 'psi-slides:start-menu';
-let startMenuDone = !startMenu;
+let startMenuOff = !startMenu;
+let startMenuEnded = false;
+function setStartMenu(open) {
+  startMenu.hidden = !open;
+  if (startMenuShow) startMenuShow.hidden = open;
+}
 function endStartMenu() {
-  if (startMenuDone) return;
-  startMenuDone = true;
-  if (startMenu) startMenu.hidden = true;
+  if (startMenuOff) return;
+  startMenuEnded = true;
+  if (!startMenu.hidden) setStartMenu(false);
 }
 function initStartMenu() {
-  if (startMenuDone) return;
+  if (startMenuOff) return;
+  if (window.PSI_NO_START_MENU) { startMenuOff = true; return; }
   let away = false;
   try { away = localStorage.getItem(START_MENU_KEY) === 'away'; } catch (e) {}
-  if (away || window.PSI_NO_START_MENU || state.activeIdx !== 0
-      || chunkIdxFromHash() >= 0 || fullscreenOn()) { endStartMenu(); return; }
-  startMenu.hidden = false;
+  setStartMenu(!(startMenuEnded || away || state.activeIdx !== 0
+    || chunkIdxFromHash() >= 0 || fullscreenOn()));
 }
 if (startMenu) {
   startMenu.addEventListener('click', (e) => {
@@ -22587,6 +22660,13 @@ if (startMenu) {
       return;
     }
     if (b.dataset.cmd) runCommand(b.dataset.cmd);
+  });
+}
+if (startMenuShow) {
+  startMenuShow.addEventListener('click', () => {
+    if (startMenuOff) return;
+    try { localStorage.removeItem(START_MENU_KEY); } catch (err) {}
+    setStartMenu(true);
   });
 }
 

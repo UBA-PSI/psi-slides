@@ -337,7 +337,7 @@ try {
     ok(!new RegExp(`class="[^"]*\\b${sel}\\b`).test(dom), `no .${sel} in the print DOM`);
   }
   for (const id of ['psiINT-link-overlay', 'psiINT-toc', 'psiINT-search-panel', 'psiINT-mode-badge',
-    'psiINT-help-overlay', 'psiINT-start-menu', 'psiINT-laser-pointer', 'psiINT-touch-controls', 'psiINT-figure-overlay',
+    'psiINT-help-overlay', 'psiINT-start-menu', 'psiINT-start-menu-show', 'psiINT-laser-pointer', 'psiINT-touch-controls', 'psiINT-figure-overlay',
     'psiINT-stage-viewport']) {
     ok(!new RegExp(`id="${id}"`).test(dom), `no #${id} in the print DOM`);
   }

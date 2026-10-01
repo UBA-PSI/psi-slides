@@ -7,10 +7,12 @@
  * Cmd-K and Ctrl-K open the panel with the field focused; a word and Enter
  * run the row it selects, exactly as the key would (B blanks); a doc row
  * runs nothing; Esc unwinds the panel first, as before; the panel's box is
- * the same before and after typing. The start menu stands on slide 1 of a
- * fresh page load, goes on the first move from either window, on W and on
- * its chevron, remembers the chevron across a reload, answers a tap, and is
- * in no other view and in no frame of --frames. What the commands gate
+ * the same before and after typing, and a filter lays its hits out as one
+ * list across the box. The start menu stands on slide 1 of a fresh page
+ * load, folds on the first move from either window, on W and on its chevron,
+ * remembers the chevron across a reload, answers a tap, and is in no other
+ * view and in no frame of --frames. Folded, it leaves a chevron beside the ?
+ * circle that opens it again on any slide and forgets the stored choice. What the commands gate
  * already holds without a browser - which rows name a command, that Cmd-K is
  * answered before the chord guard, what the menu is made of - is not
  * repeated here.
@@ -88,6 +90,12 @@ export async function run({ page, report }) {
     if (!m) return 'absent';
     return !m.hidden && m.getBoundingClientRect().width > 0 ? 'shown' : 'hidden';
   });
+  const chev = (p = page) => p.evaluate(() => {
+    const c = document.getElementById('psiINT-start-menu-show');
+    if (!c) return 'absent';
+    return getComputedStyle(c).display !== 'none' && c.getBoundingClientRect().width > 0 ? 'shown' : 'hidden';
+  });
+  const stored = (p = page) => p.evaluate(() => { try { return localStorage.getItem('psi-slides:start-menu'); } catch (e) { return 'n/a'; } });
   const press = async (k, wait = 150, p = page) => { await p.keyboard.press(k); await p.waitForTimeout(wait); };
   const type = async (s, p = page) => { await p.keyboard.type(s, { delay: 20 }); await p.waitForTimeout(150); };
   const fresh = async (v = 'audience') => {
@@ -119,6 +127,32 @@ export async function run({ page, report }) {
       let p = await panel();
       ok(box0 === box1 && box1 === p.box, `${v}: the panel's box does not move while the field is typed into`, [box0, box1, p.box].join(' | '));
       ok(p.sel === 'blank', `${v}: "blank" selects the B row`, String(p.sel));
+      // A filter: the hits are one list across the box - every key in one
+      // column at the box's left, and a row as wide as the box.
+      await press('Backspace'); await press('Backspace'); await press('Backspace');
+      await press('Backspace'); await press('Backspace');
+      await type('note');
+      const lay = await page.evaluate(() => {
+        const g = document.querySelector('#psiINT-help-overlay .help-grid');
+        const gr = g.getBoundingClientRect();
+        const pad = parseFloat(getComputedStyle(g).paddingLeft) + parseFloat(getComputedStyle(g).paddingRight);
+        const dts = [...g.querySelectorAll('dt')].filter((d) => !d.hidden);
+        const lefts = new Set(dts.map((d) => Math.round(d.getBoundingClientRect().left)));
+        const widths = dts.map((d) => d.nextElementSibling.getBoundingClientRect().right - d.getBoundingClientRect().left);
+        return { n: dts.length, lefts: lefts.size, left: Math.round(dts[0].getBoundingClientRect().left - gr.left),
+          ratio: Math.min(...widths) / (g.clientWidth - pad) };
+      });
+      ok(lay.n > 1 && lay.lefts === 1 && lay.left <= 1 && lay.ratio > 0.97,
+        `${v}: a filter lays its hits out as one column across the whole box`, JSON.stringify(lay));
+      const box2 = (await panel()).box;
+      ok(box2 === box0, `${v}: and the box keeps its size`, [box0, box2].join(' | '));
+      await press('Escape');
+      const unf = await page.evaluate(() => {
+        const g = document.querySelector('#psiINT-help-overlay .help-grid');
+        return new Set([...g.querySelectorAll('dt')].map((d) => Math.round(d.getBoundingClientRect().left))).size;
+      });
+      ok(unf > 1, `${v}: an empty field brings the reference's columns back`, String(unf));
+      await type('blank');
       await press('Enter', 250);
       p = await panel();
       ok(!p.open && (await knobs()).blanked === !before.blanked, `${v}: Enter closes the panel and blanks, as B does`, JSON.stringify(await knobs()));
@@ -176,10 +210,12 @@ export async function run({ page, report }) {
     // ── the start menu ──
     await fresh();
     ok(await menu() === 'shown', 'the start menu stands on slide 1 of a fresh page load');
+    ok(await chev() === 'hidden', 'and the chevron that brings it back does not');
     const labels = await page.$$eval('#psiINT-start-menu button[data-cmd]', (bs) => bs.map((x) => x.textContent.trim()));
     ok(labels.join(' | ') === 'Fullscreen W | Speaker cockpit S | Print view P', 'with the three names and keys from the table', labels.join(' | '));
     await press('ArrowRight', 300);
     ok(await menu() === 'hidden', 'the first forward press - a beat on slide 1 - ends it');
+    ok(await chev() === 'shown', 'and leaves the chevron beside the ? circle');
     await press('ArrowLeft', 300);
     ok(await menu() === 'hidden', 'and going back to where it started does not bring it back');
     await press('ArrowRight', 300);
@@ -187,6 +223,15 @@ export async function run({ page, report }) {
     await page.reload({ waitUntil: 'load' });
     await page.waitForTimeout(500);
     ok(await menu() === 'hidden', 'a reload that opens on a later slide opens without it');
+    ok(await chev() === 'shown', 'but with the chevron');
+    await page.click('#psiINT-start-menu-show');
+    await page.waitForTimeout(200);
+    ok(await menu() === 'shown' && await chev() === 'hidden', 'the chevron opens the menu mid-talk, on demand');
+    await press('ArrowRight', 300);
+    ok(await menu() === 'hidden' && await chev() === 'shown', 'and the next move folds it again');
+    await press('b', 300);
+    ok(await chev() === 'hidden', 'a blanked projection hides the chevron as it hides the ? circle');
+    await press('b', 300);
     await fresh();
     ok(await menu() === 'shown', 'a page load on slide 1 brings it back');
 
@@ -198,9 +243,18 @@ export async function run({ page, report }) {
     await page.click('#psiINT-start-menu-hide');
     await page.waitForTimeout(200);
     ok(await menu() === 'hidden', 'the chevron puts it away');
+    ok(await chev() === 'shown' && await stored() === 'away', 'leaves the way back beside the ? circle, and remembers the choice');
     await page.reload({ waitUntil: 'load' });
     await page.waitForTimeout(500);
     ok(await menu() === 'hidden', 'and it stays away across a reload');
+    ok(await chev() === 'shown', 'with the way back still there');
+    await page.click('#psiINT-start-menu-show');
+    await page.waitForTimeout(200);
+    ok(await menu() === 'shown' && await chev() === 'hidden', 'the way back opens the menu again');
+    ok(await stored() === null, 'and forgets the stored choice', String(await stored()));
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForTimeout(500);
+    ok(await menu() === 'shown', 'so a reload on slide 1 opens with the menu');
 
     await fresh();
     await page.goto(url('audience') + '#two', { waitUntil: 'load' });
@@ -217,7 +271,7 @@ export async function run({ page, report }) {
     await spk.waitForTimeout(900);
     ok(/speaker\.html/.test(spk.url()), 'the cockpit entry opens the cockpit', spk.url());
     ok(await menu() === 'shown', 'and the menu is still up while nothing has moved');
-    ok(await menu(spk) === 'absent', 'the cockpit carries no start menu');
+    ok(await menu(spk) === 'absent' && await chev(spk) === 'absent', 'the cockpit carries no start menu and no chevron');
     await press('Meta+k', 250, spk);
     await type('blank', spk);
     await press('Enter', 300, spk);
@@ -228,7 +282,7 @@ export async function run({ page, report }) {
     await spk.close();
 
     await page.goto(url('print'), { waitUntil: 'load' });
-    ok(await menu() === 'absent', 'the print view carries no start menu');
+    ok(await menu() === 'absent' && await chev() === 'absent', 'the print view carries no start menu and no chevron');
 
     // A tap.
     const touch = await page.context().browser().newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
@@ -244,6 +298,13 @@ export async function run({ page, report }) {
     ok(/print\.html/.test(pr.url()), 'and a tap on Print view opens the print view', pr.url());
     const tapBox = await tp.$eval('#psiINT-start-menu [data-cmd="print"]', (x) => x.getBoundingClientRect().height);
     ok(tapBox >= 44, 'its targets are a fingertip high', String(tapBox));
+    await tp.tap('#psiINT-start-menu-hide');
+    await tp.waitForTimeout(200);
+    const chevBox = await tp.$eval('#psiINT-start-menu-show', (x) => { const r = x.getBoundingClientRect(); return [r.width, r.height]; });
+    ok(chevBox[0] >= 44 && chevBox[1] >= 44, 'and so is the chevron that brings it back', chevBox.join('x'));
+    await tp.tap('#psiINT-start-menu-show');
+    await tp.waitForTimeout(200);
+    ok(await menu(tp) === 'shown', 'which a tap answers');
     await touch.close();
 
     // --frames: the first frame is the room's first slide, not a set-up.
@@ -270,7 +331,7 @@ export async function run({ page, report }) {
         for (let i = 0; i < d.length; i += 4) seen.add(d[i] + ',' + d[i + 1] + ',' + d[i + 2]);
         return seen.size;
       }, data);
-      ok(colours === 1, '--frames: frame 1 has nothing where the start menu would stand', `${colours} colours in that strip`);
+      ok(colours === 1, '--frames: frame 1 has nothing where the start menu or its chevron would stand', `${colours} colours in that strip`);
     }
   } finally {
     srv.server.close();
