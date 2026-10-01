@@ -2065,7 +2065,7 @@ export async function run({ report }) {
   // in `dgFrameDrawables`, which runs for every beat whether the edge is drawn
   // in it or not. An arrow revealed by the very step that levels its two ends
   // was therefore judged on a base geometry nobody ever sees it in: the
-  // tutorial's `#diagram-steps`, where the step that shows the two arrows to
+  // tutorial's `#diagram-steps` (since removed), where the step that shows the two arrows to
   // Bob is the step that moves Eve down onto their line.
   //
   // Four fixtures, and the fourth is why this is a rule and not a suppression:

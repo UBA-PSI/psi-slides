@@ -195,7 +195,8 @@ paste the two files into the context.
 If you would rather not use the skill, the minimum useful set is:
 
 - [`lectures/tutorial/source.md`](lectures/tutorial/source.md) – the canonical
-  reference, and the one file that shows every directive in real use.
+  reference for the basics; with `lectures/diagrams/` and `lectures/decoration/`
+  it shows every directive in real use.
 - [`CLAUDE.md`](CLAUDE.md) – the conventions, the parsing contract, and the
   things that are easy to get wrong.
 - `node lint.js <source.md>` after every edit. It catches unknown types and
