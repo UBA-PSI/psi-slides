@@ -52,8 +52,12 @@ export async function run({ page, report }) {
   const panel = () => page.evaluate(() => {
     const o = document.getElementById('psiINT-help-overlay');
     const f = o.querySelector('#psiINT-help-search');
-    const dts = [...o.querySelectorAll('.help-grid dt')];
-    const shown = dts.filter((d) => !d.hidden && !d.closest('section').hidden);
+    // The reference's rows while the field is empty, the palette's lines
+    // while it has text - whichever the panel is showing.
+    const dts = [...o.querySelectorAll('.help-grid section dt')];
+    const shown = f.value.trim()
+      ? [...o.querySelectorAll('.help-results dt')].filter((d) => !d.hidden)
+      : dts.filter((d) => !d.hidden && !d.closest('section').hidden);
     return {
       open: !o.classList.contains('hidden'),
       focused: document.activeElement === f,

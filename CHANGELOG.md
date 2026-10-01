@@ -290,8 +290,11 @@ tag:
   key would, so in the cockpit `W` from the panel still arms the projection.
   Rows that describe a gesture or a key with a special meaning cannot be
   selected. The panel keeps one size while you type; the rows scroll inside
-  it, and while the field has text the matches are one list across the
-  panel's width rather than a strip of the reference's columns.
+  it. While the field has text, the matches are one list across the panel,
+  best match first – a key, then a command's own name, then a description –
+  with the section each comes from at the end of its line; a row that lists
+  several commands (`Shift-C F A L`, `+ - 0`) is one line per command there,
+  so each can be picked and run.
 - **A start menu on the projection, before the talk starts.** Beside the `?`
   button in `audience.html`: *Fullscreen*, *Speaker cockpit* and *Print view*
   with their keys (`W`, `S`, `P`), for someone who does not know the keys

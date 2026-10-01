@@ -454,9 +454,11 @@ export function runsFromPanel(c) {
   return !!(c.keys && !c.row && c.id !== 'help' && !COMMANDS.some((m) => m.row === c.id));
 }
 
-// The panel's sections for one view: [[title, [[keyColumn, hint, runId], …]], …],
+// The panel's sections for one view: [[title, [[keyColumn, hint, runId, rowId], …]], …],
 // both columns HTML, runId the command a click on the row runs (null for a
-// doc row). `ships` says which optional modules this view carries.
+// doc row), rowId the entry the row is (the palette splits a row that lists
+// several commands back into one line each). `ships` says which optional
+// modules this view carries.
 export function helpGroups(view, ships = {}) {
   const out = [];
   for (const g of GROUPS) {
@@ -466,7 +468,7 @@ export function helpGroups(view, ships = {}) {
       if (c.row || !c.views.includes(view) || pick(c.group, view) !== g.id) continue;
       if (c.requires && !ships[c.requires]) continue;
       const keys = c.show || c.mouse || c.keys.map(keyText).join(' · ');
-      rows.push([keys, pick(c.hint, view), runsFromPanel(c) ? c.id : null]);
+      rows.push([keys, pick(c.hint, view), runsFromPanel(c) ? c.id : null, c.id]);
     }
     if (rows.length) out.push([g.title, rows]);
   }

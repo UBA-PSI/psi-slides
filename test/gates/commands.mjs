@@ -408,8 +408,13 @@ export async function run({ report }) {
   // (Shift-C F A L) or the panel's own row would run the wrong thing.
   for (const view of CMD.VIEWS) {
     const panel = render(view, true, true);
-    const named = [...panel.matchAll(/<dt data-cmd="([a-z0-9-]+)">/g)].map((m) => m[1]);
+    const named = [...panel.matchAll(/<dt [^>]*data-cmd="([a-z0-9-]+)">/g)].map((m) => m[1]);
     const byId = new Map(CMD.COMMANDS.map((c) => [c.id, c]));
+    // Every row says which entry it is, so the palette can split a row that
+    // lists several commands back into one line each.
+    const rowIds = [...panel.matchAll(/<dt([^>]*)>/g)].map((m) => (m[1].match(/data-row="([a-z0-9-]+)"/) || [])[1]);
+    ok(rowIds.length > 20 && rowIds.every((id) => byId.has(id) && !byId.get(id).row),
+      `every row of the ${view} panel names the entry it is`, rowIds.filter((id) => !byId.has(id)).join(', '));
     const wrong = named.filter((id) => !byId.has(id) || !byId.get(id).keys || byId.get(id).row
       || id === 'help' || CMD.COMMANDS.some((m) => m.row === id));
     ok(named.length > 20 && wrong.length === 0,

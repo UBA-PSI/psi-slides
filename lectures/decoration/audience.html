@@ -4555,24 +4555,30 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
 }
 .help-grid dt { color: var(--ink); text-wrap: balance; }
 .help-grid dd { margin: 0; color: var(--ink-soft); }
-/* While the field has text, the few rows left are one list across the
-   panel's whole width rather than the reference's columns, which left them a
-   narrow strip at the left of an empty box: each section heading over its
-   rows, one key column for every hit, as wide as its keys up to a cap, and
-   the descriptions on the rest. The sections and lists step aside
-   (display: contents) so every row sits on the one grid; the box itself
-   keeps its size. A phone already has one column and keeps its layout. */
-@media (min-width: 561px) {
-  .help-grid[data-filtered] {
-    grid-template-columns: fit-content(16em) minmax(0, 1fr);
-    gap: 0.3rem 0.9rem;
-    font-size: 0.78rem;
-    line-height: 1.38;
-  }
-  .help-grid[data-filtered] section,
-  .help-grid[data-filtered] dl { display: contents; }
-  .help-grid[data-filtered] h3 { grid-column: 1 / -1; margin: 0.7rem 0 0.1rem; }
-  .help-grid[data-filtered] section:not([hidden]) ~ section h3 { margin-top: 1.1rem; }
+/* While the field has text, the panel is a palette: the reference's
+   sections step aside and the hits stand in one list across the panel's
+   whole width, best match first - one command a line, so a row that lists
+   four commands in the reference is four lines here, each one runnable. A
+   key column as wide as its keys up to a cap, the words on the rest, and
+   the section a hit comes from as a quiet tag at the end of its line. The
+   box keeps its size. */
+.help-grid[data-filtered] { display: block; }
+.help-grid[data-filtered] > section { display: none; }
+.help-grid .help-results { display: none; }
+.help-grid[data-filtered] > .help-results:not([hidden]) {
+  display: grid;
+  grid-template-columns: fit-content(16em) minmax(0, 1fr) max-content;
+  gap: 0.3rem 0.9rem;
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.38;
+  align-items: baseline;
+}
+.help-results dd.help-where {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.12em;
+  text-align: right;
+  opacity: 0.75;
 }
 /* A row the panel can run (data-cmd, and a run function in this view). The
    selection is a tint across both cells; the shadows carry it into half of
@@ -4595,6 +4601,9 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
   #psiINT-help-search { margin-left: 0; max-width: none; }
   .help-grid dl { grid-template-columns: 1fr; gap: 0 0; }
   .help-grid dd { margin-bottom: 0.45rem; }
+  .help-grid[data-filtered] > .help-results:not([hidden]) { grid-template-columns: 1fr; gap: 0; }
+  .help-results dd:not(.help-where) { margin-bottom: 0; }
+  .help-results dd.help-where { text-align: left; }
   .help-grid .help-sel { box-shadow: none; }
 }
 #psiINT-help-inner kbd {
@@ -7160,111 +7169,112 @@ did before.</p>
     <section>
       <h3>Moving around</h3>
       <dl>
-        <dt data-cmd="forward"><kbd>Space</kbd> · <kbd>↓</kbd> · <kbd>Enter</kbd> · <kbd>PageDown</kbd></dt><dd>forward: the next reveal or diagram step, then the next slide</dd>
-        <dt data-cmd="back"><kbd>↑</kbd> · <kbd>PageUp</kbd> · <kbd>Backspace</kbd></dt><dd>back: the reveal before it, then the slide before it</dd>
-        <dt><kbd>→</kbd> <kbd>←</kbd></dt><dd>the same pair, on every slide</dd>
-        <dt><kbd>Shift</kbd><kbd>→</kbd> · <kbd>Shift</kbd><kbd>←</kbd></dt><dd>the next column · the column before it – from anywhere</dd>
-        <dt>the mark at the foot</dt><dd>⌄ the next forward press leaves this column</dd>
-        <dt data-cmd="expansion"><kbd>1</kbd>–<kbd>9</kbd></dt><dd>open the n-th expansion</dd>
-        <dt data-cmd="escape"><kbd>Esc</kbd></dt><dd>step back out: figure, then overview, then expansion</dd>
+        <dt data-row="forward" data-cmd="forward"><kbd>Space</kbd> · <kbd>↓</kbd> · <kbd>Enter</kbd> · <kbd>PageDown</kbd></dt><dd>forward: the next reveal or diagram step, then the next slide</dd>
+        <dt data-row="back" data-cmd="back"><kbd>↑</kbd> · <kbd>PageUp</kbd> · <kbd>Backspace</kbd></dt><dd>back: the reveal before it, then the slide before it</dd>
+        <dt data-row="sideways"><kbd>→</kbd> <kbd>←</kbd></dt><dd>the same pair, on every slide</dd>
+        <dt data-row="next-column"><kbd>Shift</kbd><kbd>→</kbd> · <kbd>Shift</kbd><kbd>←</kbd></dt><dd>the next column · the column before it – from anywhere</dd>
+        <dt data-row="column-mark">the mark at the foot</dt><dd>⌄ the next forward press leaves this column</dd>
+        <dt data-row="expansion" data-cmd="expansion"><kbd>1</kbd>–<kbd>9</kbd></dt><dd>open the n-th expansion</dd>
+        <dt data-row="escape" data-cmd="escape"><kbd>Esc</kbd></dt><dd>step back out: figure, then overview, then expansion</dd>
       </dl>
     </section>
     <section>
       <h3>Finding a slide</h3>
       <dl>
-        <dt data-cmd="overview"><kbd>O</kbd></dt><dd>overview – the whole lecture on one board (letter O, not zero)</dd>
-        <dt>drag · wheel</dt><dd>pan the board · zoom it where the pointer is</dd>
-        <dt>click a slide</dt><dd>go there and leave the board</dd>
-        <dt><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></dt><dd>move the selection (the board follows)</dd>
-        <dt><kbd>O</kbd> · <kbd>Enter</kbd></dt><dd>land on the selected slide</dd>
-        <dt data-cmd="goto"><kbd>G</kbd></dt><dd>go to a slide by the number in its corner – type the digits, <kbd>Backspace</kbd> takes one back, <kbd>Enter</kbd> lands, <kbd>Esc</kbd> cancels</dd>
-        <dt><kbd>/</kbd></dt><dd>search – opens from anywhere, see below</dd>
-        <dt data-cmd="toc"><kbd>T</kbd></dt><dd>column list</dd>
+        <dt data-row="overview" data-cmd="overview"><kbd>O</kbd></dt><dd>overview – the whole lecture on one board (letter O, not zero)</dd>
+        <dt data-row="overview-pan">drag · wheel</dt><dd>pan the board · zoom it where the pointer is</dd>
+        <dt data-row="overview-click">click a slide</dt><dd>go there and leave the board</dd>
+        <dt data-row="overview-select"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></dt><dd>move the selection (the board follows)</dd>
+        <dt data-row="overview-land"><kbd>O</kbd> · <kbd>Enter</kbd></dt><dd>land on the selected slide</dd>
+        <dt data-row="goto" data-cmd="goto"><kbd>G</kbd></dt><dd>go to a slide by the number in its corner – type the digits, <kbd>Backspace</kbd> takes one back, <kbd>Enter</kbd> lands, <kbd>Esc</kbd> cancels</dd>
+        <dt data-row="search-see-below"><kbd>/</kbd></dt><dd>search – opens from anywhere, see below</dd>
+        <dt data-row="toc" data-cmd="toc"><kbd>T</kbd></dt><dd>column list</dd>
       </dl>
     </section>
     <section>
       <h3>Searching</h3>
       <dl>
-        <dt data-cmd="search"><kbd>/</kbd></dt><dd>open the search panel, in overview or on a slide</dd>
-        <dt>type</dt><dd>matching slides are listed with the sentence they matched</dd>
-        <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>pick a hit (the overview board follows along)</dd>
-        <dt><kbd>Enter</kbd> · click</dt><dd>go to that slide</dd>
-        <dt><kbd>Esc</kbd></dt><dd>close without moving</dd>
+        <dt data-row="search" data-cmd="search"><kbd>/</kbd></dt><dd>open the search panel, in overview or on a slide</dd>
+        <dt data-row="search-type">type</dt><dd>matching slides are listed with the sentence they matched</dd>
+        <dt data-row="search-pick"><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>pick a hit (the overview board follows along)</dd>
+        <dt data-row="search-go"><kbd>Enter</kbd> · click</dt><dd>go to that slide</dd>
+        <dt data-row="search-close"><kbd>Esc</kbd></dt><dd>close without moving</dd>
       </dl>
     </section>
     <section>
       <h3>On the slide</h3>
       <dl>
-        <dt>click a figure or code block</dt><dd>zoom it into a centred card</dd>
-        <dt>drag · wheel</dt><dd>pan the card · zoom it where the pointer is</dd>
-        <dt><kbd>+</kbd> <kbd>-</kbd> · <kbd>0</kbd></dt><dd>zoom from the centre · reset the zoomed card</dd>
-        <dt>click a marginalia</dt><dd>slide the frame right until the whole aside is on it</dd>
-        <dt>drag the slide</dt><dd>pan within a chunk that is taller than the screen</dd>
-        <dt>hold <kbd>Alt</kbd>/<kbd>option</kbd> and drag</dt><dd>select text to copy – dragging pans again once you let go</dd>
-        <dt>click a link</dt><dd>opens it in a new tab of this window</dd>
-        <dt><kbd>Shift</kbd>-click a link</dt><dd>puts the address on both screens, big enough to write down</dd>
-        <dt><kbd>Esc</kbd></dt><dd>back to the whole slide</dd>
+        <dt data-row="figure-focus">click a figure or code block</dt><dd>zoom it into a centred card</dd>
+        <dt data-row="figure-pan">drag · wheel</dt><dd>pan the card · zoom it where the pointer is</dd>
+        <dt data-row="figure-zoom"><kbd>+</kbd> <kbd>-</kbd> · <kbd>0</kbd></dt><dd>zoom from the centre · reset the zoomed card</dd>
+        <dt data-row="marginalia">click a marginalia</dt><dd>slide the frame right until the whole aside is on it</dd>
+        <dt data-row="slide-pan">drag the slide</dt><dd>pan within a chunk that is taller than the screen</dd>
+        <dt data-row="select-text">hold <kbd>Alt</kbd>/<kbd>option</kbd> and drag</dt><dd>select text to copy – dragging pans again once you let go</dd>
+        <dt data-row="link-open">click a link</dt><dd>opens it in a new tab of this window</dd>
+        <dt data-row="link-show"><kbd>Shift</kbd>-click a link</dt><dd>puts the address on both screens, big enough to write down</dd>
+        <dt data-row="figure-unfocus"><kbd>Esc</kbd></dt><dd>back to the whole slide</dd>
       </dl>
     </section>
     <section>
       <h3>Reading knobs</h3>
       <dl>
-        <dt data-cmd="collapse"><kbd>C</kbd></dt><dd>collapse: what the room sees ↔ the full text</dd>
-        <dt data-cmd="font"><kbd>F</kbd></dt><dd>font: serif → sans → mono</dd>
-        <dt data-cmd="theme"><kbd>A</kbd></dt><dd>theme: four light accents, a neutral dark, two phosphor modes</dd>
-        <dt><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></dt><dd>text size, and zero resets it (kept separately for each collapse mode)</dd>
-        <dt data-cmd="auto-fit"><kbd>#</kbd></dt><dd>auto-fit: off → shrink a slide that is too big → size every slide to the screen</dd>
-        <dt data-cmd="slide-numbers"><kbd>L</kbd></dt><dd>slide numbers: stacked → in a row → off</dd>
-        <dt data-cmd="note-button"><kbd>M</kbd></dt><dd>the <i>+ note</i> button in the slide's left gutter: shown ↔ hidden – pressed here it lands on the projection too, and <kbd>N</kbd> still opens an annotation either way</dd>
-        <dt data-cmd="annotate"><kbd>N</kbd></dt><dd>annotation on the slide itself – it fills the frame while you type; an address in it gets a QR code, and <kbd>Esc</kbd> leaves it as a margin note</dd>
-        <dt data-cmd="export-annotations"><kbd>Shift</kbd>-<kbd>E</kbd></dt><dd>copy the annotations typed with <kbd>N</kbd> out as Markdown for source.md</dd>
-        <dt data-cmd="fullscreen"><kbd>W</kbd></dt><dd>fullscreen on the projection – nothing of the browser round the slide, and <kbd>Esc</kbd> leaves it again</dd>
-        <dt data-cmd="blank"><kbd>B</kbd> · <kbd>.</kbd></dt><dd>blank the projection – the speaker window keeps working, frozen or not</dd>
-        <dt data-cmd="demo"><kbd>D</kbd></dt><dd>live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop; the very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk</dd>
-        <dt><kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd></dt><dd>cycle that knob backwards</dd>
-        <dt>on a touchscreen</dt><dd>the same settings sit behind the ⋯ button on the toolbar</dd>
+        <dt data-row="collapse" data-cmd="collapse"><kbd>C</kbd></dt><dd>collapse: what the room sees ↔ the full text</dd>
+        <dt data-row="font" data-cmd="font"><kbd>F</kbd></dt><dd>font: serif → sans → mono</dd>
+        <dt data-row="theme" data-cmd="theme"><kbd>A</kbd></dt><dd>theme: four light accents, a neutral dark, two phosphor modes</dd>
+        <dt data-row="zoom-in"><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></dt><dd>text size, and zero resets it (kept separately for each collapse mode)</dd>
+        <dt data-row="auto-fit" data-cmd="auto-fit"><kbd>#</kbd></dt><dd>auto-fit: off → shrink a slide that is too big → size every slide to the screen</dd>
+        <dt data-row="slide-numbers" data-cmd="slide-numbers"><kbd>L</kbd></dt><dd>slide numbers: stacked → in a row → off</dd>
+        <dt data-row="note-button" data-cmd="note-button"><kbd>M</kbd></dt><dd>the <i>+ note</i> button in the slide's left gutter: shown ↔ hidden – pressed here it lands on the projection too, and <kbd>N</kbd> still opens an annotation either way</dd>
+        <dt data-row="annotate" data-cmd="annotate"><kbd>N</kbd></dt><dd>annotation on the slide itself – it fills the frame while you type; an address in it gets a QR code, and <kbd>Esc</kbd> leaves it as a margin note</dd>
+        <dt data-row="export-annotations" data-cmd="export-annotations"><kbd>Shift</kbd>-<kbd>E</kbd></dt><dd>copy the annotations typed with <kbd>N</kbd> out as Markdown for source.md</dd>
+        <dt data-row="fullscreen" data-cmd="fullscreen"><kbd>W</kbd></dt><dd>fullscreen on the projection – nothing of the browser round the slide, and <kbd>Esc</kbd> leaves it again</dd>
+        <dt data-row="blank" data-cmd="blank"><kbd>B</kbd> · <kbd>.</kbd></dt><dd>blank the projection – the speaker window keeps working, frozen or not</dd>
+        <dt data-row="demo" data-cmd="demo"><kbd>D</kbd></dt><dd>live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop; the very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk</dd>
+        <dt data-row="collapse-back"><kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd></dt><dd>cycle that knob backwards</dd>
+        <dt data-row="touch-palette">on a touchscreen</dt><dd>the same settings sit behind the ⋯ button on the toolbar</dd>
       </dl>
     </section>
     <section>
       <h3>The experimental diagram editor</h3>
       <dl>
-        <dt>click a diagram, then <kbd>E</kbd></dt><dd>open the editor on that figure – or the button in the corner of the card</dd>
-        <dt><kbd>1</kbd> <kbd>V</kbd></dt><dd>select</dd>
-        <dt><kbd>2</kbd>/<kbd>R</kbd> <kbd>3</kbd>/<kbd>C</kbd> <kbd>4</kbd>/<kbd>T</kbd> <kbd>5</kbd>/<kbd>A</kbd> <kbd>8</kbd>/<kbd>I</kbd></dt><dd>box · dot · text · edge · image</dd>
-        <dt><kbd>9</kbd>/<kbd>L</kbd></dt><dd>a line with no arrowhead – both ends are plain coordinates, so it attaches to nothing</dd>
-        <dt><kbd>6</kbd> · <kbd>7</kbd></dt><dd>container · brace, drawn around whatever is selected</dd>
-        <dt><kbd>Q</kbd></dt><dd>keep the current tool instead of falling back to select</dd>
-        <dt>drag · drag a handle</dt><dd>move it · resize it – the status bar shows the line it will write</dd>
-        <dt>drag it over another element</dt><dd>four chips appear – release on one and it docks to that side of it, and follows it from then on</dd>
-        <dt>drag it through what it sits beside</dt><dd>changes which side of that element it is on</dd>
-        <dt>arrows · <kbd>Shift</kbd>-arrows</dt><dd>nudge the selection, fine · coarse</dd>
-        <dt><kbd>Ctrl</kbd> while dragging</dt><dd>suspend snapping, for when 0.5847 is meant</dd>
-        <dt><kbd>Alt</kbd> while dragging</dt><dd>leave an align or spread set at once – or just pull half a cell clear of it</dd>
-        <dt>double-click a waypoint</dt><dd>take it off the arrow – the hollow dots on the line put one back</dd>
-        <dt><kbd>Delete</kbd> · <kbd>Backspace</kbd></dt><dd>delete, after listing what refers to it</dd>
-        <dt><kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd></dt><dd>undo · redo</dd>
-        <dt><kbd>Ctrl/Cmd</kbd>-<kbd>A</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>D</kbd></dt><dd>select all · duplicate</dd>
-        <dt><kbd>Ctrl/Cmd</kbd>-<kbd>C</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>V</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>Shift</kbd>-<kbd>V</kbd></dt><dd>copy · paste · paste in place</dd>
-        <dt><kbd>Ctrl/Cmd</kbd>-<kbd>S</kbd></dt><dd>write the block back – into source.md while --watch runs, otherwise to the clipboard</dd>
-        <dt><kbd>&lt;</kbd> <kbd>&gt;</kbd></dt><dd>walk the diagram steps – a drag inside a step writes a move into that step</dd>
-        <dt><kbd>Space</kbd>-drag · middle-drag · wheel</dt><dd>pan · pan · zoom</dd>
-        <dt><kbd>F</kbd> · <kbd>Shift</kbd>-<kbd>F</kbd></dt><dd>frame: slide → column → print, the three places the figure can land · the same the other way round</dd>
-        <dt><kbd>,</kbd> <kbd>.</kbd> · <kbd>PageUp</kbd> <kbd>PageDown</kbd></dt><dd>previous / next figure in the lecture</dd>
-        <dt><kbd>O</kbd></dt><dd>the figure board</dd>
-        <dt><kbd>Shift</kbd>-<kbd>V</kbd></dt><dd>flip the figure strip between the bottom and the right edge</dd>
-        <dt><kbd>Esc</kbd></dt><dd>step back out: deselect, then the select tool, then close</dd>
-        <dt><kbd>?</kbd></dt><dd>this panel, over the editor</dd>
+        <dt data-row="editor-open">click a diagram, then <kbd>E</kbd></dt><dd>open the editor on that figure – or the button in the corner of the card</dd>
+        <dt data-row="editor-select"><kbd>1</kbd> <kbd>V</kbd></dt><dd>select</dd>
+        <dt data-row="editor-tools"><kbd>2</kbd>/<kbd>R</kbd> <kbd>3</kbd>/<kbd>C</kbd> <kbd>4</kbd>/<kbd>T</kbd> <kbd>5</kbd>/<kbd>A</kbd> <kbd>8</kbd>/<kbd>I</kbd></dt><dd>box · dot · text · edge · image</dd>
+        <dt data-row="editor-line"><kbd>9</kbd>/<kbd>L</kbd></dt><dd>a line with no arrowhead – both ends are plain coordinates, so it attaches to nothing</dd>
+        <dt data-row="editor-wrap"><kbd>6</kbd> · <kbd>7</kbd></dt><dd>container · brace, drawn around whatever is selected</dd>
+        <dt data-row="editor-lock"><kbd>Q</kbd></dt><dd>keep the current tool instead of falling back to select</dd>
+        <dt data-row="editor-drag">drag · drag a handle</dt><dd>move it · resize it – the status bar shows the line it will write</dd>
+        <dt data-row="editor-dock">drag it over another element</dt><dd>four chips appear – release on one and it docks to that side of it, and follows it from then on</dd>
+        <dt data-row="editor-side">drag it through what it sits beside</dt><dd>changes which side of that element it is on</dd>
+        <dt data-row="editor-nudge">arrows · <kbd>Shift</kbd>-arrows</dt><dd>nudge the selection, fine · coarse</dd>
+        <dt data-row="editor-nosnap"><kbd>Ctrl</kbd> while dragging</dt><dd>suspend snapping, for when 0.5847 is meant</dd>
+        <dt data-row="editor-unalign"><kbd>Alt</kbd> while dragging</dt><dd>leave an align or spread set at once – or just pull half a cell clear of it</dd>
+        <dt data-row="editor-waypoint">double-click a waypoint</dt><dd>take it off the arrow – the hollow dots on the line put one back</dd>
+        <dt data-row="editor-delete"><kbd>Delete</kbd> · <kbd>Backspace</kbd></dt><dd>delete, after listing what refers to it</dd>
+        <dt data-row="editor-undo"><kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd></dt><dd>undo · redo</dd>
+        <dt data-row="editor-select-all"><kbd>Ctrl/Cmd</kbd>-<kbd>A</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>D</kbd></dt><dd>select all · duplicate</dd>
+        <dt data-row="editor-clipboard"><kbd>Ctrl/Cmd</kbd>-<kbd>C</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>V</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>Shift</kbd>-<kbd>V</kbd></dt><dd>copy · paste · paste in place</dd>
+        <dt data-row="editor-commit"><kbd>Ctrl/Cmd</kbd>-<kbd>S</kbd></dt><dd>write the block back – into source.md while --watch runs, otherwise to the clipboard</dd>
+        <dt data-row="editor-steps"><kbd>&lt;</kbd> <kbd>&gt;</kbd></dt><dd>walk the diagram steps – a drag inside a step writes a move into that step</dd>
+        <dt data-row="editor-pan"><kbd>Space</kbd>-drag · middle-drag · wheel</dt><dd>pan · pan · zoom</dd>
+        <dt data-row="editor-frame"><kbd>F</kbd> · <kbd>Shift</kbd>-<kbd>F</kbd></dt><dd>frame: slide → column → print, the three places the figure can land · the same the other way round</dd>
+        <dt data-row="editor-figures"><kbd>,</kbd> <kbd>.</kbd> · <kbd>PageUp</kbd> <kbd>PageDown</kbd></dt><dd>previous / next figure in the lecture</dd>
+        <dt data-row="editor-board"><kbd>O</kbd></dt><dd>the figure board</dd>
+        <dt data-row="editor-strip"><kbd>Shift</kbd>-<kbd>V</kbd></dt><dd>flip the figure strip between the bottom and the right edge</dd>
+        <dt data-row="editor-escape"><kbd>Esc</kbd></dt><dd>step back out: deselect, then the select tool, then close</dd>
+        <dt data-row="editor-help"><kbd>?</kbd></dt><dd>this panel, over the editor</dd>
       </dl>
     </section>
     <section>
       <h3>The other windows</h3>
       <dl>
-        <dt data-cmd="cockpit"><kbd>S</kbd></dt><dd>open the speaker cockpit – both windows then stay in sync</dd>
-        <dt data-cmd="print"><kbd>P</kbd></dt><dd>open the print view in a new tab</dd>
-        <dt><kbd>?</kbd></dt><dd>this panel</dd>
-        <dt><kbd>Ctrl/Cmd</kbd>-<kbd>K</kbd></dt><dd>this panel as a command palette: the field has the keys, <kbd>↑</kbd> <kbd>↓</kbd> pick a row, <kbd>Enter</kbd> or a click runs it</dd>
+        <dt data-row="cockpit" data-cmd="cockpit"><kbd>S</kbd></dt><dd>open the speaker cockpit – both windows then stay in sync</dd>
+        <dt data-row="print" data-cmd="print"><kbd>P</kbd></dt><dd>open the print view in a new tab</dd>
+        <dt data-row="help"><kbd>?</kbd></dt><dd>this panel</dd>
+        <dt data-row="palette"><kbd>Ctrl/Cmd</kbd>-<kbd>K</kbd></dt><dd>this panel as a command palette: the field has the keys, <kbd>↑</kbd> <kbd>↓</kbd> pick a row, <kbd>Enter</kbd> or a click runs it</dd>
       </dl>
     </section>
+      <dl class="help-results" hidden></dl>
     </div>
   </div>
 </div>
@@ -10076,9 +10086,11 @@ function runsFromPanel(c) {
   return !!(c.keys && !c.row && c.id !== 'help' && !COMMANDS.some((m) => m.row === c.id));
 }
 
-// The panel's sections for one view: [[title, [[keyColumn, hint, runId], …]], …],
+// The panel's sections for one view: [[title, [[keyColumn, hint, runId, rowId], …]], …],
 // both columns HTML, runId the command a click on the row runs (null for a
-// doc row). `ships` says which optional modules this view carries.
+// doc row), rowId the entry the row is (the palette splits a row that lists
+// several commands back into one line each). `ships` says which optional
+// modules this view carries.
 function helpGroups(view, ships = {}) {
   const out = [];
   for (const g of GROUPS) {
@@ -10088,7 +10100,7 @@ function helpGroups(view, ships = {}) {
       if (c.row || !c.views.includes(view) || pick(c.group, view) !== g.id) continue;
       if (c.requires && !ships[c.requires]) continue;
       const keys = c.show || c.mouse || c.keys.map(keyText).join(' · ');
-      rows.push([keys, pick(c.hint, view), runsFromPanel(c) ? c.id : null]);
+      rows.push([keys, pick(c.hint, view), runsFromPanel(c) ? c.id : null, c.id]);
     }
     if (rows.length) out.push([g.title, rows]);
   }
@@ -13814,29 +13826,110 @@ function helpRows() {
   }
   return helpIndex;
 }
+// The palette's lines: the reference's rows again, with a row that lists
+// several commands (Shift-C F A L, + - 0, Shift-→ Shift-←) split into one
+// line per command, keyed and labelled from the table, so each can be
+// picked and run on its own. Built once, into the list at the grid's foot,
+// in the reference's order - which is the tie-break of the ranking.
+const helpResults = helpOverlay ? helpOverlay.querySelector('.help-results') : null;
+let paletteIndex = null;
+function helpWords(str) { return helpFold(str).split(/[^a-z0-9]+/).filter(Boolean); }
+function paletteRows() {
+  if (paletteIndex) return paletteIndex;
+  paletteIndex = [];
+  if (!helpResults) return paletteIndex;
+  const table = PSI_COMMANDS.COMMANDS;
+  const add = (keysHtml, textHtml, textPlain, title, cmd, label) => {
+    const dt = document.createElement('dt');
+    const dd = document.createElement('dd');
+    const where = document.createElement('dd');
+    dt.innerHTML = keysHtml;
+    if (textHtml !== null) dd.innerHTML = textHtml; else dd.textContent = textPlain;
+    where.className = 'help-where';
+    where.textContent = title;
+    if (cmd) { dt.dataset.cmd = cmd; for (const el of [dt, dd, where]) el.classList.add('help-run'); }
+    for (const el of [dt, dd, where]) el.hidden = true;
+    helpResults.append(dt, dd, where);
+    const keys = [...dt.querySelectorAll('kbd')].map((k) => helpFold(k.textContent.trim()));
+    const range = keysHtml.match(/<kbd>(\d)<\/kbd>–<kbd>(\d)<\/kbd>/);
+    if (range) for (let d = +range[1] + 1; d < +range[2]; d++) keys.push(String(d));
+    paletteIndex.push({
+      dt, dd, where, cmd, keys, order: paletteIndex.length,
+      keyWords: helpFold(keys.map((k) => HELP_KEY_WORDS[k] || '').join(' ')),
+      label: helpWords(label || ''), labelText: helpFold(label || ''),
+      words: helpWords(dd.textContent),
+      text: helpFold(dt.textContent + ' ' + dd.textContent),
+      title: helpFold(title),
+    });
+  };
+  for (const { sec, rows } of helpRows()) {
+    const h = sec.querySelector('h3');
+    const title = h ? h.textContent : '';
+    for (const r of rows) {
+      const id = r.dt.dataset.row;
+      const members = id ? table.filter((m) => m.keys && (m.id === id || m.row === id)) : [];
+      if (members.length > 1) {
+        for (const m of members) {
+          const run = COMMAND_RUN[m.id] && m.id !== 'help' ? m.id : null;
+          add(m.keys.map(PSI_COMMANDS.keyText).join(' · '), null, m.label, title, run, m.label);
+        }
+      } else {
+        const c = id ? table.find((m) => m.id === id) : null;
+        add(r.dt.innerHTML, r.dd ? r.dd.innerHTML : '', '', title, r.cmd, c && c.label);
+      }
+    }
+  }
+  return paletteIndex;
+}
+// How well a line answers the query, 0 for not at all. Every word of the
+// query has to match somewhere, and each counts by where: a key (a single
+// character only ever matches a key, so b finds B and not every row with a
+// b in it), then a word of the command's own name, then the description,
+// then the key's spoken name and the section. So "overview" puts O, whose
+// name it is, ahead of the rows that mention the overview in passing.
+function paletteScore(e, terms) {
+  let total = 0;
+  for (const t of terms) {
+    let s = 0;
+    if (e.keys.includes(t)) s = 100;
+    else if (t.length > 1) {
+      if (e.label.includes(t)) s = 70;
+      else if (e.label.some((w) => w.startsWith(t))) s = 60;
+      else if (e.labelText.includes(t)) s = 45;
+      else if (e.words.includes(t)) s = 30;
+      else if (e.words.some((w) => w.startsWith(t))) s = 25;
+      else if (e.text.includes(t) || e.keyWords.includes(t)) s = 15;
+      else if (e.title.includes(t)) s = 10;
+    }
+    if (!s) return 0;
+    total += s;
+  }
+  return total + (e.cmd ? 3 : 0);
+}
+let paletteShown = [];
 function filterHelp() {
   if (!helpSearch) return;
   const terms = helpFold(helpSearch.value).trim().split(/\s+/).filter(Boolean);
-  let shown = 0;
-  for (const { sec, rows } of helpRows()) {
-    let any = false;
-    for (const r of rows) {
-      const hit = terms.every((t) => t.length === 1 ? r.keys.includes(t) : r.hay.includes(t));
-      r.dt.hidden = !hit;
-      if (r.dd) r.dd.hidden = !hit;
-      if (hit) { any = true; shown++; }
-    }
-    sec.hidden = !any;
-  }
-  if (helpNone) helpNone.hidden = shown > 0;
-  // A query selects its first runnable row, so typing a word and Enter runs
-  // it; an empty field selects nothing, so Enter there runs nothing. The
-  // rows start at the top again whatever was scrolled before.
   const grid = helpOverlay.querySelector('.help-grid');
-  if (grid) {
-    grid.scrollTop = 0;
-    grid.toggleAttribute('data-filtered', terms.length > 0);
+  if (grid) grid.toggleAttribute('data-filtered', terms.length > 0);
+  if (helpResults) helpResults.hidden = !terms.length;
+  paletteShown = [];
+  if (terms.length) {
+    const scored = [];
+    for (const e of paletteRows()) {
+      const score = paletteScore(e, terms);
+      for (const el of [e.dt, e.dd, e.where]) el.hidden = !score;
+      if (score) scored.push([score, e]);
+    }
+    scored.sort((x, y) => y[0] - x[0] || x[1].order - y[1].order);
+    paletteShown = scored.map((x) => x[1]);
+    for (const e of paletteShown) helpResults.append(e.dt, e.dd, e.where);
   }
+  if (helpNone) helpNone.hidden = !terms.length || paletteShown.length > 0;
+  // A query selects its best runnable line, so typing a word and Enter runs
+  // it; an empty field selects nothing, so Enter there runs nothing. The
+  // list starts at the top again whatever was scrolled before.
+  if (grid) grid.scrollTop = 0;
   const runnable = helpRunnable();
   setHelpSel(terms.length && runnable.length ? runnable[0] : null);
 }
@@ -13852,21 +13945,24 @@ function filterHelp() {
 let helpSel = null;
 function helpRunnable() {
   const out = [];
-  for (const { sec, rows } of helpRows()) {
-    if (sec.hidden) continue;
-    for (const r of rows) if (r.cmd && !r.dt.hidden) out.push(r);
+  if (helpResults && !helpResults.hidden) {
+    for (const e of paletteShown) if (e.cmd) out.push(e);
+    return out;
   }
+  for (const { rows } of helpRows()) for (const r of rows) if (r.cmd) out.push(r);
   return out;
 }
+const helpCells = (row) => [row.dt, row.dd, row.where].filter(Boolean);
 // The pointer selects too, without scrolling: the row is already under it.
 function setHelpSel(row, scroll = true) {
-  if (helpSel) for (const el of [helpSel.dt, helpSel.dd]) if (el) el.classList.remove('help-sel');
+  if (helpSel) for (const el of helpCells(helpSel)) el.classList.remove('help-sel');
   helpSel = row;
   if (!row) return;
-  for (const el of [row.dt, row.dd]) if (el) el.classList.add('help-sel');
+  for (const el of helpCells(row)) el.classList.add('help-sel');
   if (scroll && row.dd && row.dd.scrollIntoView) row.dd.scrollIntoView({ block: 'nearest' });
 }
 function helpRowOf(cell) {
+  for (const e of paletteIndex || []) if (e.dt === cell || e.dd === cell || e.where === cell) return e;
   for (const { rows } of helpRows()) for (const r of rows) if (r.dt === cell || r.dd === cell) return r;
   return null;
 }

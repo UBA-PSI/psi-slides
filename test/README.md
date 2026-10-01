@@ -158,8 +158,9 @@ there types a b rather than blanking the projection, and `Esc` empties it
 before it closes the panel. `palette` is the same panel run as a command
 palette and the projection's start menu: `Cmd-K` and `Ctrl-K` open it focused,
 a word and `Enter` run the row (`blank` blanks), a doc row is never selected,
-`Esc` still unwinds the panel before the overview, and the panel's box is
-measured unchanged across the typing; the start menu stands on slide 1 of a
+`Esc` still unwinds the panel before the overview, the panel's box is
+measured unchanged across the typing, `overview` ranks `O` first and
+`Shift-C F A L` comes apart into four runnable lines; the start menu stands on slide 1 of a
 fresh load and goes on the first beat, on `W`, on its chevron (and stays gone
 across a reload), on a press in the cockpit it opened, answers a tap, and is
 in no other view and not in frame 1 of `--frames`; a filter lays the panel's

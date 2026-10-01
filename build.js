@@ -13854,7 +13854,7 @@ function renderHelpOverlay(view, withEditor, withSouffleuse, S = STRINGS.en) {
   const sections = groups.map(([title, rows]) => `    <section>
       <h3>${title}</h3>
       <dl>
-${rows.map(([k, v, id]) => `        <dt${id ? ` data-cmd="${id}"` : ''}>${k}</dt><dd>${v}</dd>`).join('\n')}
+${rows.map(([k, v, id, row]) => `        <dt data-row="${row}"${id ? ` data-cmd="${id}"` : ''}>${k}</dt><dd>${v}</dd>`).join('\n')}
       </dl>
     </section>`).join('\n');
 
@@ -13869,6 +13869,7 @@ ${rows.map(([k, v, id]) => `        <dt${id ? ` data-cmd="${id}"` : ''}>${k}</dt
     <p class="help-none" hidden>${escapeHtml(S['help-none'] || STRINGS.en['help-none'])}</p>
     <div class="help-grid">
 ${sections}
+      <dl class="help-results" hidden></dl>
     </div>
   </div>
 </div>
@@ -18558,24 +18559,30 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
 }
 .help-grid dt { color: var(--ink); text-wrap: balance; }
 .help-grid dd { margin: 0; color: var(--ink-soft); }
-/* While the field has text, the few rows left are one list across the
-   panel's whole width rather than the reference's columns, which left them a
-   narrow strip at the left of an empty box: each section heading over its
-   rows, one key column for every hit, as wide as its keys up to a cap, and
-   the descriptions on the rest. The sections and lists step aside
-   (display: contents) so every row sits on the one grid; the box itself
-   keeps its size. A phone already has one column and keeps its layout. */
-@media (min-width: 561px) {
-  .help-grid[data-filtered] {
-    grid-template-columns: fit-content(16em) minmax(0, 1fr);
-    gap: 0.3rem 0.9rem;
-    font-size: 0.78rem;
-    line-height: 1.38;
-  }
-  .help-grid[data-filtered] section,
-  .help-grid[data-filtered] dl { display: contents; }
-  .help-grid[data-filtered] h3 { grid-column: 1 / -1; margin: 0.7rem 0 0.1rem; }
-  .help-grid[data-filtered] section:not([hidden]) ~ section h3 { margin-top: 1.1rem; }
+/* While the field has text, the panel is a palette: the reference's
+   sections step aside and the hits stand in one list across the panel's
+   whole width, best match first - one command a line, so a row that lists
+   four commands in the reference is four lines here, each one runnable. A
+   key column as wide as its keys up to a cap, the words on the rest, and
+   the section a hit comes from as a quiet tag at the end of its line. The
+   box keeps its size. */
+.help-grid[data-filtered] { display: block; }
+.help-grid[data-filtered] > section { display: none; }
+.help-grid .help-results { display: none; }
+.help-grid[data-filtered] > .help-results:not([hidden]) {
+  display: grid;
+  grid-template-columns: fit-content(16em) minmax(0, 1fr) max-content;
+  gap: 0.3rem 0.9rem;
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.38;
+  align-items: baseline;
+}
+.help-results dd.help-where {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.12em;
+  text-align: right;
+  opacity: 0.75;
 }
 /* A row the panel can run (data-cmd, and a run function in this view). The
    selection is a tint across both cells; the shadows carry it into half of
@@ -18598,6 +18605,9 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
   #psiINT-help-search { margin-left: 0; max-width: none; }
   .help-grid dl { grid-template-columns: 1fr; gap: 0 0; }
   .help-grid dd { margin-bottom: 0.45rem; }
+  .help-grid[data-filtered] > .help-results:not([hidden]) { grid-template-columns: 1fr; gap: 0; }
+  .help-results dd:not(.help-where) { margin-bottom: 0; }
+  .help-results dd.help-where { text-align: left; }
   .help-grid .help-sel { box-shadow: none; }
 }
 #psiINT-help-inner kbd {
@@ -22498,29 +22508,110 @@ function helpRows() {
   }
   return helpIndex;
 }
+// The palette's lines: the reference's rows again, with a row that lists
+// several commands (Shift-C F A L, + - 0, Shift-→ Shift-←) split into one
+// line per command, keyed and labelled from the table, so each can be
+// picked and run on its own. Built once, into the list at the grid's foot,
+// in the reference's order - which is the tie-break of the ranking.
+const helpResults = helpOverlay ? helpOverlay.querySelector('.help-results') : null;
+let paletteIndex = null;
+function helpWords(str) { return helpFold(str).split(/[^a-z0-9]+/).filter(Boolean); }
+function paletteRows() {
+  if (paletteIndex) return paletteIndex;
+  paletteIndex = [];
+  if (!helpResults) return paletteIndex;
+  const table = PSI_COMMANDS.COMMANDS;
+  const add = (keysHtml, textHtml, textPlain, title, cmd, label) => {
+    const dt = document.createElement('dt');
+    const dd = document.createElement('dd');
+    const where = document.createElement('dd');
+    dt.innerHTML = keysHtml;
+    if (textHtml !== null) dd.innerHTML = textHtml; else dd.textContent = textPlain;
+    where.className = 'help-where';
+    where.textContent = title;
+    if (cmd) { dt.dataset.cmd = cmd; for (const el of [dt, dd, where]) el.classList.add('help-run'); }
+    for (const el of [dt, dd, where]) el.hidden = true;
+    helpResults.append(dt, dd, where);
+    const keys = [...dt.querySelectorAll('kbd')].map((k) => helpFold(k.textContent.trim()));
+    const range = keysHtml.match(/<kbd>(\\d)<\\/kbd>–<kbd>(\\d)<\\/kbd>/);
+    if (range) for (let d = +range[1] + 1; d < +range[2]; d++) keys.push(String(d));
+    paletteIndex.push({
+      dt, dd, where, cmd, keys, order: paletteIndex.length,
+      keyWords: helpFold(keys.map((k) => HELP_KEY_WORDS[k] || '').join(' ')),
+      label: helpWords(label || ''), labelText: helpFold(label || ''),
+      words: helpWords(dd.textContent),
+      text: helpFold(dt.textContent + ' ' + dd.textContent),
+      title: helpFold(title),
+    });
+  };
+  for (const { sec, rows } of helpRows()) {
+    const h = sec.querySelector('h3');
+    const title = h ? h.textContent : '';
+    for (const r of rows) {
+      const id = r.dt.dataset.row;
+      const members = id ? table.filter((m) => m.keys && (m.id === id || m.row === id)) : [];
+      if (members.length > 1) {
+        for (const m of members) {
+          const run = COMMAND_RUN[m.id] && m.id !== 'help' ? m.id : null;
+          add(m.keys.map(PSI_COMMANDS.keyText).join(' · '), null, m.label, title, run, m.label);
+        }
+      } else {
+        const c = id ? table.find((m) => m.id === id) : null;
+        add(r.dt.innerHTML, r.dd ? r.dd.innerHTML : '', '', title, r.cmd, c && c.label);
+      }
+    }
+  }
+  return paletteIndex;
+}
+// How well a line answers the query, 0 for not at all. Every word of the
+// query has to match somewhere, and each counts by where: a key (a single
+// character only ever matches a key, so b finds B and not every row with a
+// b in it), then a word of the command's own name, then the description,
+// then the key's spoken name and the section. So "overview" puts O, whose
+// name it is, ahead of the rows that mention the overview in passing.
+function paletteScore(e, terms) {
+  let total = 0;
+  for (const t of terms) {
+    let s = 0;
+    if (e.keys.includes(t)) s = 100;
+    else if (t.length > 1) {
+      if (e.label.includes(t)) s = 70;
+      else if (e.label.some((w) => w.startsWith(t))) s = 60;
+      else if (e.labelText.includes(t)) s = 45;
+      else if (e.words.includes(t)) s = 30;
+      else if (e.words.some((w) => w.startsWith(t))) s = 25;
+      else if (e.text.includes(t) || e.keyWords.includes(t)) s = 15;
+      else if (e.title.includes(t)) s = 10;
+    }
+    if (!s) return 0;
+    total += s;
+  }
+  return total + (e.cmd ? 3 : 0);
+}
+let paletteShown = [];
 function filterHelp() {
   if (!helpSearch) return;
   const terms = helpFold(helpSearch.value).trim().split(/\\s+/).filter(Boolean);
-  let shown = 0;
-  for (const { sec, rows } of helpRows()) {
-    let any = false;
-    for (const r of rows) {
-      const hit = terms.every((t) => t.length === 1 ? r.keys.includes(t) : r.hay.includes(t));
-      r.dt.hidden = !hit;
-      if (r.dd) r.dd.hidden = !hit;
-      if (hit) { any = true; shown++; }
-    }
-    sec.hidden = !any;
-  }
-  if (helpNone) helpNone.hidden = shown > 0;
-  // A query selects its first runnable row, so typing a word and Enter runs
-  // it; an empty field selects nothing, so Enter there runs nothing. The
-  // rows start at the top again whatever was scrolled before.
   const grid = helpOverlay.querySelector('.help-grid');
-  if (grid) {
-    grid.scrollTop = 0;
-    grid.toggleAttribute('data-filtered', terms.length > 0);
+  if (grid) grid.toggleAttribute('data-filtered', terms.length > 0);
+  if (helpResults) helpResults.hidden = !terms.length;
+  paletteShown = [];
+  if (terms.length) {
+    const scored = [];
+    for (const e of paletteRows()) {
+      const score = paletteScore(e, terms);
+      for (const el of [e.dt, e.dd, e.where]) el.hidden = !score;
+      if (score) scored.push([score, e]);
+    }
+    scored.sort((x, y) => y[0] - x[0] || x[1].order - y[1].order);
+    paletteShown = scored.map((x) => x[1]);
+    for (const e of paletteShown) helpResults.append(e.dt, e.dd, e.where);
   }
+  if (helpNone) helpNone.hidden = !terms.length || paletteShown.length > 0;
+  // A query selects its best runnable line, so typing a word and Enter runs
+  // it; an empty field selects nothing, so Enter there runs nothing. The
+  // list starts at the top again whatever was scrolled before.
+  if (grid) grid.scrollTop = 0;
   const runnable = helpRunnable();
   setHelpSel(terms.length && runnable.length ? runnable[0] : null);
 }
@@ -22536,21 +22627,24 @@ function filterHelp() {
 let helpSel = null;
 function helpRunnable() {
   const out = [];
-  for (const { sec, rows } of helpRows()) {
-    if (sec.hidden) continue;
-    for (const r of rows) if (r.cmd && !r.dt.hidden) out.push(r);
+  if (helpResults && !helpResults.hidden) {
+    for (const e of paletteShown) if (e.cmd) out.push(e);
+    return out;
   }
+  for (const { rows } of helpRows()) for (const r of rows) if (r.cmd) out.push(r);
   return out;
 }
+const helpCells = (row) => [row.dt, row.dd, row.where].filter(Boolean);
 // The pointer selects too, without scrolling: the row is already under it.
 function setHelpSel(row, scroll = true) {
-  if (helpSel) for (const el of [helpSel.dt, helpSel.dd]) if (el) el.classList.remove('help-sel');
+  if (helpSel) for (const el of helpCells(helpSel)) el.classList.remove('help-sel');
   helpSel = row;
   if (!row) return;
-  for (const el of [row.dt, row.dd]) if (el) el.classList.add('help-sel');
+  for (const el of helpCells(row)) el.classList.add('help-sel');
   if (scroll && row.dd && row.dd.scrollIntoView) row.dd.scrollIntoView({ block: 'nearest' });
 }
 function helpRowOf(cell) {
+  for (const e of paletteIndex || []) if (e.dt === cell || e.dd === cell || e.where === cell) return e;
   for (const { rows } of helpRows()) for (const r of rows) if (r.dt === cell || r.dd === cell) return r;
   return null;
 }

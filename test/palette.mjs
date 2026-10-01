@@ -128,7 +128,7 @@ export async function run({ page, report }) {
       ok(box0 === box1 && box1 === p.box, `${v}: the panel's box does not move while the field is typed into`, [box0, box1, p.box].join(' | '));
       ok(p.sel === 'blank', `${v}: "blank" selects the B row`, String(p.sel));
       // A filter: the hits are one list across the box - every key in one
-      // column at the box's left, and a row as wide as the box.
+      // column at the box's left, and a line as wide as the box.
       await press('Backspace'); await press('Backspace'); await press('Backspace');
       await press('Backspace'); await press('Backspace');
       await type('note');
@@ -136,9 +136,9 @@ export async function run({ page, report }) {
         const g = document.querySelector('#psiINT-help-overlay .help-grid');
         const gr = g.getBoundingClientRect();
         const pad = parseFloat(getComputedStyle(g).paddingLeft) + parseFloat(getComputedStyle(g).paddingRight);
-        const dts = [...g.querySelectorAll('dt')].filter((d) => !d.hidden);
+        const dts = [...g.querySelectorAll('.help-results dt')].filter((d) => !d.hidden);
         const lefts = new Set(dts.map((d) => Math.round(d.getBoundingClientRect().left)));
-        const widths = dts.map((d) => d.nextElementSibling.getBoundingClientRect().right - d.getBoundingClientRect().left);
+        const widths = dts.map((d) => d.nextElementSibling.nextElementSibling.getBoundingClientRect().right - d.getBoundingClientRect().left);
         return { n: dts.length, lefts: lefts.size, left: Math.round(dts[0].getBoundingClientRect().left - gr.left),
           ratio: Math.min(...widths) / (g.clientWidth - pad) };
       });
@@ -152,6 +152,27 @@ export async function run({ page, report }) {
         return new Set([...g.querySelectorAll('dt')].map((d) => Math.round(d.getBoundingClientRect().left))).size;
       });
       ok(unf > 1, `${v}: an empty field brings the reference's columns back`, String(unf));
+
+      // Best match first: the command a word names before the rows that
+      // mention it, and a row of four commands is four lines, each runnable.
+      const hits = () => page.evaluate(() => [...document.querySelectorAll('#psiINT-help-overlay .help-results dt')]
+        .filter((d) => !d.hidden).map((d) => d.dataset.cmd || '-'));
+      await type('overview');
+      let h = await hits();
+      ok(h[0] === 'overview' && (await panel()).sel === 'overview', `${v}: "overview" puts O first and selects it`, h.join(' '));
+      await press('Escape');
+      await type('shift');
+      h = await hits();
+      ok(['collapse-back', 'font-back', 'theme-back', 'slide-numbers-back', 'next-column', 'prev-column'].every((id) => h.includes(id)),
+        `${v}: Shift-C F A L and Shift-→ ← are a line each, each runnable`, h.join(' '));
+      await press('Escape');
+      await type('font backwards');
+      ok((await panel()).sel === 'font-back', `${v}: "font backwards" selects Shift-F`, String((await panel()).sel));
+      const font0 = (await knobs()).font;
+      await press('Enter', 250);
+      ok(!(await panel()).open && (await knobs()).font !== font0, `${v}: and Enter runs it`, (await knobs()).font);
+      await press('f', 200);
+      await press('Meta+k', 250);
       await type('blank');
       await press('Enter', 250);
       p = await panel();
@@ -169,7 +190,7 @@ export async function run({ page, report }) {
         `${v}: ↓ and ↑ move the selection between runnable rows`, [first, second, (await panel()).sel].join(' → '));
       await press('Escape');
       await type('font');
-      await page.locator('#psiINT-help-overlay dt[data-cmd="font"] + dd').click();
+      await page.locator('#psiINT-help-overlay .help-results dt[data-cmd="font"] + dd').click();
       await page.waitForTimeout(250);
       ok(!(await panel()).open && (await knobs()).font !== before.font, `${v}: a click on the row runs it`, (await knobs()).font);
       await press('Shift+F', 200);
@@ -180,7 +201,7 @@ export async function run({ page, report }) {
       await type('drag the slide');
       p = await panel();
       ok(p.sel === null, `${v}: a doc row is never selected`, String(p.sel));
-      const docRow = page.locator('#psiINT-help-overlay dd', { hasText: 'pan within a chunk' });
+      const docRow = page.locator('#psiINT-help-overlay .help-results dd', { hasText: 'pan within a chunk' });
       ok(!(await docRow.evaluate((d) => d.classList.contains('help-run'))), `${v}: and is not marked runnable`);
       await docRow.click();
       await press('Enter', 200);
