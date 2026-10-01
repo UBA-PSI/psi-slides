@@ -40,7 +40,7 @@ goes in it.
 
 **One command turns that file into four HTML files, and the four differ only in what they show you.** `print.html` is a reading copy with a cover and a table of contents. `print-notes.html` is that same *document* with your speaker notes folded in under each chunk. `audience.html` is the *projection*, the presentation you show to the audience; whenever the tour says what a slide shows, it means this file. `speaker.html` is the speaker view, the screen you keep at the lectern, carrying the notes, a strip of the slides around you and a timer. Nothing in the source is written for one of them and not the others.
 
-> note: Words in italics the first time they appear are this tool's own terms rather than ordinary English: *chunk*, *column*, *projection* and *document* here, then *segment*, *expansion* and *cockpit* as the tour reaches them. Those are all of them.
+> note: Words in italics the first time they appear are this tool's own terms rather than ordinary English: *chunk*, *column*, *projection* and *document* here, then *segment*, *expansion* and *cockpit* as the tour reaches them. *Beat* is the one more word the tour uses without italics; it is explained with the first segment.
 
 ## figure: One file in, four files out {.wide #four-views .bare .center}
 
@@ -140,7 +140,7 @@ shows columns only.
 
 ---
 
-**You just uncovered a *segment*: in the source, a line containing nothing but `---` cuts a chunk into segments, as long as it is outside a block of code.** The first segment is on screen when you arrive; forward uncovers the next, back puts it away.
+**You just uncovered a *segment*: in the source, a line containing nothing but `---` cuts a chunk into segments, as long as it is outside a block of code.** The first segment is on screen when you arrive; forward uncovers the next, back puts it away. Each press that changes the slide is a *beat*: every `---` is one, and so is each step of a figure, which later slides show.
 
 **A faint `⌄` at the foot of the slide says the next forward press will leave the column.** It is the one thing about where you are that the slide cannot show you by itself. There is nothing to click.
 
@@ -154,13 +154,13 @@ shows columns only.
 
 **Some chunks have extra detail behind a chevron button: click one, or press `1`…`9` for the n-th.** This chunk has two of them – try both.
 
-::: expand digits-and-chevrons
+::: expand Digits and chevrons
 **A digit opens the expansion with that number, and the same digit closes it again.** This is expansion number 1, so `1` puts it away. `Esc` closes it too, and `2` switches straight to the second one without closing this first.
 
-In the source, an *expansion* is written `::: expand <label>` … `:::`. The label appears at the top of the opened pane; the chevron button itself carries a short form of it (`Ex` for an example, `Ref` for a reference, `Fig` for a figure, `?` for an answer, `!` for a warning, and `Exp` for a label it does not recognise).
+In the source, an *expansion* is written `::: expand <label>` … `:::`. The label, as you typed it, is on the chevron button and at the top of the opened pane. Only an expansion written with no label gets a short stand-in, `Exp`.
 :::
 
-::: expand what-it-is-for
+::: expand What it is for
 **An expansion is extra material you open only if somebody asks.** It sits behind its button in both `C` settings, so it is never part of what the audience reads by itself – the main text has to carry the argument without it.
 
 Press `C` while this pane is open and watch the chunk behind it shorten. The pane stays where it is: it is not part of the slide either way.
@@ -338,7 +338,7 @@ This is the paragraph that comes and goes. It is what you would say out loud abo
 
 Picking the wrong type is not an error; it shows on the overview board, where a principle typed as an example stops standing out.
 
-::: expand the-word-budgets
+::: expand The word budgets
 **The budget per type:** `principle`, `question` and `statement` 80 words, `definition` 200, `example` and `free` 250, `exercise` 350, `closing` 60, `outline` 40. `title` and `figure` have no limit.
 
 Counted against the on-screen half only, so narration inside a `::: script` block is unbudgeted. `free`, `figure` and `statement` are the three types that print no label. `node lint.js` is the checker that comes with the tool, and the last part of this tour is about running it.
@@ -481,7 +481,7 @@ speaker view and `print-notes.html` show it, the projection never does.
 - `+` `-` `0` set the **text size**; `#` cycles **auto-fit** through its three modes, which is worth trying right here – this chunk is longer than the screen.
 - `B` **blanks the projection**.
 - `D` **puts a live demo on the projection**: a window or a screen of this machine, chosen in a picker, until `D` again. The very first capture on a Mac fails while macOS asks for screen-recording rights – allow it and press `D` again, so do that once before the talk.
-- `L` cycles the **slide numbers**: stacked, in a row, or off.
+- `L` cycles the **slide numbers**: in a row (the default since 2.0.0), stacked, or off.
 - `M` shows or hides the **`+ note` button** in the slide's left gutter – the hint for `N`, which opens an annotation whether the hint is drawn or not.
 
 `Shift` with `C`, `F`, `A` or `L` goes backwards. `#` has three modes and no `Shift`, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme, slide numbers and the note button are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting are not remembered beyond the talk you are giving.
@@ -561,7 +561,7 @@ The body stays in the middle column and only the marginalia moves outward. Keep 
 **`::: footnote` puts a small grey note under the chunk, labelled and always visible** – down in the flow of the text rather than out at the side. No button, no separate panel, nothing to click.
 
 ::: footnote
-This is a footnote. The label above it always reads NOTE, and the note sits in grey under a dotted rule. Unlike a marginalia it stays in the middle column, under the body it was written beneath.
+This is a footnote. The label above it reads NOTE in English (`labels:` or another `lang:` changes the word), and the note sits in grey under a dotted rule. Unlike a marginalia it stays in the middle column, under the body it was written beneath.
 :::
 
 **A marginalia goes out into the margin and can be brought to the centre with a click; a footnote stays under the chunk and is read where it stands.** Use `::: footnote` when the extra material is short and you want it on the page every time, and for `::: expand <label>`, the chevron button from earlier, when it should stay behind a button until somebody asks.
@@ -584,7 +584,7 @@ This is a footnote. The label above it always reads NOTE, and the note sits in g
 
 **As long as your pictures are small, the build puts them inside the HTML, so the whole lecture stays one file.** The chevron has the limits, and what happens to a picture over them.
 
-::: expand when-a-picture-is-too-big
+::: expand When a picture is too big
 **The limits are 2 MB for one picture and 10 MB for all of them together.** Under those, every picture is embedded without your asking. Over them the build stops, rather than quietly leaving the file outside – where it would show as a broken figure the moment the HTML arrived somewhere without its `assets/` folder.
 
 **`node build.js <source.md> --optimize-images` converts the files over the limit to WebP in place**, which on real lecture assets comes out at 12 to 18 percent of the original with no visible loss. `--no-inline-images` is there if you do want the files kept outside.
@@ -1333,13 +1333,13 @@ A crawler that looks like a browser gets measured back.
 :::
 ```
 
-## free: The words in the braces | five questions for a backdrop, three for an overlay {.wide #backdrop-words}
+## free: The words in the braces | five questions for a backdrop, five for an overlay {.wide #backdrop-words}
 
 **A backdrop's braces answer five questions, at most one word each.** How the picture fills the frame – it covers the slide, or it fits inside it whole. Which part of it survives the crop. What is laid over it. Whether it is sharp or blurred. And whether it sits under the type or in front of it. Two words answering the same question is an error, and the message names both.
 
 **The default is `veil`**: the theme's own paper at 80%, so ordinary dark text stays legible on a photograph in all seven themes. `invert` darkens the picture and turns the text light instead – the next slide is one.
 
-**An overlay answers three**: *where* on a 3×3 grid, *what it sits on* (`paper`, `ink`, `accent`, `clear` or `glass`) and *how wide*. Every one is a card with padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room.
+**An overlay answers five**: *where* on a 3×3 grid, *what it sits on* (`paper`, `ink`, `accent`, `clear` or `glass`), *how wide*, whether it is a *card* or a *panel*, and, for a panel along the top or bottom, *how high*. A card has padding and rounded corners, because text laid straight onto a photograph is unreadable at the back of a room; a `{.panel}` is not a card but a column or band that reaches the frame's edge.
 
 [The decoration lecture](../decoration/audience.html) has a slide for each of the two lists, and a backdrop whose window opens on a keypress.
 
@@ -1452,7 +1452,7 @@ Use `rows` when a term needs a sentence, and `cards` when a comparison needs cou
 
 That drawing is a `::: draw` block inside the second pane. In `print.html` and `print-notes.html` the two panes stack one after the other and the ratio is ignored, because a page has only one column to give them.
 
-**A short pane sits at the top of its half unless you say otherwise, and `{.middle}` centres it against the taller one.** Here the *figure* is the short pane, so `{middle}` is what puts it level with the middle of this column instead of at the top. `{top}` is the default and often right – a caption over a figure should be aligned from the top. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only move the shorter one.
+**A short pane sits at the top of its half unless you say otherwise, and `{.middle}` centres it against the taller one.** Here the *figure* is the short pane, so `{.middle}` is what puts it level with the middle of this column instead of at the top. `{.top}` is the default and often right – a caption over a figure should be aligned from the top. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only move the shorter one.
 
 **A figure *above* or *below* the text needs nothing** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns stop working, without an error. A `::: draw` written there is refused, and the message points you at `::: side`.
 
@@ -1561,7 +1561,7 @@ style:
 
 ## free: Which typefaces are embedded in the file | nine come with the tool {.wide #bundled-fonts}
 
-**Three families are embedded in any one file, and you pick which three.** Nine come with the tool, so naming one of those needs no font file at all.
+**Three families are embedded in any one file, and you pick which three.** Nine come with the tool, so naming one of those needs no font file at all. A fourth role, `display`, is optional: `fonts: {display: Anton}` names one of 32 more faces for the cover, the closing slide and the section dividers, and nothing else in the lecture wears it.
 
 ```yaml
 fonts:
@@ -1583,16 +1583,16 @@ Only the three a lecture actually asks for are read, so choosing an alternative 
 
 **A family that is not inside the file is a family the lecture-hall machine may not have.** Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and `fonts: none` leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.
 
-**Each of the three roles is answered on its own**, so you can replace one and leave the others alone. Put your files in a `fonts/` folder beside `source.md`:
+**Each of the three text roles is answered on its own**, so you can replace one and leave the others alone. Put your files in a `fonts/` folder beside `source.md`:
 
 ```yaml
 fonts:
   serif: Vollkorn        # yours – the files are in fonts/
-  mono: JetBrains Mono   # one of the five that ship, so no file
+  mono: JetBrains Mono   # one of the nine that ship, so no file
                          # sans: not written, so it stays the default
 ```
 
-**A file's name says which weight and style it is**: `Vollkorn-Regular.woff2`, then `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic` – or one file, `Vollkorn[wght].woff2`, carrying every weight. A family that is neither one of the five nor a file in `fonts/` stops the build.
+**A file's name says which weight and style it is**: `Vollkorn-Regular.woff2`, then `-Bold`, `-Italic`, `-BoldItalic`, `-600`, `-600italic` – or one file, `Vollkorn[wght].woff2`, carrying every weight. A family that is neither one of the nine nor a file in `fonts/` stops the build.
 
 **Putting a font inside the file redistributes it, so check the licence first.** The SIL Open Font License and Apache-2.0 – between them nearly all of Google Fonts – allow that; most commercial desktop licences do not, and want a separate web licence. The build prints a reminder and checks nothing.
 
@@ -1745,11 +1745,11 @@ The one line a last slide is often asked for anyway is where the slides can be f
 
 A frontmatter key nothing reads looks like nothing is wrong – the lecture builds, the slides look right, and the key never reached a page. `author:` sat in several lectures here doing that.
 
-One command is for after the writing rather than during it: `node build.js <source.md> --slides-pdf` prints `slides.pdf`, one page per presentation state, for a room where the HTML will not run or for someone who wants a deck to keep. It is not a fifth view and this tutorial does not show it, because a PDF is not something you can open from inside a lecture.
+One command is for after the writing rather than during it: `node build.js <source.md> --slides-pdf` prints `slides.pdf`, one page per presentation state, for a room where the HTML will not run or for someone who wants a deck to keep. `--print-pdf` and `--print-notes-pdf` print the two documents as `print.pdf` and `print-notes.pdf`, and the desktop app exports the same three. None of them is a fifth view and this tutorial does not show them, because a PDF is not something you can open from inside a lecture.
 
 A source file can switch one check off with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for `density`, and says there why.
 
-## free: Deciding how a lecture opens | seven frontmatter keys, and `lang:` beside them {.wide #view-defaults}
+## free: Deciding how a lecture opens | eleven frontmatter keys, and `lang:` beside them {.wide #view-defaults}
 
 **A lecture can set its own starting look instead of inheriting whatever the reader last chose.**
 
@@ -1762,6 +1762,7 @@ theme: terminal-green   # light-{red,teal,blue,orange}
 collapse: none          # topic-bold | none     – the C key
 auto-fit: shrink        # true | false | shrink – the # key
 slide-numbers: off      # vertical | horizontal | off
+                        # (horizontal is the default)
 print-slide-numbers: vertical
                         # the same three. Left out, it follows
                         # whatever slide-numbers says
@@ -1770,6 +1771,9 @@ note-button: off        # on | off – the + note button in the
                         # slide's left gutter. The M key
 neighbours: hidden      # dim | hidden – whether the slide
                         # before and after show through
+transition: cut         # pan | cut | fade – how a slide change looks
+reader: off             # on | off – the documents' contents
+                        # sidebar and highlights
 ---
 ```
 
@@ -1781,13 +1785,13 @@ lang: de                # the language the lecture is written in:
                         # when you leave it out
 ```
 
-**`lang:` picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.** `style: {hyphenate: all}` puts it into the projection too, which a German lecture at `.narrow` usually wants, and `none` takes it out everywhere. It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.
+**`lang:` picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.** `style: {hyphenate: all}` puts it into the projection too, which a German lecture at `.narrow` usually wants, and `none` takes it out everywhere. It is not one of the eleven above in the other sense either – those are opening settings that override whatever the reader last chose, and the language is a property of the lecture.
 
 **A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.** So a lecture that sets nothing behaves as before – font, theme and slide numbers follow the reader from lecture to lecture.
 
 `slide-numbers` applies to `print.html` and `print-notes.html` too, and `print-slide-numbers:` overrides it there when the printed document wants different numbering from the projection. A value the tool does not know stops the build and lists the ones it does.
 
-**The last two are the ones a keynote sets and a lecture does not.** `neighbours: hidden` takes the faint slide above and below off the projection, which is deliberate here – the live view is one long board a camera pans across, and the neighbours are what make a column read as a column. `note-button: off` hides the `+ note` hint in the slide's left gutter; `N` still opens an annotation, and `M` shows or hides the hint at any time, in either window.
+**`neighbours`, `note-button` and `transition` are the ones a keynote sets and a lecture does not.** `transition: cut` lands on the next slide without the camera glide, and `fade` dips through the paper; both hide the neighbours unless you also write `neighbours: dim`. `reader: off` ships the two documents without the contents sidebar and highlights. `neighbours: hidden` takes the faint slide above and below off the projection, which is deliberate here – the live view is one long board a camera pans across, and the neighbours are what make a column read as a column. `note-button: off` hides the `+ note` hint in the slide's left gutter; `N` still opens an annotation, and `M` shows or hides the hint at any time, in either window.
 
 > note: When you finish this tour with a first-timer, ask them what they found on their own and what they did not. That is the most useful feedback the tool gets.
 
