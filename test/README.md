@@ -28,7 +28,9 @@ not match a rebuild, and that check is only meaningful if a rebuild is a
 function of the source alone - which, for a while, it was not. (Of the source
 and of the encoder, strictly: an inlined PNG becomes WebP through the local
 `cwebp` or `magick`, so the tracked views are built with `--no-optimize-images`,
-through `npm run build:tracked`.)
+through `npm run build:tracked`. The browser suite builds its lectures in place
+with the same flag – `buildLecture` in `harness.mjs` – so a test run leaves the
+tracked views as committed.)
 
 A fourth place exists and is deliberately not one of these: `desktop/test/`
 holds the desktop app's own tests, run by `npm test` inside `desktop/` and by
