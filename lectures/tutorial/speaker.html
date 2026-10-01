@@ -24576,7 +24576,11 @@ function createSpanTable(model, body) {
     // (positions 0 and 1) are never keywords, and neither is a token that
     // sits in a reference slot – right after the word that introduces one,
     // or after a comma-carrying member of an `over`/`between` list.
-    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', ...DG_EDGE_ARROWS]);
+    // `same` is here for the axis word after it rather than for a reference:
+    // in `same w as a` the `w` is not the width keyword, and taken for one it
+    // handed a resize the token `as` to overwrite, so every drag on such a box
+    // was refused.
+    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', 'same', ...DG_EDGE_ARROWS]);
     const find = (word) => toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === word
       && !(toks[i - 1] && !toks[i - 1].q && !toks[i - 1].attr
         && (REF_INTRO.has(toks[i - 1].v) || toks[i - 1].v.endsWith(','))));
@@ -24692,10 +24696,17 @@ function createSpanTable(model, body) {
       return gap(tailInsert(el, toks), ' ');
     }
 
-    if (attr === 'same-as') {
-      const k = find('same');
-      if (k >= 0 && toks[k + 2]) return hit(toks[k + 2].s, toks[k + 2].e, toks[k + 2].v);
-      return gap(tailInsert(el, toks), ' same as ');
+    // `same as X`, `same w as X` and `same h as X` are three options, and each
+    // is found by its whole spelling: a bare `same` took `same w as a` for the
+    // first and answered with the token `as`.
+    if (attr === 'same-as' || attr === 'same-w-as' || attr === 'same-h-as') {
+      const axis = attr === 'same-as' ? null : attr[5];
+      const k = toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === 'same'
+        && (axis ? toks[i + 1] && toks[i + 1].v === axis && toks[i + 2] && toks[i + 2].v === 'as'
+          : toks[i + 1] && toks[i + 1].v === 'as'));
+      const v = k < 0 ? null : toks[k + (axis ? 3 : 2)];
+      if (v) return hit(v.s, v.e, v.v);
+      return gap(tailInsert(el, toks), axis ? ` same ${axis} as ` : ' same as ');
     }
 
     // `key "…"` is the one keyed option whose value is a string. Present is
@@ -25655,6 +25666,11 @@ function createDiagramCompiler(env = {}) {
         model.nodes.push(synth({
           kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
           place: framePlace(opts.place), w: totalW, h: totalH, r: null, pad: null, frame: head,
+          // The last line the statement read, rows included. `span` is the
+          // head line alone, so without this an editor deleting or copying a
+          // table took its first line and left the rows behind it as
+          // statements nobody knows.
+          endLine: Math.max(lineNo, rowsRead),
         }));
         const xOf = (c) => cols.slice(0, c).reduce((a, b) => a + b, 0) + spaceX * c;
         all.forEach((cells, r) => {
@@ -26210,6 +26226,8 @@ function createDiagramCompiler(env = {}) {
           kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
           place: framePlace(opts.place), w: (pitch * actors.length) / uw, h: bottom / uh,
           r: null, pad: null, frame: head,
+          // The last line of the run, for the reason a table carries it.
+          endLine: Math.max(lineNo, rowsRead),
         }, lineNo));
         actors.forEach((a, i) => {
           const headCls = actorCls[i];
@@ -28346,11 +28364,27 @@ function createDiagramCompiler(env = {}) {
     for (const c of model.containers) { kindOf.set(c.id, 'container'); deps.set(c.id, c.members.slice()); }
     for (const b of model.braces) { kindOf.set(b.id, 'brace'); deps.set(b.id, b.members.slice()); }
 
+    // Names two elements answer to. The parser has already said "duplicate
+    // element id" about each, and the map above holds only the last of the
+    // two, so a cycle through one is the duplicate's and not the author's:
+    // `box a-0` beside `bars a … right of a-0` reported a placement cycle that
+    // exists only because the chart's first column took the box's name.
+    const twice = new Set();
+    {
+      const seen = new Set();
+      for (const el of [...model.nodes, ...model.edges, ...model.containers, ...model.braces]) {
+        if (seen.has(el.id)) twice.add(el.id);
+        seen.add(el.id);
+      }
+    }
     const mark = new Map();
     const visit = (id, trail) => {
       if (mark.get(id) === 2) return;
       if (mark.get(id) === 1) {
-        errors.push({ phase: 'layout', line: 0, msg: `placement cycle: ${[...trail, id].join(' → ')}` });
+        const loop = [...trail.slice(trail.indexOf(id)), id];
+        if (!loop.some((x) => twice.has(x))) {
+          errors.push({ phase: 'layout', line: 0, msg: `placement cycle: ${[...trail, id].join(' → ')}` });
+        }
         mark.set(id, 2);
         return;
       }
@@ -30762,6 +30796,7 @@ return { DG_UNIT, DG_FRAME_RE, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W,
 })();
 window.PSI_DG_DEFAULTS = "";
 window.PSI_DG_EDIT_HTML = false;
+window.PSI_DG_LECTURE = "tutorial";
 // The diagram editor.
 //
 // Read editor.md first – this file is the *what*, that file is the why. The
@@ -33836,7 +33871,7 @@ function dgePlanResize(ctx, id, dw, dh, handle, opts) {
   // token that reads as if it were doing something.
   if (guide && guide.sameAs) {
     edits.push({ attr: 'same-as', value: guide.sameAs, why: guide.why });
-    for (const key of ['w', 'h']) {
+    for (const key of ['w', 'h', 'same-w-as', 'same-h-as']) {
       const sp = dgeSpanIn(ctx, id, key);
       if (sp && sp.present) edits.push({ attr: key, value: '', drop: true });
     }
@@ -33844,6 +33879,14 @@ function dgePlanResize(ctx, id, dw, dh, handle, opts) {
   }
   if (el.sameAs) {
     edits.push({ attr: 'same-as', value: '', drop: true, why: `"just this one" – drops "same as ${el.sameAs}"` });
+  }
+  // The one-axis forms, read the same way, and only for the axis the handle
+  // moves: an east drag on `same h as a` leaves the height where it came from.
+  if (el.sameWAs && handle !== 's') {
+    edits.push({ attr: 'same-w-as', value: '', drop: true, why: `"just this one" – drops "same w as ${el.sameWAs}"` });
+  }
+  if (el.sameHAs && handle !== 'e') {
+    edits.push({ attr: 'same-h-as', value: '', drop: true, why: `"just this one" – drops "same h as ${el.sameHAs}"` });
   }
   // **A chain member's size is not its own**, and the drag has to say so. A
   // box standing in a row or a column takes the widest member's width and, in
@@ -33897,8 +33940,9 @@ function dgeResolveEdits(ctx, id, edits, into) {
       if (!sp.present) continue;
       let start = sp.start;
       const before = ctx.source.slice(0, start);
-      const m = e.attr === 'same-as'
-        ? before.match(/\s+same\s+as\s+$/)
+      const m = e.attr === 'same-as' ? before.match(/\s+same\s+as\s+$/)
+        : e.attr === 'same-w-as' ? before.match(/\s+same\s+w\s+as\s+$/)
+        : e.attr === 'same-h-as' ? before.match(/\s+same\s+h\s+as\s+$/)
         : before.match(new RegExp('\\s+' + e.attr.replace('.', '\\.') + '\\s+$'));
       if (m) start -= m[0].length;
       into.push({ start, end: sp.end, text: '', seq: seq() });
@@ -35003,8 +35047,12 @@ function dgeStartMarquee(ev, canvas) {
 // shape, the shape has coordinates. Ours is: pick a tool, and the editor
 // writes a *statement* – and `container over a,b,c` has nothing to draw.
 
-function dgeFreshName(stem) {
+// `also` is what else is about to be written beside it: a paste's other names,
+// kept and renamed alike. Without it a clipboard holding `a` and `a2`, pasted
+// where `a` exists, renamed `a` to `a2` and wrote two of them.
+function dgeFreshName(stem, also) {
   const taken = new Set(DGE.model ? [...DGE.model.byId.keys()] : []);
+  for (const n of (also || [])) taken.add(n);
   if (!taken.has(stem)) return stem;
   for (let i = 2; i < 999; i++) if (!taken.has(stem + i)) return stem + i;
   return stem + Date.now();
@@ -35349,19 +35397,12 @@ function dgeSpread(axis) {
 // that will not compile.
 function dgeDelete() {
   if (!DGE.selection.length) return;
+  const plan = dgeDeletePlan(DGE.selection);
   // Lines that name something being deleted, *excluding* the statements of
   // the other elements in the same selection – deleting a and b together
   // should not report b's own line as a reason not to delete a.
-  const refs = [];
-  const seenLines = new Set();
-  for (const el of DGE.selection.map((x) => dgeFind(x))) if (el) seenLines.add(el.line);
-  for (const id of DGE.selection) {
-    for (const r of DGE.spans.referencesTo(id)) {
-      if (r.from && DGE.selection.includes(r.from)) continue;
-      if (seenLines.has(r.line)) continue;
-      refs.push(`line ${r.line}: ${r.what}`);
-    }
-  }
+  const refs = plan.refs;
+  const seenLines = plan.own;
   const what = DGE.selection.join(', ');
   if (refs.length && !window.confirm(
     `Delete ${what}?\n\n${refs.length} other line(s) name ${DGE.selection.length > 1 ? 'them' : 'it'}:\n`
@@ -35371,26 +35412,79 @@ function dgeDelete() {
     + 'OK deletes the element and every line that names it.')) return;
   // Delete the statements themselves and every line that names them, which
   // is what keeps the block compiling.
-  const doomed = new Set();
-  for (const id of DGE.selection) {
-    const el = dgeFind(id);
-    if (el && el.span) doomed.add(el.line);
-    for (const r of DGE.spans.referencesTo(id)) doomed.add(r.line);
-  }
+  const doomed = plan.lines;
   const lines = DGE.source.split('\n').filter((_, i) => !doomed.has(i + 1));
   const alsoGone = Math.max(0, doomed.size - seenLines.size);
-  dgeSetSource(lines.join('\n'));
+  const many = DGE.selection.length > 1;
+  // Only a delete that stuck is reported as one. dgeSetSource has already put
+  // the refusal in the status bar, and "deleted a" over an `a` still on the
+  // canvas was a second sentence contradicting the first.
+  if (!dgeSetSource(lines.join('\n'))) return;
   dgeSelect([]);
   dgeStatus('', alsoGone
-    ? `deleted ${what} and ${alsoGone} line(s) that named ${DGE.selection.length > 1 ? 'them' : 'it'}`
+    ? `deleted ${what} and ${alsoGone} line(s) that named ${many ? 'them' : 'it'}`
     : `deleted ${what}`);
+}
+
+// What deleting a selection takes with it, as 1-based line numbers. Three
+// things the first version missed, each of which left a block that would not
+// compile and so a delete that was always refused:
+//
+// - **A statement can be longer than its line.** A `table`'s rows and a
+//   `sequence`'s run sit under the head line, and `endLine` is where they end.
+// - **A dependent can have dependents.** `c right of b`, `b right of a`:
+//   deleting `a` takes `b`'s line, and `c` then names nothing. So whatever goes
+//   is asked in turn what names it, until nothing new turns up.
+// - **A statement owns the names it generates.** `emph t-0-1` in a step names
+//   a cell of the table being deleted, not the table.
+//
+// `own` is the selection's own lines, so the confirmation lists only what
+// else goes; `refs` is that list.
+function dgeDeletePlan(ids, model, spans) {
+  const m = model || DGE.model;
+  const table = spans || DGE.spans;
+  const lines = new Set();
+  const own = new Set();
+  const refs = [];
+  const gone = new Set();
+  const all = [...m.nodes, ...m.edges, ...m.containers, ...m.braces, ...(m.statements || [])];
+  const take = (el, into) => {
+    if (!el || !el.line) return;
+    for (let l = el.line; l <= Math.max(el.line, el.endLine || 0); l++) into.add(l);
+  };
+  const queue = [];
+  const drop = (id, fromSelection) => {
+    if (gone.has(id)) return;
+    gone.add(id);
+    queue.push(id);
+    const el = dgeLineOwner(id, m);
+    if (el && el.span && (!el.synth || el.synth === el.id || el.entry)) {
+      take(el, lines);
+      if (fromSelection) take(el, own);
+    }
+    // The names this statement generated go with it.
+    for (const g of all) {
+      if (g.synth === id && g.id !== id) drop(g.id, fromSelection);
+    }
+  };
+  for (const id of ids) drop(id, true);
+  while (queue.length) {
+    const id = queue.shift();
+    for (const r of table.referencesTo(id)) {
+      if (r.from && gone.has(r.from)) continue;
+      if (!lines.has(r.line)) refs.push(`line ${r.line}: ${r.what}`);
+      lines.add(r.line);
+      if (r.from) drop(r.from, false);
+    }
+  }
+  return { lines, own, refs };
 }
 
 function dgeDuplicate() {
   if (DGE.selection.length !== 1) return;
   const el = dgeFind(DGE.selection[0]);
   if (!el || !el.span) return;
-  const line = DGE.source.slice(el.span[0], el.span[1]);
+  const [line, ...rest] = dgeWholeStatement(el).split('\n');
   const name = dgeFreshName(el.id);
   // Rename only the element's own name token – the second word of the
   // statement – so every reference inside the line survives.
@@ -35403,8 +35497,38 @@ function dgeDuplicate() {
   // copied from. Same drawn distance, said in the new ruler.
   const placed = /\b(at|right of|left of|below|above|between)\b/.test(renamed)
     ? renamed : renamed + ' right of ' + el.id + ' gap 0.9';
-  dgeAppendLine(placed);
+  // The rows or the run under a multi-line statement come along, and a
+  // sequence's actors and named messages are names of their own, so they are
+  // renamed like a paste renames: fresh, and fresh from each other.
+  let tail = rest.join('\n');
+  const owned = dgeOwnedNames(el);
+  if (owned.length && tail) {
+    const map = new Map();
+    const taken = new Set([name]);
+    for (const n of owned) { const f = dgeFreshName(n, taken); taken.add(f); map.set(n, f); }
+    tail = dgeRenameIn(tail, map);
+  }
+  dgeAppendLine(tail ? placed + '\n' + tail : placed);
   dgeSelect([name]);
+}
+
+// A statement's whole text: its own line, trimmed as `span` has it, and the
+// lines a `table` or a `sequence` read under it, exactly as written.
+function dgeWholeStatement(el, source) {
+  const src = source === undefined ? DGE.source : source;
+  const head = src.slice(el.span[0], el.span[1]);
+  if (!el.endLine || el.endLine <= el.line) return head;
+  return [head, ...src.split('\n').slice(el.line, el.endLine)].join('\n');
+}
+
+// The names a multi-line statement's own lines declare, other than its own:
+// a sequence's actors and the messages someone named. Generated names – `u-life`,
+// `s-0`, a note – follow their makers and are not in the list.
+function dgeOwnedNames(el, model) {
+  const m = model || DGE.model;
+  return [...m.nodes, ...m.edges]
+    .filter((x) => x.synth === el.id && x.id !== el.id && x.entry && x.entry !== 'note' && x.named !== false)
+    .map((x) => x.id);
 }
 
 // ── the sidebar ─────────────────────────────────────────────────────
@@ -36682,14 +36806,24 @@ function dgeRenameMap(id, next) {
   const ids = new Map([[id, next]]);
   const tags = new Map();
   const m = DGE.model;
-  for (const el of [...m.nodes, ...m.edges, ...m.containers, ...m.braces]) {
+  const all = [...m.nodes, ...m.edges, ...m.containers, ...m.braces, ...(m.statements || [])];
+  // The names somebody wrote: every one a generated name can have been built
+  // out of.
+  const authored = all.filter((el) => !el.synth || el.synth === el.id || el.entry).map((el) => el.id);
+  for (const el of all) {
     if (!el.synth || el.synth === el.id) continue;
     // Prefix plus synthetic, not `synth === id`. A lifeline is `u-life` for
     // the actor `u` and its `synth` is the *sequence*, so keying on the owner
     // alone would leave `u-life` behind when `u` is renamed and the block
-    // would stop compiling. Names are unique, so a synthetic `X-…` can only
-    // have been generated from the X being renamed.
+    // would stop compiling.
     if (!el.id.startsWith(id + '-')) continue;
+    // **The longest authored name that prefixes it is its maker**, not any
+    // name that does. `bars a-b` beside a box `a` generates `a-b-0`, which
+    // starts with `a-` too, and renaming `a` to `c` turned `emph a-b-0` into
+    // `emph c-b-0` – a reference moved onto a name nobody generates.
+    const maker = authored.filter((n) => el.id.startsWith(n + '-'))
+      .sort((p, q) => q.length - p.length)[0];
+    if (maker !== id) continue;
     ids.set(el.id, next + el.id.slice(id.length));
   }
   const has = (t) => m.tags && m.tags.has(t);
@@ -36756,7 +36890,7 @@ function dgeRename(id, raw) {
   }
   const map = dgeRenameMap(id, next);
   const also = map.ids.size - 1 + map.tags.size;
-  if (dgeSetSource(dgeRenameIn(DGE.source, map.ids, map.tags))) {
+  if (dgeSetSource(dgeRenameIn(DGE.source, map.ids, map.tags, dgeParseOf))) {
     dgeSelect([next]);
     dgeStatus('', `${id} is ${next}, in every line that named it`
       + (also ? ` – and ${also} name(s) the statement generates from it` : ''));
@@ -37885,7 +38019,8 @@ function dgeAddStepLines(lines) {
   const indent = (DGE.source.split('\n')[step.line] || '  ').match(/^\s*/)[0] || '  ';
   const at = step.ops.length ? step.ops[step.ops.length - 1].span[1] : step.span[1];
   const text = lines.map((l) => '\n' + indent + l).join('');
-  dgeSetSource(DGE.source.slice(0, at) + text + DGE.source.slice(at));
+  // Said only when it stuck: a refused op has its reason in the status bar.
+  if (!dgeSetSource(DGE.source.slice(0, at) + text + DGE.source.slice(at))) return;
   dgeStatus(lines.join(' · '), 'written into step “' + step.name + '”');
 }
 
@@ -38293,10 +38428,20 @@ function dgeCopy() {
   const want = dgeClosureOf(DGE.selection);
   const lines = [];
   const seen = new Set();
+  // A name a statement generated is copied as that statement, whole: a table
+  // cell an edge ends on brings its table, an actor brings its sequence, and
+  // a table or a sequence brings the lines under it. Copied as its own `span`,
+  // a table lost its rows and a sequence's actors arrived without the
+  // statement that reads them – neither pasted. The statement's own names
+  // join the clipboard's, so a paste renames them when they collide.
   for (const el of [...DGE.model.nodes, ...DGE.model.edges, ...DGE.model.containers, ...DGE.model.braces]) {
-    if (!want.has(el.id) || seen.has(el.line)) continue;
-    seen.add(el.line);
-    lines.push({ line: el.line, text: DGE.source.slice(el.span[0], el.span[1]) });
+    if (!want.has(el.id)) continue;
+    const owner = el.synth && el.synth !== el.id ? (dgeLineOwner(el.synth) || el) : el;
+    if (!owner.span || seen.has(owner.line)) continue;
+    seen.add(owner.line);
+    want.add(owner.id);
+    for (const n of dgeOwnedNames(owner)) want.add(n);
+    lines.push({ line: owner.line, text: dgeWholeStatement(owner) });
   }
   for (const a of [...DGE.model.aligns, ...DGE.model.spreads]) {
     if (a.members.every((m) => want.has(m)) && !seen.has(a.line)) {
@@ -38329,8 +38474,21 @@ function dgeCopy() {
     if (!(el.place.implicit || (el.place.kind === 'abs' && (el.place.at || []).every((c) => c && !c.ref)))) continue;
     anchors[id] = [(b.x + b.w / 2) / uw, (b.y + b.h / 2) / uh];
   }
+  // The names written on the clipboard's lines, and apart from them the names
+  // those lines generate, each with its maker – so a paste that renames `t`
+  // to `t2` sends `edge … t-0-0.bottom` to `t2-0-0` rather than to a fresh
+  // `t-0-02` that nothing generates.
+  const generatedHere = (n) => { const e = dgeFind(n); return !!(e && e.synth && e.synth !== e.id && !e.entry); };
+  const authored = [...want].filter((n) => !generatedHere(n));
+  const generated = [];
+  for (const n of want) {
+    if (!generatedHere(n)) continue;
+    const maker = authored.filter((a) => n.startsWith(a + '-')).sort((p, q) => q.length - p.length)[0];
+    if (maker) generated.push([n, maker]);
+  }
   DGE.clipboard = {
-    names: [...want],
+    names: authored,
+    generated,
     roots: DGE.selection.slice(),
     anchors,
     text: lines.map((l) => l.text).join('\n'),
@@ -38357,7 +38515,27 @@ function dgeCopy() {
 // The `#id` half of an attribute tail is gone with `{#id}` itself: item 9 moved
 // every name to a token of its own, so a tail holds classes, removals and tags
 // and none of the three is a name.
-function dgeRenameIn(text, rename, tags) {
+//
+// **A bare word that spells the name is asked about, not assumed.** Names are
+// free, so an element may be called `w`, `at` or `left` – and a step may be
+// called what an element is. Rewriting every such word turned `w 2` into
+// `c 2` and `step a` into `step c`: the first is refused, so an element
+// called `w` could never be renamed; the second compiles and silently renames
+// a beat. Two rules close that. A step's own name, the word after `step`, is
+// never an element's. And a whole-token occurrence is swapped, alone, for a
+// probe name and the block parsed: if the probe turns up in the model as an
+// element or a reference, the word was the name; if it vanishes into a
+// refusal, it was a keyword. A match inside a longer token – `a.cx+0.2`,
+// `a,b` – has no keyword reading and is not asked.
+//
+// The probe has one blind spot: a reference the parser checks on the spot,
+// like a sequence message's actor, drops the whole statement with the probe
+// in it. So the careful answer is kept only when it compiles; otherwise the
+// rewrite of every occurrence is tried, and whichever compiles is returned –
+// the careful one when neither does, since dgeSetSource will refuse it and
+// say why. `compile` parses a body the way the caller's figure does and
+// answers `{model, errors}` or null; without it every occurrence is swapped.
+function dgeRenameIn(text, rename, tags, compile) {
   const tagMap = tags || new Map();
   const alt = [...rename.keys(), ...tagMap.keys()]
     .sort((a, b) => b.length - a.length)
@@ -38367,29 +38545,64 @@ function dgeRenameIn(text, rename, tags) {
   // A name is bounded by anything that cannot be part of one. Element names
   // are letters, digits, _ and -, which is what makes this exact.
   const re = new RegExp('(^|[^\\w-])(' + alt + ')(?![\\w-])', 'g');
-  const swap = (str) => str.replace(re, (m, pre, name) =>
-    pre + ((pre === '@' ? tagMap : rename).get(name) || name));
-  return text.split('\n').map((line) => {
-    const toks = window.PSI_DG.dgTokenize(line, 0);
-    const edits = [];
-    for (const t of toks) {
-      // A comment runs to the end of the line, and dgTokenize does not strip
-      // one – it hands `#` back as a bare token and every word after it as
-      // another. Measured: a rename of an element called `a` rewrote the word
-      // "a" inside the German prose comments of `lectures/network-security`,
-      // which compiles perfectly and is nonsense. A name is a name only before
-      // the hash.
-      if (!t.q && !t.attr && t.v.startsWith('#')) break;
-      if (t.q) continue;                       // a label is not a name
-      if (t.attr) continue;                    // classes, removals and tags
-      const next = swap(t.v);
-      if (next !== t.v) edits.push({ start: t.s, end: t.e, text: next });
-    }
-    edits.sort((a, b) => b.start - a.start);
-    let out = line;
-    for (const e of edits) out = out.slice(0, e.start) + e.text + out.slice(e.end);
-    return out;
-  }).join('\n');
+  let probe = 'dgeProbe';
+  while (text.includes(probe)) probe += 'x';
+  const isName = (at, len) => {
+    const res = compile(text.slice(0, at) + probe + text.slice(at + len));
+    if (!res || !res.model) return true;
+    const m = res.model;
+    const seen = JSON.stringify({ ...m, steps: (m.steps || []).map((s) => s.ops) },
+      (k, v) => (v instanceof Map || v instanceof Set ? [...v] : v));
+    return seen.includes(probe);
+  };
+  const rewrite = (careful) => {
+    let lineStart = 0;
+    return text.split('\n').map((line) => {
+      const toks = window.PSI_DG.dgTokenize(line, 0);
+      const edits = [];
+      const bare = toks.filter((t) => !t.q && !t.attr);
+      for (const t of toks) {
+        // A comment runs to the end of the line, and dgTokenize does not strip
+        // one – it hands `#` back as a bare token and every word after it as
+        // another. Measured: a rename of an element called `a` rewrote the word
+        // "a" inside the German prose comments of `lectures/network-security`,
+        // which compiles perfectly and is nonsense. A name is a name only before
+        // the hash.
+        if (!t.q && !t.attr && t.v.startsWith('#')) break;
+        if (t.q) continue;                       // a label is not a name
+        if (t.attr) continue;                    // classes, removals and tags
+        if (bare[0] && bare[0].v === 'step' && t === bare[1]) continue;   // a beat's own name
+        const next = t.v.replace(re, (m, pre, name) => {
+          if (pre === '@') return pre + (tagMap.get(name) || name);
+          const to = rename.get(name);
+          if (!to) return m;
+          if (careful && m === t.v && !isName(lineStart + t.s, t.e - t.s)) return m;
+          return pre + to;
+        });
+        if (next !== t.v) edits.push({ start: t.s, end: t.e, text: next });
+      }
+      lineStart += line.length + 1;
+      edits.sort((a, b) => b.start - a.start);
+      let out = line;
+      for (const e of edits) out = out.slice(0, e.start) + e.text + out.slice(e.end);
+      return out;
+    }).join('\n');
+  };
+  if (!compile) return rewrite(false);
+  const compiles = (t) => { const r = compile(t); return !!(r && r.model && !r.errors.length); };
+  const careful = rewrite(true);
+  if (compiles(careful)) return careful;
+  const blunt = rewrite(false);
+  return compiles(blunt) ? blunt : careful;
+}
+
+// The parse dgeRenameIn asks its questions with: this figure's compiler and
+// its defaults.
+function dgeParseOf(text) {
+  if (!DGE.fig) return null;
+  try {
+    return DGE.fig.compiler.parseDiagramSource(text, DGE.fig.attrs, dgeBase());
+  } catch (e) { return null; }
 }
 
 function dgePaste(inPlace) {
@@ -38399,51 +38612,66 @@ function dgePaste(inPlace) {
   // digits, _ and – only.
   let text = DGE.clipboard.text;
   const rename = new Map();
+  // Fresh from the target's names *and* from every other name being pasted,
+  // kept or renamed: `a` and `a2` on the clipboard, pasted where `a` exists,
+  // used to send `a` to `a2` beside the `a2` that came with it.
+  const taken = new Set(DGE.clipboard.names);
   for (const name of DGE.clipboard.names) {
     if (!DGE.model.byId.has(name)) continue;
-    rename.set(name, dgeFreshName(name));
+    const fresh = dgeFreshName(name, taken);
+    taken.add(fresh);
+    rename.set(name, fresh);
   }
-  if (rename.size) text = dgeRenameIn(text, rename);
-  if (!inPlace) {
-    // Ctrl-V drops the set where the pointer last was; Ctrl-Shift-V pastes
-    // in place, keeping the coordinates it had – which is what makes a
-    // series of figures line up.
-    //
-    // Re-rooting goes through the span table, not through a regex on the
-    // text. Two things a regex got wrong here and this cannot: an anchor
-    // whose placement is the *implicit* origin has nothing to replace and
-    // needs one written, and a lazy pattern happily matched the placement of
-    // some other line and left its `gap` behind as a syntax error.
+  for (const [g, maker] of (DGE.clipboard.generated || [])) {
+    if (rename.has(maker)) rename.set(g, rename.get(maker) + g.slice(maker.length));
+  }
+  if (rename.size) text = dgeRenameIn(text, rename, null, dgeParseOf);
+  // Ctrl-V drops the set where the pointer last was; Ctrl-Shift-V pastes
+  // in place, keeping the coordinates it had – which is what makes a
+  // series of figures line up.
+  //
+  // Re-rooting goes through the span table, not through a regex on the
+  // text. Two things a regex got wrong here and this cannot: an anchor
+  // whose placement is the *implicit* origin has nothing to replace and
+  // needs one written, and a lazy pattern happily matched the placement of
+  // some other line and left its `gap` behind as a syntax error.
+  //
+  // **In place still writes the implicit one.** The figure's first element
+  // stands at the origin with no placement written, and pasted below the
+  // target's own first element it is an element with no placement at all –
+  // so a copy that held the first element never pasted in place. It gets the
+  // `at` it was drawn at; an anchor with a written `at` keeps its text.
+  const anchors = DGE.clipboard.anchors || {};
+  const names = Object.keys(anchors);
+  if (names.length) {
     const pt = DGE.lastPoint || { x: 0, y: 0 };
     const { uw, uh } = dgeUnits();
-    const anchors = DGE.clipboard.anchors || {};
-    const names = Object.keys(anchors);
-    if (names.length) {
-      const base = anchors[names[0]];
-      const dx = pt.x / uw - base[0];
-      const dy = pt.y / uh - base[1];
-      const parsed = DGE.fig.compiler.parseDiagramSource(text, DGE.fig.attrs, dgeBase());
-      const table = window.PSI_DG.createSpanTable(parsed.model, text);
-      const edits = [];
-      for (const from of names) {
-        const to = rename.get(from) || from;
-        const sp = table.spanOf(to, 'place');
-        if (!sp) continue;
-        const at = `at ${dgeNum(dgeRound(anchors[from][0] + dx, DGE_SNAP_CELL))},`
-          + `${dgeNum(dgeRound(anchors[from][1] + dy, DGE_SNAP_CELL))}`;
-        edits.push({ start: sp.start, end: sp.end, text: sp.prefix + at + sp.suffix });
-      }
-      edits.sort((a, b) => b.start - a.start);
-      for (const e of edits) text = text.slice(0, e.start) + e.text + text.slice(e.end);
+    const base = anchors[names[0]];
+    const dx = inPlace ? 0 : pt.x / uw - base[0];
+    const dy = inPlace ? 0 : pt.y / uh - base[1];
+    const round = (v) => dgeNum(dgeRound(v, inPlace ? 0.01 : DGE_SNAP_CELL));
+    const parsed = DGE.fig.compiler.parseDiagramSource(text, DGE.fig.attrs, dgeBase());
+    const table = window.PSI_DG.createSpanTable(parsed.model, text);
+    const edits = [];
+    for (const from of names) {
+      const to = rename.get(from) || from;
+      const sp = table.spanOf(to, 'place');
+      if (!sp || (inPlace && sp.present)) continue;
+      const at = `at ${round(anchors[from][0] + dx)},${round(anchors[from][1] + dy)}`;
+      edits.push({ start: sp.start, end: sp.end, text: sp.prefix + at + sp.suffix });
     }
+    edits.sort((a, b) => b.start - a.start);
+    for (const e of edits) text = text.slice(0, e.start) + e.text + text.slice(e.end);
   }
   const lines = DGE.source.split('\n');
   let at = lines.length;
   for (let i = lines.length - 1; i >= 0; i--) if (/^\s*step\b/.test(lines[i])) at = i;
   lines.splice(at, 0, ...text.split('\n'));
-  dgeSetSource(lines.join('\n'));
+  // A refused paste says why and nothing else – see dgeDelete.
+  if (!dgeSetSource(lines.join('\n'))) return;
   dgeSelect(DGE.clipboard.roots.map((r) => rename.get(r) || r));
-  dgeStatus('', `pasted ${text.split('\n').length} line(s)${rename.size ? `, ${rename.size} renamed to avoid a collision` : ''}`);
+  const renamed = DGE.clipboard.names.filter((n) => rename.has(n)).length;
+  dgeStatus('', `pasted ${text.split('\n').length} line(s)${renamed ? `, ${renamed} renamed to avoid a collision` : ''}`);
 }
 
 // ── where an edit goes (editor.md §2.3) ─────────────────────────────
@@ -38563,7 +38791,14 @@ async function dgeWriteToFile() {
 // shows their version with a quiet marker. It never touches disk and never
 // syncs to the speaker window – there is no second window to sync to.
 
-const DGE_STORE = 'psi-slides:diagram:';
+// **Per lecture**, the way the reader's highlights are: `psi-diagram:v1:`, the
+// source folder's name the build passes as PSI_DG_LECTURE, then the figure.
+// The first key named only the figure, and Chrome keeps one store for every
+// page opened from file:// – so an edit to `#fig` in one lecture was drawn in
+// another lecture's `#fig`, and the suggested `#figure-1` of a new figure is
+// the same in every deck. Keys of that first form are not read: nothing in
+// one says which lecture wrote it, so adopting it would be the same mistake.
+const DGE_STORE = 'psi-diagram:v1:';
 // Which figure to come back to after a write-back reloads the page.
 const DGE_REOPEN = 'psi-slides:diagram-editor-open';
 
@@ -38574,7 +38809,7 @@ const DGE_REOPEN = 'psi-slides:diagram-editor-open';
 // shifts the moment one is inserted earlier in the lecture.
 function dgeStoreKey(fig) {
   const base = fig.chunk || 'unnamed';
-  return DGE_STORE + base + (fig.nth ? '#' + fig.nth : '');
+  return DGE_STORE + (window.PSI_DG_LECTURE || 'lecture') + ':' + base + (fig.nth ? '#' + fig.nth : '');
 }
 
 function dgeSaveLocal() {

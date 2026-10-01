@@ -4,7 +4,7 @@ Two suites, split by one question: **can this be decided without a browser?**
 
 - **`test/gates/`** – everything that can, which is no longer only the figure
   language and the `{…}` tail grammar: a gate is the right home for any
-  hand-mirrored list one file keeps of another's. Twenty gates, about two seconds,
+  hand-mirrored list one file keeps of another's. Twenty-one gates, about two seconds,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
 - **`test/`** – the things that only break in a built page. 49 specs, about 1,500
@@ -50,11 +50,11 @@ node test/run.mjs nav               # specs whose name matches
 npm run reproducible                # same bytes under any flag set
 ```
 
-## The gates: twenty contracts
+## The gates: twenty-one contracts
 
 `diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`, `souffleuse.mjs`, `pdf-core.mjs`
 and `lint.js` are all zero-dependency, which is what makes this suite runnable
-with nothing installed. Twenty gates, about 1,700 assertions, about two
+with nothing installed. Twenty-one gates, about 1,700 assertions, about two
 seconds.
 
 | gate | the contract |
@@ -79,6 +79,7 @@ seconds.
 | `pdf-core` | the PDF export's policy without a browser. A driver that only records its calls holds the order `exportSlides` asks for things in – the network refused before the page loads, auto-fit and the collapse before the walk, the print DOM before the pdf, on `screen` media – because that order is what the Playwright driver and the desktop app's Electron driver must share and neither driver's own test can see. And `exportDocument`'s shorter one – open before load, pictures decoded before they are inspected, a `::: pulse` answer opened before the pictures are settled, the pdf on `print` media at the view's own `@page` size – plus the watch build's reload socket, refused but counted apart from the deck's requests. Plus the option checks, refusing in the words `pdfOptionsFrom` used before they moved, and `formatReport`'s lines for fixed results of both exports. That the pages come out right is `test/pdf-export.mjs` |
 | `id-namespace` | every id the build invents starts with `psiINT-`: each `id="…"`, `.id =`, `dgeEl({id})`, literal `getElementById` and `#word` in a literal `querySelector` in build.js, editor.mjs, diagram-core.mjs, pdf-core.mjs and cue-cards.mjs is a `psiINT-` literal or on a counted allow-list of the sites that emit the author's own ids or build one from a `psiINT-` prefix (the prefixes themselves are asserted). The stylesheets are read too: every `#id` in a selector of build.js's six CSS literals, `PDF_CSS` and editor.css must start with `psiINT-` and name an id one of those sites emits – a dead selector is how `#toc-panel li` sat in the heading rule matching nothing. Hex colours, `url(#…)`, strings, attribute tests and comments are blanked before the preludes are read. The author's half of the fence, `reserved-id`, is in `tails` and `test/settings.mjs` |
 | `commands` | the command table in `commands.mjs`, the key map that dispatches from it and the `?` panel rendered from it. `PRESSES` is a fixture of every press the old `switch` in `AUDIENCE_JS` answered, per view and with the command it meant, taken once when the table replaced the switch – each is put through the page's own `commandFor(keyMap(view), e)`, so a key that drops out, changes command or starts answering where it did not fails. Every command a view answers has a run function in the literals that view is built from (the `COMMAND_RUN` object in `AUDIENCE_JS`, the assignments into it in `SPEAKER_JS` and `SOUFFLEUSE_JS`), and every run function names a command; the table's own load-time assertion is shown to fire on a copy that binds `B` twice. Then the panel half: `renderHelpOverlay` lifted out of build.js and run per view, each `<dt>` read as the key combinations its kbd elements spell, against the table's keys plus every key the listener's guards still answer in code, and the editor's keys out of `editor.mjs` held against the editor's own section; a command's row may spell only keys that command answers. `NOT_A_ROW` is the reviewed list of keys answered without a row, each with its reason, and an entry that stops being answered or gains a row fails too. It fails on its own on a panel with the `B` row cut out, so it cannot pass by reading nothing |
+| `editor` | the editor's acts that rewrite a figure's source, without a browser: `editor.mjs` is loaded as text into a `vm` context with `diagram-core.mjs` as `window.PSI_DG` and a DOM that answers every lookup with nothing, a figure is opened by hand, and rename, delete, duplicate, copy and paste, a step's ops and a resize are driven against it. Each case is a defect the pre-2.0.0 review reproduced this way: a rename that moved a sibling chart's generated names or a step's name, an element called `w` that could not be renamed, a resize of `same w as` that was always refused, a paste in place that left the first element unplaced, a refused act reported as done, a delete that missed a chain, a `table` or `sequence` handled by its first line, a paste that wrote one name twice, and a reader's kept edit filed under no lecture. What is drawn – a guide, a chip – stays in the `editor-*` specs |
 
 **`frontmatter` is the one gate that is not about figures**, and it is here
 because the shape is the one this suite exists for: a closed list in one file

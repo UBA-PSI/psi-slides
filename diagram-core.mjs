@@ -3470,7 +3470,11 @@ export function createSpanTable(model, body) {
     // (positions 0 and 1) are never keywords, and neither is a token that
     // sits in a reference slot – right after the word that introduces one,
     // or after a comma-carrying member of an `over`/`between` list.
-    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', ...DG_EDGE_ARROWS]);
+    // `same` is here for the axis word after it rather than for a reference:
+    // in `same w as a` the `w` is not the width keyword, and taken for one it
+    // handed a resize the token `as` to overwrite, so every drag on such a box
+    // was refused.
+    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', 'same', ...DG_EDGE_ARROWS]);
     const find = (word) => toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === word
       && !(toks[i - 1] && !toks[i - 1].q && !toks[i - 1].attr
         && (REF_INTRO.has(toks[i - 1].v) || toks[i - 1].v.endsWith(','))));
@@ -3586,10 +3590,17 @@ export function createSpanTable(model, body) {
       return gap(tailInsert(el, toks), ' ');
     }
 
-    if (attr === 'same-as') {
-      const k = find('same');
-      if (k >= 0 && toks[k + 2]) return hit(toks[k + 2].s, toks[k + 2].e, toks[k + 2].v);
-      return gap(tailInsert(el, toks), ' same as ');
+    // `same as X`, `same w as X` and `same h as X` are three options, and each
+    // is found by its whole spelling: a bare `same` took `same w as a` for the
+    // first and answered with the token `as`.
+    if (attr === 'same-as' || attr === 'same-w-as' || attr === 'same-h-as') {
+      const axis = attr === 'same-as' ? null : attr[5];
+      const k = toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === 'same'
+        && (axis ? toks[i + 1] && toks[i + 1].v === axis && toks[i + 2] && toks[i + 2].v === 'as'
+          : toks[i + 1] && toks[i + 1].v === 'as'));
+      const v = k < 0 ? null : toks[k + (axis ? 3 : 2)];
+      if (v) return hit(v.s, v.e, v.v);
+      return gap(tailInsert(el, toks), axis ? ` same ${axis} as ` : ' same as ');
     }
 
     // `key "…"` is the one keyed option whose value is a string. Present is
@@ -4549,6 +4560,11 @@ export function createDiagramCompiler(env = {}) {
         model.nodes.push(synth({
           kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
           place: framePlace(opts.place), w: totalW, h: totalH, r: null, pad: null, frame: head,
+          // The last line the statement read, rows included. `span` is the
+          // head line alone, so without this an editor deleting or copying a
+          // table took its first line and left the rows behind it as
+          // statements nobody knows.
+          endLine: Math.max(lineNo, rowsRead),
         }));
         const xOf = (c) => cols.slice(0, c).reduce((a, b) => a + b, 0) + spaceX * c;
         all.forEach((cells, r) => {
@@ -5104,6 +5120,8 @@ export function createDiagramCompiler(env = {}) {
           kind: 'box', id, label: '', classes: ['bare', 'clear'], tags: attrs.tags,
           place: framePlace(opts.place), w: (pitch * actors.length) / uw, h: bottom / uh,
           r: null, pad: null, frame: head,
+          // The last line of the run, for the reason a table carries it.
+          endLine: Math.max(lineNo, rowsRead),
         }, lineNo));
         actors.forEach((a, i) => {
           const headCls = actorCls[i];
@@ -7240,11 +7258,27 @@ export function createDiagramCompiler(env = {}) {
     for (const c of model.containers) { kindOf.set(c.id, 'container'); deps.set(c.id, c.members.slice()); }
     for (const b of model.braces) { kindOf.set(b.id, 'brace'); deps.set(b.id, b.members.slice()); }
 
+    // Names two elements answer to. The parser has already said "duplicate
+    // element id" about each, and the map above holds only the last of the
+    // two, so a cycle through one is the duplicate's and not the author's:
+    // `box a-0` beside `bars a … right of a-0` reported a placement cycle that
+    // exists only because the chart's first column took the box's name.
+    const twice = new Set();
+    {
+      const seen = new Set();
+      for (const el of [...model.nodes, ...model.edges, ...model.containers, ...model.braces]) {
+        if (seen.has(el.id)) twice.add(el.id);
+        seen.add(el.id);
+      }
+    }
     const mark = new Map();
     const visit = (id, trail) => {
       if (mark.get(id) === 2) return;
       if (mark.get(id) === 1) {
-        errors.push({ phase: 'layout', line: 0, msg: `placement cycle: ${[...trail, id].join(' → ')}` });
+        const loop = [...trail.slice(trail.indexOf(id)), id];
+        if (!loop.some((x) => twice.has(x))) {
+          errors.push({ phase: 'layout', line: 0, msg: `placement cycle: ${[...trail, id].join(' → ')}` });
+        }
         mark.set(id, 2);
         return;
       }

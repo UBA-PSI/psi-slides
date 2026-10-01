@@ -209,7 +209,10 @@ export async function run({ report }) {
     ['::: draw 150X56',                     'bad-unit', null],
     ['::: draw 150×56',                     'bad-unit', null],
     ['::: draw 0x56',                       'bad-unit', null],
-    ['::: draw 150x56 autoplay x',          'bad-autoplay', null],
+    // A side of 22 digits used to pass, and the formatted opener then threw
+    // with a stack: 1e+21x5 is not WxH. Refused, in the build and in lint.
+    ['::: draw 1000000000000000000000x5',   'bad-unit', /from 1 to 2000/],
+    ['::: draw 2001x5',                     'bad-unit', /from 1 to 2000/],    ['::: draw 150x56 autoplay x',          'bad-autoplay', null],
     ['::: draw 150x56 autoplay',            'bad-autoplay', null],
     ['::: draw 150x56 autoplay 199',        'bad-autoplay', null],
     ['::: draw 150x56 autoplay 60001',      'bad-autoplay', null],
