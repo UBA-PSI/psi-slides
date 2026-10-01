@@ -1,10 +1,10 @@
 ---
 title: Beim zweiten Mal
 subtitle: ein kurzer Vortrag, Wort für Wort ausgeschrieben
-presenter: psi-slides
+presenter: Dominik Herrmann
+affiliation: Otto-Friedrich-Universität Bamberg
 cover: display
 info: |
-  psi-slides
   der Referenzvortrag für die Stichwortkarten im Cockpit
 lang: de
 theme: light-red
@@ -38,7 +38,7 @@ Neunzig Millisekunden.
 
 1,4 Sekunden. Dann 90 Millisekunden.
 
-> note: @1:20 **Lassen Sie mich bei den zwei Zahlen genau sein**, denn der Rest der Stunde hängt an ihnen.
+> note: @1:20 **Lassen Sie mich bei den zwei Zahlen genau sein**, denn der Rest dieses Vortrags hängt an ihnen.
 >
 > **Der erste Besuch: 1,4 Sekunden.** Ein Name wird nachgeschlagen, eine Verbindung geöffnet, ein Zertifikat geprüft, eine Anfrage gesendet, eine Seite gebaut, die Bytes zurückgeschickt. **Sechs Dinge, und jedes kostet.**
 >

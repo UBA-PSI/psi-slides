@@ -23,40 +23,41 @@ style:
 
 # The pair
 
-## principle: Every title slide already had two lines {#pair}
+## principle: A title slide carries two lines {#pair}
 
-**A cover carries a pair, and so does every divider and closing slide** – the
-frontmatter says `title:` and `subtitle:`, a chunk heading says `Heading | Sub`.
-What none of them had was a way to say that the *first* line is the quiet one.
+A cover carries **a pair of lines**, and so do a divider and a closing slide –
+the frontmatter says `title:` and `subtitle:`, a chunk heading says
+`Heading | Sub`. By default the first line is the loud one.
 
-`style: {headline: eyebrow}` sets it the other way up. The slide you are reading
-is drawn that way, and so is the cover of this deck.
+`style: {headline: eyebrow}` sets the pair the other way up: the first line
+becomes a small kicker and the second carries the weight. The cover and the
+closing slide of this lecture are drawn that way.
 
 ## definition: The words never move, only their type {#treatment}
 
-**`title:` stays the content key of whichever line is loud.** That is the whole
-reason this is a treatment rather than a second pair of content keys.
+**`title:` holds the lecture's name, whichever line is loud.** `headline`
+changes how the two lines are set, not which key holds which words.
 
 `title:` is also the `<title>` element, the entry in the table of contents, and
-what the search index reads. Inverting the hierarchy by telling authors to put
-the hook in `title:` would rename the browser tab to the hook and leave the
-lecture's own name nowhere.
+what the search index reads. A hook written into `title:` to make it loud would
+also rename the browser tab.
 
-**One key therefore serves the cover, the section dividers and the closing slide
+**One key serves the cover, the section dividers and the closing slide
 at once**, because all three carry a pair.
 
 # The credits
 
 ## principle: Four ranks, not one line and a list {#ranks}
 
-**The credit block used to be one strong line over a run of equals.** `presenter:`
-was set apart and everything else went into `info:`, where the institution, the
-venue and the date all arrived at the same size in the same grey.
+**The credit block sets four ranks of type.** `presenter:` is the strongest,
+`affiliation:` sits quieter directly under it, `info:` carries the venue and the
+date at the size of the small print, and `contact:` / `notice:` share a row
+along the foot.
 
-So the line that *qualifies the speaker's name* was set exactly like the one that
-gives the date, and the block read as a log file rather than as a masthead.
+So the line that *qualifies the speaker's name* is set apart from the one that
+gives the date, and the block reads as a masthead rather than a list.
 
-## example: The four slots, as this deck writes them {.wide #slots}
+## example: The four slots, as this lecture writes them {.wide #slots}
 
 ```yaml
 presenter:   Dominik Herrmann
@@ -68,7 +69,7 @@ notice:      Built from this one file.
 **`contact:` and `notice:` are a row along the foot**, not two more stacked lines.
 They do a different job from the two ranks above them: a presenter and an
 institution introduce the speaker, while an address and “the slides are online”
-answer the room.
+answer what the audience will ask afterwards.
 
 ## principle: Capitals get their tracking without being asked {#caps}
 
@@ -78,7 +79,7 @@ capitalises the loud line is a key that makes a talk shout.
 
 The tracking is not a second setting. Capitals set at the tracking of lowercase
 read as one jammed word, so the build tracks out **any slot already in
-capitals** – including one an author typed that way years ago.
+capitals** – including one you typed in capitals yourself.
 
 ## closing: Two lines, four ranks | and one decision about which line is loud {#end}
 

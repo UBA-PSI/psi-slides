@@ -1,10 +1,10 @@
 ---
 title: The second time
 subtitle: a short talk, written out word for word
-presenter: psi-slides
+presenter: Dominik Herrmann
+affiliation: Otto-Friedrich-Universität Bamberg
 cover: display
 info: |
-  psi-slides
   the reference talk for the cockpit's cue cards
 lang: en
 theme: light-red
@@ -55,7 +55,7 @@ Ninety milliseconds.
 
 1.4 seconds. Then 90 milliseconds.
 
-> note: @1:20 **Let me be precise about the two numbers**, because the rest of the hour hangs on them.
+> note: @1:20 **Let me be precise about the two numbers**, because the rest of this talk hangs on them.
 >
 > **The first visit: 1.4 seconds.** A name looked up, a connection opened, a certificate checked, a request sent, a page built, the bytes sent back. **Six things, and each one costs.**
 >

@@ -27,8 +27,8 @@ A slide is a frame, and the frame can carry more than a column of text.
 
 ## outline: What this lecture shows {.wide #agenda}
 
-Every way psi-slides has of decorating a slide, each one used on the slide that
-describes it – and, in the last part, the settings that set the type and the
+The ways psi-slides can decorate a slide, each one used on the slide that
+describes it – and, in the last part, the settings for the type and the
 colours of a whole lecture.
 
 ## free: Read each slide beside its source | the slide that describes a construct uses it {.standard #preview}
@@ -49,8 +49,8 @@ a card row's braces or a backdrop's `reveal` does.
 
 ## free: Ten ways to open a lecture {.wide #cover-list}
 
-**`cover:` in the frontmatter picks one of the ten below**, ordered by how
-loudly the opening slide announces itself rather than alphabetically.
+**`cover:` in the frontmatter picks one of the ten below**, ordered from the
+quietest opening slide to the loudest.
 
 ::: cards 3 {.small}
 - **classic**\
@@ -119,7 +119,7 @@ without one fails the build.
 
 ## free: The credit block has four ranks | who is talking, where, and how to reach them {.wide #credits}
 
-**`subtitle:` is the line that says what the talk is about, and four more keys under `title:` are set at four different weights, because they do four different jobs.**
+**`subtitle:` says what the talk is about.** Under it, the credit block sets who gives the talk, from where, and how to reach them, in four ranks of type.
 
 ```yaml
 title: How Caches Forget
@@ -138,16 +138,16 @@ info: |
 - **`contact:` / `notice:`** one row along the foot – the address flush left, the notice flush right and in italics
 :::
 
-A presenter and an institution *introduce the speaker*; an address and “the slides go up on Friday” *answer the room*. That is why the last two share a row instead of stacking. `info:` keeps the date, the room and the course line, as many lines as you give it.
+The presenter and the institution *introduce the speaker*; the address and the notice *answer what the audience will ask afterwards*, so the two share one row at the foot. `info:` keeps the date, the room and the course line, as many lines as you give it.
 
 ## free: The last slide closes the arc {.wide #closing-tag}
 
 **`## closing:` draws the last slide in whatever composition `cover:` names**,
-so the room sees the shape the lecture opened with.
+so the lecture ends in the shape it opened with.
 
 What it carries is different: your own heading, sub-heading and text. The
-presenter line and the `info` block stay off it by default, because the room
-learned who is talking and where an hour ago. `closing-credits: contact` brings
+presenter line and the `info` block stay off it by default, because the audience
+has known since the first slide who is talking and where. `closing-credits: contact` brings
 back the row along the foot – this lecture sets it, so its last slide carries the
 address – and `cover` brings back the whole credit block. `closing-image: cover`
 ends the deck on the picture it opened with; any other value names a different
@@ -164,15 +164,15 @@ one.
 
 ## free: Six treatments, every one quieter than the cover {.wide #section-list}
 
-A divider has **one job: to say that a new part starts here, and that it is part
-of the thing you are already in.** One that can be mistaken for the title slide
-has failed at it.
+A divider says that **a new part starts here**, and that the part belongs to the
+lecture already under way. All six are quieter than the cover, so none of them
+can be mistaken for the title slide.
 
 ::: cards 3
 - **plain**\
   the heading alone. The default
 - **tinted**\
-  the whole slide takes the theme's accent at 12%. The ten-metre signal
+  the whole slide takes the theme's accent at 12%, so the back row sees the colour before it can read the words
 - **rule**\
   the heading between two rules. The one that survives a monochrome print
 :::
@@ -188,14 +188,14 @@ has failed at it.
 
 The six are in the same
 [gallery](https://uba-psi.github.io/psi-slides/decoration.html#dividers) as the
-covers, under the same rule: a deck settles on one and wears it at every
+covers, under the same rule: a lecture picks one and wears it at every
 part.
 
 ## principle: What a running agenda says that a coloured field cannot {.standard #outline-why}
 
-**Which part starts, out of how many, and how far into the hour you are.** The
-room meets the same list four or six times and learns the shape of the lecture
-from it.
+The agenda says **which part starts, out of how many**, and how far into the
+lecture you are. The audience sees the same list at every divider and learns the
+shape of the lecture from it.
 
 That only works while the list stays the same from divider to divider, so the
 heading is the live item in the list rather than a second copy set beside it.
@@ -230,10 +230,9 @@ Those three are what a divider takes; the other directives belong inside a
 `##` slide. The words do print, as a short paragraph under the part title. The
 divider slide itself never prints.
 
-**A `> note:` written there is the divider's own.** It reaches the cockpit as
-the card for that camera stop and `print-notes.html` under the part title, so
-the sentence that says what the part is for arrives while the part title is on
-the wall rather than one slide late.
+**A `> note:` written there is the divider's own**: the cockpit shows it while
+the divider is on screen, and `print-notes.html` prints it under the part
+title.
 
 ## free: A figure divider lays out beside the heading {.standard #divider-beside}
 
@@ -247,14 +246,13 @@ the quotation divider in Part 1 comes out.
 ## free: …unless the figure is the point of the part {.standard #divider-stack}
 
 **`# Heading {.stack}` puts the content under the heading at the full measure**
-and sets the heading small above it, as its caption. Beside the heading a
+and sets the heading above it, a step smaller than on a plain divider. Beside the heading a
 figure gets about half the frame, which is right for a drawing that balances a
 part title and unreadable for one with six cells and a label in each. Part 7's
 divider wears it; Part 3's is the other layout.
 
-The class is on the one heading rather than a seventh `section:` value, because
-`section:` is how the deck treats every divider and this is a fact about one
-divider's content. A `{.stack}` over a divider with nothing under its heading
+The class goes on the one heading, because it concerns one divider's content;
+`section:` sets how every divider looks. A `{.stack}` over a divider with nothing under its heading
 is refused.
 
 # Cards, rows and panes {#grounds}
@@ -329,7 +327,7 @@ question.
   a word for `::: rows`, which has a body to line a term up with
 :::
 
-**That row is `::: cards 3 {.outline .middle}`**, so its tail answers two questions at once: `ground`, and `anchor` – where the text sits when a card is taller than its content, which all but the tallest card are, a grid row being as tall as its longest card.
+**That row is `::: cards 3 {.outline .middle}`**, so its tail answers two questions at once: `ground`, and `anchor` – where the text sits in a card taller than its content. A row is as tall as its longest card, so every other card in it is taller than what it holds.
 
 ## free: The row size reads the longest item {.wide #cards-size}
 
@@ -388,7 +386,7 @@ slide however long the terms are.
 
 It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: `anchor` follows the ground, `align` says how the term sits *in its card* while the explanation ranges left, and the automatic size stops at `medium`, a term being a label in a column rather than a headline across the slide.
 
-**A row block adds one anchor word, `baseline`, and picks between two by ground.** On a fill the term is a visible slab, and a one-line slab against a three-line explanation's first line reads as a mistake, so a grounded row centres it. Under `{.clear}` there is no slab and no padding, so the term is bare words in a column, and those read best on the baseline – a hanging indent, which is the form a term and its definition have taken since long before the slide. `{.baseline}` on a `::: cards` block is an error: a card has nothing beside it to line up with.
+**A row block adds one anchor word, `baseline`, and picks between two by ground.** On a fill the term is a visible slab, and a one-line slab against a three-line explanation's first line reads as a mistake, so a grounded row centres it. Under `{.clear}` there is no slab and no padding, so the term is bare words in a column, and those read best on the baseline, as a hanging indent. `{.baseline}` on a `::: cards` block is an error: a card has nothing beside it to line up with.
 
 Use `rows` when a term needs a sentence, and `cards` when a comparison needs counting.
 
@@ -416,7 +414,7 @@ box b "1fr" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}
 
 **A short pane sits at the top of its half unless you say otherwise, and `{.middle}` centres it against the taller one.** Here the *figure* is the short pane, so `{.middle}` is what puts it level with the middle of this column instead of at the top. `{.top}` is the default and often right – a caption over a figure should be aligned from the top. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only move the shorter one.
 
-**A figure *above* or *below* the text needs nothing** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns stop working, without an error. A `::: draw` written there is refused, and the message points you at `::: side`.
+**A figure *above* or *below* the text needs nothing** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: the columns are one run of text, and a figure breaks it. A `::: draw` written there is refused, and the message points you at `::: side`.
 
 ::: flip
 
@@ -604,8 +602,8 @@ refused: a panel runs along one edge, or takes them all.
 
 **An overlay lies over the slide; a dock takes its room from it.** The list on
 the left is one `::: dock {.left .every}` written under this part's `#` heading,
-and every chunk of the part carries it – the item the room is on lights up,
-because each entry is a link to a chunk's `{#id}`.
+and every chunk of the part carries it. The entry for the slide on screen lights
+up, because each entry is a link to a chunk's `{#id}`.
 
 **Four edges, six grounds, three widths.** A left or right dock is a
 column the full height of the slide and the text column narrows beside it; a
@@ -627,8 +625,8 @@ paper an edge. `paper` has none there and stays a choice for a dock over a
 picture; `ink` is the loud version.
 
 The dock's type is the overlay's, 0.92 of the slide's and zoomed with it, but
-its track is a share of the frame and does not move: a dock is part of the
-frame, and a running list that shifts sideways per slide is not a frame.
+its track is a share of the frame, so the list stays in place from slide to
+slide.
 :::
 
 ## free: A band replaces the inherited column {.wide #dock-band}
@@ -657,8 +655,7 @@ where it is a box before the text.
 
 **`from 2` holds this remark back until the second beat.** The text column
 has been narrow from the start, so nothing moves when the dock slides in – the
-rule an overlay card follows, kept here because a slide that reflows under the
-room's eyes reads as a fault.
+same rule an overlay card follows.
 
 ---
 
@@ -834,12 +831,12 @@ step note
 
 The settings in this part are written once, in the frontmatter, and change
 every slide of a lecture together: the `style:` block, and the typefaces the
-four files carry. This lecture sets none of them, so its slides show the
+four views carry. This lecture sets none of them, so its slides show the
 settings in YAML rather than wearing them.
 
 ## free: Setting the typography for a whole lecture | the `style:` block {.wide #style-block}
 
-**The `style:` block holds the settings you make once for a whole lecture rather than chunk by chunk.**
+The `style:` block holds **the settings you make once for a whole lecture**.
 
 ```yaml
 style:
@@ -860,37 +857,37 @@ style:
   heading-scale: 1.15   # with body-scale, bounded to 0.6 … 1.8
 ```
 
-`headings: auto` is the default: the type decides, so a figure's caption sits over its artwork. `left` overrides that for one line of alignment down the lecture; `off` takes headings off the projection and keeps them in print, the contents list and search.
+`headings: auto` is the default: the chunk type decides, so a figure's caption sits over its artwork. `left` overrides that for one line of alignment down the lecture; `off` takes headings off the projection and keeps them in print, the contents list and search.
 
 ## free: Five keys the block's names do not explain | `wrap`, `blocks`, `print-body`, the bold pair and the scales {.wide #style-keys}
 
 **`wrap` applies to headings and prose both**, which its name does not say: `balance` evens the line lengths of a heading and protects the last line of a paragraph, and `none` turns both off. `blocks` and `wrap` are the two keys a single chunk can answer for itself, with `{.blocks-left}` and `{.wrap-none}` in its attribute tail.
 
-**`print-body` is the one setting here that only the printed pages see.** The projection and the lectern let a reader pick the face with `F`; a document has no reader to press it, so `sans` is how you ask for one set in the sans. Code stays in the monospace, and so does everything the document already draws in the sans – the type word, a caption, the contents list.
+**`print-body` sets the face of the printed pages.** In the live views the face is picked with `F`; the printed pages have no such key, so `sans` is how you ask for a document set in the sans. Code stays in the monospace, and so does everything the document already draws in the sans – the type word, a caption, the contents list.
 
-**`bold` and `print-bold` set how a `**bold**` phrase looks, and `plain` is a legal answer because bold selects before it decorates.** Live the default is `plain`, so a promoted bullet is set like the sentence above it; on paper it is `bold`, in the ink. `accent-bold` in both is how the tool drew every bold before the keys existed. A word stressed with `*em*` inside the phrase is bold and in the accent whatever the key says – except under `accent-bold`, where it stays italic.
+**`bold` and `print-bold` set how a bold phrase looks**, and `plain` is a legal answer: the bold marks a phrase for the slide, and its weight is only one possible look. Live the default is `plain`, so a promoted bullet is set like the sentence above it; on paper it is `bold`, in the ink. `accent-bold` in both gives the accent-coloured bold of psi-slides 1.0. A word stressed with `*em*` inside the phrase is bold and in the accent whatever the key says – except under `accent-bold`, where it stays italic.
 
 The two scales multiply the tool's own sizes rather than replacing them, and they are **bounded** to 0.6–1.8: outside that, the shortened view, the width limit on a line of code and the automatic zoom disagree.
 
 ## free: Code inside a sentence | `style: {code: …}` {.wide #inline-code}
 
-**A monospaced word brings a space of its own, and it is twice the width of the one around it.** So **`async def` used to read as two words where `await` read as one** – only a span of several tokens has a gap inside it to go wrong.
+**A space in a monospaced face is about twice as wide as the word space around it**, so a span like `async def` opens a hole in its middle and reads as three words where you wrote two. A single token like `await` has no inner gap to go wrong.
 
 ::: rows {.clear}
 - **`spaced`** the default: the gaps around a multi-word span are widened a hair and the ones inside it pulled in. A single token is left alone
 - **`tint`** a quiet ground behind every span, padded left and right only
-- **`plain`** the flat `0.92em` the tool drew before the setting existed
+- **`plain`** the mono face at a flat `0.92em` and nothing else, as psi-slides 1.0 drew it
 :::
 
 Both of the first two also **size the code to the x-height of the face around it**, so a lecture that changes its serif changes this with it. A face you supplied yourself carries no measurement; the build says so and leaves the size alone.
 
 ## free: What hue the greys carry | `neutrals`, and its counterpart for the page {.wide #neutrals}
 
-**`A` cycles the theme, and in the four light themes it moves one colour: the accent.** The ink stays on a cool hue, and every tinted surface – a card, a dock, an overlay card – is mixed out of that ink, so a card under a warm accent is a cool grey under a warm word.
+**In the four light themes, `A` moves only the accent.** The ink stays on a cool hue, and every tinted surface – a card, a dock, an overlay card – is mixed out of that ink, so a card under a warm accent is a cool grey under a warm word.
 
 ::: rows {.clear}
-- **`neutral`** the default, and what the tool has always drawn
-- **`tinted`** the greys take the accent's own hue, so the slide reads as one palette whichever accent the room gets
+- **`neutral`** the default: the greys stay on the ink's cool hue
+- **`tinted`** the greys take the accent's own hue, so the slide reads as one palette whichever accent is on
 - **`warm` / `cool`** a fixed hue, the accent notwithstanding
 :::
 
@@ -898,7 +895,7 @@ Both of the first two also **size the code to the x-height of the face around it
 
 ## free: Which line of a title is the loud one | `headline`, and `caps` beside it {.wide #headline}
 
-**A cover carries a pair of lines, and so does a divider and a closing slide** – `title:` and `subtitle:` in the frontmatter, `Heading | Sub` in a chunk heading. `headline` says which of the two is set large.
+A cover carries **a pair of lines**, and so do a divider and a closing slide – `title:` and `subtitle:` in the frontmatter, `Heading | Sub` in a chunk heading. `headline` says which of the two is set large.
 
 ```yaml
 style:
@@ -908,7 +905,7 @@ style:
 
 `stacked` is the default: the title large, the subtitle quieter under it. `eyebrow` turns it over, so the title sits small above a subtitle that carries the weight – the shape a lecture title takes when the first line names the field and the second asks the question.
 
-**The words stay where they are and only their type changes**, which is what lets one key serve the cover, the dividers and the closing slide at once. `title:` is also the browser tab, the contents entry and what search reads, so putting the hook there would leave the lecture's own name nowhere.
+**The words stay where they are and only their type changes**, so one key serves the cover, the dividers and the closing slide. Keep the lecture's own name in `title:`, which is also the browser tab, the contents entry and what search reads.
 
 `caps` sets the small type round a title in capitals: the eyebrow, the presenter, the affiliation, never the headline. The tracking is not a second setting – the build spaces out any line already in capitals, including one you typed that way.
 
@@ -917,8 +914,8 @@ style:
 **The type word above a chunk is drawn in two places, and one setting takes it out of both.**
 
 ::: cards 2
-- **`print.html` and `print-notes.html`** set a small line of capitals over every typed chunk. Every type has one except free and figure, so that is where most of them live.
-- **The projection** prints only the word over an exercise. The rest were taken out: a label naming the kind of slide is only as right as the type was.
+- **`print.html` and `print-notes.html`** set a small line of capitals over every typed chunk. Every type but free, figure and statement has one, so that is where most of them are.
+- **The projection** shows only the word over an exercise.
 :::
 
 ```yaml
@@ -944,17 +941,17 @@ fonts:
 
 Only the three a lecture actually asks for are read, so choosing an alternative costs that lecture and no other. A name that is neither one of the nine nor a file in `fonts/` stops the build, and the message lists the names available for that role.
 
-**Among the serifs, the question is what a projector does to a typeface.** Bitter has the lowest stroke contrast and the smallest file, which is why it stays legible in a lit room; Roboto Serif has the strongest bold but sets 8% wider, so it re-wraps a deck written against another face.
+Among the serifs, **Bitter has the lowest stroke contrast**, which keeps it legible in a lit room, and the smallest file; Roboto Serif has the strongest bold but sets 8% wider, so it re-wraps a deck written against another face.
 
 ## free: Type for code | the condensed monospace, and `ligatures:` {.wide #code-type}
 
-**The condensed monospace is 17% narrower** – 0.50 em against 0.60 em per character, measured in a browser – so a listing that ran off the slide now fits. It is Noto Sans Mono with its width axis pinned rather than a different typeface, so it costs 54 KB. Slashed zero, and `I`, `l` and `1` are three visibly different shapes.
+**The condensed monospace is 17% narrower** – 0.50 em against 0.60 em per character, measured in a browser – so a line of code can run a fifth longer before it reaches the slide's edge. It is Noto Sans Mono with its width axis pinned rather than a different typeface, so it costs 54 KB. Slashed zero, and `I`, `l` and `1` are three visibly different shapes.
 
-**`ligatures:` decides whether letter pairs are drawn joined, and answers separately for prose and for code.** `text` is the default: `fi` and `fl` joined up in prose, nothing joined in code. `none` takes them out of prose as well. `all` puts the code ones back, so JetBrains Mono draws `->` as a single arrow again. The code ones are off by default because in the figure language `->` and `--` are two *different* arrows, and every listing on a slide is source somebody may retype.
+**`ligatures:` decides whether letter pairs are drawn joined, and answers separately for prose and for code.** `text` is the default: `fi` and `fl` joined up in prose, nothing joined in code. `none` takes them out of prose as well. `all` puts the code ones back, so JetBrains Mono draws `->` as a single arrow. The code ones are off by default because in the figure language `->` and `--` are two *different* arrows, and every listing on a slide is source somebody may retype.
 
 ## free: Embedding your own typefaces | `fonts/` beside `source.md`, plus a frontmatter block {.wide #fonts}
 
-**A family that is not inside the file is a family the lecture-hall machine may not have.** Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and `fonts: none` leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.
+**A typeface that is not embedded in the file** may be missing on the lecture-hall machine. Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and `fonts: none` leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.
 
 **Each of the three text roles is answered on its own**, so you can replace one and leave the others alone. Put your files in a `fonts/` folder beside `source.md`:
 
