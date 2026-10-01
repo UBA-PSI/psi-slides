@@ -170,6 +170,10 @@ A third set concerns the two live views while a talk runs:
   editor's section `Backspace` (delete), `Shift-F` (the frames the other way
   round) and `?`. A new gate, `help-keys`, reads the key handlers and fails on
   a key with no row.
+- **`.` blanks the projection, as `B` does**, in both live views. It is the
+  key many presenter remotes send for their black-screen button. Nothing else
+  in the two views answered it; the diagram editor's `.` (next figure) is
+  unchanged, because the editor handles its keys before the slide's.
 
 - **`--slides-pdf`: a PDF slide deck, one page per presentation state.** The
   export drives `audience.html` through every state a lecturer would step
@@ -305,6 +309,14 @@ A third set concerns the two live views while a talk runs:
 
 ### Changed
 
+- **The live views' keys are bound in one table, `commands.mjs`.** Internal:
+  the `?` panel is rendered from it and the key map looks every press up in
+  it, where both used to be written by hand beside each other. No key changes
+  meaning – a fixture of every press the old key map answered, per view, is
+  held by the `commands` gate, which replaces `help-keys` and keeps its check
+  that every answered key has a row. The table reaches both live views as
+  `window.PSI_COMMANDS`, and the desktop app stages `commands.mjs` with the
+  engine.
 - **Breaking, strictly: an `{#id}` may not start with `psiINT-`.** Every id
   the build invents now starts with it – the cockpit's and the projection's
   chrome (`psiINT-clock`, `psiINT-stage`, `psiINT-toc`, the prompter's
