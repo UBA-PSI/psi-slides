@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Twenty-one gates, about three seconds,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 50 specs, about 1,500
+- **`test/`** – the things that only break in a built page. 51 specs, about 1,550
   assertions, about twelve minutes, one Chromium for the whole run. One of
   them, `souffleuse`, starts an engine of its own beside that browser – see
   below.
@@ -83,7 +83,7 @@ seconds.
 | `untrusted` | building a `source.md` somebody sent you, the half decidable without a build: the frontmatter language (`---js` is `eval` inside gray-matter) read the same way in `build.js` and `lint.js`, and gray-matter reached only through `safeMatter`; the asset root (the lecture's folder and the one above it, the lecture's folder alone when the one above is an injected home folder, never a dot-folder, a link only to a file of the kind its name says) on a real tree with real links, in both files; an output written over a link replaces it and an append refuses it; ImageMagick told its decoder. The build-level half – a real build refusing a real deck, and what is on disk afterwards – is the last block of `test/settings.mjs` |
 | `pdf-core` | the PDF export's policy without a browser. A driver that only records its calls holds the order `exportSlides` asks for things in – the network refused before the page loads, auto-fit and the collapse before the walk, the print DOM before the pdf, on `screen` media – because that order is what the Playwright driver and the desktop app's Electron driver must share and neither driver's own test can see. And `exportDocument`'s shorter one – open before load, pictures decoded before they are inspected, a `::: pulse` answer opened before the pictures are settled, the pdf on `print` media at the view's own `@page` size – plus the watch build's reload socket, refused but counted apart from the deck's requests. Plus the option checks, refusing in the words `pdfOptionsFrom` used before they moved, and `formatReport`'s lines for fixed results of both exports. That the pages come out right is `test/pdf-export.mjs` |
 | `id-namespace` | every id the build invents starts with `psiINT-`: each `id="…"`, `.id =`, `dgeEl({id})`, literal `getElementById` and `#word` in a literal `querySelector` in build.js, editor.mjs, diagram-core.mjs, pdf-core.mjs and cue-cards.mjs is a `psiINT-` literal or on a counted allow-list of the sites that emit the author's own ids or build one from a `psiINT-` prefix (the prefixes themselves are asserted). The stylesheets are read too: every `#id` in a selector of build.js's six CSS literals, `PDF_CSS` and editor.css must start with `psiINT-` and name an id one of those sites emits – a dead selector is how `#toc-panel li` sat in the heading rule matching nothing. Hex colours, `url(#…)`, strings, attribute tests and comments are blanked before the preludes are read. The author's half of the fence, `reserved-id`, is in `tails` and `test/settings.mjs` |
-| `commands` | the command table in `commands.mjs`, the key map that dispatches from it and the `?` panel rendered from it. `PRESSES` is a fixture of every press the old `switch` in `AUDIENCE_JS` answered, per view and with the command it meant, taken once when the table replaced the switch – each is put through the page's own `commandFor(keyMap(view), e)`, so a key that drops out, changes command or starts answering where it did not fails. Every command a view answers has a run function in the literals that view is built from (the `COMMAND_RUN` object in `AUDIENCE_JS`, the assignments into it in `SPEAKER_JS` and `SOUFFLEUSE_JS`), and every run function names a command; the table's own load-time assertion is shown to fire on a copy that binds `B` twice. Then the panel half: `renderHelpOverlay` lifted out of build.js and run per view, each `<dt>` read as the key combinations its kbd elements spell, against the table's keys plus every key the listener's guards still answer in code, and the editor's keys out of `editor.mjs` held against the editor's own section; a command's row may spell only keys that command answers. `NOT_A_ROW` is the reviewed list of keys answered without a row, each with its reason, and an entry that stops being answered or gains a row fails too. It fails on its own on a panel with the `B` row cut out, so it cannot pass by reading nothing |
+| `commands` | the command table in `commands.mjs`, the key map that dispatches from it and the `?` panel rendered from it. `PRESSES` is a fixture of every press the old `switch` in `AUDIENCE_JS` answered, per view and with the command it meant, taken once when the table replaced the switch – each is put through the page's own `commandFor(keyMap(view), e)`, so a key that drops out, changes command or starts answering where it did not fails. Every command a view answers has a run function in the literals that view is built from (the `COMMAND_RUN` object in `AUDIENCE_JS`, the assignments into it in `SPEAKER_JS` and `SOUFFLEUSE_JS`), and every run function names a command; the table's own load-time assertion is shown to fire on a copy that binds `B` twice. Then the panel half: `renderHelpOverlay` lifted out of build.js and run per view, each `<dt>` read as the key combinations its kbd elements spell, against the table's keys plus every key the listener's guards still answer in code, and the editor's keys out of `editor.mjs` held against the editor's own section; a command's row may spell only keys that command answers. `NOT_A_ROW` is the reviewed list of keys answered without a row, each with its reason, and an entry that stops being answered or gains a row fails too. It fails on its own on a panel with the `B` row cut out, so it cannot pass by reading nothing. Last, the palette and the start menu: only rows `runsFromPanel` allows carry `data-cmd` (never a doc row, a row shared by several commands, or `?`), both panels list `Ctrl/Cmd-K`, the listener answers that chord before the field's keys and before the chord guard, and `renderStartMenu`, lifted out as text, renders `START_MENU` from the table into the audience view alone |
 | `editor` | the editor's acts that rewrite a figure's source, without a browser: `editor.mjs` is loaded as text into a `vm` context with `diagram-core.mjs` as `window.PSI_DG` and a DOM that answers every lookup with nothing, a figure is opened by hand, and rename, delete, duplicate, copy and paste, a step's ops and a resize are driven against it. Each case is a defect the pre-2.0.0 review reproduced this way: a rename that moved a sibling chart's generated names or a step's name, an element called `w` that could not be renamed, a resize of `same w as` that was always refused, a paste in place that left the first element unplaced, a refused act reported as done, a delete that missed a chain, a `table` or `sequence` handled by its first line, a paste that wrote one name twice, and a reader's kept edit filed under no lecture. What is drawn – a guide, a chip – stays in the `editor-*` specs |
 
 **`frontmatter` is the one gate that is not about figures**, and it is here
@@ -144,7 +144,7 @@ fixture is compiled *and* linted.
 
 ## The browser suite: four families
 
-**Navigation** – `nav`, `nav-cockpit`, `nav-goto`, `nav-fullscreen`, `help-search`, `transition`,
+**Navigation** – `nav`, `nav-cockpit`, `nav-goto`, `nav-fullscreen`, `help-search`, `palette`, `transition`,
 `cue-cards`, `autoplay`, `live-sync`. The navigation
 model, and what a slide change looks like under `transition: pan | cut | fade` –
 the one spec here that samples per animation frame rather than after a settle,
@@ -155,7 +155,14 @@ advance, `N` would annotate), and that `Enter` goes through `jumpTo` rather
 than assigning an index. `help-search` is the field at the head of the `?`
 panel, in both views: it has the keyboard when the panel opens, so `b` typed
 there types a b rather than blanking the projection, and `Esc` empties it
-before it closes the panel. `nav-cockpit` carries its own two lines of it, because
+before it closes the panel. `palette` is the same panel run as a command
+palette and the projection's start menu: `Cmd-K` and `Ctrl-K` open it focused,
+a word and `Enter` run the row (`blank` blanks), a doc row is never selected,
+`Esc` still unwinds the panel before the overview, and the panel's box is
+measured unchanged across the typing; the start menu stands on slide 1 of a
+fresh load and goes on the first beat, on `W`, on its chevron (and stays gone
+across a reload), on a press in the cockpit it opened, answers a tap, and is
+in no other view and not in frame 1 of `--frames`. `nav-cockpit` carries its own two lines of it, because
 the cockpit is where the prompt's id could collide with a slide's. `demo` sits
 beside them: the two windows handing a live demo across, over both transports.
 `nav-fullscreen` is `W`, and it is here for a reason no other navigation spec
@@ -277,7 +284,7 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The nineteen specs that build a deck of their own
+### The twenty specs that build a deck of their own
 
 Four different reasons, and the last is the one to remember.
 
@@ -299,7 +306,10 @@ overlay held to `from 2` waiting for the card, a figure focused from the
 cockpit surviving a knob there, leaving the overview through the landing
 path, and two presses inside one fade acting on the slide being arrived at.
 
-**Because nothing that ships can reach the case** – `math-focus` (no lecture has
+**Because nothing that ships can reach the case** – `palette` (the start menu
+lives on the first slide and its first beat of a page load, so the spec needs
+a first slide with a second beat, and it runs `--frames` on the deck, which no
+spec may do to a tracked lecture), `math-focus` (no lecture has
 a two-row display formula), `side-anchor` (nothing writes `::: side {.middle}`
 yet) and `beats-nested` (no lecture puts a `---` inside a pane, a card row or an
 overlay yet, and the assertion is a six-beat *sequence* mixing nested and

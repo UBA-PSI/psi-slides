@@ -60,6 +60,8 @@ holds the full entry.
 - The cockpit: cue cards (`K`), a live demo on the projection (`D`), go to a
   slide by number (`G`), fullscreen from the cockpit (`W`), and an optional
   live prompter (`--prompter`).
+- Every key in the `?` panel, searchable and runnable (`Cmd-K`), and a start
+  menu on the projection before the talk starts.
 - The two documents have reader tools: a contents sidebar, highlights with
   notes, export and import; `::: pulse` adds self-test questions.
 - Type and language: a per-lecture font roster, a `display` face for covers
@@ -281,6 +283,22 @@ tag:
 
 ### Added
 
+- **The `?` panel is a command palette in both live views.** `Cmd-K` (or
+  `Ctrl-K`) opens it with the search field focused. A row that stands for one
+  command can be run from the panel: typing selects the first such row, `↑`
+  and `↓` move the selection, and `Enter` or a click runs it – exactly as its
+  key would, so in the cockpit `W` from the panel still arms the projection.
+  Rows that describe a gesture or a key with a special meaning cannot be
+  selected. The panel keeps one size while you type; the rows scroll inside
+  it.
+- **A start menu on the projection, before the talk starts.** Beside the `?`
+  button in `audience.html`: *Fullscreen*, *Speaker cockpit* and *Print view*
+  with their keys (`W`, `S`, `P`), for someone who does not know the keys
+  yet. It is only there on the first slide of a freshly opened page, and the
+  first move from either window, `W` or fullscreen takes it away until the
+  page is opened again. The `‹` beside it puts it away for good on this
+  browser. It is never in the cockpit, the two documents, a PDF or the
+  `--frames` pictures.
 - **The `?` panel in both live views has a search field.** It has the focus
   when the panel opens, and typing filters the rows by key and by what the key
   does: every word has to match, case and accents are ignored, and a single

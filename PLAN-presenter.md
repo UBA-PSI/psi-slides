@@ -564,6 +564,19 @@ Rejected: a persistent toolbar over the stage (decorative chrome on the one
 surface that mirrors the room); per-button onboarding tours; hints on the
 projection of any kind.
 
+**Revised by the maintainer: one exception on the projection, before the
+talk.** `audience.html` carries a start menu beside its `?` corner –
+*Fullscreen W*, *Speaker cockpit S*, *Print view P*, and a `‹` that puts it
+away for good (remembered in `localStorage`). It stands only on the first
+slide of a page load that opened there, outside fullscreen, before anything
+has moved, and the first move from either window, `W` or fullscreen ends it
+for that page load. The reason is discoverability: the three things a
+lecturer does before a talk are exactly the three a newcomer cannot find
+without knowing a key, and the projection is the window they open first.
+The rejection above was about what the room sees, and the room never sees
+this once the talk runs. The probes (`--frames`, `--check-fit`, `--squint`)
+and the PDF export never show it. See § Decisions along the way, *B3 (part)*.
+
 ## Slices, in build order
 
 Each slice is one agent. Engine slices share `build.js` and run sequentially;
@@ -699,6 +712,8 @@ follows the key as well as the click, and `audience.html` contains none of
 the new ids.
 
 ### Slice B3 – the `?` panel as palette (engine)
+
+**Partly built, in both views** – see § Decisions along the way, *B3 (part)*.
 
 Runnable rows, `Cmd-K` / `Ctrl-K` in the cockpit. Files: `build.js`, speaker.md
 §4.1a. Tests: a browser spec – `Cmd-K`, type “blank”, `Enter` blanks the
@@ -862,3 +877,47 @@ through `npm run dist:signed` as `CONTRIBUTING.md` describes.
   time on the previous commit too. Fixed separately by naming the chunk
   `cue-panel` – the cockpit's id before the prefix, which a slide may now
   take freely.
+
+### B3 (part) – the palette in both views, and the projection's start menu
+
+- **The palette is in both live views, not the cockpit alone.** Decision 11.3
+  said cockpit only; the panel, its search field and the key map are one
+  runtime in both, and a projection on a laptop before the talk is where a
+  newcomer first presses anything. `Cmd-K` / `Ctrl-K` is answered at the
+  head of the keydown listener, after the annotation textarea and before the
+  panel's own field and the chord guard; in any other text field it is that
+  field's. A second `Cmd-K` from the panel's field closes the panel.
+- **Which rows run is the table's question, then the view's.**
+  `runsFromPanel(c)` in `commands.mjs`: a command whose row is its own. A row
+  that lists several commands (`Shift`-`C F A L`, `+ - 0`, `Shift`-`→ ←`)
+  would run one of them under a description of all, and the `?` row would
+  open the panel again, so neither runs. `helpGroups` hands the id on as a
+  third column, `renderHelpOverlay` writes it as `data-cmd` on the `<dt>`,
+  and the page marks a row runnable only where `COMMAND_RUN` has the id – a
+  cockpit without the prompter lists no `Shift`-`S`.
+- **A row runs as its key does, through `runCommand(id)`**: the panel closes,
+  then `COMMAND_RUN[id]` is called with an event shaped like the command's
+  first key (`forward` gets Space, `expansion` gets `1`). Nothing is
+  implemented twice, so `W` from the cockpit's panel arms the projection as
+  the cockpit's `W` does. A query selects its first runnable row, so a word
+  and `Enter` run it; an empty field selects nothing.
+- **The panel is one fixed box** (`height: min(860px, 95vh)`, the width it
+  had), the rows scrolling inside it, and the grid `auto-fill` rather than
+  `auto-fit` so a filter does not stretch the one section left across the
+  panel. Typing used to resize the panel round every keystroke.
+- **The start menu** is `#psiINT-start-menu`, rendered hidden into
+  `audience.html` alone by `renderStartMenu()` from `START_MENU` and a new
+  `short` field (*Fullscreen*, *Speaker cockpit*, *Print view*); the keys come
+  from `keys`. A move is anything that goes through `goForward`, `goBack` or
+  `jumpTo`, and a remote apply that changes the slide or its beat –
+  deliberately not a beat an autoplaying cover advances by itself. A page
+  that opens on another slide or with a chunk in its address never shows it.
+  The chevron writes `psi-slides:start-menu` = `away`, globally like the font
+  and the theme; there is no way to bring the menu back short of clearing
+  that key, because the `?` panel lists the same three commands. The three
+  probes set `window.PSI_NO_START_MENU` with `addInitScript`, so frame 1 of
+  `--frames` is the room's first slide; the PDF export builds its print DOM
+  by inclusion and never reaches the menu; the site's shot rigs hide it.
+- **Not built from B3:** nothing of 11.1, 11.2, 11.4–11.6 – the cockpit's
+  footer buttons, the generated tooltips, the contextual crib, the first-run
+  line and the app's menu are still open.
