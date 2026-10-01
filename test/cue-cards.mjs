@@ -164,7 +164,7 @@ Second.
 > note: from 5
 > **pinned past the end**
 
-## free: Named after the cockpit {#psiINT-cue-panel}
+## free: Named after the cockpit {#cue-panel}
 
 A lecture may name a chunk anything, including what the cockpit calls its
 own furniture. The chunks are in the cockpit's document too, inside the
@@ -602,9 +602,9 @@ export async function run({ page, report }) {
       && document.querySelector('body > #psiINT-cue-panel').tagName === 'SECTION'),
      'the cue panel is the section, not a chunk that happens to share its name');
   ok(await spk.evaluate(() => {
-    const chunk = [...document.querySelectorAll('.chunk')].find(c => c.id === 'psiINT-cue-panel');
+    const chunk = [...document.querySelectorAll('.chunk')].find(c => c.id === 'cue-panel');
     return !!chunk && getComputedStyle(chunk).display !== 'none';
-  }), 'and a chunk carrying that id is still drawn in the mirror');
+  }), 'and a chunk carrying the panel\'s old name, cue-panel, is still drawn in the mirror');
 
   // ── the drift is measured against the deck, not the slide ────────
   ok(await spk.evaluate(() => !document.getElementById('psiINT-drift').hidden),
