@@ -190,7 +190,7 @@ Ground rules for every slice:
 
 ## Phase 3 – prose passes (prose-passes skill, EN + DE together)
 
-Lectures `[~]`: prose-tut (tutorial) · prose-dg (diagrams, network-security) · prose-deco (decoration, title-block, display-face, spoken-talk ×2, python-intro, frame-lab, credits) – all Opus. Then build:tracked + browser suite again.
+Lectures `[x]`: tutorial 85f15e00 · decoration, title-block, display-face, spoken-talk ×2 (see git log) · diagrams, network-security (see git log) · views 30d9d6ae. python-intro left alone: the site's shots come from it. Credits: `presenter:` + `affiliation:` everywhere except python-intro.
 
 `[x]` site-p3 – b58c4016 (in-the-room, decoration, prompter) · index + getting-started in 5e4d0f3c
 
@@ -206,14 +206,14 @@ on the pages as they then stand.
 - [x] `decoration` – `:188–190`, `:209–211`, `:304–305`; „deck“ → „lecture“.
 - [x] Figures page (merged) – `figures.html:850`, `:862`.
 - [x] `comparison` – `:42`, `:44` universal claims.
-- [ ] Tutorial (basics) – cover slide explains its own composition; `:147`
+- [x] Tutorial (basics) – cover slide explains its own composition; `:147`
       cockpit deferred; `:270`, `:322–324`, `:541` engine detail in first lessons;
       `:363`, `:1506`, `:1631`, `:1746` changelog asides; `:609`, `:665–667`
       payload KB; `:1584`; hard breaks `:1317–1319`.
-- [ ] `diagrams`, `decoration`, `title-block` (`:31–32`, `:44–49`),
+- [x] `diagrams`, `decoration`, `title-block` (`:31–32`, `:44–49`),
       `display-face` subtitle, `network-security` compiler commentary on content
       slides (`:49`), `spoken-talk:56`, `demo-responsibility:181` quotes.
-- [ ] Credits: one scheme across the decks (`presenter:` + `affiliation:`).
+- [x] Credits: one scheme across the decks (`presenter:` + `affiliation:`).
 
 ## Phase 4 – close
 
@@ -221,6 +221,10 @@ on the pages as they then stand.
 - [x] Browser suite after the split: 1737 passed, 0 failed.
 - [ ] `img/builder.webp` is used by no page any more; `shoot.mjs` still takes it (owned by the other session – tell it).
 - [ ] Dark mode of the changed site pages not checked.
+- [ ] Browser suite after the prose passes (running).
+- [ ] Site shots to re-shoot (`shoot.mjs`, owned by the other session): `deco-display-cover` (display-face subtitle changed), maybe `deco-display-divider`, the prompter cockpit shots EN + DE (`#two-numbers` note changed), maybe the decoration tiles (chunks above moved), `builder-lecture.webp` (alt says 92 slides).
+- [ ] python-intro: „the hour ahead“ vs „all afternoon“ – left because of the shots.
+- [ ] spoken-talk `#board`: sub-heading says „six steps“, the drawing has three boxes – check.
 
 - [ ] `comparison`'s details: a `summary` style in `site.css` (it is the
       browser default now) and open the block a `#fragment` names (`site.js`,
