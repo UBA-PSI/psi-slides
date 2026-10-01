@@ -1,6 +1,7 @@
 ---
-title: Frame lab
-subtitle: Docks, panels and nested beats pushed to their edges
+title: Rahmenlabor
+subtitle: Docks, Panels und verschachtelte Beats bis an ihre Grenzen
+lang: de
 cover: quote
 section: outline
 section-mark: Teil

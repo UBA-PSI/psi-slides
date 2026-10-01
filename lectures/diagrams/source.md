@@ -1,6 +1,6 @@
 ---
 title: Animated Infographics
-subtitle: "Six real lecture slides, rebuilt in ::: draw"
+subtitle: "A catalogue of the ::: draw figure language, with the finished pictures first"
 theme: dark
 collapse: none
 auto-fit: true
@@ -389,7 +389,7 @@ edge b -> c "recoded"
 edge b -> x {.dashed}
 :::
 
-`box`, `dot`, `text`, `image`, `edge`, `brace`, `container`, `bars`, `grid`, `plot`, `table`, `lanes`, `sequence`, `align`, `spread`, `default`, `step` – seventeen statements, and no more. `-- x` on a `text` draws a short line to what it is about: a leader, not an arrow. An arrow claims a connection, a leader only says what the note refers to.
+`box`, `dot`, `text`, `image`, `zone`, `edge`, `brace`, `container`, `bars`, `grid`, `plot`, `table`, `lanes`, `sequence`, `align`, `spread`, `row`, `col`, `default`, `step` – twenty statements. `-- x` on a `text` draws a short line to what it is about: a leader, not an arrow. An arrow claims a connection, a leader only says what the note refers to.
 
 **Everything in it is measured in grid units, including what carries no label.** The `dot` in the middle has no `r` and so has a *radius* of 0.18 units – 0.36 across – rather than a fixed number of pixels. The difference shows the moment a block changes its `unit=`: a pixel figure would stay where it was while every box around it grew.
 
@@ -666,7 +666,7 @@ step all-again
 
 **`move` shifts an element, and everything hanging off it goes too.** The proxy gets `move px to between cl,sv`, and because the layout is worked out again at every step, the two dashed arrows still hang off it, the short line on the label still points at it, and the `container` suddenly holds a row instead of two. `hide direct` takes the direct arrow away. `to` names a position and `by` shifts by an amount – and **the build refuses `move @tag to …`**, which would stack the whole set on one point; for a set, `by` is what is meant.
 
-**A beat can also take a class off, and `{!class}` is the only word for it.** A `style` step could once only *add*, and because many slots spell their base state as the absence of every member – ordinary prominence, a solid stroke, the normal type size – a beat could leave such a state and never reach it again. The last beat here takes `.dim` and `.emph` off and gives the figure its opening weighting back. **The mark removes the exact name written, not the slot**: `{!dim}` clears no `.ghost`, and a later beat may set `.dim` again.
+**A beat can also take a class off, and `{!class}` is the only word for it.** A `style` step adds classes, and many slots spell their base state as the absence of every member – ordinary prominence, a solid stroke, the normal type size – so without `{!class}` a beat could leave such a state and never reach it again. The last beat here takes `.dim` and `.emph` off and gives the figure its opening weighting back. **The mark removes the exact name written, not the slot**: `{!dim}` clears no `.ghost`, and a later beat may set `.dim` again.
 
 ## free: What a step does not have to say {.wide #motion-implicit}
 
@@ -784,7 +784,7 @@ text under "two questions,\nnot prepared" in room bottom {.small .muted}
 **`w` and `h` are optional, and an axis nobody writes is the one the contents settle.** `room` is as wide as the widest thing placed in it plus the pad; its height is written, which is what lets `bottom` mean anything. That closes the split with `container`: an area sized by its contents keeps its ground, its caption and its place under everything, and an area with both numbers is the fixed claim on the paper it always was.
 :::
 
-## figure: Six statements that expand {.full #expand}
+## figure: Seven statements that expand {.full #expand}
 
 ::: draw 150x62
 bars f "20,19,17,12,11,10,9,9,8,7,6,5" at 0,0 w 2.4 h 1.0
@@ -802,7 +802,7 @@ step exception
   emph f-0, f-1, f-2
 :::
 
-**Six statements expand at parse time into ordinary elements.** `bars` becomes a box per column (`f-0` … `f-11`), a baseline and – where a second string is written – a text per label; `grid` a cell per field (`g-<column>-<row>`); `plot` a frame with gridlines and axes; `table` a box per cell; `lanes` a band per lane; `sequence` a head, a lifeline, a message and a note per entry. Everything downstream treats the result like any other element: the `brace` spans three columns because three columns are three ordinary boxes, and a `style` step tints three cells because they are boxes. What makes that work is that a coordinate may be another element's – every cell is placed against an edge of the frame the same statement lays. The other four come later: `plot` on *A frame to draw in*, and `table`, `lanes` and `sequence` in Part 5.
+**Seven statements expand at parse time into ordinary elements.** `zone` becomes a box and a text; `bars` becomes a box per column (`f-0` … `f-11`), a baseline and – where a second string is written – a text per label; `grid` a cell per field (`g-<column>-<row>`); `plot` a frame with gridlines and axes; `table` a box per cell; `lanes` a band per lane; `sequence` a head, a lifeline, a message and a note per entry. Everything downstream treats the result like any other element: the `brace` spans three columns because three columns are three ordinary boxes, and a `style` step tints three cells because they are boxes. What makes that work is that a coordinate may be another element's – every cell is placed against an edge of the frame the same statement lays. The other four come later: `plot` on *A frame to draw in*, and `table`, `lanes` and `sequence` in Part 5.
 
 **An edge is one of the things a coordinate can be read off.** `w1.cx`, `w1.cy`, `above w1 gap 0.2` – what is read is the wire's bounding box. That counts as soon as a sentence describes the wire rather than one of its ends. Pinned to a box, such a sentence keeps its distance from the box and loses it from the line the moment a fraction or a height changes, with no warning. An edge has no name until you give it one, and the name goes in front, as it does on every other statement: in the slot before the first endpoint, `edge w1 mix -> log`. Staying anonymous costs nothing, the slot being optional. Place in a circle – an element against an edge that itself hangs off it – and you get `placement cycle` with the line number.
 
@@ -1155,7 +1155,7 @@ step everything
 
 **Everything else it answers by keeping a name on every part, not by adding words.** Each head keeps the name its `actor` line gives it; each lifeline is `<actor>-life`, each message `wa-N` (counted from 0, so the number drawn is `N+1`), its number `wa-n-N`, its smaller second line `wa-sub-N`, each note `wa-note-N`. Plus tags for the sets: `@wa-msg-N` for one message with its number and second line, `@wa-msgs` for all of them, `@au-msgs` for all that touch the authenticator, `@wa-notes`, `@wa-actors`, `@wa-lives`. The brace and the handwritten annotation on *A protocol down the page* are therefore ordinary lines hung off `wa-3` and `wa-2`, and the statement knows nothing about either.
 
-**There is no `alt` / `else`.** Enclosing a group of messages and naming it is what `container … pad n` already draws, and two of the nine figures in the measured corpus wanted it. A word that freezes with the first release deserves more cases than that.
+**There is no `alt` / `else`.** Enclosing a group of messages and naming it is what `container … pad n` already draws, and two of the nine figures in the measured corpus wanted it. A new word in the grammar needs more cases than that.
 
 
 ## figure: What else a message can be {.wide #seqmore}
@@ -1224,7 +1224,7 @@ step verdict
 
 ## closing: The drawing lives in the source | so it is reviewed, diffed and fixed where the words are {#end}
 
-Seventeen statements, one inline `<svg>` per figure, and beats that ride the
+Twenty statements, one inline `<svg>` per figure, and beats that ride the
 same counter a reveal does. Nothing in this lecture is a file exported from a
 drawing tool and pasted back in – which is why a figure survives the edit that
 renames the thing it is about.

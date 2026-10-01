@@ -15,7 +15,7 @@ draw-defaults: |
   default container pad 0.4
 ---
 
-## title: Network Security | thirty-six slides, rebuilt from text {#cover}
+## title: Network Security | thirty-six slides, rebuilt as animated figures {#cover}
 
 Every figure in this lecture is written in the lecture source, laid out at build
 time, and stepped with the same key that advances a reveal. The wording of every

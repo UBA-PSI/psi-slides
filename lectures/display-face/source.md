@@ -45,8 +45,7 @@ fonts:
 
 This deck wears `Anton`. The heading above this paragraph does not, and neither
 does a card lead, an overlay title or a figure label. **A deck that names no
-display face embeds nothing** and builds byte for byte what it built before the
-role existed.
+display face embeds nothing** and builds as it did without the role.
 
 ## free: Thirty-two faces, in three flavours {.wide #roster}
 
@@ -70,7 +69,8 @@ All SIL OFL 1.1, one latin `woff2` each, a median of 21 KB on top of the deck.
 :::
 
 A name and a sentence do not carry what a face looks like at the back of a room.
-`tools/font-playground/` draws each one into a real cover and a real divider.
+The [display faces page](https://uba-psi.github.io/psi-slides/display-faces.html)
+draws each one into a real cover and a real divider.
 
 # Choosing one {#choosing}
 

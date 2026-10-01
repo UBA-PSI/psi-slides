@@ -84,7 +84,7 @@ A name and a sentence carry the idea; they do not carry the shape it makes. Each
 of the ten is shot from a real build in the
 [gallery](https://uba-psi.github.io/psi-slides/decoration.html#covers).
 
-## free: Three keys the cover reads {.wide #cover-keys}
+## free: Four keys the cover reads {.wide #cover-keys}
 
 **`cover-image:`** names the picture, and four of the ten draw one: `split`,
 `hero`, `beside` and `above`. On the last two it is only the fallback – they
@@ -99,8 +99,13 @@ frame comes from the projector, and this splits it.
 **`cover-align:`** puts the block of text at the `top`, the `middle` or the
 `bottom`. The seven compositions that leave the block any freedom read it.
 
-Set either of the last two keys on a composition that has already settled the
-question and the build stops with an error rather than ignoring the line.
+**`cover-ground:`** is `paper` or `ink`: `ink` opens a light deck on a dark
+slide with no photograph behind it. A backdrop's own scrim wins over it.
+
+Set `cover-ratio:` or `cover-align:` on a composition that has already settled
+the question and the build stops with an error rather than ignoring the line.
+`closing-image:` is the closing slide's counterpart of `cover-image:` – see the
+closing slide below.
 
 ## free: `quote` draws no quotation mark {.standard #cover-quote}
 
@@ -116,9 +121,13 @@ without one fails the build.
 **`## closing:` draws the last slide in whatever composition `cover:` names**,
 so the room sees the shape the lecture opened with.
 
-What it carries is different: your own heading, sub-heading and text, and
-neither the presenter line nor the `info` block – the room learned who is
-talking and where an hour ago. The last slide of this lecture is one.
+What it carries is different: your own heading, sub-heading and text. The
+presenter line and the `info` block stay off it by default, because the room
+learned who is talking and where an hour ago. `closing-credits: contact` brings
+back the row along the foot – this lecture sets it, so its last slide carries the
+address – and `cover` brings back the whole credit block. `closing-image: cover`
+ends the deck on the picture it opened with; any other value names a different
+one.
 
 # Dividers carry their own slide {#dividers}
 
@@ -376,7 +385,7 @@ not, where the backdrop's list says where the picture is at each beat.
 
 An overlay and a reveal segment both fade in, and neither moves anything: the
 segment has its box in the text from the first beat, and the overlay has its
-cell over the picture. What `from` adds is the *number* - a segment takes the
+cell over the picture. What `from` adds is the *number* – a segment takes the
 next beat in order unless it is written `--- from N`, where an overlay says
 which beat it waits for and nothing else can reach it first.
 
@@ -427,8 +436,8 @@ at the start of Part 2 does.
 
 **Nine places, five backgrounds, four widths, two shapes.** Aim two overlays
 at the same corner and they stack rather than landing on top of each other.
-A `panel` is the card grown to the frame - the next part shows the three
-compositions - and `third` / `half` are a band's height.
+A `panel` is the card grown to the frame – the next part shows the three
+compositions – and `third` / `half` are a band's height.
 
 ::: cards 3
 - **place**\
@@ -518,10 +527,10 @@ refused: a panel runs along one edge, or takes them all.
 
 **An overlay lies over the slide; a dock takes its room from it.** The list on
 the left is one `::: dock {.left .every}` written under this part's `#` heading,
-and every chunk of the part carries it - the item the room is on lights up,
+and every chunk of the part carries it – the item the room is on lights up,
 because each entry is a link to a chunk's `{#id}`.
 
-**Four edges, the overlay's grounds, three widths.** A left or right dock is a
+**Four edges, six grounds, three widths.** A left or right dock is a
 column the full height of the slide and the text column narrows beside it; a
 top or bottom dock is a band across the whole width and the text sits above or
 below it. A chunk that writes its own `::: dock` replaces the inherited one for
@@ -531,7 +540,7 @@ that slide.
 
 **A `.wide` chunk keeps `::: cols 2` beside the inherited dock.** The chunk
 reserves the dock's track as padding, so the content column is what the
-slide leaves - and the linter says when that falls under the measure
+slide leaves – and the linter says when that falls under the measure
 (`dock-narrows-measure`) or under what a column needs (`layout-too-narrow`).
 
 ::: cols 2
@@ -570,7 +579,7 @@ where it is a box before the text.
 ## free: A dock held to a beat arrives into a track kept free {.wide #dock-from}
 
 **`from 2` holds this remark back until the second beat.** The text column
-has been narrow from the start, so nothing moves when the dock slides in - the
+has been narrow from the start, so nothing moves when the dock slides in – the
 rule an overlay card follows, kept here because a slide that reflows under the
 room's eyes reads as a fault.
 
@@ -583,7 +592,7 @@ The first beat shows this line.
 The second brings the dock.
 
 ::: dock {.right .glass} from 2
-**Merke:** the frame, not the words, made room for this.
+**Note:** the frame, not the words, made room for this.
 :::
 
 ## free: The dock's words {.wide #dock-slots}
@@ -640,7 +649,7 @@ brace p3 over b5,b6 "the card row" side bottom pad 0.3 {.muted}
 
 **A `---` inside a pane, a card row or a dock is a beat on the slide's own
 counter.** Left one, left two, right one, right two, then the card row, then
-its third card - the order they were written in, top-level and nested mixed.
+its third card – the order they were written in, top-level and nested mixed.
 
 ::: side
 **Left one.** A nested beat keeps its box: the pane stands at its final height
@@ -746,5 +755,6 @@ step note
 
 ## closing: A slide is a frame | and the frame can carry more than a column of text {#end}
 
-A `source.md` written before any of these constructions builds exactly as it
-did before.
+All ten covers and all six dividers are shot from real builds in the
+[gallery](https://uba-psi.github.io/psi-slides/decoration.html); the
+`psi-slides-decoration` skill has the vocabulary of each.
