@@ -29,7 +29,9 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import dgram from 'node:dgram';
+import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -716,6 +718,64 @@ try {
   } else {
     note('pdftotext is not on PATH – skipping the pulse text checks.');
   }
+
+  // ── what no route sees ────────────────────────────────────────────
+  // A deck script can reach the network two ways page.route and
+  // page.routeWebSocket do not see: WebRTC, which sent a STUN binding over
+  // UDP, and a WebSocket opened in a Worker. Both are aimed at listeners on
+  // loopback here, so the test needs no network to see one get through, and
+  // the build runs asynchronously so the listeners can hear it.
+  console.log('\nwhat no route sees: WebRTC and a worker\'s socket stay in the page');
+  const ldir = path.join(dir, 'leak');
+  fs.mkdirSync(ldir);
+  const heard = [];
+  const udp = dgram.createSocket('udp4');
+  const tcp = net.createServer((s) => { heard.push('tcp'); s.destroy(); });
+  udp.on('message', () => heard.push('udp'));
+  await new Promise((res) => udp.bind(0, '127.0.0.1', res));
+  await new Promise((res) => tcp.listen(0, '127.0.0.1', res));
+  const udpPort = udp.address().port;
+  const tcpPort = tcp.address().port;
+  fs.writeFileSync(path.join(ldir, 'source.md'), `---
+title: The leak fixture
+---
+
+## free: A slide whose script tries the network {#leak}
+
+Nothing on this slide should reach a listener.
+
+<script>
+(function () {
+  try {
+    var pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:127.0.0.1:${udpPort}' }] });
+    pc.createDataChannel('x');
+    pc.createOffer().then(function (o) { return pc.setLocalDescription(o); });
+  } catch (e) {}
+  try {
+    new Worker(URL.createObjectURL(new Blob(
+      ["try { new WebSocket('ws://127.0.0.1:${tcpPort}/'); } catch (e) {}"],
+      { type: 'text/javascript' })));
+  } catch (e) {}
+})();
+</script>
+`);
+  const lr = await new Promise((res) => {
+    const c = spawn(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(ldir, 'source.md'), '--slides-pdf', '--print-pdf'],
+      { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    c.stdout.on('data', (d) => { out += d; });
+    c.stderr.on('data', (d) => { out += d; });
+    c.on('close', (status) => res({ status, out }));
+  });
+  // A STUN retry or a late worker would land after exit, so listen a beat
+  // longer than the build ran.
+  await new Promise((res) => setTimeout(res, 1500));
+  udp.close();
+  tcp.close();
+  ok(lr.status === 0, 'the leak deck exports', lr.out.slice(-400));
+  ok(!heard.includes('udp'), 'no STUN packet from an RTCPeerConnection reaches its server', heard.join(','));
+  ok(!heard.includes('tcp'), 'no WebSocket opened in a Worker reaches its server', heard.join(','));
 } finally {
   // $PSI_PDF_KEEP leaves the fixture, the DOM dump and both PDFs in $TMPDIR.
   // A failing DOM assertion is a question about one string in a megabyte of

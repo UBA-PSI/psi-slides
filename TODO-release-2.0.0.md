@@ -22,17 +22,6 @@ Not in this file, because they are decisions rather than defects:
 
 ## S1 – Security (a source.md someone sent you)
 
-1. **PDF export: WebRTC leaks past the network refusal**, both drivers
-   (`pdf-export.mjs:58–71`, `desktop/main/pdf.js:177,194–197`). A deck
-   script `new RTCPeerConnection({iceServers:[{urls:'stun:HOST:PORT'}]})`
-   sent STUN over UDP during `--slides-pdf` and from a hidden window set up
-   like `pdf.js`'s. Fix: `--force-webrtc-ip-handling-policy=disable_non_proxied_udp`
-   plus a dead proxy / host-resolver rule for Chromium;
-   `webContents.setWebRTCIPHandlingPolicy('disable_non_proxied_udp')` in
-   Electron; or stub `RTCPeerConnection` before load.
-2. **PDF export (CLI): a WebSocket opened in a Worker is not refused**
-   (`pdf-export.mjs:68`; `page.routeWebSocket` does not see workers). The
-   Electron driver blocks it at the session.
 3. **`--frames` writes outside the lecture folder** (`build.js:30520`): the
    chunk id from the live DOM goes into the file name unsanitised; a deck
    script setting `data-chunk-id='../../../../x'` wrote PNGs two folders up.

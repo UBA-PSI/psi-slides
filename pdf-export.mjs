@@ -36,8 +36,24 @@ function userError(msg) {
 // The contract is in pdf-core.mjs's header. One browser, one fresh context
 // per page, so each export starts with empty storage - the audience runtime
 // restores position, zoom and theme from localStorage on boot.
+//
+// The routes below are the refusal the export can report; these arguments
+// are the floor under them, for what no route sees. A WebSocket opened in a
+// Worker passes page.routeWebSocket by, and WebRTC sends STUN over UDP past
+// every request layer: a deck script with an RTCPeerConnection reached a
+// stun: server during the export. So every connection Chromium makes goes to
+// a proxy whose name cannot resolve, loopback included (`<-loopback>` drops
+// the implicit bypass, or a worker could still reach a --watch socket), and
+// WebRTC may use no UDP that does not go through that proxy - which is none.
+export const OFFLINE_ARGS = [
+  '--proxy-server=http://psi-offline.invalid:9',
+  '--proxy-bypass-list=<-loopback>',
+  '--host-resolver-rules=MAP * ~NOTFOUND',
+  '--webrtc-ip-handling-policy=disable_non_proxied_udp',
+];
+
 async function playwrightDriver(chromium, executablePath) {
-  const browser = await chromium.launch({ executablePath, headless: true });
+  const browser = await chromium.launch({ executablePath, headless: true, args: OFFLINE_ARGS });
   return {
     version: browser.version(),
     where: executablePath,

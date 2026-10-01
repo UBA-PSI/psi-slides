@@ -164,6 +164,10 @@ the PDF is made.
   `wss` – is refused before the page loads. A hosted embed or a remote
   picture is missing from the PDF, and the export says so; the reload
   connection of a `--watch` build is refused as well, without a message.
+  What the export cannot see as a request is stopped underneath: the browser
+  sends every connection to a proxy that does not exist, and WebRTC may use
+  no other way out, so a script's peer connection or a WebSocket opened in a
+  worker reaches nobody either.
 - **Nothing is carried over from an earlier session.** The page starts from
   empty browser storage, so no sign-in to Pulse and no saved position,
   theme or highlight reaches it.

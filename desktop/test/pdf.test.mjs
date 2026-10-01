@@ -202,3 +202,14 @@ test('the file is written whole or not at all', async () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('the export window keeps WebRTC off the network', () => {
+  // The driver runs only under Electron, so this reads it as text. WebRTC
+  // passes the session's webRequest by: a deck script's RTCPeerConnection
+  // sent STUN over UDP from a window set up like this one until the policy
+  // and the dead proxy were set. The command line's floor is OFFLINE_ARGS in
+  // pdf-export.mjs, exercised for real by test/pdf-export.mjs.
+  const src = fs.readFileSync(new URL('../main/pdf.js', import.meta.url), 'utf8');
+  assert.match(src, /setWebRTCIPHandlingPolicy\('disable_non_proxied_udp'\)/);
+  assert.match(src, /await ses\.setProxy\(\{ proxyRules: 'http:\/\/psi-offline\.invalid:9', proxyBypassRules: '<-loopback>' \}\)/);
+});

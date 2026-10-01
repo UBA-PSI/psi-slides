@@ -153,6 +153,17 @@ A third set concerns the two live views while a talk runs:
   alone, as the two documents do. The cockpit does the same when it has
   neither the editor nor the prompter.
 
+A fourth set closes what a review of the whole repository found before the
+tag:
+
+- **A PDF export keeps WebRTC and a worker's sockets off the network.** The
+  export refused every `http`, `https`, `ws` and `wss` request a page made,
+  but a deck script could still send STUN over UDP from an
+  `RTCPeerConnection`, from the command line and from the desktop builder,
+  and on the command line open a WebSocket from a Worker. The browser the
+  export starts now sends every connection to a proxy that does not exist
+  and lets WebRTC use no UDP outside it.
+
 ### Added
 
 - **The `?` panel in both live views has a search field.** It has the focus

@@ -198,6 +198,12 @@ function electronDriver() {
       });
       // A page from a source.md somebody else wrote asks for nothing.
       ses.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
+      // WebRTC passes webRequest by: a deck script with an RTCPeerConnection
+      // sent STUN over UDP from this window. The window below may use no UDP
+      // that does not go through the proxy, and the proxy is a name that
+      // does not resolve, loopback included - the floor the command line's
+      // OFFLINE_ARGS lay under its routes.
+      await ses.setProxy({ proxyRules: 'http://psi-offline.invalid:9', proxyBypassRules: '<-loopback>' });
 
       const win = new BrowserWindow({
         show: false,
@@ -214,6 +220,7 @@ function electronDriver() {
       });
       windows.add(win);
       const wc = win.webContents;
+      wc.setWebRTCIPHandlingPolicy('disable_non_proxied_udp');
       // The rule the app's own window keeps: nothing opens a second window
       // and nothing leaves the page it was loaded with.
       wc.setWindowOpenHandler(() => ({ action: 'deny' }));
