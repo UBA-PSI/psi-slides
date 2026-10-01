@@ -2125,4 +2125,17 @@ step turn
       'an edge that changes axis while on screen is warned about, and the warning names both beats',
       changes.join(' | '));
   }
+
+  // ── one authored defect, one diagnostic ─────────────────────────────
+  // A chart's first column is called `a-0`, so a box of that name collides
+  // with it – and the layout, holding the column under the name, used to
+  // report a placement cycle the author never wrote on top of the duplicate.
+  {
+    const dup = render('box a-0 "X"\nbars a "1,2,3" right of a-0');
+    ok(!dup.ok && /duplicate element id "a-0"/.test(dup.msg) && !/placement cycle/.test(dup.msg),
+      'a generated name that collides is reported as the duplicate alone', dup.msg);
+    const loop = render('box a "A" right of b\nbox b "B" right of a');
+    ok(!loop.ok && /placement cycle: a → b → a/.test(loop.msg),
+      'and a cycle the author wrote is still reported', loop.msg);
+  }
 }

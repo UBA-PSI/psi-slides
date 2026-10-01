@@ -1360,6 +1360,61 @@ A third set concerns the two live views while a talk runs:
 
 ### Fixed
 
+- **The diagram editor's structured edits do what they say, and only when
+  they did it.** Seven defects from the review before 2.0.0, each reproduced
+  by driving `editor.mjs` against the compiler and now held by a gate of its
+  own (`node test/gates/run.mjs editor`):
+
+  - *Renaming* an element moved only what it named. Renaming `a` to `c` used
+    to rewrite `emph a-b-0` – a column of a sibling `bars a-b` – to
+    `emph c-b-0`, rename a step called `a` along with it, and turn the width
+    keyword in `w 2` into `c 2`, so an element called `w`, `at` or `left`
+    could not be renamed at all. A generated name now follows only the
+    statement that generated it, a step's name is never an element's, and a
+    word that spells the name is checked against the parser before it is
+    rewritten.
+  - *Resizing* a box written `same w as a` (or `same h as a`) was always
+    refused: the span table took the `w` of `same w as` for the width keyword
+    and handed the drag the token `as` to overwrite. The drag now drops the
+    relation for the axis it moves and writes the number, the way it already
+    did for `same as`.
+  - *Paste in place* of a copy holding the figure's first element pasted an
+    element with no placement and was refused; it now gets the `at` it was
+    drawn at.
+  - *Delete, paste and adding a step op* said "deleted", "pasted" and
+    "written" after the edit had been refused and rolled back.
+  - *Deleting* an element with a chain of dependents – `b right of a`,
+    `c right of b` – was always refused, because only direct dependents went
+    with it. Whatever goes is now asked in turn what names it.
+  - *A `table` or a `sequence`* was handled by its first line: deleting a
+    table was refused, duplicating one dropped its rows, and a sequence could
+    be neither duplicated nor pasted. The compiler records where such a
+    statement ends (`endLine`), and delete, duplicate, copy and paste take the
+    whole statement – a sequence's actors renamed with it.
+  - *Pasting into another figure* could write one name twice: a clipboard
+    holding `a` and `a2`, pasted where `a` exists, renamed `a` to `a2`. A
+    fresh name is now fresh from the other pasted names too, and a generated
+    name on the clipboard (`t-0-0`) follows its renamed maker (`t2-0-0`).
+
+- **A reader's kept figure edits are filed per lecture.** The editor kept them
+  in `localStorage` under the chunk id alone, and Chrome gives every page
+  opened from `file://` one store – so an edit to `#fig` in one lecture was
+  drawn in another lecture's `#fig`. The key is now
+  `psi-diagram:v1:<source folder>:<chunk>#<n>`, the folder name the reader's
+  highlights are filed under. Edits kept under the old key are not read,
+  because nothing in that key says which lecture wrote them.
+
+- **A `::: draw` grid with an enormous side is refused rather than crashing
+  the build.** `::: draw 1000000000000000000000x5` passed the opener check,
+  and the canonical opener formatted from it read `1e+21x5`, failed its own
+  check and threw with a stack; `lint.js` passed the line. A grid side is now
+  1 to 2000 px, refused as `bad-unit` by the build and the linter alike.
+
+- **A name a chart generates that collides with an element is reported once.**
+  `box a-0` beside `bars a … right of a-0` reported the duplicate name and a
+  placement cycle `a-0 → a → a-0` the author never wrote; the cycle through a
+  name two elements answer to is now left to the duplicate's message.
+
 - **Nothing held `KNOWN_FRONTMATTER_KEYS` against what `build.js` reads, and
   the shape of that failure is a false warning on a valid deck.** The list is
   `lint.js`'s closed set of top-level frontmatter keys some renderer reads;

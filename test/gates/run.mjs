@@ -9,9 +9,9 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Twenty gates, and they prove twenty different things – which is worth stating
- * because a green run summarised as one number hid a wrong drawing behind a
- * passing parse:
+ * Twenty-one gates, and they prove twenty-one different things – which is
+ * worth stating because a green run summarised as one number hid a wrong
+ * drawing behind a passing parse:
  *
  *   refusals   build and lint agree on what is refused, and on what is not
  *   accepts    every construct the grammar offers still parses
@@ -75,6 +75,10 @@
  *              run function where it is answered, and every key the live
  *              views answer has a row in their ? panel - the panel rendered,
  *              and a reviewed list of the keys answered without one
+ *   editor     the editor's acts that rewrite a figure's source - rename,
+ *              delete, duplicate, copy and paste, a step's ops, a resize,
+ *              the reader's shelf - driven in a vm with diagram-core as
+ *              window.PSI_DG and a DOM that is never there
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -106,6 +110,7 @@ const GATES = [
   './pdf-core.mjs',
   './id-namespace.mjs',
   './commands.mjs',
+  './editor.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

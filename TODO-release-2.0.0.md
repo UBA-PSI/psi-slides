@@ -69,12 +69,7 @@ Not in this file, because they are decisions rather than defects:
    (`build.js:28157, 28239`): `logo.png` and `logo.jpg` → one `logo.webp`,
    both originals deleted; also overwrites an unrelated referenced
    `logo.webp`. Refuse or pick a free name.
-3. **The editor's localStorage key does not name the lecture**
-   (`editor.mjs:7802, 7811`, `'psi-slides:diagram:' + chunkId + '#' + nth`).
-   Chrome shares one `file://` store, so an edit in lecture A is drawn in B's
-   `#fig` (confirmed in Chrome). `dgeNewFigure` suggests `#figure-1`
-   everywhere; dividers share `unnamed#N`. Key it like the reader does.
-4. **`--watch` keeps a replaced picture's old pixels**: `webpInlineCache`
+3. **`--watch` keeps a replaced picture's old pixels**: `webpInlineCache`
    (`build.js:500, 518`) is never cleared in `buildOnce`; also the editor's
    asset upload with `replace: true`.
 
@@ -180,32 +175,6 @@ Not in this file, because they are decisions rather than defects:
 9. *Read*: **the app can export a stale PDF** (`desktop/main/pdf.js:81`):
    auto off, save, auto on, export – no rebuild, not flagged.
    `desktop/test/pdf.test.mjs:101–103` asserts the wrong assumption.
-
-## S6 – Diagram editor and tails
-
-1. **Renaming can retarget references to another element**
-   (`editor.mjs:5928`, `dgeRenameMap` moves every id starting `id-`): rename
-   `a` → `c` turns `emph a-b-0` (a sibling `bars a-b`) into `emph c-b-0`. A
-   step named like the element is renamed too; an element named `w`, `at`,
-   `left` can never be renamed.
-2. **Resizing `same w as X` is always refused** (`diagram-core.mjs:3474`,
-   `same` missing from the reference-introducing words in `createSpanTable`).
-3. **Paste in place fails when the copy includes the figure's first
-   element** (`dgePaste` ~7640: no placement for the anchor).
-4. **Delete, paste and step edits report success after a refusal**
-   (`editor.mjs:4620, 7682, 7125` ignore `dgeSetSource`'s result;
-   `dgeAppendLine` has the guard).
-5. **Deleting an element with a dependent chain is always refused**
-   (4586–4618, only direct dependents removed).
-6. **Multi-line statements are handled by their first line**: deleting a
-   `table` is refused, duplicating one drops its rows, a `sequence` cannot be
-   duplicated or pasted.
-7. **Pasting into another figure can create a duplicate name**
-   (`dgeFreshName` 4242 ignores the other clipboard names).
-8. **A huge grid crashes the build with a stack** (`tails.mjs:507, 518`,
-   `validUnit` unbounded, `1e+21x5`); lint is clean.
-9. **`claim()` reports the "cannot happen" placement cycle** with
-   `box a-0` plus `bars a … right of a-0`. Low.
 
 ## S7 – Release blockers
 

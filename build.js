@@ -13673,7 +13673,10 @@ function renderTocNav(columns, S) {
 // a diagram at all – the same rule the KaTeX stylesheet follows, which is
 // emitted only into views that contain a formula – and the author has to not
 // have declined it.
-function editorPayload(frontmatter, columnsHtml, view) {
+// `lectureKey` is the source folder's name, the key the reader's highlights
+// are filed under: a reader's kept figure edits are filed under it too, since
+// every lecture opened from file:// shares one store in Chrome.
+function editorPayload(frontmatter, columnsHtml, view, lectureKey) {
   const want = viewDefaults(frontmatter).editor || 'both';
   if (want === 'none') return '';
   if (want === 'speaker' && view !== 'speaker') return '';
@@ -13695,6 +13698,7 @@ function editorPayload(frontmatter, columnsHtml, view) {
     + `<script>\n${diagramCoreJs()}\n`
     + `window.PSI_DG_DEFAULTS = ${jsonForScript(base)};\n`
     + `window.PSI_DG_EDIT_HTML = ${peerNeedsHtml};\n`
+    + `window.PSI_DG_LECTURE = ${jsonForScript(lectureKey || 'lecture')};\n`
     + `${editorJs()}\n</script>`;
 }
 
@@ -13765,7 +13769,7 @@ const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
 ${DIAGRAM_JS}
 ${AUDIENCE_JS}
 </script>
-${editorPayload(frontmatter, columnsHtml, 'audience')}
+${editorPayload(frontmatter, columnsHtml, 'audience', opts.lectureKey)}
 </body>
 </html>
 `;
@@ -23944,7 +23948,7 @@ ${DIAGRAM_JS}
 ${AUDIENCE_JS}
 ${SPEAKER_JS}${souffleuseRuntime}
 </script>
-${editorPayload(frontmatter, columnsHtml, 'speaker')}
+${editorPayload(frontmatter, columnsHtml, 'speaker', opts.lectureKey)}
 </body>
 </html>
 `;
@@ -29671,7 +29675,8 @@ function buildOnce(absIn, only, opts = {}) {
   lastQrStats = { count: 0, bytes: 0 };
   stagedVideos.clear();
   // The documents file a reader's highlights under the source folder's name
-  // (see renderDocument); the live views do not read it.
+  // (see renderDocument), and the live views' editor a reader's kept figure
+  // edits (see editorPayload).
   const renderOpts = { ...opts, fontEmbed, strings, codeSizing, lectureKey: path.basename(outDir) };
 
   const targets = [
