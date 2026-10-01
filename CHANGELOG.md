@@ -1175,7 +1175,7 @@ tag:
   through two panes and a card row; rows one at a time) – and the dock part
   grew a `.wide` chunk with two columns beside the dock, a band at the head
   and the slot card; the overlay slot card names `shape` and `height`.
-  `lectures/frame-lab/` stays as the untracked edge-case deck.
+  `lectures/frame-lab/` stays as the edge-case deck, its source tracked and its views not.
 - **`lint.js` reads the flow form of the `style:` block**, `style: {bold:
   accent, wrap: none}`, which the documentation writes everywhere and the
   linter never looked at - a typo in it passed the gate and failed the
