@@ -44,6 +44,7 @@ import {
   CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
   splitTail, parseTail, slotTable, strayTailProblem,
   parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseRevealMark,
+  fenceTracker,
 } from './tails.mjs';
 // The live views' commands: which key means what, and the ? panel's rows.
 // Imported here to render the panel; its text is also spliced into both
@@ -775,14 +776,14 @@ function inlineSvg(absPath, { alt = '', title = '', extraClass = '' } = {}) {
 function collectDiagramImageRefs(src) {
   const refs = [];
   let inDiagram = false;
-  let inFence = false;
+  const fence = fenceTracker();
   for (const line of String(src).split('\n')) {
     // Fence-aware, like the block matchers in parseLecture and lintDiagram:
     // a ::: draw inside a code fence is a syntax example, and collecting
     // its image lines converted (and with --optimize-images deleted) files
-    // the lecture never actually references.
-    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
-    if (inFence) continue;
+    // the lecture never actually references. A diagram body is not
+    // markdown, so a fence-looking line inside one is the diagram's own.
+    if (!inDiagram && (fence.step(line) || fence.inside)) continue;
     if (!inDiagram) {
       if (parseDrawOpener(line)) inDiagram = true;
       continue;
@@ -825,10 +826,9 @@ function collectDiagramImageRefs(src) {
 // what each does with any token that is not an asset.
 function collectDecorationImageRefs(src) {
   const refs = [];
-  let inFence = false;
+  const fence = fenceTracker();
   for (const line of String(src).split('\n')) {
-    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
-    if (inFence) continue;
+    if (fence.step(line) || fence.inside) continue;
     const bd = line.match(/^:::[ \t]+backdrop[ \t]+([^\s{]+)/);
     if (bd) { refs.push(bd[1]); continue; }
     const fm = line.match(/^(?:cover-image|closing-image):[ \t]*["']?([^"'\s#]+)/);
@@ -837,16 +837,80 @@ function collectDecorationImageRefs(src) {
   return refs;
 }
 
+// The first way a source names a picture, and the one with the most
+// spellings, because it is Markdown's: `![alt](path "title")`, the angle form
+// `![alt](<path with spaces>)`, and the three reference forms `![alt][ref]`,
+// `![alt][]` and `![ref]` with a `[ref]: path` definition anywhere in the
+// file. marked renders every one of them through the same image renderer, so
+// every one of them is inlined - and a reader that matched only the first
+// weighed none of the others: an oversized picture named by reference
+// shipped as an external path with no refusal, and a deck whose pictures were
+// all named that way counted no image and turned inlining off.
+//
+// The refs come back as written, query and fragment included, because
+// rewriteAssetRef edits the text the author wrote; a reader that wants the
+// file strips `?…` / `#…` itself (assetFileOf). Fence-aware and blind to code
+// spans, like the renderer, and a ::: draw body is not Markdown. lint.js
+// mirrors this in markdownImageRefs.
+function collectMarkdownImageRefs(src) {
+  const fence = fenceTracker();
+  let inDiagram = false;
+  const kept = [];
+  for (const line of String(src).split('\n')) {
+    if (inDiagram) { if (/^:::\s*$/.test(line)) inDiagram = false; kept.push(''); continue; }
+    if (fence.step(line) || fence.inside) { kept.push(''); continue; }
+    if (parseDrawOpener(line)) { inDiagram = true; kept.push(''); continue; }
+    kept.push(line.replace(/`[^`\n]*`/g, ''));
+  }
+  // A reference resolves only against a definition in its own slide:
+  // marked renders each chunk's body on its own, so `![a][r]` with `[r]:`
+  // under another heading is printed as text and inlines nothing.
+  const sections = [];
+  let start = 0;
+  kept.forEach((l, i) => { if (i > start && /^#{1,2}\s/.test(l)) { sections.push([start, i]); start = i; } });
+  sections.push([start, kept.length]);
+  const label = (t) => t.trim().toLowerCase().replace(/\s+/g, ' ');
+  const refs = [];
+  for (const [from, to] of sections) {
+    const text = kept.slice(from, to).join('\n');
+    const defs = new Map();
+    for (const m of text.matchAll(/^ {0,3}\[([^\]\n]+)\]:[ \t]*(?:<([^>\n]*)>|(\S+))/gm)) {
+      if (!defs.has(label(m[1]))) defs.set(label(m[1]), m[2] ?? m[3]);
+    }
+    for (const m of text.matchAll(/!\[([^\]]*)\](?:\(\s*(?:<([^>\n]*)>|([^)\s]+))[^)]*\)|\[([^\]]*)\])?/g)) {
+      if (m[2] != null) refs.push(m[2]);
+      else if (m[3] != null) refs.push(m[3]);
+      else {
+        const ref = defs.get(label(m[4] || m[1]));
+        if (ref) refs.push(ref);
+      }
+    }
+  }
+  return refs;
+}
+
+// The file a written path names: a `?query` or `#fragment` is a cache-buster
+// on a served URL, not part of the file name. Every reader that goes to disk
+// strips it - the renderer's existence test did and its inlining did not, so
+// `![](assets/pic.png?v=2)` was found, never read, and shipped as an
+// external path.
+function assetFileOf(href) {
+  return String(href).replace(/[?#].*$/, '');
+}
+
 function scanReferencedImages(src, sourceDir) {
   const refs = new Set();
-  for (const match of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
-    refs.add(match[1]);
-  }
+  for (const ref of collectMarkdownImageRefs(src)) refs.add(ref);
   for (const ref of collectDiagramImageRefs(src)) refs.add(ref);
   for (const ref of collectDecorationImageRefs(src)) refs.add(ref);
 
   let total = 0;
   let count = 0;
+  // Clips are counted apart: they are not weighed against the budget (see
+  // below), but a deck whose only media are clips still has something to
+  // inline, and counting it as a deck with nothing turned inlining off and
+  // staged a 20 KB clip into videos/ as "too large to inline".
+  let clips = 0;
   // Assets past the per-image cap are collected rather than merely counted:
   // buildOnce refuses to emit a half-inlined output (see assertInlinable).
   const oversized = [];
@@ -857,7 +921,7 @@ function scanReferencedImages(src, sourceDir) {
       const rel = resolveFigId(href);
       if (rel) abs = path.join(sourceDir, rel);
     } else if (!/^(?:https?:|data:|\/\/|\/)/i.test(href)) {
-      abs = path.resolve(sourceDir, href);
+      abs = path.resolve(sourceDir, assetFileOf(href));
     }
     if (!abs) continue;
     // Not weighed, not even stat'ed: a file outside the asset root is never
@@ -873,11 +937,13 @@ function scanReferencedImages(src, sourceDir) {
       if (!isVideoExt(abs)) {
         total += stat.size;
         count += 1;
+      } else {
+        clips += 1;
       }
       if (stat.size > inlineCapFor(abs)) oversized.push({ abs, size: stat.size });
     } catch { /* missing assets surface elsewhere as figure-missing */ }
   }
-  return { total, count, oversized };
+  return { total, count, clips, oversized };
 }
 
 // Refuse to emit an output that claims to be single-file and is not.
@@ -3126,7 +3192,7 @@ marked.use({
       }
       const isSvgPath = href && /\.svg(?:[?#]|$)/i.test(href);
       if (inlineAssetsEnabled && isRelative && isSvgPath) {
-        const abs = path.resolve(currentSourceDir, href);
+        const abs = path.resolve(currentSourceDir, hrefFile);
         const svg = inlineSvg(abs, { alt: text || '', title: title || '' });
         if (svg) return svg;
       }
@@ -3134,7 +3200,7 @@ marked.use({
       // Inline only true relative paths from disk; leave external URLs,
       // existing data URIs, and root-absolute paths untouched.
       if (inlineAssetsEnabled && isRelative) {
-        const inlined = toDataUri(path.resolve(currentSourceDir, href));
+        const inlined = toDataUri(path.resolve(currentSourceDir, hrefFile));
         if (inlined) src = inlined;
       }
       // A written-out path or URL ending in a video extension is a clip, not
@@ -3147,6 +3213,13 @@ marked.use({
       // works unchanged, with no iframe and no provider SDK. That is the one
       // thing a YouTube or Vimeo embed cannot give back.
       if (/\.(?:mp4|webm|m4v|mov)(?:[?#]|$)/i.test(href)) {
+        // A local clip not inlined goes where the shorthand's does: into
+        // videos/ beside the output. It used to keep the path it was written
+        // with, which the summary then reported as staged.
+        if (isRelative && !src.startsWith('data:')) {
+          const staged = stageVideo(path.resolve(currentSourceDir, hrefFile));
+          if (staged.rel) src = staged.rel;
+        }
         const alt = escapeHtml(text || '');
         const cap = text ? `<figcaption>${alt}</figcaption>` : '';
         return `<figure class="figure-video" data-fig-id="${escapeHtml(href)}">` +
@@ -4806,10 +4879,10 @@ function segmentIndexer(bodyLines, segments, kept) {
   segments.forEach((seg, i) => { if (kept[i]) seen += 1; rawToNonEmpty.push(Math.max(0, seen)); });
   // separator positions: the bodyLines index of every top-level `---`
   const seps = [];
-  let fence = false;
+  const fence = fenceTracker();
   bodyLines.forEach((line, i) => {
-    if (/^```/.test(line)) { fence = !fence; return; }
-    if (!fence && parseRevealMark(line)) seps.push(i);
+    if (fence.step(line)) return;
+    if (!fence.inside && parseRevealMark(line)) seps.push(i);
   });
   return (at) => rawToNonEmpty[seps.filter(i => i < at).length] ?? 0;
 }
@@ -4932,6 +5005,7 @@ function parseLecture(src) {
   let currentChunk = null;
   let bodyLines = [];
   let inFence = false;
+  const fence = fenceTracker();  // inFence is fence.inside, read once per line
   let currentExpansion = null; // { label, lines } while inside a ::: expand block
   const pulseKeys = new Map(); // ::: pulse key -> the chunk that first used it (one namespace per lecture)
   let currentOverlay = null;   // { attrs, lines } while inside a ::: overlay block
@@ -5174,10 +5248,10 @@ function parseLecture(src) {
   // something else pretending to be a question. lint.js: bad-pulse-split.
   const splitPulse = (blk) => {
     const halves = [[]];
-    let fence = false;
+    const fence = fenceTracker();
     for (const l of blk.lines) {
-      if (/^```/.test(l)) fence = !fence;
-      if (!fence && /^\s*---\s*$/.test(l)) { halves.push([]); continue; }
+      fence.step(l);
+      if (!fence.inside && /^\s*---\s*$/.test(l)) { halves.push([]); continue; }
       halves[halves.length - 1].push(l);
     }
     const [q, a] = halves.map(h => h.join('\n').trim());
@@ -5315,18 +5389,18 @@ function parseLecture(src) {
         '  dock on the left, or drop the aside.');
     }
     flushExpansion();
-    // Close any still-open layout directives defensively so the emitted
-    // body HTML stays balanced. The linter will flag these separately.
-    // Popped one at a time rather than in bulk, because `cols` carries a
-    // counter beside the stack and the counter has to come down with it. Left
-    // standing, one unclosed `::: cols` made every later ::: draw in the
-    // lecture a hard build failure naming a chunk that contained no columns -
-    // while lint.js correctly reported the real unclosed directive, so the two
-    // files disagreed about what was wrong.
-    while (layoutStack.length) {
-      const l = layoutStack.pop();
-      if (l.cols) colsDepth -= 1;
-      bodyLines.push('', l.close, '');
+    // A layout wrapper still open when the slide ends. It used to be closed
+    // here without a word, so the build shipped a slide whose columns, pane
+    // or ::: slide block ran to the end of the chunk while lint.js reported
+    // unclosed-directive - the build accepting what the linter refuses.
+    // Refused, in the linter's words; the innermost is the one named, since
+    // that is the closer the author left out.
+    if (layoutStack.length) {
+      const l = layoutStack[layoutStack.length - 1];
+      refuse(
+        `::: ${l.kind} not closed before the next chunk or column (${chunkRef()}).\n` +
+        '  Everything after it up to the next heading was read as its content.\n' +
+        '  Add a closing ::: line where the block ends.');
     }
     // Split body at standalone `---` lines into reveal segments (§4.6).
     // A `---` inside a fenced code block stays part of the segment — the
@@ -5339,10 +5413,10 @@ function parseLecture(src) {
     // the same reason.
     const segFrom = [null];
     let cur = [];
-    let fence = false;
+    const fence = fenceTracker();
     for (const line of bodyLines) {
-      if (/^```/.test(line)) { fence = !fence; cur.push(line); continue; }
-      const mark = fence ? null : revealMark(line);
+      if (fence.step(line)) { cur.push(line); continue; }
+      const mark = fence.inside ? null : revealMark(line);
       if (mark) {
         segments.push(cur.join('\n').trim());
         segFrom.push(mark.from);
@@ -5351,7 +5425,11 @@ function parseLecture(src) {
       }
       cur.push(line);
     }
-    if (cur.length) segments.push(cur.join('\n').trim());
+    // The segment after the last `---` exists whether or not a line follows
+    // the marker: a trailing `---` straight above the next heading is a beat
+    // as much as one with a blank line under it, and it used to be dropped
+    // in the first case only (lint.js counted it in both).
+    if (cur.length || segments.length) segments.push(cur.join('\n').trim());
     // Every `---` is a beat, so every segment between two of them ships,
     // empty or not: the source's `---` count is the deck's click count.
     // lint.js reports a beat with nothing on it and nothing riding it as
@@ -5548,7 +5626,8 @@ function parseLecture(src) {
       }
       continue;
     }
-    if (/^```/.test(line)) inFence = !inFence;
+    fence.step(line, fmOffset + lineStart);
+    inFence = fence.inside;
 
     // A card row's body is captured rather than streamed, because choosing
     // its size means counting the words in the longest item - a fact about
@@ -6463,6 +6542,18 @@ function parseLecture(src) {
     }
   }
   flushColBody();
+  // A fence still open at the end of the file read every line after its
+  // opener as code: the slides below it vanished into one listing and the
+  // build exited 0. Checked first, because an open fence is also why a
+  // block around it never saw its closing ::: - the fence is the cause.
+  // lint.js: unclosed-fence.
+  if (fence.inside) {
+    const ln = src.slice(0, fence.openedAt).split('\n').length;
+    refuse(
+      `The code fence opened on line ${ln} (${fence.marker}) is never closed.\n` +
+      '  Everything after it was read as code, so any slide below it is missing\n' +
+      `  from the output. Close it with a line of at least ${fence.marker}.`);
+  }
   if (cardsBlock) {
     const err = new Error(
       '::: cards was never closed. Everything after it was read as card\n'
@@ -6631,15 +6722,14 @@ function lectureStats(src, lecture) {
     drawings: 0,
   };
 
-  let inFence = false;
+  const fence = fenceTracker();
   let inDraw = false;
   // Which bucket the blockquote block being read belongs to, or null between
   // blocks: `> note:` is the lecturer's, `> annot:` prints for the students.
   let quoteBucket = null;
 
   for (const line of safeMatter(src).content.split('\n')) {
-    if (/^\s*```/.test(line)) { inFence = !inFence; continue; }
-    if (inFence) continue;
+    if (!inDraw && (fence.step(line) || fence.inside)) continue;
 
     if (inDraw) {
       if (/^:::\s*$/.test(line)) inDraw = false;
@@ -28074,10 +28164,13 @@ function collectImageRefs(src, sourceDir) {
       if (rel) add(path.join(sourceDir, rel), null);
       return;
     }
-    const abs = path.resolve(sourceDir, ref);
-    if (fs.existsSync(abs)) add(abs, ref);
+    // Recorded without a query or fragment: the rewrite below swaps the
+    // extension, and keeps whatever `?…` the author wrote after it.
+    const file = assetFileOf(ref);
+    const abs = path.resolve(sourceDir, file);
+    if (fs.existsSync(abs)) add(abs, file);
   };
-  for (const m of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) addRef(m[1]);
+  for (const ref of collectMarkdownImageRefs(src)) addRef(ref);
   // Diagram images too, or the verb the oversized-asset failure tells the
   // author to run answers "nothing to do" about the very file it refused.
   for (const ref of collectDiagramImageRefs(src)) addRef(ref);
@@ -28107,11 +28200,12 @@ function collectImageRefs(src, sourceDir) {
 // resolver finds the .webp.
 function rewriteAssetRef(src, from, to) {
   const esc = from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const bare = new RegExp(`(^|[\\s("'])${esc}(?=[\\s)"']|$)`, 'g');
-  let fence = false;
+  // `<` and `>` for the angle form `![](<path>)`, `?` and `#` for a path the
+  // author wrote with a query or fragment after it.
+  const bare = new RegExp(`(^|[\\s("'<])${esc}(?=[\\s)"'>?#]|$)`, 'g');
+  const fence = fenceTracker();
   return String(src).split('\n').map((line) => {
-    if (/^\s*(```|~~~)/.test(line)) { fence = !fence; return line; }
-    if (fence) return line;
+    if (fence.step(line) || fence.inside) return line;
     return line.split(`](${from})`).join(`](${to})`)
       .replace(bare, (m0, pre) => pre + to);
   }).join('\n');
@@ -29616,9 +29710,12 @@ function buildOnce(absIn, only, opts = {}) {
   let scan = null;
   if (inlineImages === undefined) {
     scan = scanReferencedImages(src, outDir);
-    const { total, count } = scan;
+    const { total, count, clips } = scan;
     if (count === 0) {
-      inlineImages = false;
+      // Nothing to weigh. A clip has a cap of its own and a fallback past it
+      // (videos/), so a deck of clips alone inlines what fits.
+      inlineImages = clips > 0;
+      if (clips) console.log(`[inline-images] no images, ${clips} clip(s): auto-inlining each clip up to the ${MAX_INLINE_VIDEO_BYTES / 1024 / 1024} MB per-clip cap; a larger one plays from ${VIDEO_STAGE_DIR}/. Use --no-inline-images to disable.`);
     } else if (total <= AUTO_INLINE_BUDGET) {
       inlineImages = true;
       const mb = (total / 1024 / 1024).toFixed(2);
@@ -29842,7 +29939,8 @@ function buildOnce(absIn, only, opts = {}) {
     const mb = (rows.reduce((n, v) => n + v.bytes, 0) / 1024 / 1024).toFixed(1);
     const copied = rows.filter(v => v.copied).length;
     console.log(
-      `[video] ${rows.length} clip(s), ${mb} MB, are too large to inline and play from ` +
+      `[video] ${rows.length} clip(s), ${mb} MB, ` +
+      `${inlineAssetsEnabled ? 'are too large to inline and play' : 'are not inlined (inlining is off) and play'} from ` +
       `${VIDEO_STAGE_DIR}/ instead${copied ? ` (${copied} copied there now)` : ' (already there)'}.\n` +
       `        These outputs are NOT self-contained: keep the ${VIDEO_STAGE_DIR}/ folder beside the HTML when you share it.`
     );

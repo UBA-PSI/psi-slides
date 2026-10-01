@@ -407,6 +407,59 @@ export function parseTail(tail, slots, what, { id: idPolicy = 'none', classes: c
 // "moving" figure is a still one that changes when nobody is looking. Both
 // ends are refused rather than clamped, because a clamped number is a number
 // the author did not write.
+// ── the code fence ───────────────────────────────────────────────────
+// Which lines are inside fenced code, by the CommonMark rule marked follows:
+// an opener is three or more backticks or three or more tildes after at most
+// three spaces (a backtick opener's info string may not contain a backtick),
+// and the block ends at a line of the same character, at least as long,
+// after at most three spaces and with nothing but blanks after it. Anything
+// else inside – a shorter run, the other character – is the code's own text.
+//
+// One rule for every reader, because there were fifteen hand-written tests
+// across build.js and lint.js and they disagreed: the parser and the reveal
+// split knew only three backticks at column 0, the image collectors knew
+// `~~~` and any indent. A `~~~yaml` block holding a `---` was split into two
+// reveal segments, while a `::: draw` inside it was live to the parser and
+// documentation to the collectors.
+export function fenceOpener(line) {
+  const m = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(String(line ?? ''));
+  if (!m) return null;
+  if (m[1][0] === '`' && m[2].includes('`')) return null;
+  return { ch: m[1][0], len: m[1].length };
+}
+
+export function fenceCloses(open, line) {
+  const m = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(String(line ?? ''));
+  return !!m && m[1][0] === open.ch && m[1].length >= open.len;
+}
+
+// A reader walks its lines through one of these. `step(line)` answers true
+// when the line is a fence delimiter (opening or closing); `inside` is then
+// true from the opening line up to, not including, the closing one – the
+// shape every reader had with its boolean toggle. `openedAt` is the value
+// passed as the second argument when the open fence started, for a reader
+// that has to name an unclosed fence at the end of the file.
+export function fenceTracker() {
+  let open = null;
+  let at = null;
+  return {
+    step(line, where) {
+      if (open) {
+        if (fenceCloses(open, line)) { open = null; at = null; return true; }
+        return false;
+      }
+      const o = fenceOpener(line);
+      if (!o) return false;
+      open = o;
+      at = where ?? null;
+      return true;
+    },
+    get inside() { return open !== null; },
+    get openedAt() { return at; },
+    get marker() { return open ? open.ch.repeat(open.len) : null; },
+  };
+}
+
 // ── the reveal marker ────────────────────────────────────────────────
 // A line that is exactly `---` outside a fence is a beat. `--- from 3` pins
 // that beat to an advance by number, the way `::: overlay … from N`,

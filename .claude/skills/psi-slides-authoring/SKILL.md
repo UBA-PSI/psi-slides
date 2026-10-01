@@ -384,7 +384,16 @@ behave exactly as before.
 A line that is exactly `---` inside a chunk body, outside a code fence, is a
 **reveal boundary**, never a horizontal rule. `Space` uncovers one segment at a
 time in the audience view; print flattens them. Inside a fence, `---` is
-literal. Use `***` if you genuinely need a rule.
+literal. Use `***` if you genuinely need a rule. A fence is what CommonMark
+says it is: three or more backticks or three or more tildes, indented at most
+three spaces, closed by a run of the same character at least as long – so a
+`~~~yaml` block and a four-backtick block that shows a three-backtick one are
+both fences, and a `---` inside either is the code's. A fence still open at the
+end of the file would swallow every slide after it, so the build refuses it
+and the linter reports `unclosed-fence`.
+
+A trailing `---` is a beat whether or not a blank line follows it before the
+next heading.
 
 ```md
 Start with the setup.
@@ -678,7 +687,14 @@ puts most of its clicks there.
 ```md
 ![](diagram-name)            # shorthand: assets/diagram-name.{svg,png,jpg,jpeg,gif,webp}
 ![Alt text](assets/pic.png)  # explicit path also works
+![Alt](<assets/my pic.png>)  # angle brackets for a path with spaces
+![Alt][logo]                 # by reference, with [logo]: assets/logo.png in the same chunk
 ```
+
+Every spelling is inlined, weighed against the 2 MB cap and seen by
+`--optimize-images` alike. A reference resolves only against a definition in
+its own chunk, because each chunk is rendered on its own. A `?v=2` or `#frag`
+after a local path is ignored when the file is read.
 
 The shorthand resolves a bare target with no slash and no extension against the
 lecture's `assets/` folder, first match wins; a missing file renders a visible
@@ -1701,7 +1717,7 @@ Rules you will meet while authoring: `unknown-type`, `unknown-class`,
 or directive – the message names which), `missing-id`, `duplicate-id`,
 `multiple-ids`, `title-count`, `density`,
 `duplicate-explicit-block`, `unclosed-directive`, `stray-directive`,
-`stray-directive-close`, `nested-directive`, `unclosed-math`, `reveal-overuse`,
+`stray-directive-close`, `nested-directive`, `unclosed-fence`, `unclosed-math`, `reveal-overuse`,
 `empty-beat` (a `---` that buys a press on which nothing at all happens – no
 words, no aside written in it, no note on it, nothing held to it by `from`),
 `orphan-column` (a column with fewer than two chunks),

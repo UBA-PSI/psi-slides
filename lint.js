@@ -388,17 +388,60 @@ const LABEL_TYPE_KEYS = new Set([
 // inside a ::: draw block reference assets exactly like ![](fig-id) does,
 // and the build hard-fails on an oversized one – so the pre-commit gate has
 // to find them too.
+// Mirrors collectMarkdownImageRefs in build.js: every Markdown spelling of a
+// picture - `![a](path)`, `![a](<path>)`, `![a][ref]`, `![a][]` and `![ref]`
+// with a `[ref]: path` definition - fence-aware, blind to code spans and to a
+// ::: draw body. Returns { ref, idx }, idx the 0-based line the image is
+// written on, so a finding lands on the line that names the picture.
+function markdownImageRefs(src) {
+  const fence = fenceTracker();
+  let inDiagram = false;
+  const kept = [];
+  for (const line of String(src).split('\n')) {
+    if (inDiagram) { if (/^:::\s*$/.test(line)) inDiagram = false; kept.push(''); continue; }
+    if (fence.step(line) || fence.inside) { kept.push(''); continue; }
+    if (parseDrawOpener(line)) { inDiagram = true; kept.push(''); continue; }
+    kept.push(line.replace(/`[^`\n]*`/g, ''));
+  }
+  // A reference resolves only against a definition in its own slide:
+  // marked renders each chunk's body on its own, so `![a][r]` with `[r]:`
+  // under another heading is printed as text and inlines nothing.
+  const sections = [];
+  let start = 0;
+  kept.forEach((l, i) => { if (i > start && /^#{1,2}\s/.test(l)) { sections.push([start, i]); start = i; } });
+  sections.push([start, kept.length]);
+  const label = (t) => t.trim().toLowerCase().replace(/\s+/g, ' ');
+  const refs = [];
+  for (const [from, to] of sections) {
+    const text = kept.slice(from, to).join('\n');
+    const defs = new Map();
+    for (const m of text.matchAll(/^ {0,3}\[([^\]\n]+)\]:[ \t]*(?:<([^>\n]*)>|(\S+))/gm)) {
+      if (!defs.has(label(m[1]))) defs.set(label(m[1]), m[2] ?? m[3]);
+    }
+    for (const m of text.matchAll(/!\[([^\]]*)\](?:\(\s*(?:<([^>\n]*)>|([^)\s]+))[^)]*\)|\[([^\]]*)\])?/g)) {
+      const idx = from + text.slice(0, m.index).split('\n').length - 1;
+      if (m[2] != null) refs.push({ ref: m[2], idx });
+      else if (m[3] != null) refs.push({ ref: m[3], idx });
+      else {
+        const ref = defs.get(label(m[4] || m[1]));
+        if (ref) refs.push({ ref, idx });
+      }
+    }
+  }
+  return refs;
+}
+
 function diagramImageRefs(src) {
   const refs = [];
   let inDiagram = false;
-  let inFence = false;
+  const fence = fenceTracker();
   for (const line of String(src).split('\n')) {
     // Fence-aware, like the block matchers in parseLecture and lintDiagram:
     // a ::: draw inside a code fence is a syntax example, and collecting
     // its image lines converted (and with --optimize-images deleted) files
-    // the lecture never actually references.
-    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
-    if (inFence) continue;
+    // the lecture never actually references. Mirrors build.js, fence rule
+    // from tails.mjs.
+    if (!inDiagram && (fence.step(line) || fence.inside)) continue;
     if (!inDiagram) {
       if (parseDrawOpener(line)) inDiagram = true;
       continue;
@@ -571,6 +614,7 @@ import {
   CHUNK_SLOTS, CHUNK_STYLE_CLASSES, COLUMN_SLOTS, VALID_WIDTHS, VALID_CHUNK_CLASSES,
   CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
   splitTail, parseTail, strayTailProblem, parseDrawOpener, parseRevealMark,
+  fenceTracker, fenceOpener,
 } from './tails.mjs';
 // The third zero-dep module, imported for the same reason as tails.mjs and
 // with nothing behind it: `cueAdvance` decides whether a bracketed line in a
@@ -662,8 +706,10 @@ function parseAttributeTail(line, what, { column = false } = {}) {
 // the scan, which is the same reading a Markdown renderer gives them.
 function parseIgnores(src) {
   const set = new Set();
-  const prose = String(src)
-    .replace(/^```[\s\S]*?^```/gm, '')
+  const fence = fenceTracker();
+  const prose = String(src).split('\n')
+    .map(l => (fence.step(l) || fence.inside ? '' : l))
+    .join('\n')
     .replace(/`[^`\n]*`/g, '');
   const re = /<!--\s*linter:\s*ignore\s+([^>]+?)\s*-->/g;
   for (const m of prose.matchAll(re)) {
@@ -835,8 +881,8 @@ function lintChunkShape(chunk, chunkBody, hasDrawing, add) {
   // figure: in the engine's own lectures and both are right.
   const hasFigure = hasDrawing || chunk.backdropSeen || chunkBody.some(l =>
     /^:::\s*embed\b/.test(l.trim())
-    || /^\s*(```|~~~)/.test(l)
-    || /!\[[^\]]*\]\(/.test(l)
+    || fenceOpener(l)
+    || /!\[[^\]]*\][([]/.test(l)
     || /<(img|svg|video)\b/.test(l));
   if (hasFigure) return;
   add(chunk.line, 'warn', 'figure-type-without-figure',
@@ -3287,6 +3333,7 @@ function lintFile(filePath) {
   // can know the chunk drew something. Same shape as chunkHasReveal.
   let chunkHasDrawing = false;
   let inFence = false;
+  const fence = fenceTracker();  // the rule from tails.mjs; inFence mirrors fence.inside
   let activeDirective = null;
   let layoutStack = [];
   // ::: pulse keys across the lecture, key -> line of first use (build.js:
@@ -3669,8 +3716,8 @@ function lintFile(filePath) {
     // one is untouched when the block closes.
     if (activeDirective && activeDirective.kind === 'pulse') {
       const pd = activeDirective;
-      if (/^```/.test(line)) { pd.fence = !pd.fence; pd.words[pd.seps > 0 ? 1 : 0] = true; continue; }
-      if (pd.fence) continue;
+      if (pd.fence.step(line)) { pd.words[pd.seps > 0 ? 1 : 0] = true; continue; }
+      if (pd.fence.inside) continue;
       if (/^:::\s*$/.test(line)) {
         // Mirrors splitPulse: exactly one ---, words on both sides of it.
         // A body already refused for what is in it says nothing more.
@@ -3699,8 +3746,8 @@ function lintFile(filePath) {
       if (line.trim()) pd.words[pd.seps > 0 ? 1 : 0] = true;
       continue;
     }
-    if (/^```/.test(line)) {
-      inFence = !inFence;
+    if (fence.step(line, ln)) {
+      inFence = fence.inside;
       if (chunk) chunkBody.push(line);
       segHasBody();
       continue;
@@ -3952,7 +3999,7 @@ function lintFile(filePath) {
         } else if (key) {
           pulseKeys.set(key, fmLines + ln);
         }
-        activeDirective = { kind: 'pulse', line: ln, seps: 0, words: [false, false], fence: false };
+        activeDirective = { kind: 'pulse', line: ln, seps: 0, words: [false, false], fence: fenceTracker() };
         continue;
       }
       if (chunk) rawSegAside[rawSeg] = true;
@@ -4577,6 +4624,13 @@ function lintFile(filePath) {
     }
   }
   flushChunk();
+  // A fence still open at the end of the file read everything after its
+  // opener as code, every later slide included. The build refuses it.
+  if (fence.inside) {
+    add(fence.openedAt, 'error', 'unclosed-fence',
+        `code fence ${fence.marker} is never closed – everything after it was read as code, `
+        + `so every slide below it is missing; close it with a line of at least ${fence.marker}`);
+  }
 
   // Mirrors renderDock in build.js: a #link in a dock is the live marker, so
   // one that names no slide and no part can never light.
@@ -4663,9 +4717,9 @@ function lintFile(filePath) {
     }
   }
 
-  // Oversized assets. Anything past the inline cap stays an external path,
-  // so the output stops being self-contained – the deck still looks fine on
-  // the machine that built it and breaks wherever the HTML travels alone.
+  // Oversized assets. A picture past the inline cap makes the build refuse
+  // the deck (assertInlinable) whenever it inlines; a clip past its cap is
+  // staged into videos/. Warned here so it surfaces before the build does.
   const sourceDir = path.dirname(filePath);
   const seenAssets = new Set();
   // `image <name> <asset>` inside a ::: draw references an asset the same
@@ -4683,7 +4737,7 @@ function lintFile(filePath) {
         if (fs.existsSync(cand)) { abs = cand; break; }
       }
     } else {
-      const cand = path.resolve(sourceDir, href);
+      const cand = path.resolve(sourceDir, href.replace(/[?#].*$/, ''));
       if (fs.existsSync(cand)) abs = cand;
     }
     if (!abs || seenAssets.has(abs)) return;
@@ -4701,7 +4755,7 @@ function lintFile(filePath) {
            `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so the build plays it from videos/ beside the output – keep that folder with the HTML, or re-encode the clip smaller`);
     } else {
       emit('warn', 'oversized-asset',
-           `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so it stays an external path and the output is not self-contained – run \`node build.js <source.md> --optimize-images\``);
+           `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so the build refuses this deck whenever it inlines images (the default under 10 MB in all) – run \`node build.js <source.md> --optimize-images\`, or pass --no-inline-images to ship external paths on purpose`);
     }
   };
   // Every reference the build would read, held to the asset root. Resolved
@@ -4739,21 +4793,25 @@ function lintFile(filePath) {
             + 'a link only when its target is the kind of file its name says, and refuses this deck');
     }
   };
-  let assetFence = false;
-  let confineFence = false;
+  const assetFence = fenceTracker();
+  const mdByLine = new Map();
+  for (const { ref, idx } of markdownImageRefs(body)) {
+    if (!mdByLine.has(idx)) mdByLine.set(idx, []);
+    mdByLine.get(idx).push(ref);
+  }
   lines.forEach((line, i) => {
-    if (/^\s*(```|~~~)/.test(line)) confineFence = !confineFence;
-    else if (!confineFence) {
+    const fenceLine = assetFence.step(line);
+    // Every Markdown spelling of a picture on this line, outside fences and
+    // code spans - the collector has already left those out.
+    const mdHrefs = mdByLine.get(i) || [];
+    if (!fenceLine && !assetFence.inside) {
       const emit = (sev, rule, msg) => add(i + 1, sev, rule, msg);
-      const prose = line.replace(/`[^`\n]*`/g, '');
-      for (const m of prose.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) checkConfined(m[1], emit);
+      for (const href of mdHrefs) checkConfined(href, emit);
       const im = line.trim().match(/^image\s+\S+\s+(\S+)/) || line.trim().match(/^grid\s+\S+\s+image\s+(\S+)/);
       if (im && diagramRefs.has(im[1])) checkConfined(im[1], emit);
       const bd = line.match(/^:::[ \t]+backdrop[ \t]+([^\s{]+)/);
       if (bd) checkConfined(bd[1], emit);
     }
-    if (/^\s*(```|~~~)/.test(line)) assetFence = !assetFence;
-    const mdHrefs = [...line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map(m => m[1]);
     // A `![](path)` whose path is an explicit relative one (it has a slash or
     // an extension, so it is not the assets/ shorthand) and names no file:
     // the build now renders a placeholder for it and warns `[assets] not
@@ -4764,7 +4822,7 @@ function lintFile(filePath) {
     // build leaves untouched as intentional external paths - and skip inside a
     // code fence, where `![](path)` is documentation the build never renders,
     // so flagging it would be the linter stricter than the build.
-    for (const href of assetFence ? [] : mdHrefs) {
+    for (const href of mdHrefs) {
       if (/^[a-z]+:/i.test(href) || href.startsWith('/')) continue;
       // A ?query / #fragment is a served-URL cache-buster, not the file name -
       // strip it before the existence test, the way the build does.
@@ -4808,12 +4866,11 @@ function lintFile(filePath) {
   // is not counted; inline `$…$` is deliberately not checked, because a lone
   // dollar in prose is legitimate and the build leaves it alone.
   {
-    let fence = false;
+    const fence = fenceTracker();
     let openLine = 0;
     let open = false;
     lines.forEach((line, i) => {
-      if (/^\s*(```|~~~)/.test(line)) { fence = !fence; return; }
-      if (fence) return;
+      if (fence.step(line) || fence.inside) return;
       const count = (line.match(/\$\$/g) || []).length;
       for (let k = 0; k < count; k++) {
         if (!open) { open = true; openLine = i + 1; }

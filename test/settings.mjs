@@ -1951,9 +1951,17 @@ console.log('\nlayout generations');
   // ── the ten a review found, each phrased as the failure that was there ──
   // A helper that writes a whole source and reports what was left on disk,
   // because two of these are about artefacts a failed build must not leave.
-  const raw = (src, args = []) => {
+  // `files` writes more beside the source, { 'assets/x.mp4': Buffer|string }.
+  const writeFiles = (d, files) => {
+    for (const [rel, data] of Object.entries(files)) {
+      fs.mkdirSync(path.dirname(path.join(d, rel)), { recursive: true });
+      fs.writeFileSync(path.join(d, rel), data);
+    }
+  };
+  const raw = (src, args = [], files = {}) => {
     const d = tmpDir('psi-rv-');
     fs.mkdirSync(path.join(d, 'assets'));
+    writeFiles(d, files);
     // A one-pixel PNG: these checks are about where a picture lands, not
     // what it is, so the asset is written rather than copied from a lecture
     // whose files are free to move.
@@ -1969,8 +1977,9 @@ console.log('\nlayout generations');
              files: fs.readdirSync(d).filter(f => f.endsWith('.html')),
              html: read('audience.html'), print: read('print.html'), notes: read('print-notes.html') };
   };
-  const lintOf = (src) => {
+  const lintOf = (src, files = {}) => {
     const d = tmpDir('psi-rl-');
+    writeFiles(d, files);
     fs.writeFileSync(path.join(d, 'source.md'), src);
     const r = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(d, 'source.md')],
       { cwd: ROOT, encoding: 'utf8' });
@@ -2230,7 +2239,9 @@ console.log('\nlayout generations');
   const leak = raw(FM + '## free: A {#a}\n\n::: cols 2\n\nProse.\n\n'
     + '## figure: Later {#b}\n\n::: draw\nbox one "One"\nbox two "Two" right of one gap 1\n:::\n',
     ['--audience-only']);
-  ok(leak.code === 0 && !/draw inside/.test(leak.out),
+  // Since 2.0.0 the unclosed ::: cols is itself refused, so the check is
+  // that the refusal names it and its chunk rather than the later figure.
+  ok(leak.code !== 0 && /::: cols not closed[^\n]*#a/.test(leak.out) && !/draw inside/.test(leak.out),
      'an unclosed ::: cols does not poison a later ::: draw', leak.out.split('\n')[0]);
   ok(/unclosed-directive/.test(lintOf(FM + '## free: A {#a}\n\n::: cols 2\n\nProse.\n')),
      'and the linter still names the directive that was left open');
@@ -3860,6 +3871,84 @@ console.log('\nlayout generations');
       ok(r.code === 0, `${name} builds`, r.out.split('\n')[0]);
       ok(!/\s+error\s+\S/.test(lintOf(FM(fm))), 'and lints clean', lintOf(FM(fm)).split('\n')[0]);
     }
+  }
+
+  // ── S3: the parser, the build and the linter read one deck the same way ──
+  // Each case is a deck that built one way and linted another, or built
+  // silently wrong, before 2.0.0. The pairs are run through both files.
+  {
+    const T = '---\ntitle: T\n---\n\n## title: T {#t}\n\n';
+    const errs = (out) => (out.match(/ error  \S+/g) || []).map(x => x.trim().split(/\s+/)[1]);
+    const segsOf = (html, id) => {
+      const i = html.indexOf(`data-chunk-id="${id}"`);
+      const j = html.indexOf('</article>', i);
+      return (html.slice(i, j).match(/class="reveal-segment"/g) || []).length;  // empty ones included
+    };
+
+    // Fences: one rule, CommonMark's, in the parser and every reader.
+    const tilde = T + '## free: A {#a}\n\nText.\n\n~~~yaml\nkey: 1\n---\nother: 2\n~~~\n\n'
+      + '## free: B {#b}\n\n````md\n```\n---\n```\n````\n\nDone.\n';
+    const ti = raw(tilde, ['--audience-only']);
+    ok(ti.code === 0 && segsOf(ti.html, 'a') === 1 && segsOf(ti.html, 'b') === 1,
+       'a --- inside a ~~~ fence or a four-backtick fence is the code\'s, not a beat',
+       `${segsOf(ti.html || '', 'a')} / ${segsOf(ti.html || '', 'b')}`);
+    ok(!errs(lintOf(tilde)).length, 'and lints clean', lintOf(tilde));
+
+    const open = T + '## free: A {#a}\n\n```js\nlet x = 1;\n\n## free: Lost {#b}\n\nGone.\n';
+    const op = raw(open, ['--audience-only']);
+    ok(op.code !== 0 && /code fence opened on line 9/.test(op.out) && !/\n\s+at /.test(op.out),
+       'a fence never closed is refused, naming its line, without a stack trace', op.out.split('\n')[0]);
+    ok(errs(lintOf(open)).includes('unclosed-fence'), 'and lint reports unclosed-fence');
+
+    // Layout wrappers: refused by the build where lint already erred.
+    for (const kind of ['cols 2', 'slide', 'script', 'side', 'marginalia']) {
+      const src = T + `## free: A {#a}\n\n::: ${kind}\nOne.\n\n## free: B {#b}\n\nTwo.\n`;
+      const r = raw(src, ['--audience-only']);
+      ok(r.code !== 0 && new RegExp(`::: ${kind.split(' ')[0]} not closed`).test(r.out),
+         `an unclosed ::: ${kind} is refused by the build`, r.out.split('\n')[0]);
+      ok(errs(lintOf(src)).includes('unclosed-directive'), `and lint reports it as unclosed-directive`);
+    }
+
+    // A trailing --- is a beat with or without a blank line under it, and a
+    // footnote after it arrives with it.
+    for (const gap of ['', '\n']) {
+      const src = T + '## free: A {#a}\n\nOne.\n\n---\n::: footnote\nLate.\n:::\n---\n' + gap
+        + '## free: B {#b}\n\nTwo.\n';
+      const r = raw(src, ['--audience-only']);
+      ok(r.code === 0 && segsOf(r.html, 'a') === 3 && /<aside class="margin-note" data-seg="1"/.test(r.html),
+         `a trailing --- ${gap ? 'with' : 'without'} a blank line under it ships its beat, and the footnote rides beat 1`,
+         String(segsOf(r.html || '', 'a')));
+    }
+
+    // Pictures: every Markdown spelling is weighed and inlined.
+    const pics = T + '## figure: Q {#a}\n\n![](assets/pic.png?v=2)\n\n'
+      + '## figure: R {#b}\n\n![r][p]\n\n![s](<assets/my pic.png>)\n\n[p]: assets/pic.png\n';
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    const pi = raw(pics, ['--audience-only'], { 'assets/my pic.png': png });
+    ok(pi.code === 0 && (pi.html.match(/<img src="data:image\/png;base64/g) || []).length === 3,
+       'a picture with a query, one named by reference and one in angle brackets are all inlined',
+       String((pi.html || '').match(/<img src="[^"]{0,30}/g)));
+    const big = Buffer.concat([png, Buffer.alloc(2.5 * 1024 * 1024)]);
+    const huge = T + '## figure: H {#a}\n\n![][h]\n\n[h]: assets/huge.png\n';
+    const hu = raw(huge, ['--audience-only'], { 'assets/huge.png': big });
+    ok(hu.code !== 0 && /assets\/huge\.png/.test(hu.out), 'an oversized picture named by reference is refused, not shipped external',
+       hu.out.split('\n')[0]);
+    ok(/oversized-asset/.test(lintOf(huge, { 'assets/huge.png': big })), 'and lint warns oversized-asset on it');
+    ok(/build refuses this deck/.test(lintOf(huge, { 'assets/huge.png': big })),
+       'in words that say the build refuses it, not that it ships external');
+
+    // Clips: an explicit path is staged like a shorthand; a deck of clips
+    // alone is inlined, not staged as "too large".
+    const small = Buffer.alloc(20000, 1);
+    const clipOnly = T + '## figure: C {#a}\n\n![](clip)\n';
+    const co = raw(clipOnly, ['--audience-only'], { 'assets/clip.mp4': small });
+    ok(co.code === 0 && /<video src="data:video\/mp4/.test(co.html) && !/too large to inline/.test(co.out),
+       'a deck whose only medium is a small clip inlines it', co.out.split('\n').find(l => /video|inline/.test(l)));
+    const bigClip = Buffer.alloc(12.5 * 1024 * 1024, 1);
+    const ex = raw(T + '## figure: C {#a}\n\n![](assets/big.mp4)\n', ['--audience-only'], { 'assets/big.mp4': bigClip });
+    ok(ex.code === 0 && /<video src="videos\/big\.mp4"/.test(ex.html) && fs.existsSync(path.join(ex.dir, 'videos/big.mp4')),
+       'an explicit-path clip over the cap is staged into videos/, like the shorthand', String((ex.html || '').match(/<video src="[^"]{0,30}/)));
+
   }
 
 }

@@ -20,7 +20,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { notesToCards, parseTimeMark, formatClock, plainInline, cueAdvance } from '../../cue-cards.mjs';
-import { parseRevealMark } from '../../tails.mjs';
+import { parseRevealMark, fenceTracker } from '../../tails.mjs';
 import { ROOT, lintSource } from './harness.mjs';
 
 export const name = 'cue-cards: a note read as cards';
@@ -353,8 +353,8 @@ export async function run({ report }) {
   const lifted = ['segmentsKept', 'chunkRendersSegments', 'segmentIndexer', 'noteSegments'].map(lift);
   ok(lifted.every(Boolean), 'the four functions the filing rule is made of are where the gate looks for them',
      j(lifted.map((t, i) => t ? 'ok' : i)));
-  const noteSegments = new Function('parseRevealMark',
-    lifted.join('\n\n') + '\nreturn noteSegments;')(parseRevealMark);
+  const noteSegments = new Function('parseRevealMark', 'fenceTracker',
+    lifted.join('\n\n') + '\nreturn noteSegments;')(parseRevealMark, fenceTracker);
   const segmentsKeptOf = new Function(lifted[0] + '\nreturn segmentsKept;')();
 
   // The parser's own split, in the few lines this gate needs of it: a chunk
@@ -376,7 +376,7 @@ export async function run({ report }) {
       if (parseRevealMark(l)) { segments.push(cur.join('\n').trim()); cur = []; continue; }
       cur.push(l);
     }
-    if (cur.length) segments.push(cur.join('\n').trim());
+    if (cur.length || segments.length) segments.push(cur.join('\n').trim());
     return noteSegments(bodyLines, segments, noteAt, segmentsKeptOf(segments, rendersSegments));
   };
 

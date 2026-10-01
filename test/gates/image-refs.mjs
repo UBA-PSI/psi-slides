@@ -2,7 +2,8 @@
  * Every way a source.md names a picture, held against the two readers that
  * have to see all of them.
  *
- * The build inlines an image referenced five ways: `![](path)`, `![](fig-id)`,
+ * The build inlines an image referenced four ways: Markdown (`![](path)`,
+ * `![](<path>)`, `![a][ref]` with its definition, and `![](fig-id)`),
  * a ::: draw `image` statement, a `::: backdrop`, and the `cover-image:` /
  * `closing-image:` frontmatter keys. Two pieces of build.js read that set for
  * different purposes - `scanReferencedImages`, which weighs it against the
@@ -36,7 +37,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT } from './harness.mjs';
-import { parseDrawOpener } from '../../tails.mjs';
+import { parseDrawOpener, fenceTracker } from '../../tails.mjs';
 
 export const name = 'image-refs: every way a source names a picture, one collector';
 
@@ -94,12 +95,13 @@ export async function run({ report }) {
   const eq = (got, want, what) => ok(got === want, what, got === want ? undefined : JSON.stringify(got));
   const src = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
 
-  const mod = new Function('parseDrawOpener',
+  const mod = new Function('parseDrawOpener', 'fenceTracker',
     lift(src, 'collectDiagramImageRefs')
     + lift(src, 'collectDecorationImageRefs')
+    + lift(src, 'collectMarkdownImageRefs')
     + lift(src, 'rewriteAssetRef')
-    + 'return { collectDiagramImageRefs, collectDecorationImageRefs, rewriteAssetRef };',
-  )(parseDrawOpener);
+    + 'return { collectDiagramImageRefs, collectDecorationImageRefs, collectMarkdownImageRefs, rewriteAssetRef };',
+  )(parseDrawOpener, fenceTracker);
 
   // ── 1. one collector, both readers ────────────────────────────────
   // The failure this gate was written for is not a wrong regex, it is a
@@ -115,7 +117,45 @@ export async function run({ report }) {
        `${reader} matches none of the three forms with a regex of its own`);
   }
 
+  // The Markdown spellings have a collector of their own, and the same rule:
+  // both readers go through it. Only `![](path)` used to be matched, so a
+  // picture named by reference or in angle brackets was inlined by marked
+  // and never weighed - an oversized one shipped as an external path.
+  for (const reader of ['scanReferencedImages', 'collectImageRefs']) {
+    const code = lift(src, reader).replace(/\/\/[^\n]*/g, '');
+    ok(code.includes('collectMarkdownImageRefs(src)'),
+       `${reader} collects the Markdown refs through collectMarkdownImageRefs`);
+    ok(!/!\\\[/.test(code), `${reader} matches no Markdown image with a regex of its own`);
+  }
+
   // ── 2. the collector itself ───────────────────────────────────────
+  const MD = [
+    '## free: A {#a}', '',
+    '![inline](assets/a.png "t") and ![angle](<assets/my pic.png>)',
+    '![q](assets/q.png?v=2)',
+    '![full][r1] ![collapsed][] ![Short]', '',
+    '[r1]: assets/r1.png', '[collapsed]: <assets/c d.png> "T"', '[short]: assets/s.png', '',
+    '`![](assets/span.png)` in a code span', '',
+    '~~~md', '![](assets/tilde.png)', '~~~', '',
+    '````', '```', '![](assets/four.png)', '```', '````', '',
+    '::: draw 10x4', 'text t "![](assets/in-draw.png)" at 0,0', ':::', '',
+    '## free: B {#b}', '',
+    '![other chunk][r1]', '',
+  ].join('\n');
+  eq(mod.collectMarkdownImageRefs(MD).join(' | '),
+     ['assets/a.png', 'assets/my pic.png', 'assets/q.png?v=2', 'assets/r1.png', 'assets/c d.png', 'assets/s.png'].join(' | '),
+     'inline, angle, query and the three reference forms; nothing from a code span, a ~~~ or four-backtick fence, a ::: draw body, or a definition under another heading');
+
+  // lint.js keeps its own copy, as it keeps every mirror; it has to find the
+  // same list, on the lines that name the pictures.
+  const lsrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
+  const lintMd = new Function('parseDrawOpener', 'fenceTracker',
+    lift(lsrc, 'markdownImageRefs') + 'return markdownImageRefs;')(parseDrawOpener, fenceTracker);
+  eq(lintMd(MD).map(r => r.ref).join(' | '), mod.collectMarkdownImageRefs(MD).join(' | '),
+     'lint.js markdownImageRefs finds what collectMarkdownImageRefs finds');
+  eq(lintMd(MD).map(r => r.idx).join(','), '2,2,3,4,4,4',
+     'and puts each on the line of the image, not of its definition');
+
   const deco = mod.collectDecorationImageRefs(FIXTURE);
   eq(deco.join(' | '),
      ['assets/cover-photo.jpg', 'assets/last-slide.png', 'assets/divider.jpg', 'assets/room.jpg'].join(' | '),
@@ -156,6 +196,13 @@ export async function run({ report }) {
 
   const fenced = mod.rewriteAssetRef(FIXTURE, 'assets/never.jpg', 'assets/never.webp');
   eq(fenced, FIXTURE, 'a path inside a code fence is left exactly as it is');
+
+  // The angle form and a path with a query after it: the extension swap
+  // keeps the brackets and the query.
+  eq(mod.rewriteAssetRef('![a](<assets/my pic.png>)\n![b](assets/q.png?v=2)\n', 'assets/my pic.png', 'assets/my pic.webp'),
+     '![a](<assets/my pic.webp>)\n![b](assets/q.png?v=2)\n', 'a path in angle brackets is rewritten');
+  eq(mod.rewriteAssetRef('![b](assets/q.png?v=2)\n', 'assets/q.png', 'assets/q.webp'),
+     '![b](assets/q.webp?v=2)\n', 'and so is one with a query, which stays');
 
   // The one that has to hold whatever the paths look like: a rewrite is a
   // whole-token match, so a shorter path is not rewritten inside a longer one.

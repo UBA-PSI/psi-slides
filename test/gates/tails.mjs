@@ -15,7 +15,7 @@
 import {
   CHUNK_SLOTS, COLUMN_SLOTS, CARDS_SLOTS, SIDE_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SLOT_TABLES,
   splitTail, strayTailProblem, parseTail, parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseLegacyDrawTail,
-  parseRevealMark,
+  parseRevealMark, fenceTracker, fenceOpener,
   AUTOPLAY_MIN, AUTOPLAY_MAX, DRAW_OPENER_EXAMPLE,
 } from '../../tails.mjs';
 import fs from 'node:fs';
@@ -381,6 +381,39 @@ export async function run({ report }) {
     const sExtra = [...lKeys].filter(k => !sKeys.has(k));
     ok(!sMissing.length, 'every souffleuse key build.js accepts is one lint.js knows', sMissing.join(','));
     ok(!sExtra.length, 'and lint.js knows no souffleuse key build.js has dropped', sExtra.join(','));
+
+  }
+
+  // ── the code fence ──────────────────────────────────────────────────
+  // One rule, CommonMark's, for every reader in both files. The parser and
+  // the reveal split used to know three backticks at column 0 and nothing
+  // else, so a `~~~yaml` block with a `---` in it was cut into two beats.
+  {
+    const walk = (lines) => {
+      const f = fenceTracker();
+      return lines.map((l, i) => { const d = f.step(l, i); return d ? 'D' : f.inside ? 'I' : '.'; }).join('');
+    };
+    ok(walk(['~~~yaml', '---', '~~~', '---']) === 'DID.', 'a tilde fence is a fence, and the --- inside it is its text');
+    ok(walk(['````md', '```', '---', '```', '````', 'x']) === 'DIIID.',
+       'four backticks are closed by four or more, not by the three inside');
+    ok(walk(['   ```', 'a', '   ```']) === 'DID', 'up to three spaces of indent open and close a fence');
+    ok(walk(['    ```', 'a']) === '..', 'four spaces are indented code, not a fence');
+    ok(walk(['```', '~~~', '```']) === 'DID', 'a fence is closed by its own character only');
+    ok(walk(['```js', '``` trailing', '```']) === 'DID', 'a closing line carries nothing but the run');
+    ok(walk(['``` a`b', 'x']) === '..', 'a backtick opener with a backtick in its info string is not one');
+    const f = fenceTracker(); f.step('x', 1); f.step('~~~~', 7);
+    ok(f.inside && f.openedAt === 7 && f.marker === '~~~~', 'an open fence says where it opened and what closes it');
+    ok(fenceOpener('``') === null && fenceOpener('~~~') !== null, 'two characters are not a run');
+
+    // Every reader goes through it: no hand-written fence regex is left in
+    // either file's code. Comments are blanked first; a regex in a comment
+    // is prose about the old rule.
+    for (const file of ['build.js', 'lint.js']) {
+      const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
+      const code = text.replace(/^\s*\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+      const hand = code.split('\n').filter(l => /\/\^\\s\*\(?```|\/\^```|\(```\|~~~\)/.test(l));
+      ok(!hand.length, `${file} tests for a fence only through fenceTracker`, hand.slice(0, 3).join(' / '));
+    }
   }
 
   // ── DISPLAY_TRACK is complete ───────────────────────────────────────

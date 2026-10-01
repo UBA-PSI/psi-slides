@@ -360,6 +360,39 @@ tag:
 
 ### Changed
 
+- **Breaking: a code fence is what CommonMark says it is, in every reader.**
+  Three or more backticks or three or more tildes, indented at most three
+  spaces, closed by a run of the same character at least as long. The
+  parser and the reveal split knew only three backticks at the start of a
+  line, so a `---` inside a `~~~yaml` block, or inside a four-backtick block
+  that shows a three-backtick one, was cut into two beats, while the image
+  readers knew `~~~` and any indent. One rule now lives in `tails.mjs`
+  (`fenceTracker`) and build.js and lint.js both read through it. A deck that
+  wrote a `---` inside such a block has one beat fewer, and its code block is
+  whole again.
+- **Breaking: a code fence still open at the end of the file is refused.**
+  Every slide after the opener was read as one listing and the build
+  exited 0, while the linter said only `orphan-column`. The build names the
+  line the fence opened on; the linter reports `unclosed-fence`.
+- **Breaking: a `::: cols`, `::: side`, `::: slide`, `::: script`,
+  `::: marginalia` or `::: embed` left open is refused.** The build closed it
+  at the next heading without a word while the linter reported
+  `unclosed-directive`; it now stops with the same words and names the slide.
+- **Breaking: a trailing `---` is a beat whether or not a blank line follows
+  it.** Written straight above the next heading it was dropped, and a
+  `::: footnote` after it arrived a beat early; with a blank line it was kept.
+  The linter counted it either way. A deck with a `---` directly above a
+  heading has one click more on that slide, which is what the linter already
+  said it had.
+- **Breaking: every Markdown spelling of a picture is weighed against the
+  2 MB cap.** `![a][ref]` with a `[ref]:` definition in the same chunk and
+  `![a](<path with spaces>)` were inlined by the Markdown renderer but never
+  seen by the reader that applies the cap, so an oversized one shipped as an
+  external path; it now fails the build like any other, and
+  `--optimize-images` converts it. A path with `?v=2` or `#frag` after it is
+  read and inlined as the file it names – it used to be found and then left
+  external. A picture inside a code fence or a code span is no longer counted
+  at all.
 - **The live views' keys are bound in one table, `commands.mjs`.** Internal:
   the `?` panel is rendered from it and the key map looks every press up in
   it, where both used to be written by hand beside each other. No key changes
@@ -1411,6 +1444,15 @@ tag:
 
 ### Fixed
 
+- **A clip named by its path is staged into `videos/` like a shorthand
+  one.** One over the 12 MB cap kept the path it was written with, while
+  the build reported it as staged. A deck whose only media are clips counted
+  as a deck with nothing to inline, turned inlining off and staged a 20 KB
+  clip as “too large to inline (0.0 MB)”; it now inlines what fits, and with
+  inlining off the line says that is why.
+- **The linter's `oversized-asset` warning says the build refuses the
+  deck.** It said the picture would stay an external path, which stopped
+  being true when the cap became a build failure.
 - **`--integrate-annotations` deleted every slide after a pasted snippet
   whose end marker was missing.** A `<!-- annotations:start -->` with no
   `<!-- annotations:end -->` after it was read as a block running to the end
