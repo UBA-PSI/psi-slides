@@ -2,6 +2,8 @@
 title: Network Security
 subtitle: "Thirty-six lecture slides, rebuilt as animated figures"
 presenter: Prof. Dr. Dominik Herrmann
+affiliation: Otto-Friedrich-Universität Bamberg
+
 info: |
   Introduction to Security and Privacy
   PSI-Sem-B · PSI-Sem-M
@@ -60,7 +62,9 @@ step ports
   emph sh
 :::
 
-**A packet carries its own pair of addresses at every layer.** The four boxes are one frame on the wire: `gap 0` holds them together as a stack and the chain gives all four one size, and only the label above says which header carries which addresses. Each step emphasises one header and brings its explanation in, outside to inside, in the order a device works through the headers. The payload stays untinted, having nothing to say in this figure.
+**A packet carries its own pair of addresses at every layer.** The four boxes are one frame on the wire, and the label above each header says which addresses it carries. Each step emphasises one header and brings its explanation in, outside to inside, in the order a device works through the headers.
+
+> note: How the figure is built: `gap 0` holds the four boxes together as one stack, and the `right of` chain gives all four one size. The payload stays untinted because it plays no part in this figure.
 
 ## figure: Besides spoofing, adversaries may attack address resolution {.full #ns-a07}
 
@@ -165,7 +169,9 @@ step wants
   dim res, sw
 :::
 
-**The stage for the next three figures.** The home network on the left, the internet on the right, and a dotted boundary between them that separates rather than connects – which is why it is a headless edge between two coordinates and hangs off no element. B knows two addresses by heart: its default gateway and its provider's DNS resolver. Everything else B has to ask for, and that is where the attacks that follow begin. The break mark on the wire to the web server says there is a lot of network between router and destination that the drawing does not show.
+**The stage for the next three figures.** The home network on the left, the internet on the right, and a dotted boundary between them that separates rather than connects. B knows two addresses by heart: its default gateway and its provider's DNS resolver. Everything else B has to ask for, and that is where the attacks that follow begin. The break mark on the wire to the web server says there is a lot of network between router and destination that the drawing does not show.
+
+> note: How the figure is built: the boundary is a headless edge between two coordinates and hangs off no element, because it connects nothing.
 
 ## figure: DNS Spoofing | Adversary forges IP address in DNS reply to redirect victim to malicious server, e.g., for phishing credentials {.full #ns-a12}
 
@@ -222,7 +228,9 @@ step redirect
   emph awb
 :::
 
-**The attacker need not break the web server; the answer to the question about it is enough.** A does not wait but hands B a DNS reply of its own – “example.com is 66.9.9.6” – and B dutifully opens the connection to that machine. In the figure the red arrow replaces B's connecting wire rather than lying beside it: it is the same wire the real answer would come on, and two lines on top of each other would be a drawing claiming two paths. The real web server stays reachable and unaware, which is what makes the attack so quiet.
+**The attacker need not break the web server; the answer to the question about it is enough.** A does not wait but hands B a DNS reply of its own – “example.com is 66.9.9.6” – and B dutifully opens the connection to that machine. In the figure the red arrow replaces B's connecting wire: the forged answer comes on the same wire the real one would. The real web server stays reachable and unaware, which is what makes the attack so quiet.
+
+> note: The red arrow takes the wire's place instead of lying beside it, because two lines on top of each other would draw two paths where there is one.
 
 ## figure: Forgery trivial for on-path attacker (on routers or endpoints) | prevent reply from reaching B and inject own reply {.full #ns-a13}
 
@@ -279,7 +287,7 @@ step question
   show @ask
 :::
 
-**Sitting on the path means never having to guess.** An attacker on a router or on one of the endpoints sees the query and all its random numbers; they hold the real reply back and push their own in front of it. The figure does that in two moves: first the wire the real answer would come on turns dashed, then the forged arrow takes its place. The box at the top left is the original's question to the room, and it is meant seriously: A does not lie on the path to the resolver but can put itself there by ARP cache poisoning.
+**Sitting on the path means never having to guess.** An attacker on a router or on one of the endpoints sees the query and all its random numbers; they hold the real reply back and push their own in front of it. The figure does that in two moves: first the wire the real answer would come on turns dashed, then the forged arrow takes its place. The box at the top left is the original slide's question to the students, and it is meant seriously: A does not lie on the path to the resolver but can put itself there by ARP cache poisoning.
 
 ## figure: Off-path attackers (E) must generate a valid reply | that reaches B before the reply sent by the real DNS resolver {.full #ns-a14}
 
@@ -394,7 +402,9 @@ step unfilterable
   dim @flood
 :::
 
-**The victim stands still and the rest comes from everywhere.** The original's map is replaced by a ring of scattered bots – *distributed* was the point, the continent never was. The first beat sets the botnet up, the second lets it fire, the third draws the conclusion the talk has to speak anyway. Because the bots use their real addresses, the traffic looks like traffic.
+**The victim stands still and the rest comes from everywhere.** The first beat sets the botnet up, the second lets it fire, the third states the conclusion. Because the bots use their real addresses, the traffic looks like ordinary traffic.
+
+> note: The original slide put the bots on a map. The figure draws them as a scattered ring instead: *distributed* was the point, not the continent.
 
 ## figure: DoS attacks are also possible without access to a botnet | Attackers can use connectionless protocols and spoof their Src IP to hide their identity {.full #ns-a29}
 

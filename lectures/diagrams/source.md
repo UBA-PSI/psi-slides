@@ -27,9 +27,9 @@ build time, and stepped with the same key that advances a reveal.
 
 ## outline: Finished pictures first, then the language {.wide #agenda}
 
-**Parts 1 to 3 are six real lecture slides, rebuilt as figures.** The note under
-each says what holds the drawing together, in words Parts 4 and 5 define – so
-watch the pictures now and read the notes after.
+**Parts 1 to 3 are six real lecture slides, rebuilt as figures.** The text
+under each uses words defined later: Part 4 the pieces, Part 5 the grammar of
+one line and of a step, Part 6 five larger arrangements.
 
 ## free: Every picture here is text | change one in the source or in the editor {.standard #preview}
 
@@ -370,9 +370,8 @@ step attack
 
 **The avatars are vector drawings and follow the theme.** `image alice avatar-alice` finds the file in `assets/` exactly as `![](fig-id)` does; an SVG file is spliced in as a nested `<svg>` and inherits `--ink` and `--paper`. The two attack arrows start at `eve.right:0.28` and `:0.72`: the fraction after the colon slides the attachment point along that side, so the two run parallel instead of on top of each other.
 
-What the slide is about is still integrity and authenticity, not
-confidentiality – the figure says so in the note under Bob, in the one place a
-drawing can say it without a caption repeating it.
+The slide is about integrity and authenticity, not confidentiality, and the
+text block at the top of the drawing says so, so no caption has to.
 
 # The vocabulary
 
@@ -518,9 +517,7 @@ letter per line. It applies to every label, not only to a box's – the same cla
 does the same thing on a container caption, a brace and an edge label.
 
 **Which way an outline aims is the `point` option, not the class name.**
-`{.chevron} point left` rather than a class `.chevron-left`: a chevron aimed up
-is the same shape aimed differently, and a word for every shape times every
-direction would quadruple the closed list. `point` applies to `.chevron` and
+Write `{.chevron} point left`; there is no class `.chevron-left`. `point` applies to `.chevron` and
 `.wedge`; on a shape with no point the build refuses it instead of reading past
 it.
 
@@ -550,8 +547,7 @@ directions – which is why the two above hold the same words at very different
 sizes. A sentence in a diamond takes four times the area of the boxes beside it
 and swallows the figure; two or three words is the measure, and the explanation
 belongs in a note next to it. `.hex` also says *a question is asked here*; the
-diamond says on top of that that it goes on in two ways, which a room has been
-trained on since school.
+diamond says on top of that that it goes on in two ways, which most of an audience learned at school.
 
 **A `.cross` with no `w` of its own comes out square, block default or not.** A
 plus with arms of two different lengths is not a plus, so a block `default` that
@@ -590,7 +586,7 @@ classes on an element's own line; they are the verbs a `step` has for them
 (`dim a, b`); and on a `bars` line the same three words name column numbers.
 Learn one form and you have all three.
 
-**The fourth state – ordinary prominence – deliberately has no name.** `{!dim}`
+**The fourth state – ordinary prominence – has no name.** `{!dim}`
 takes the class off instead of adding a fourth word, and that holds for every
 class and in every tail. Without the mark there is no way back: a `style` step
 could only *add* a class, and many slots spell their base state as the
@@ -599,7 +595,7 @@ again. `p5` is that case drawn – it carries `@prom`, the block gives `@prom` a
 `.dim`, and `{!dim}` beside it takes the class away again.
 
 **What is written on the line is in the handout; what is written in a `step` is
-not.** That is the whole rule, and it reads off the source: prominence on an
+not.** Prominence on an
 element's own line describes the drawing, prominence in a beat is an act
 performed in the talk. Print therefore takes it from the opening beat rather
 than the last.
@@ -626,8 +622,7 @@ build time – there is no browser – so the size chosen comes out a shade too
 small, which is the safe direction.
 
 **The first box overflows on purpose, and the build says so:** `box g1 is 1.2
-units wide but its label needs about 1.64`. That is the answer nobody wants: a
-fixed `w` too small for the label, and neither `.shrink` nor `.fit`. It is the
+units wide but its label needs about 1.64`. That is the case to avoid: a fixed `w` too small for the label, and neither `.shrink` nor `.fit`. It is the
 one warning this lecture builds with.
 
 ## figure: Steps that move {.wide #motion}
@@ -718,7 +713,7 @@ With more than one line **the whole block of lines moves, not the single line**,
 
 ## free: One question across, one question along {.wide #justify-edges}
 
-**A box label and an edge label are two different questions, and only one of them has nine answers.** A box label sits somewhere in a rectangle of space, so there are three answers across and three down. An edge label lies on one side of its line or the other, and that is all. The same four words for both meant `{.top .left}` was writable on an edge, which has only one side to pick. On an edge it is therefore `side <word>`, the pattern `point` follows on the outlines: a closed word list as an option instead of a class per word. Which pair can choose at all is settled only once the line is routed, so naming the other one draws a warning.
+**A box label and an edge label are two different questions, and only one of them has nine answers.** A box label sits somewhere in a rectangle of space, so there are three answers across and three down. An edge label lies on one side of its line or the other, and that is all. On an edge the choice is therefore the option `side <word>`, not a class, and the build refuses `{.top}` on an edge. Which pair can choose at all is settled only once the line is routed, so naming the other one draws a warning.
 
 
 ## figure: A corner, not a centre {.full #anchor}
@@ -751,7 +746,7 @@ edge rule bad.left+0.95,bad.top-0.3 -- good.left+0.95,good.bottom+0.3 {.dashed .
 
 **The four alignment classes and `anchor` are one step apart.** `.left` places a run of words inside the element's own box; `anchor left` places the box against the coordinate. A row of labels needs the second, or the first lines up the insides of three boxes that are themselves staggered. For a set, `align x left a, b, c` is the other right answer; `anchor` is for the element with no set to join.
 
-**A `zone` is the frame the two rows stand in: fixed size, name in a corner, painted under everything.** Fixed size is the whole difference from a `container`, which fits its members and is invisible without them – an area is a claim on the paper that holds from beat 0. Being painted first whatever line it is on lets it be declared *after* its contents, which is the order anyone writes in.
+**A `zone` is the frame the two rows stand in: fixed size, name in a corner, painted under everything.** Fixed size is the whole difference from a `container`, which fits its members and is invisible without them – an area is a claim on the paper that holds from beat 0. Being painted first whatever line it is on lets it be declared *after* its contents.
 :::
 
 
@@ -781,7 +776,7 @@ text under "two questions,\nnot prepared" in room bottom {.small .muted}
 
 **`row draft, notes in home center` places the run, not its first box.** The alignment is answered against the extent of everything the row names, which is the one thing no coordinate on a single member's line can state. `home.inner.left` and its five companions are the same six coordinates read off the band, for the placement that wants to be written out.
 
-**`w` and `h` are optional, and an axis nobody writes is the one the contents settle.** `room` is as wide as the widest thing placed in it plus the pad; its height is written, which is what lets `bottom` mean anything. That closes the split with `container`: an area sized by its contents keeps its ground, its caption and its place under everything, and an area with both numbers is the fixed claim on the paper it always was.
+**`w` and `h` are optional, and an axis nobody writes is the one the contents settle.** `room` is as wide as the widest thing placed in it plus the pad; its height is written, which is what lets `bottom` mean anything. That closes the split with `container`: an area sized by its contents keeps its ground, its caption and its place under everything, and an area with both numbers keeps the fixed size it is given.
 :::
 
 ## figure: Seven statements that expand {.full #expand}
@@ -831,7 +826,7 @@ text bn "stacked" below b gap 0.55 {.muted}
 
 **`key "2023"` names a run, and the chart draws the legend itself** – a swatch that is a column of the run, so it carries the run's colour by construction, and the name beside it. A legend built by hand out of boxes shows a tone at a box's strength, which is not what the columns are filled with.
 
-**`dim 0,1,2` stands on the statement, not in a step.** Q4 is what this is about, and that holds the moment the figure is on screen. Written as a step, the first thing the room would see is four equal quarters, and the point would arrive on a keypress. It is `dim` on the other three rather than `emph` on the fourth because a column has one channel, its fill, and in a grouped chart the fill already says which run a column belongs to: `emph 3` on both lines paints both Q4 columns in the accent, and the years are gone at exactly the quarter the slide is about. All three prominence words – `emph`, `dim`, `ghost` – take column numbers here, counted from 0, and a number with no column behind it is refused. They are the same three that are classes on an element's line and verbs in a beat.
+**`dim 0,1,2` stands on the statement, not in a step.** Q4 is what this is about, and that holds the moment the figure is on screen. Written as a step, the first thing the audience would see is four equal quarters, and the point would arrive on a keypress. It is `dim` on the other three rather than `emph` on the fourth because a column has one channel, its fill, and in a grouped chart the fill already says which run a column belongs to: `emph 3` on both lines paints both Q4 columns in the accent, and the years are gone at exactly the quarter the slide is about. All three prominence words – `emph`, `dim`, `ghost` – take column numbers here, counted from 0, and a number with no column behind it is refused. They are the same three that are classes on an element's line and verbs in a beat.
 
 ## figure: Columns laid flat | the same six numbers, twice {.full #flat}
 
@@ -851,7 +846,7 @@ text incn "the names are the axis" below inc gap 0.55 {.small .muted}
 
 **Flat, the proportions are easier to read.** Every bar starts at the same vertical edge, and the eye compares lengths from one shared start line more reliably than heights over a shared floor: on the left you have to visit the tops of the columns in turn, on the right you read the ranking at a glance. A run of bars sorted downwards also looks like a ranking by itself.
 
-**And only flat is there room for the names.** A category called “DNS cache poisoning” cannot be written under an upright column, so the left-hand figure carries numbers and the room looks them up in a legend that does not exist here. The second string is what makes it possible: **a `|` in it splits on that instead of on spaces**, so a label may be as many words as it needs. `|` already separates the cells of a `table` row and the names in a `lanes` list.
+**And only flat is there room for the names.** A category called “DNS cache poisoning” cannot be written under an upright column, so the left-hand figure carries numbers, and a reader would need a legend to look them up in, which this figure does not have. The second string is what makes it possible: **a `|` in it splits on that instead of on spaces**, so a label may be as many words as it needs. `|` already separates the cells of a `table` row and the names in a `lanes` list.
 
 ## figure: A frame to draw in {.full #plot}
 
@@ -906,7 +901,7 @@ step judge
 
 **“weaker” is an edge label *beside* the line, and the ground travels with it.** A fill class on an edge draws a ground behind the label; without a `side top`, `side bottom`, `side left` or `side right` it stays on the line and knocks it out, which is what *The road straight down* does with “yes” and “no”. With one of them it moves clear and takes the ground along. For the name of a curve that is the only choice: on the line it would knock out exactly what it names. The ground still has work to do, because the diagonal and two gridlines run under the curve.
 
-**The word is short, and on a curve that is not a matter of taste.** The label is moved clear along the normal *at the middle* of the curve, but the curve goes on climbing, so a long label runs back into its own line at both ends instead of staying beside it. Beside a horizontal or vertical edge the question does not arise, and there a label may be as long as it needs to be.
+**A label beside a curve has to be short.** The label is moved clear along the normal *at the middle* of the curve, but the curve goes on climbing, so a long label runs back into its own line at both ends instead of staying beside it. Beside a horizontal or vertical edge the question does not arise, and there a label may be as long as it needs to be.
 
 
 ## figure: One size, two frames | two plots that can be compared {.full #sameframe}
@@ -941,10 +936,11 @@ Cycle the themes with `A` and the raster image stays as it is, while boxes, arro
 
 # The language in five lines {#language}
 
-Five lines are enough for a first figure: three boxes and the two arrows
-between them. This part takes such a line apart – its six slots, where an
-element goes, a coordinate borrowed from another element – and then adds the
-steps that make a figure arrive one beat at a time.
+Part 4 showed what each statement draws. This part takes a single line of a
+`::: draw` block apart – its six slots, where an element goes, a coordinate
+borrowed from another element – and then adds the steps that make a figure
+arrive one beat at a time. Five such lines already make a figure: three boxes
+and the two arrows between them.
 
 ## free: Every line has the same six slots | `kind name label placement options tail` {.full .blocks-left #diagram-slots}
 
@@ -977,7 +973,7 @@ A tag goes wherever a name goes, so `show @crypto` in a step selects every eleme
 
 **A coordinate can be another element's, plus or minus a little** – `at mix.cx,src.cy+0.4`. Anywhere an `X,Y` pair goes, that form goes.
 
-**An anchor can carry a fraction**: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side rather than on top of each other. `gap 0 flush left` at the end of a placement makes two boxes touch.
+**An anchor can carry a fraction**: `mix.right:0.3` slides the attachment point along that edge, so two arrows between the same pair of boxes run side by side rather than on top of each other. At the end of a placement, `gap 0` makes two boxes touch and `flush left` lines up their left edges.
 
 **An edge is one of the things a coordinate can name.** `text n "only after the handshake" above w1 gap 0.2` sets a phrase against the wire it describes rather than against a box at one end of it, so the label follows its line instead of drifting off it the next time a box changes height. Name the edge first, in the slot before the arrow's first end: `edge w1 mix -> log`. An edge has no name until you write one, and most edges never need one.
 
@@ -1064,9 +1060,9 @@ The request reaches the cache first, and most of the time that is the end of it.
 
 **A pinned beat rides one the slide already has rather than adding one**, so this chunk takes two presses, not four. `from 0` is refused – that is the beat the slide opens on, so write the words above the marker – and so is a `from` inside an `::: overlay from N` or a `::: dock from N`, which numbers its own markers already.
 
-> note: The two paragraphs and the two steps are written in different panes, so before `from` existed the only way to keep them together was to give the prose no beats at all and let it stand there from the start – which tells the room the answer before the question.
+> note: The two paragraphs and the two steps are written in different panes. Without `from`, the only way to keep them together is to give the prose no beats at all and let it stand there from the start – which tells the audience the answer before the question.
 
-# Four arrangements
+# Five arrangements
 
 ## figure: The road straight down | a flowchart {.wide #flowchart}
 
@@ -1100,9 +1096,9 @@ edge d2 -> fwd  "yes" {.paper}
 edge d2 -> drop "no"  {.paper}
 :::
 
-**The diamond is the outline a room needs no explanation for.** It learned it at school: a question is asked here, and it goes on in two ways. What that costs is room. The widest strip a diamond offers is half its width by half its height, so the build sizes it at twice what a rectangle would need – two or three words, with the explanation in a note beside it, as on the left here. A whole sentence in a diamond would take four times the area of the boxes around it and become the figure.
+**The diamond is the outline an audience needs no explanation for.** Most people learned it at school: a question is asked here, and it goes on in two ways. What that costs is room. The widest strip a diamond offers is half its width by half its height, so the build sizes it at twice what a rectangle would need – two or three words, with the explanation in a note beside it, as on the left here. A whole sentence in a diamond would take four times the area of the boxes around it and become the figure.
 
-**The four labels sit *on* the line, and each one says so on its own tail.** A fill class on an edge draws a ground behind the label; with no `side top`, `side bottom`, `side left` or `side right` beside it, the label stays on the line and knocks it out behind itself. That is the right form for a word that *names* the line – “yes”, “no”, a port number, a message type – the way a street sign belongs to the street and the street runs past it either side. A sentence describing what *travels* along the line belongs beside it: *Three roles, one incident* does that, and the ROC curves on *A frame to draw in* take the ground along when they do. Mixing the two in one figure means the room has to sort each label before it can read any of them, so everything here is on the line.
+**The four labels sit *on* the line, and each one says so on its own tail.** A fill class on an edge draws a ground behind the label; with no `side top`, `side bottom`, `side left` or `side right` beside it, the label stays on the line and knocks it out behind itself. That is the right form for a word that *names* the line – “yes”, “no”, a port number, a message type – the way a street sign belongs to the street and the street runs past it either side. A sentence describing what *travels* along the line belongs beside it: *Three roles, one incident* does that, and the ROC curves on *A frame to draw in* take the ground along when they do. Mixing the two in one figure means the audience has to sort each label before it can read any of them, so everything here is on the line.
 
 ## figure: Three roles, one incident | a swimlane {.full #swimlane}
 
@@ -1131,9 +1127,9 @@ step answered
   show blk
 :::
 
-**The bands are equal, their contents are not, and that is why they are no `container`.** A container measures itself against what it holds, so three bands with different numbers of boxes would come out different lengths at both ends – the one thing a swimlane diagram must not say. `lanes` lays the frame, divides it into bands of equal height and writes the names turned on end in front of the left edge; the bands are `.clear` so that everything in them reads over them. It needs no time axis: the reading direction is the axis.
+**The bands are equal, their contents are not, and that is why they are no `container`.** A container measures itself against what it holds, so three bands with different numbers of boxes would come out different lengths at both ends, which is what a swimlane diagram must not show. `lanes` lays the frame, divides it into bands of equal height and writes the names turned on end in front of the left edge; the bands are `.clear` so that everything in them reads over them. It needs no time axis: the reading direction is the axis.
 
-**Every hand-off changes band, and `.elbow` is the routing for it.** The class draws two waypoints itself – a rail across the gap, on the axis the two ends are further apart on – instead of the same double bend written out by hand on every edge. A straight line would do something else: it would run diagonally through a band it never enters, and the room reads that as involvement.
+**Every hand-off changes band, and `.elbow` is the routing for it.** The class draws two waypoints itself – a rail across the gap, on the axis the two ends are further apart on – instead of the same double bend written out by hand on every edge. A straight line would do something else: it would run diagonally through a band it never enters, and an audience reads that as involvement.
 
 **The one edge label sits *beside* the line, not on it.** “same sender” describes what travels along the line, and a sentence with a rule through the middle of it is read as two fragments before it is read as a sentence. `side top` lifts it over the line; on a vertical edge it would be `side left` and `side right`, and which pair applies is known only once the edge has been routed – so the wrong pair is a warning at build time rather than an error at parse time. The label is moved clear by what it measures *across* the line: beside a horizontal edge its height, beside a vertical one its width, there with a margin, because a gap across a line of type needs more air than one above it. This label needs no ground: there is nothing but band under it. What a ground does, and how large it may be, is on *A frame to draw in*.
 
@@ -1180,9 +1176,9 @@ step certificates
 
 ## free: One word draws all six brackets {.wide #tree-elbow}
 
-**Every bracket in that tree is the same word, written six times.** `.elbow` leaves one end on the axis the two are further apart on, runs a rail across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements' *facing edges*, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with `via`; both on one line is an error. `.elbow` shares a slot with `.smooth`: how a line is drawn is a question with exactly one answer.
+**Every bracket in that tree is the same word, written six times.** `.elbow` leaves one end on the axis the two are further apart on, runs a rail across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements' *facing edges*, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with `via`; both on one line is an error. `.elbow` shares a slot with `.smooth`, so a line takes one or the other.
 
-**Its dashed box stands around the whole set before the set is assembled.** It is written into the same beat as the issuers (`show @issuers, scope`), though its other two members arrive a beat later. Without the written `show` the usual rule applies: an outline is only as visible as its members and fits itself to the ones you can see, so it would first have grown around the issuer alone and then opened downwards. Naming it gets you both the visibility *and* the full extent. That is what the exception is for, and it is expressly not for the ordinary case.
+**Its dashed box stands around the whole set before the set is assembled.** It is written into the same beat as the issuers (`show @issuers, scope`), though its other two members arrive a beat later. Without the written `show` the usual rule applies: an outline is only as visible as its members and fits itself to the ones you can see, so it would first have grown around the issuer alone and then opened downwards. Naming it gets you both the visibility *and* the full extent. That is what the exception is for.
 
 
 ## figure: One line per row | a table {.full #table}
@@ -1214,7 +1210,7 @@ step every-one-has-an-answer
 
 **Five rows by three columns is fifteen boxes, each with its own name, width and placement, and a `below` chain to re-aim whenever a row is inserted.** `table` writes them: the heading is one string split on `|`, the data rows are the bare strings under it, `col` gives a width per column and `row` the height of one row. The attribute tail `{.clear .bare .left}` **lands on the cells and not on the frame**, which is what makes a table here a text block rather than a grid of little boxes. The rule under the heading is an ordinary edge between two coordinates, each half from the frame and half from the first cell.
 
-**The first row is a heading, and `unheaded` says it is not.** It takes away exactly the bold: the string is still the row that fixes the column count, its cells are still `t-<col>-0` and `@t-row-0` still names it. A table of pairs – a key/value block, a legend, a run of definitions – had no way to be written before, and a heading of empty strings drew an empty bold row that still took its height. **`row` follows the type size when it is not written**, so `{.large}` no longer puts type in a box too short for it and nobody has to work the number out by hand.
+**The first row is a heading, and `unheaded` says it is not.** It takes away exactly the bold: the string is still the row that fixes the column count, its cells are still `t-<col>-0` and `@t-row-0` still names it. Use it for a table of pairs – a key/value block, a legend, a run of definitions. **`row` follows the type size when it is not written**, so a table set in `{.large}` gets rows tall enough for its type.
 
 **Every cell carries two generated tags, `@t-row-N` and `@t-col-N`.** So a row is one beat and a column is one beat, one line of source each – where otherwise every beat would carry three cell names to keep in step with the table by hand. Row 0 is the heading, so count from 1 when you mean data.
 
@@ -1272,9 +1268,9 @@ step everything
   dim @wa-msgs
 :::
 
-**A protocol is the drawing a lecture asks for again and again, and the one that is hardest to change written out by hand.** Written out, every message carries its own y coordinate: inserting one in the middle means moving everything under it, renumbering all of them and re-guessing how far each lifeline runs – counted on this very figure, thirteen written lines for one inserted message. And a note box taller than the guessed spacing cuts silently into the label beneath it.
+**Protocols come up in lecture after lecture, and written out by hand a protocol is the hardest drawing to change.** Written out, every message carries its own y coordinate: inserting one in the middle means moving everything under it, renumbering all of them and re-guessing how far each lifeline runs – counted on this very figure, thirteen written lines for one inserted message. And a note box taller than the guessed spacing cuts silently into the label beneath it.
 
-**`sequence` therefore owns exactly one thing: the vertical rhythm.** Every entry states how tall it is – a message as tall as its label, a note as tall as its text – and the statement stacks them. A box pushes down what stands under it, and an inserted line is an inserted line. Across, the statement measures itself the same way: all heads are as wide as the widest label, so a row of equal participants does not stand there ragged. `w`, `header` and `space` are overrides nobody normally writes.
+**`sequence` therefore owns exactly one thing: the vertical rhythm.** Every entry states how tall it is – a message as tall as its label, a note as tall as its text – and the statement stacks them. A box pushes down what stands under it, and an inserted line is an inserted line. Across, the statement measures itself the same way: all heads are as wide as the widest label, so a row of equal participants does not stand there ragged. `w`, `header` and `space` are overrides you rarely need.
 
 ## free: Every part of a sequence keeps a name {.wide #seq-names}
 
@@ -1282,7 +1278,7 @@ step everything
 
 **Everything else it answers by keeping a name on every part, not by adding words.** Each head keeps the name its `actor` line gives it; each lifeline is `<actor>-life`, each message `wa-N` (counted from 0, so the number drawn is `N+1`), its number `wa-n-N`, its smaller second line `wa-sub-N`, each note `wa-note-N`. Plus tags for the sets: `@wa-msg-N` for one message with its number and second line, `@wa-msgs` for all of them, `@au-msgs` for all that touch the authenticator, `@wa-notes`, `@wa-actors`, `@wa-lives`. The brace and the handwritten annotation on *A protocol down the page* are therefore ordinary lines hung off `wa-3` and `wa-2`, and the statement knows nothing about either.
 
-**There is no `alt` / `else`.** Enclosing a group of messages and naming it is what `container … pad n` already draws, and two of the nine figures in the measured corpus wanted it. A new word in the grammar needs more cases than that.
+**There is no `alt` / `else`.** To enclose a group of messages and name it, draw a `container … pad n` around them.
 
 
 ## figure: What else a message can be {.wide #seqmore}
@@ -1313,13 +1309,13 @@ brace tun over tunnel side right "this is the payload" pad 0.35 {.muted .small}
 
 **A self-message is the usual way to put a local action into the sequence**, and it loops out of the lifeline and back in. Its label stands beside the loop, its second line under it. A note between two names sits midway between their lifelines and is as wide as its own text – not as wide as the span, or three words become a banner. It breaks at `\n`, so a note of several lines stays a note.
 
-**`space` on an entry line is the air above that one band.** The tunnel at the foot of *What else a message can be* carries `space 0.9` and stands visibly apart from the setup over it; two or three such gaps break a long exchange into phases a room can hold. A blank line in the source does not do this: the statement reads through blank lines, so the source may be grouped however it reads best. On an `actor` line `space` is an error, there being no band above the heads.
+**`space` on an entry line is the air above that one band.** The tunnel at the foot of *What else a message can be* carries `space 0.9` and stands visibly apart from the setup over it; two or three such gaps break a long exchange into phases an audience can follow. A blank line in the source does not do this: the statement reads through blank lines, so the source may be grouped however it reads best. On an `actor` line `space` is an error, there being no band above the heads.
 
 ## free: What a label sits on, and the column of numbers {.wide #seq-labels}
 
 **Every message label brings its own ground.** A lifeline crosses every label a sequence draws, so the ground is drawn from the start and the dashed line is knocked out behind the words. `{.clear}` takes it away, `{.tone-2}` colours it. The smaller second line gets the same ground; the numbers on the left get none, standing outside the frame and crossing nothing.
 
-**`unnumbered` takes the column of numbers away.** It is there otherwise because renumbering by hand is exactly the work the statement removes, and because the number drawn and the index in the tag are the same number: `@x-msg-3` is the arrow the room reads as 4. Where an exchange is short enough that nobody points at a number, the column is just paper.
+**`unnumbered` takes the column of numbers away.** It is there otherwise because renumbering by hand is exactly the work the statement removes, and because the number drawn and the index in the tag are the same number: `@x-msg-3` is the arrow numbered 4 on the slide. Where an exchange is short enough that nobody points at a number, the column is just paper.
 
 
 ## figure: A figure that plays itself | `autoplay` and `cycle` {.wide #autoplay}
@@ -1341,17 +1337,17 @@ step verdict
   label dt "Detected"
 :::
 
-**`autoplay 1400` walks this figure's beats by itself, and `cycle` starts again at the end.** One delay in milliseconds, the same for every beat. A cover figure moving while the room settles is the case it was built for; it stands on an ordinary slide here, because nothing about it is tied to a cover.
+**`autoplay 1400` walks this figure's beats by itself, and `cycle` starts again at the end.** One delay in milliseconds, the same for every beat. It suits a cover figure that moves while the audience settles, and it works on any slide, as this one shows.
 
-**It calls the same advance the space bar does.** A counter of its own would have let the drawing and the beat counter drift apart, and the next keypress would have jumped. Because it *is* the counter, the speaker window follows through the ordinary sync and the freeze gate applies. `cycle` rewinds through the same counter, so the speaker window follows the rewind too.
+**It calls the same advance the space bar does**, so the speaker window follows through the ordinary sync and the freeze gate applies. `cycle` rewinds through the same counter, so the speaker window follows the rewind too.
 
-**The first keypress, click or scroll on this slide stops it.** Whoever has touched the figure has taken over, and a timer running on underneath them is worse than none. It is the *slide* that is taken over and not the session, because you reach a slide by pressing a key: a session-wide flag was retired by the very keypress that navigated here, and the figure then never moved. For the same reason it does not start on a slide that is already half revealed: half revealed means somebody left it that way.
+**The first keypress, click or scroll on this slide stops it.** The keypress that brought you here counts against the slide you left, not against this one. It does not start on a slide that is already half revealed.
 
-**Between 200 ms and 60 s, and outside that refused rather than clamped.** Under 200 ms the room reads no beat; over a minute a “moving” figure is a still one that changes while nobody is watching. A clamped number is a number nobody wrote.
+**The delay is between 200 ms and 60 s.** A number outside that range stops the build with an error rather than being clamped.
 
 ## closing: The drawing lives in the source | so it is reviewed, diffed and fixed where the words are {#end}
 
 Twenty statements, one inline `<svg>` per figure, and beats that ride the
-same counter a reveal does. Nothing in this lecture is a file exported from a
-drawing tool and pasted back in – which is why a figure survives the edit that
-renames the thing it is about.
+same counter a reveal does. The figures' labels are text in the source, so a
+find-and-replace that renames a thing in the prose renames it in the drawings
+too.
