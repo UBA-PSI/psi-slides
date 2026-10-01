@@ -3949,6 +3949,59 @@ console.log('\nlayout generations');
     ok(ex.code === 0 && /<video src="videos\/big\.mp4"/.test(ex.html) && fs.existsSync(path.join(ex.dir, 'videos/big.mp4')),
        'an explicit-path clip over the cap is staged into videos/, like the shorthand', String((ex.html || '').match(/<video src="[^"]{0,30}/)));
 
+    // Frontmatter: lint reports what the build refuses, and passes what it
+    // accepts.
+    const fmRefused = [
+      ['a BOM before the block', '﻿---\ntitle: T\ntheme: bogus\n---\n', 'unknown-view-default'],
+      ['a closing --- with a trailing blank', '---\ntitle: T\ntheme: bogus\n--- \n', 'unknown-view-default'],
+      ['cover: split with no picture', '---\ntitle: T\ncover: split\n---\n', 'bad-cover-image'],
+      ['cover: hero with no picture', '---\ntitle: T\ncover: hero\n---\n', 'bad-cover-image'],
+      ['lang: 123', '---\ntitle: T\nlang: 123\n---\n', 'bad-lang'],
+      ['cover-ground: bogus', '---\ntitle: T\ncover-ground: bogus\n---\n', 'unknown-view-default'],
+      ['closing-credits: bogus', '---\ntitle: T\nclosing-credits: bogus\n---\n', 'unknown-view-default'],
+      ['cover-align on a cover that places its type', '---\ntitle: T\ncover: display\ncover-align: top\n---\n', 'bad-cover-align'],
+      ['a scalar style:', '---\ntitle: T\nstyle: big\n---\n', 'unknown-style-setting'],
+      ['a scalar labels:', '---\ntitle: T\nlabels: big\n---\n', 'unknown-label-key'],
+      ['a scalar draw-defaults:', '---\ntitle: T\ndraw-defaults: big\n---\n', 'bad-draw-defaults'],
+      ['prompter.cadence: 0', '---\ntitle: T\nprompter:\n  cadence: 0\n---\n', 'unknown-prompter-setting'],
+      ['a value on the line under its key', '---\ntitle: T\ntheme:\n  bogus\n---\n', 'unknown-view-default'],
+      ['a quoted key', '---\ntitle: T\n"theme": bogus\n---\n', 'unknown-view-default'],
+      ['a flow map over two lines', '---\ntitle: T\nstyle: {wrap: bogus,\n  bold: plain}\n---\n', 'unknown-style-setting'],
+      ['a plain value with ": " in it', '---\ntitle: Security: an intro\n---\n', 'bad-frontmatter'],
+      ['a key written twice', '---\ntitle: T\ntitle: U\n---\n', 'bad-frontmatter'],
+      ['fonts: off', '---\ntitle: T\nfonts: off\n---\n', 'unknown-font-role'],
+      ['a fonts role that is none', '---\ntitle: T\nfonts: {heading: Anton}\n---\n', 'unknown-font-role'],
+    ];
+    const BODY = '\n## title: T {#t}\n\nHello.\n\n## free: A {#a}\n\nText.\n';
+    for (const [name, fm, code] of fmRefused) {
+      const r = raw(fm + BODY, ['--audience-only']);
+      ok(r.code !== 0 && !/\n\s+at /.test(r.out), `${name} is refused by the build, without a stack trace`, r.out.split('\n')[0]);
+      ok(errs(lintOf(fm + BODY)).includes(code), `and lint reports ${code}`, errs(lintOf(fm + BODY)).join(','));
+    }
+    const beside = '---\ntitle: T\ncover: beside\n---\n\n## title: T {#t}\n\n## free: A {#a}\n\nText.\n';
+    ok(raw(beside, ['--audience-only']).code !== 0 && errs(lintOf(beside)).includes('cover-needs-body'),
+       'cover: beside with neither a body nor a cover-image is refused by both');
+    const yamlErr = raw('---\ntitle: T\ntitle: U\n---\n' + BODY, ['--audience-only']);
+    ok(/YAML on line 3 does not parse/.test(yamlErr.out), 'a YAML error names its line', yamlErr.out.split('\n')[0]);
+    const fmAccepted = [
+      ['auto-fit: True', '---\ntitle: T\nauto-fit: True\n---\n'],
+      ['a folded block scalar', '---\ntitle: T\ntheme: >-\n  dark\n---\n'],
+      ['a value under its key', '---\ntitle: T\ntheme:\n  dark\n---\n'],
+      ['a colon inside a literal block', '---\ntitle: T\ninfo: |\n  Bamberg: winter term\n---\n'],
+      ['a quoted title with a colon', '---\ntitle: "Security: an intro"\n---\n'],
+      ['fonts: none', '---\ntitle: T\nfonts: none\n---\n'],
+    ];
+    for (const [name, fm] of fmAccepted) {
+      const r = raw(fm + BODY, ['--audience-only']);
+      ok(r.code === 0, `${name} builds`, r.out.split('\n')[0]);
+      ok(!errs(lintOf(fm + BODY)).length, 'and lints clean', lintOf(fm + BODY).split('\n')[0]);
+    }
+
+    // A positional id is in the author's namespace.
+    const pos = raw(T + '## free: A {#a}\n\nx\n\n## free: Noid\n\ny\n\n## free: B {#c0-2}\n\nz\n', ['--audience-only']);
+    ok(pos.code !== 0 && /id 'c0-2' is used twice/.test(pos.out), 'an author id equal to a chunk\'s positional id is refused',
+       pos.out.split('\n')[0]);
+
   }
 
 }

@@ -382,6 +382,17 @@ export async function run({ report }) {
     ok(!sMissing.length, 'every souffleuse key build.js accepts is one lint.js knows', sMissing.join(','));
     ok(!sExtra.length, 'and lint.js knows no souffleuse key build.js has dropped', sExtra.join(','));
 
+    // …and the bounds of its number keys, which lint.js used to leave to the
+    // build, so `cadence: 0` linted clean and failed to build.
+    const bBounds = {};
+    for (const m of sBody.slice(0, sBody.indexOf('\n};'))
+      .matchAll(/^\s{2}'?([a-z-]+)'?:\s*\{\s*kind: 'number', min: (\d+), max: (\d+)/gm)) bBounds[m[1]] = `${m[2]}-${m[3]}`;
+    const nbBody = lsrc.slice(lsrc.indexOf('const SOUFFLEUSE_NUM_BOUNDS = {'));
+    const lBounds = {};
+    for (const m of nbBody.slice(0, nbBody.indexOf('\n};')).matchAll(/^\s{2}'([a-z-]+)': \[(\d+), (\d+)/gm)) lBounds[m[1]] = `${m[2]}-${m[3]}`;
+    ok(Object.keys(bBounds).length === 3 && JSON.stringify(bBounds) === JSON.stringify(lBounds),
+       'the prompter number keys have the same bounds in both files',
+       `build ${JSON.stringify(bBounds)} / lint ${JSON.stringify(lBounds)}`);
   }
 
   // ── the code fence ──────────────────────────────────────────────────

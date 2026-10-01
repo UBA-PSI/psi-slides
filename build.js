@@ -207,12 +207,28 @@ const refusedFrontmatterEngine = (lang) => ({
 function safeMatter(src) {
   const lang = frontmatterLanguage(src);
   if (!FRONTMATTER_LANGUAGES.has(lang.toLowerCase())) throw frontmatterLanguageError(lang);
-  return matter(src, {
-    engines: {
-      javascript: refusedFrontmatterEngine('js'),
-      coffee: refusedFrontmatterEngine('coffee'),
-    },
-  });
+  try {
+    return matter(src, {
+      engines: {
+        javascript: refusedFrontmatterEngine('js'),
+        coffee: refusedFrontmatterEngine('coffee'),
+      },
+    });
+  } catch (e) {
+    // A block that is not valid YAML - `title: Security: an intro`, a key
+    // written twice - used to escape as a YAMLException with a stack trace
+    // and no word about which line. The parser's buffer starts with the
+    // newline after the opening ---, so its 0-based line is the file's
+    // 1-based one. lint.js reports the two common cases as bad-frontmatter.
+    if (!e || e.name !== 'YAMLException') throw e;
+    const line = e.mark && Number.isInteger(e.mark.line) ? e.mark.line + 1 : null;
+    const err = new Error(
+      `Frontmatter: the YAML${line ? ` on line ${line}` : ''} does not parse: ${e.reason || e.message}.\n` +
+      '  A value with ": " or a leading special character in it needs quotes\n' +
+      '  (title: "Security: an intro"), and each key may be written once.');
+    err.userFacing = true;
+    throw err;
+  }
 }
 
 // Whether `p` is `root` or somewhere below it. On path.relative rather than a
@@ -2084,6 +2100,29 @@ function splitFontFileName(base) {
   // Both readings are offered; the caller keeps whichever names the family
   // it was actually asked for.
   return [whole, { family: m[1], weight, style }];
+}
+
+// The shape of the `fonts:` block, checked before anything reads it: a map
+// of the four roles, or the one word `none`. Both readers below skip
+// anything else without a word, so `fonts: off` shipped the whole bundle and
+// `fonts: {heading: Anton}` embedded nothing - two decks that look as if
+// their author never wrote the line. lint.js: unknown-font-role.
+function assertFontsBlock(frontmatter = {}) {
+  const spec = frontmatter.fonts;
+  if (spec == null) return;
+  const fail = (msg) => { const err = new Error(msg); err.userFacing = true; throw err; };
+  if (typeof spec !== 'object' || Array.isArray(spec)) {
+    if (String(spec).trim().toLowerCase() === 'none') return;
+    fail(`Frontmatter: "fonts: ${String(spec).trim()}" is not a value this key takes.\n` +
+      '  fonts: is a block naming a family per role, or the one word none, which\n' +
+      '  ships no bundled face at all:\n' +
+      '    fonts:\n      sans: Inter Tight\n      display: Anton');
+  }
+  const unknown = Object.keys(spec).filter(k => !FONT_ROLES.includes(k));
+  if (unknown.length) {
+    fail(`Frontmatter: fonts has no role "${unknown[0]}".\n` +
+      `  Roles: ${FONT_ROLES.join(', ')}`);
+  }
 }
 
 // Read `fonts:` out of the frontmatter and turn it into @font-face blocks.
@@ -13215,7 +13254,7 @@ function assertDistinctIds(lecture) {
     }
     seen.set(id, what);
   };
-  for (const col of lecture.columns) {
+  lecture.columns.forEach((col, ci) => {
     if (col.id) {
       check(col.id, `column "${col.heading || col.id}"`);
       // The divider slide renders with id `${col.id}-section`, in the same
@@ -13224,10 +13263,15 @@ function assertDistinctIds(lecture) {
       // owns this scheme.
       check(`${col.id}-section`, `the divider of column #${col.id}`);
     }
-    for (const chunk of col.chunks) {
-      check(chunk.id, `chunk ## ${chunk.tag ? chunk.tag + ': ' : ''}${chunk.heading || chunk.id || ''}`);
-    }
-  }
+    // A chunk with no id is given one by position, `c<column>-<chunk>`
+    // (renderAudienceChunk), in the same namespace - so an author id of that
+    // shape on another chunk made two articles with one data-chunk-id, one
+    // reveal slot and one sync target, and nothing said so.
+    col.chunks.forEach((chunk, xi) => {
+      const what = `chunk ## ${chunk.tag ? chunk.tag + ': ' : ''}${chunk.heading || chunk.id || ''}`;
+      check(chunk.id || `c${ci}-${xi}`, chunk.id ? what : `${what} (no id, so it is given c${ci}-${xi} by its position)`);
+    });
+  });
 }
 
 function assertCoverBody(lecture) {
@@ -29772,6 +29816,7 @@ function buildOnce(absIn, only, opts = {}) {
   // outputs share the same bytes. Runs before anything is written, so a
   // frontmatter family with no matching file fails without leaving an
   // artefact behind – same contract as assertInlinable above.
+  assertFontsBlock(lecture.frontmatter);
   const authorFonts = collectEmbeddedFonts(lecture.frontmatter, outDir);
   // The bundle covers every role the author did not claim. `fonts: none`
   // turns it off for someone who would rather ship a smaller file and

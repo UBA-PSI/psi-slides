@@ -48,6 +48,11 @@ const VALID_TAGS = new Set([
 // covers divide the slide, and which draw a picture of their own.
 const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
 const COVER_IMAGE_VARIANTS = new Set(['split', 'hero', 'beside', 'above']);
+// Mirrors COVER_ALIGN_VARIANTS and COVER_BODY_ART: which covers leave the
+// vertical place of their type open, and which draw the title chunk's body
+// as the picture.
+const COVER_ALIGN_VARIANTS = new Set(['classic', 'stack', 'panel', 'quote', 'split', 'beside', 'hero']);
+const COVER_BODY_ART = new Set(['beside', 'above']);
 
 // Every top-level frontmatter key some renderer reads. Not a vocabulary the
 // build enforces – it deliberately does not, because refusing an unknown key
@@ -144,6 +149,11 @@ const VIEW_DEFAULTS = {
   // mirroring a second table to say something the build already says with
   // the line in hand.
   'cover-align': ['top', 'middle', 'bottom'],
+  // Mirrors COVER_GROUNDS and CLOSING_CREDITS. Not viewer defaults, but the
+  // same kind of key: one word out of a closed list, refused by the build in
+  // coverSettings when it is any other.
+  'cover-ground': ['paper', 'ink'],
+  'closing-credits': ['none', 'contact', 'cover'],
   // How a column's divider slide is drawn. Mirrors SECTION_VARIANTS.
   'section': ['plain', 'tinted', 'rule', 'card', 'number', 'outline'],
   // Mirrors LIGATURE_MODES. The default is `text` and not `none`, because
@@ -316,6 +326,13 @@ const SOUFFLEUSE_ENUMS = {
   'cues': ['on', 'off'],
 };
 const SOUFFLEUSE_NUM_KEYS = new Set(['cadence', 'cooldown', 'calls-per-hour']);
+// The bounds SOUFFLEUSE_SPEC holds each number key to, mirrored so a value
+// the build refuses does not lint clean; the tails gate holds them equal.
+const SOUFFLEUSE_NUM_BOUNDS = {
+  'cadence': [10, 120, 'seconds'],
+  'cooldown': [10, 600, 'seconds'],
+  'calls-per-hour': [10, 1000, 'calls'],
+};
 const SOUFFLEUSE_FREE_KEYS = new Set(['model', 'language']);
 
 // Walks one nested frontmatter block by indentation rather than with a
@@ -676,12 +693,113 @@ function splitFrontmatter(src) {
   // `---yaml` and `---yml` are the same block as a bare `---` to the build.
   const open = src.match(/^---[ \t]*(?:ya?ml[ \t]*)?\n/i);
   if (!open) return { body: src, fmLines: 0, header: '' };
-  const end = src.indexOf('\n---\n', open[0].length);
-  if (end === -1) return { body: src, fmLines: 0, header: '' };
-  const header = src.slice(open[0].length, end);
-  const body = src.slice(end + 5);
+  // The closing line may carry trailing blanks: gray-matter reads `--- ` as
+  // the end of the block, and a reader that wanted it bare saw no
+  // frontmatter at all and passed every value in it.
+  const close = /\n---[ \t]*(?:\n|$)/g;
+  close.lastIndex = open[0].length - 1;
+  const m = close.exec(src);
+  if (!m) return { body: src, fmLines: 0, header: '' };
+  const header = src.slice(open[0].length, m.index);
+  const body = src.slice(m.index + m[0].length);
   const fmLines = header.split('\n').length + 2;
   return { body, fmLines, header };
+}
+
+// The frontmatter is YAML, and every check below reads it line by line with
+// a regex, the only reading a zero-dep file can afford. Four YAML spellings
+// put a top-level value somewhere those regexes do not look, and each of them
+// let a value the build refuses lint clean: a quoted key (`"theme": bogus`),
+// a plain scalar continued on the next line (`theme:\n  bogus`), a block
+// scalar (`theme: >-\n  dark`), and a flow map spread over lines
+// (`style: {wrap: bogus,\n  bold: x}`). And one the other way: `True` and
+// `TRUE` are the boolean the build reads as `true`, which this file refused.
+//
+// So the header is first rewritten into the one spelling the checks know,
+// line count unchanged - a value gathered from the lines below its key is
+// put on the key's line and those lines are left blank, so every line
+// number a finding carries is still the author's. `draw-defaults` keeps its
+// block scalar: collectDiagramDefaults reads it line by line.
+//
+// The same walk reports the two YAML errors that stop the build before any
+// of its own checks run (bad-frontmatter): a top-level key written twice,
+// and a plain value with `: ` in it (`title: Security: an intro`), which YAML
+// reads as a second mapping and refuses.
+function canonicalHeader(header) {
+  const lines = header.split('\n');
+  const out = lines.slice();
+  const problems = [];
+  const seen = new Map();
+  const isMapLine = (l) => /^[ \t]*(?:"[^"\n]*"|'[^'\n]*'|[^\s"'#:][^:#\n]*?)[ \t]*:(?:[ \t]|$)/.test(l);
+  const indentOf = (l) => l.length - l.replace(/^[ \t]+/, '').length;
+  const plainColon = (v) => {
+    const t = v.replace(/\s+#.*$/, '').trim();
+    return t && !/^["'[{|>&*!]/.test(t) && /:(?:[ \t]|$)/.test(t);
+  };
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    if (!raw.trim() || /^[ \t]*#/.test(raw)) continue;
+    const top = raw.match(/^(?:"([^"\n]*)"|'([^'\n]*)'|([A-Za-z_][A-Za-z0-9_-]*))[ \t]*:(?:[ \t]+(.*)|[ \t]*)$/);
+    if (!top) {
+      // An indented `key: value` inside a block map: the same colon rule.
+      const nested = raw.match(/^[ \t]+(?:-[ \t]+)?[^\s"'#:][^:#\n]*?:[ \t]+(.*)$/);
+      if (nested && plainColon(nested[1])) {
+        problems.push({ line: i, msg: `'${raw.trim()}' does not parse: a plain value may not contain ': ' – put the value in quotes` });
+      }
+      continue;
+    }
+    const at = i;
+    const key = top[1] ?? top[2] ?? top[3];
+    let value = (top[4] ?? '').trim();
+    if (seen.has(key)) {
+      problems.push({ line: i, msg: `'${key}:' is written twice (first on line ${seen.get(key) + 2}) – YAML refuses a duplicate key; keep one` });
+    } else seen.set(key, i);
+    if (plainColon(value)) {
+      problems.push({ line: i, msg: `'${raw.trim()}' does not parse: a plain value may not contain ': ' – put the value in quotes, as in ${key}: "${value.replace(/"/g, '\\"')}"` });
+    }
+    // The lines that belong to this key: everything more indented below it.
+    let j = i + 1;
+    while (j < lines.length && (!lines[j].trim() || indentOf(lines[j]) > 0)) j++;
+    while (j > i + 1 && !lines[j - 1].trim()) j--;
+    const cont = lines.slice(i + 1, j);
+    const blank = () => { for (let k = i + 1; k < j; k++) out[k] = ''; };
+    const scalar = value.replace(/\s+#.*$/, '');
+    if (/^[|>][-+0-9]*$/.test(scalar)) {
+      // A block scalar: the build trims what it reads, so one line of its
+      // words is the value as far as any check here is concerned.
+      if (key !== 'draw-defaults') {
+        value = cont.map(l => l.trim()).filter(Boolean).join(' ');
+        blank();
+      }
+      i = j - 1;
+    } else if (/^[{[]/.test(scalar)) {
+      // A flow collection spread over lines: gathered until its brackets
+      // close, outside quotes.
+      let depth = 0;
+      let k = i;
+      let text = value;
+      const count = (s) => {
+        for (const ch of s.replace(/"[^"]*"|'[^']*'/g, '')) {
+          if (ch === '{' || ch === '[') depth++;
+          else if (ch === '}' || ch === ']') depth--;
+        }
+      };
+      count(value);
+      while (depth > 0 && k + 1 < lines.length) { k++; text += ' ' + lines[k].trim(); count(lines[k]); out[k] = ''; }
+      value = text;
+      i = k;
+    } else if (!value && cont.length && !cont.some(l => l.trim() && (isMapLine(l) || /^[ \t]*-(?:[ \t]|$)/.test(l) || /^[ \t]*#/.test(l)))) {
+      // A plain scalar continued on the lines below its key.
+      value = cont.map(l => l.trim()).filter(Boolean).join(' ');
+      blank();
+      i = j - 1;
+    }
+    // YAML's other spellings of the two booleans.
+    if (/^(?:True|TRUE)$/.test(value)) value = 'true';
+    else if (/^(?:False|FALSE)$/.test(value)) value = 'false';
+    out[at] = value ? `${key}: ${value}` : `${key}:`;
+  }
+  return { header: out.join('\n'), problems };
 }
 
 // A heading line's tail through the shared parser. Every problem it found
@@ -2789,7 +2907,10 @@ function lintFile(filePath) {
   let diagram = null;   // { open, lines } while inside a ::: draw block
   // LF coordinates, as parseLecture reads them: a CRLF source used to miss
   // every `$`-anchored matcher here as well as in the build.
-  const src = fs.readFileSync(filePath, 'utf8').replace(/\r\n?/g, '\n');
+  // A byte-order mark before the opening `---` is dropped as gray-matter
+  // drops it; read with it, the file had no frontmatter and every value in
+  // it went unchecked.
+  const src = fs.readFileSync(filePath, 'utf8').replace(/\r\n?/g, '\n').replace(/^\uFEFF/, '');
   // Before anything else reads the file: the build refuses it outright, so
   // every finding after this one would be about a deck that never builds.
   const fmLang = frontmatterLanguage(src);
@@ -2801,7 +2922,8 @@ function lintFile(filePath) {
     }];
   }
   const ignores = parseIgnores(src);
-  const { body, fmLines, header } = splitFrontmatter(src);
+  const { body, fmLines, header: rawHeader } = splitFrontmatter(src);
+  const { header, problems: yamlProblems } = canonicalHeader(rawHeader);
   const lines = body.split('\n');
   const findings = [];
   // The section divider composition, for the one check that depends on it:
@@ -2824,6 +2946,8 @@ function lintFile(filePath) {
     if (severity !== 'error' && ignores.has(rule)) return;
     findings.push({ file: filePath, line: fmLine, severity, rule, msg });
   };
+  // The build stops on these before any check of its own runs.
+  for (const p of yamlProblems) addFm(p.line + 2, 'error', 'bad-frontmatter', p.msg);
 
   header.split('\n').forEach((raw, i) => {
     const m = raw.match(/^([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
@@ -2917,6 +3041,71 @@ function lintFile(filePath) {
     }
   }
 
+  // The rest of coverSettings' refusals, each a deck the build stops on in
+  // its pre-flight: a picture cover with no picture, a cover-align on a
+  // composition that places its type itself, and a beside/above cover with
+  // neither a cover-image nor a title-chunk body to draw as its picture.
+  {
+    const hl = header.split('\n');
+    const cm = header.match(/^cover:[ \t]*["']?(\w+)["']?/m);
+    const cover = cm ? cm[1] : 'classic';
+    const coverLine = hl.findIndex(l => /^cover:/.test(l));
+    const hasImage = hl.some(l => /^cover-image:[ \t]*["']?[^\s"'#]/.test(l));
+    if ((cover === 'split' || cover === 'hero') && !hasImage) {
+      addFm(coverLine + 2, 'error', 'bad-cover-image',
+        `'cover: ${cover}' needs a picture, and no cover-image is set – add one, or choose a cover `
+        + 'that needs no picture: classic, masthead, stack, display, panel');
+    }
+    const al = hl.findIndex(l => /^cover-align:[ \t]*\S/.test(l));
+    if (al >= 0 && !COVER_ALIGN_VARIANTS.has(cover)) {
+      addFm(al + 2, 'error', 'bad-cover-align',
+        `cover-align is set, but 'cover: ${cover}' places its type itself – it applies to: `
+        + [...COVER_ALIGN_VARIANTS].join(', '));
+    }
+    const titleAt = body.split('\n').findIndex(l => /^##[ \t]+title:/.test(l));
+    if (COVER_BODY_ART.has(cover) && !hasImage && titleAt >= 0) {
+      const ls = body.split('\n');
+      const at = titleAt;
+      let said = '';
+      for (let j = at + 1; at >= 0 && j < ls.length; j++) {
+        if (/^#{1,2}[ \t]/.test(ls[j])) break;
+        if (/^:::[ \t]*(?:backdrop|overlay|dock|footnote|margin|marginalia|expand)\b/.test(ls[j])
+            || /^>[ \t]*(note|annot):/i.test(ls[j])) continue;
+        said += ls[j] + '\n';
+      }
+      if (!said.replace(/<!--[\s\S]*?-->/g, '').trim()) {
+        addFm(coverLine + 2, 'error', 'cover-needs-body',
+          `'cover: ${cover}' draws a picture beside the title, and the title chunk has neither a body `
+          + 'nor a cover-image – put a ::: draw block or an image under ## title:, or set cover-image');
+      }
+    }
+  }
+
+  // lang: the build holds it to a loose BCP-47 shape (lectureLang), and a
+  // number or a word like `german` stops it.
+  header.split('\n').forEach((raw, i) => {
+    const m = raw.match(/^lang:[ \t]*(.*)$/);
+    if (!m) return;
+    const v = m[1].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+    if (v && !/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(v)) {
+      addFm(i + 2, 'error', 'bad-lang',
+        `'lang: ${v}' is not a language tag – expected something like en, de, de-DE, en-GB, fr`);
+    }
+  });
+
+  // A scalar where a block of keys belongs. The build refuses each one;
+  // `prompter:` has its own line in the prompter block below.
+  header.split('\n').forEach((raw, i) => {
+    const m = raw.match(/^(style|labels|draw-defaults|fonts):[ \t]*([^ \t{#|>][^#]*?)[ \t]*(?:#.*)?$/);
+    if (!m) return;
+    if (m[1] === 'fonts' && /^["']?none["']?$/i.test(m[2])) return;
+    const rule = { style: 'unknown-style-setting', labels: 'unknown-label-key',
+      'draw-defaults': 'bad-draw-defaults', fonts: 'unknown-font-role' }[m[1]];
+    addFm(i + 2, 'error', rule,
+      `'${m[1]}: ${m[2]}' – ${m[1]}: is a block of keys, not a single value`
+      + (m[1] === 'fonts' ? " (the one single value it takes is 'none')" : ''));
+  });
+
   // cover-ratio: how much of the slide the picture takes. Bounded rather
   // than free, and mirrored here because the build's message is the only
   // other place that says so.
@@ -2989,10 +3178,10 @@ function lintFile(filePath) {
     nestedBlockKeys(lines, 'style', rule);
   }
 
-  // The nested `prompter:` block, read by the same walk. Numbers are only
-  // checked for being numbers - the bounds are the build's - and the two
-  // free keys only for being present, which is all that can be said about
-  // a model id without asking OpenRouter.
+  // The nested `prompter:` block, read by the same walk. Numbers are held to
+  // the bounds SOUFFLEUSE_SPEC sets, and the two free keys only to being
+  // present, which is all that can be said about a model id without asking
+  // OpenRouter.
   {
     const lines = header.split('\n');
     const rule = (i, key, value) => {
@@ -3006,9 +3195,11 @@ function lintFile(filePath) {
         return;
       }
       if (SOUFFLEUSE_NUM_KEYS.has(key)) {
-        if (!v || !Number.isFinite(Number(v))) {
+        const [lo, hi, unit] = SOUFFLEUSE_NUM_BOUNDS[key];
+        const n = Number(v);
+        if (!v || !Number.isFinite(n) || n < lo || n > hi) {
           addFm(i + 2, 'error', 'unknown-prompter-setting',
-            `'prompter.${key}: ${v}' is not a number`);
+            `'prompter.${key}: ${v}' is not a number of ${unit} between ${lo} and ${hi}`);
         }
         return;
       }
@@ -3136,6 +3327,15 @@ function lintFile(filePath) {
       }
     }
   }
+
+  // The roles of the `fonts:` block. Mirrors assertFontsBlock: a key that is
+  // no role was read by nobody, so `fonts: {heading: Anton}` embedded nothing.
+  nestedBlockKeys(header.split('\n'), 'fonts', (i, key) => {
+    if (!['serif', 'sans', 'mono', 'display'].includes(key)) {
+      addFm(i + 2, 'error', 'unknown-font-role',
+        `'fonts.${key}' is not a role this block has – roles: serif, sans, mono, display`);
+    }
+  });
 
   // The faces in fonts/ the `fonts:` block names, held to the asset root
   // like any other file the build reads (collectEmbeddedFonts runs

@@ -70,6 +70,11 @@ other word after the opening dashes – `---js`, `---coffee`, `---json` – fail
 the build and lints as `frontmatter-language`: the parser underneath would run
 a `---js` block as a program on the machine that builds the deck.
 
+A block that is not valid YAML fails the build with the line it stopped on,
+and lints as `bad-frontmatter`. The two ways to write one by accident: a plain
+value with `: ` in it (`title: Security: an intro` – quote it,
+`title: "Security: an intro"`) and a key written twice.
+
 ### Columns
 
 `# Column Heading {#column-id}` starts a column, the top-level horizontal unit
@@ -1707,7 +1712,9 @@ node lint.js <source.md> --allow-missing-ids   # while prototyping, before ids a
 ```
 
 `--allow-missing-ids` silences `missing-id`. A chunk's `{#id}` is not required
-by the build – a missing one gets a positional key – so this is for a talk
+by the build – a missing one gets a positional key, `c<column>-<chunk>`, which
+no authored id may then also be (the build refuses the pair as a duplicate) –
+so this is for a talk
 still being sketched; add the ids before the deck is finished, because they are
 the anchor the TOC, cross-references and speaker sync all use, and a positional
 key shifts when a chunk is inserted above.
@@ -1731,7 +1738,9 @@ anything but `---` or `---yaml`), `unresolved-asset` (an explicit `![](path)` th
 file, so the build renders a placeholder rather than a broken external `src` –
 usually the fix is dropping the extension so the `assets/` shorthand resolves
 it), `deprecated-margin` (the old `::: margin` spelling of `::: footnote`),
-`unknown-view-default`,
+`bad-frontmatter` (a block YAML cannot read), `bad-lang`, `bad-cover-align`,
+`unknown-font-role` (a `fonts:` key that is no role, or a single value other
+than `none`), `unknown-view-default`,
 `unknown-style-setting`, `unknown-frontmatter-key` (a top-level key no
 renderer reads; warning – see below), `unknown-label-key` (a word `labels:`
 does not name), `bad-backdrop`, `duplicate-backdrop`, `bad-overlay`,

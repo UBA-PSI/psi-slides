@@ -393,6 +393,14 @@ tag:
   read and inlined as the file it names – it used to be found and then left
   external. A picture inside a code fence or a code span is no longer counted
   at all.
+- **Breaking: `fonts:` takes the four roles or the word `none`.**
+  `fonts: off` shipped the whole bundle and `fonts: {heading: Anton}`
+  embedded nothing, both without a word. The build now refuses either; the
+  linter reports `unknown-font-role`.
+- **Breaking: an `{#id}` may not be the key a chunk without an id gets by
+  position** (`c<column>-<chunk>`). The two articles shared one reveal slot
+  and one sync target; the build refuses the pair as a duplicate id.
+
 - **The live views' keys are bound in one table, `commands.mjs`.** Internal:
   the `?` panel is rendered from it and the key map looks every press up in
   it, where both used to be written by hand beside each other. No key changes
@@ -1444,6 +1452,24 @@ tag:
 
 ### Fixed
 
+- **The linter reports what the build refuses in the frontmatter.** A
+  byte-order mark before the opening `---` and a closing `--- ` with a
+  trailing blank hid the whole block from it; a value on the line under its
+  key, a quoted key, a block scalar and a flow map over two lines hid one
+  value. `cover: split` and `cover: hero` without a `cover-image`,
+  `cover: beside` and `above` with neither a picture nor a title-chunk body,
+  `cover-align` on a cover that places its type itself, `lang: 123`,
+  `cover-ground` and `closing-credits` out of their lists, a single value
+  where `style:`, `labels:` or `draw-defaults:` takes a block, and a
+  `prompter:` number out of its bounds all built nothing and linted clean.
+  The other way round, `auto-fit: True` (YAML's spelling of `true`) and
+  `theme: >-` were refused by the linter and accepted by the build. New
+  codes: `bad-lang`, `bad-cover-align`, `bad-frontmatter`.
+- **A frontmatter block YAML cannot read stops the build with its line.**
+  `title: Security: an intro` and a key written twice ended in a
+  `YAMLException` stack trace; the message now names the line and says to
+  quote the value or drop the second key. The linter reports both as
+  `bad-frontmatter`.
 - **A clip named by its path is staged into `videos/` like a shorthand
   one.** One over the 12 MB cap kept the path it was written with, while
   the build reported it as staged. A deck whose only media are clips counted
