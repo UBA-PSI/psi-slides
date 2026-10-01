@@ -411,7 +411,7 @@ function pageCollect(cfg) {
   const frag = document.createDocumentFragment();
   const pages = [];
   const overflow = [];
-  const firstPageOf = {};        // chunk id -> wrapper id of its first page
+  const firstPageOf = Object.create(null);   // chunk id -> wrapper id of its first page
   let n = 0;
 
   // Only what sits *inside* a chunk. Everything outside one is gone by
@@ -571,8 +571,15 @@ function pageInstall(cfg) {
   // at whatever the viewer decides.
   const dead = [];
   for (const a of [...document.querySelectorAll('a[href^="#"]')]) {
-    const frag = decodeURIComponent(a.getAttribute('href').slice(1));
-    const target = cfg.links[frag];
+    // A fragment that is not valid percent-encoding (#50%) threw here and took
+    // the whole export with it; docCollect already kept such a one as written.
+    // And the table is looked up by own property only: #constructor found
+    // Object's constructor and was rewritten to its source text.
+    const raw = a.getAttribute('href').slice(1);
+    let frag = raw;
+    try { frag = decodeURIComponent(raw); } catch (e) { /* keep it raw */ }
+    const target = Object.prototype.hasOwnProperty.call(cfg.links, frag)
+      && typeof cfg.links[frag] === 'string' ? cfg.links[frag] : null;
     const page = a.closest('.pdf-page');
     const chunk = a.closest('.chunk');
     if (target) { a.setAttribute('href', '#' + target); continue; }
@@ -593,11 +600,19 @@ function pageInstall(cfg) {
 // Chunk id -> first page, then column id -> the same mapping for the divider
 // slide it generates, falling back to its first chunk when the column has no
 // heading and therefore no divider.
+//
+// Own properties only, on both sides: an id is an author's word, and a column
+// whose first chunk is #constructor found Object's constructor here. The page
+// that reads the table (pageInstall) checks again, because the table crosses
+// into it as a plain object.
 export function linkTable(got) {
-  const links = { ...got.firstPageOf };
-  for (const col of got.columns) {
-    const via = got.firstPageOf[col.sectionChunk]
-      ?? (col.firstChunk ? got.firstPageOf[col.firstChunk] : undefined);
+  const pages = (got && got.firstPageOf) || {};
+  const own = (k) => (typeof k === 'string' && Object.prototype.hasOwnProperty.call(pages, k)
+    && typeof pages[k] === 'string' ? pages[k] : undefined);
+  const links = {};
+  for (const k of Object.keys(pages)) if (own(k)) links[k] = pages[k];
+  for (const col of (got && got.columns) || []) {
+    const via = own(col.sectionChunk) ?? (col.firstChunk ? own(col.firstChunk) : undefined);
     if (via) links[col.id] = via;
   }
   return links;

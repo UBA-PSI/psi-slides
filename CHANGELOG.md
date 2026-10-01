@@ -1463,6 +1463,12 @@ tag:
 
 ### Fixed
 
+- **A link the slide PDF cannot follow no longer stops or corrupts it.** A
+  link to `#50%`, which is not valid percent-encoding, ended
+  `--slides-pdf` (and the app's slide export) with an error, and a link to
+  `#constructor` pointed at a page named after the text of a JavaScript
+  function. Both are now reported as links that go nowhere and printed as
+  text, as any other such link is.
 - **Two lectures in folders of the same name keep their highlights apart.**
   The reader's highlights were kept in the browser under the lecture
   folder's name alone, and a browser that keeps one store for every page

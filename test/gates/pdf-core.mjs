@@ -321,6 +321,14 @@ export async function run({ report }) {
   });
   ok(links.noheading === 'psiINT-pdf-p1' && links.withheading === 'psiINT-pdf-p4' && !('empty' in links),
     'a column links to its divider, else its first chunk, else nowhere', JSON.stringify(links));
+  // An id is an author's word. A column whose first chunk was #constructor
+  // found Object's constructor in the table and linked to its source text.
+  const inherited = linkTable({
+    firstPageOf: { x: 'psiINT-pdf-p1' },
+    columns: [{ id: 'odd', sectionChunk: 'odd-section', firstChunk: 'constructor' }],
+  });
+  ok(!Object.prototype.hasOwnProperty.call(inherited, 'odd') && inherited.x === 'psiINT-pdf-p1',
+    'a column whose first chunk is named after an inherited property links nowhere', JSON.stringify(inherited));
 
   // ── the report ─────────────────────────────────────────────────────
   const base = {

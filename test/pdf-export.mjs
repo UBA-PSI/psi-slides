@@ -142,6 +142,11 @@ stays a link, and its QR button does not.
 A link to [a chunk](#beatless), a link to [a column](#beats), and a link to
 [nothing at all](#gibtsnicht).
 
+Two more that go nowhere and used to do worse: [an inherited name](#constructor),
+which the link table answered with Object's constructor, and
+<a href="#50%zz">a stray percent</a>, which decodeURIComponent threw on and
+took the whole slide export with it.
+
 ## figure: An image that is not there {.full #missing}
 
 ![](./fehlt.png)
@@ -158,6 +163,7 @@ The export is offline, so this one is refused before it reaches the network.
 ## example: A hosted player {.wide #embed}
 
 ::: embed https://vimeo.com/76979871
+:::
 
 ## free: A chunk that will not fit however small the type is {.standard #toolong}
 
@@ -358,6 +364,11 @@ try {
   }
   ok(/<span[^>]*>nothing at all<\/span>/.test(dom),
      'a fragment that resolves to neither is demoted to a <span>');
+  ok(/<span[^>]*>an inherited name<\/span>/.test(dom) && !/function Object/.test(dom),
+     'a fragment named after an inherited property is dead too, not Object\'s constructor');
+  ok(/<span[^>]*>a stray percent<\/span>/.test(dom) && /#50%zz/.test(err),
+     'and one that is not valid percent-encoding is reported as written, not thrown on',
+     err.split('\n').filter(l => /50%/.test(l)).join(''));
   // The strongest form of the rule, and the one that does not depend on
   // knowing which links the fixture wrote: nothing points anywhere absent.
   const dangling = [...dom.matchAll(/<a [^>]*href="#([^"]+)"/g)]
