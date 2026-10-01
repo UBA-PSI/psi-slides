@@ -350,7 +350,7 @@ Press `?` in either live view for the full on-screen reference. The ones you nee
 From `1.0.0` the **source format is the interface**: a change that stops an existing `source.md` from building the same way is a major version. That is a promise about the format, not about the internals – `build.js` is one file and its insides are rearranged whenever it helps. Two consequences worth knowing:
 
 - **`{#id}` attributes are frozen once authored.** They anchor cross-references, TOC entries, sync snapshots, and `localStorage`. Renaming a heading is free; renumbering an ID is not.
-- **Generated HTML is disposable.** Rebuild it, do not commit it. The only tracked outputs are the three reference lectures – `lectures/tutorial/`, `lectures/diagrams/` and `lectures/decoration/` – so the tour and the two construct references can be browsed straight from the repository.
+- **Generated HTML is disposable.** Rebuild it, do not commit it. The only tracked outputs are the three reference lectures – `lectures/tutorial/`, `lectures/diagrams/` and `lectures/decoration/` – so the tour and the two construct references can be browsed straight from the repository. Rebuild those with `npm run build:tracked`, which skips the WebP step so the bytes do not depend on the encoder installed.
 
 ## Security
 

@@ -126,9 +126,16 @@ particular:
   parsing contract rather than importing it. When you change the vocabulary
   in `build.js`, change it in `lint.js` in the same commit. A linter that
   disagrees with the build is worse than no linter, because it is the gate.
-- **Do not commit generated HTML.** The one exception is
-  `lectures/tutorial/*.html`, tracked so the tour is browsable from the
-  repository; rebuild and commit those whenever the tutorial source changes.
+- **Do not commit generated HTML.** The exceptions are the views of
+  `lectures/tutorial/` and `lectures/diagrams/` (all four) and of
+  `lectures/decoration/` (`audience.html` and `print.html`), tracked so the
+  tour and the two construct references are browsable from the repository.
+  Rebuild them with `npm run build:tracked` and commit them whenever one of
+  the three sources, or anything they render through, changes. That script
+  passes `--no-optimize-images`: by default an inlined PNG or JPEG becomes
+  WebP through whatever `cwebp` or `magick` the machine has, so a view built
+  with an encoder is not the same bytes as one built on the release runner,
+  which has none – and two encoder versions differ too.
 
 ## Building and releasing
 
@@ -159,8 +166,8 @@ python3 -m http.server -d _site 8000
 
 **A version tag publishes a release.** `.github/workflows/release.yml` fires on
 `v*`, and it refuses to publish if the tag disagrees with `package.json`, if
-the lint fails, if the tracked tutorial HTML is not what the current source
-builds, or if the browser suite finds a regression – it runs there, last of
+the lint fails, if a tracked view is not what `npm run build:tracked` makes
+of the current source, if the release notes would not fit, or if the browser suite finds a regression – it runs there, last of
 the checks because it is the only one that costs minutes. If that is a
 surprise at tag time, it should not be: run `browser.yml` from the Actions tab
 on the branch first. Then it attaches two archives, `psi-slides.tar.gz` and
@@ -248,15 +255,24 @@ are not signed by convention.
 Cutting a release:
 
 1. `node lint.js lectures/ docs/site/example/source.md` – clean.
-2. Rebuild the tutorial and commit `lectures/tutorial/*.html` if they moved.
-   The release job checks this and fails on a stale tour.
+2. `npm run build:tracked`, and commit the tracked views if they moved. The
+   release job runs the same command and fails on a stale view.
 3. Run the browser suite – `node test/run.mjs`, or `browser.yml` from the
    Actions tab on the branch. The release job runs it too, and a tag is a bad
    place to learn that a spec is red.
-4. Move the changelog's `## [Unreleased]` items into a new version section and
-   update the two link definitions at the bottom. The release notes are cut
-   from that section by heading, so the heading has to read `## [1.2.3]`.
-5. Bump `version` in `package.json` to match.
+4. Rename the changelog's `## [Unreleased]` heading to the new version, open
+   an empty `## [Unreleased]` above it, and update the two link definitions
+   at the bottom. The release notes are cut from that section by heading, so
+   the heading has to read `## [1.2.3]`. GitHub takes 125,000 characters for
+   a release body at most, and the job checks the size before it builds
+   anything. A section that would not fit opens with a `### Breaking` list
+   and a `### Highlights` list: the body is then those two plus a link to
+   `CHANGELOG.md` at the tag. Give each of `### Added`, `### Changed`,
+   `### Removed`, `### Fixed` and `### Security` one heading per section, so
+   the full section stays readable too.
+5. Bump `version` to match, in `package.json` and in both places in
+   `package-lock.json`: `npm version --no-git-tag-version 1.2.3` does all
+   three and neither commits nor tags.
 6. Commit, then tag and push:
 
 ```bash

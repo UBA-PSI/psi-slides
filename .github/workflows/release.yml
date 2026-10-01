@@ -52,6 +52,50 @@ jobs:
             exit 1
           fi
 
+      # The release body, cut from the changelog section for this version so
+      # the release page says what changed without anyone retyping it. GitHub
+      # refuses a body over 125,000 characters, and the 2.0.0 section alone is
+      # more than twice that, so this runs before anything is built: a body
+      # that cannot be published should fail in seconds, not after the
+      # browser suite. When the section has a `### Highlights` heading, the
+      # body is what stands above the first heading that is neither that nor
+      # `### Breaking`, plus a link to CHANGELOG.md at the tag, and the
+      # section's own `](#anchor)` links are pointed at that file too. A
+      # section without one goes in whole. The size is counted in bytes,
+      # which are never fewer than the characters GitHub counts. A missing
+      # section falls back to GitHub's generated notes rather than an empty
+      # body.
+      - name: Cut the release notes
+        id: notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { inside = 1; next }
+            inside && /^## \[/ { exit }
+            inside { print }
+          ' CHANGELOG.md > SECTION.md
+          if [ ! -s SECTION.md ]; then
+            echo "have_notes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          full="https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/CHANGELOG.md"
+          if grep -q '^### Highlights$' SECTION.md; then
+            awk '/^### / && $0 !~ /^### (Breaking|Highlights)$/ { exit } { print }' SECTION.md \
+              | sed "s|](#|](${full}#|g" > RELEASE_NOTES.md
+            printf '\nEvery change in this release, with the reasons: [CHANGELOG.md](%s).\n' "$full" >> RELEASE_NOTES.md
+          else
+            cp SECTION.md RELEASE_NOTES.md
+          fi
+          size="$(wc -c < RELEASE_NOTES.md | tr -d ' ')"
+          echo "release notes: $size bytes"
+          if [ "$size" -gt 125000 ]; then
+            echo "the release notes are $size bytes and GitHub takes 125,000 characters at most:" >&2
+            echo "give the CHANGELOG.md section for $version a '### Highlights' heading after its" >&2
+            echo "'### Breaking' list, so the body stops there, or shorten the summary" >&2
+            exit 1
+          fi
+          echo "have_notes=true" >> "$GITHUB_OUTPUT"
+
       # The same gate the Pages workflow runs. A release that does not lint is
       # not a release.
       - name: Lint
@@ -70,9 +114,12 @@ jobs:
 
       - name: Build the lectures
         run: |
-          node build.js lectures/tutorial/source.md
-          node build.js lectures/diagrams/source.md
-          node build.js lectures/decoration/source.md
+          # The three lectures whose views are tracked, with the flags they
+          # were committed with: --no-optimize-images, because the inlined
+          # WebP is whatever the local cwebp or magick made of a PNG, this
+          # runner has neither, and two encoder versions differ in bytes too.
+          # The staleness check below compares against this rebuild.
+          npm run build:tracked
           node build.js lectures/python-intro/source.md
           node build.js docs/site/example/source.md
           # Linted above and not published, which is exactly why they are built
@@ -97,7 +144,11 @@ jobs:
       # The tutorial and diagram HTML is committed; a stale copy would ship a
       # tour, or a construct reference, that does not match its own source.
       - name: Check the tracked outputs are current
-        run: git diff --exit-code -- lectures/tutorial lectures/diagrams lectures/decoration
+        run: |
+          git diff --exit-code -- lectures/tutorial lectures/diagrams lectures/decoration || {
+            echo "a tracked view is not what its source builds: run npm run build:tracked and commit the views" >&2
+            exit 1
+          }
 
       # Same rule one folder over: both figure pages are tracked HTML whose
       # drawings come from the lecture built above, so a stale one ships a
@@ -154,24 +205,6 @@ jobs:
           tar -czf psi-slides.tar.gz -C dist psi-slides
           (cd dist && zip -qr ../psi-slides.zip psi-slides)
           ls -lh psi-slides.tar.gz psi-slides.zip
-
-      # The changelog section for this version, so the release page says what
-      # changed without anyone retyping it. Falls back to GitHub's generated
-      # notes if the section is missing, rather than publishing an empty body.
-      - name: Extract the changelog section
-        id: notes
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          awk -v v="$version" '
-            $0 ~ "^## \\[" v "\\]" { inside = 1; next }
-            inside && /^## \[/ { exit }
-            inside { print }
-          ' CHANGELOG.md > RELEASE_NOTES.md
-          if [ -s RELEASE_NOTES.md ]; then
-            echo "have_notes=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "have_notes=false" >> "$GITHUB_OUTPUT"
-          fi
 
       # gh is preinstalled on the runner, so the release step pulls in no
       # third-party action.

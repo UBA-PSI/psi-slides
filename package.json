@@ -1,6 +1,6 @@
 {
   "name": "psi-slides",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Write a lecture once in Markdown; build the projection, the presenter cockpit and two handouts as self-contained HTML.",
   "license": "MIT",
@@ -22,6 +22,7 @@
   },
   "scripts": {
     "build": "node build.js",
+    "build:tracked": "node build.js lectures/tutorial/source.md --no-optimize-images && node build.js lectures/diagrams/source.md --no-optimize-images && node build.js lectures/decoration/source.md --no-optimize-images",
     "lint": "node lint.js lectures/",
     "gate": "node test/gates/run.mjs",
     "settings": "node test/settings.mjs",

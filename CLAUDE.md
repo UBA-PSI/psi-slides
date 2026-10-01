@@ -17,6 +17,12 @@ npm install
 # build all four views next to source.md
 node build.js lectures/tutorial/source.md
 
+# rebuild the three lectures whose views are tracked (tutorial, diagrams,
+# decoration) exactly as release.yml checks them: with --no-optimize-images,
+# because an inlined PNG otherwise becomes whatever WebP the local cwebp or
+# magick makes, and the release runner has neither
+npm run build:tracked
+
 # live-reload authoring (WebSocket reload to open tabs on every save)
 node build.js lectures/tutorial/source.md --watch
 
@@ -477,7 +483,7 @@ Checks enforced:
 
 ### Four outputs, three renderers, one source
 
-The four HTML files are **self-contained outputs**. They ship with their runtime JS/CSS inlined from build.js template literals, so they open from `file://` without a server. They are gitignored (`lectures/*/print.html`, `lectures/*/print-notes.html`, `lectures/*/audience.html`, `lectures/*/speaker.html`) – rebuild instead of committing them. Three lectures are the exception: `lectures/tutorial/`, so readers can browse the self-referential tour straight from the repo; `lectures/diagrams/`, the only place every `::: draw` construct is drawn rather than described; and `lectures/decoration/`, the only place the cover, divider, card, backdrop and overlay constructions are shown rather than described. Rebuild and commit the tracked views (all four for the first two, `audience.html` and `print.html` for the third – see *Conventions*) whenever one of the three sources changes – the release workflow fails if they are stale.
+The four HTML files are **self-contained outputs**. They ship with their runtime JS/CSS inlined from build.js template literals, so they open from `file://` without a server. They are gitignored (`lectures/*/print.html`, `lectures/*/print-notes.html`, `lectures/*/audience.html`, `lectures/*/speaker.html`) – rebuild instead of committing them. Three lectures are the exception: `lectures/tutorial/`, so readers can browse the self-referential tour straight from the repo; `lectures/diagrams/`, the only place every `::: draw` construct is drawn rather than described; and `lectures/decoration/`, the only place the cover, divider, card, backdrop and overlay constructions are shown rather than described. Rebuild them with `npm run build:tracked` and commit the tracked views (all four for the first two, `audience.html` and `print.html` for the third – see *Conventions*) whenever one of the three sources changes – the release workflow fails if they are stale. A bare `node build.js` is not the same command: it transcodes an inlined PNG to WebP with the local encoder, so its bytes depend on the machine.
 
 `print-notes.html` is a second pass through the print renderer with `withNotes: true`; it embeds each chunk's `> note:` text as a `.speaker-note` aside under the chunk so a printed hand-out can show “what was on the slide + what the lecturer said”. Layout, CSS, and asset inlining are otherwise identical to `print.html`.
 
@@ -982,7 +988,7 @@ plan, its decisions and its build log are `docs/history/PLAN-electron-builder.md
 - **En-dashes only.** Use `–` or `&ndash;` in all prose (docs, markdown, comments, lecture sources). Never em-dashes (`—`).
 - When adding or renaming a chunk type, change it in **both** `build.js` and `lint.js` (and document the visual treatment in `PRD.md` §2.1).
 - **The word is "type" everywhere a user reads it and `tag` everywhere the code says it.** Prose, headings and linter messages say *chunk type*; `VALID_TAGS`, `chunk.tag`, `data-tag`, `.tag-label` and `parseTagPrefix` keep the old name, because `data-tag` is in the published outputs and is what the search index and the speaker's lists read. Renaming the identifiers would change an output attribute for no reader's benefit. The `::: draw` `@tag` is a different thing altogether and stays a tag.
-- Don't commit generated HTML outputs – they are regenerated per build and gitignored. Exception: **`lectures/tutorial/` and `lectures/diagrams/` track all four views**, and **`lectures/decoration/` tracks two, `audience.html` and `print.html`**. What the decoration reference demonstrates is what a slide looks like, so the projection and the printed document carry the whole of it; the notes view and the cockpit would add about 2 MB of tracked HTML and show nothing the other two do not. Rebuild and commit when any of the three sources changes. The release workflow fails if they are stale.
+- Don't commit generated HTML outputs – they are regenerated per build and gitignored. Exception: **`lectures/tutorial/` and `lectures/diagrams/` track all four views**, and **`lectures/decoration/` tracks two, `audience.html` and `print.html`**. What the decoration reference demonstrates is what a slide looks like, so the projection and the printed document carry the whole of it; the notes view and the cockpit would add about 2 MB of tracked HTML and show nothing the other two do not. Rebuild with `npm run build:tracked` (it passes `--no-optimize-images`) and commit when any of the three sources changes. The release workflow fails if they are stale.
 - `{#id}` attributes on chunks are **frozen once authored**. They are the anchor for cross-references, TOC entries, speaker-sync snapshots, and localStorage persistence. Don't renumber them reflexively when headings change.
 - Shiki is loaded once and cached across `--watch` rebuilds; adding a new language means extending `SHIKI_LANGS` (and optionally `LANG_ALIAS`) at the top of `build.js`.
 - **Math delimiters are `marked` extensions, and the inline rule must keep refusing to cross a backtick.** marked runs custom inline extensions *before* its own `codespan` tokenizer, so relaxing the content class lets a stray `$` in prose pair with one inside a following code span and swallow the delimiting backtick. This was a real regression, not a hypothetical: `a price of $5 and $10, ` + backtick-`$PATH` rendered as a formula reading `10, ` + backtick.

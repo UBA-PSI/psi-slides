@@ -58,10 +58,11 @@ jobs:
 
       - name: Build the lectures
         run: |
-          node build.js lectures/tutorial/source.md
+          # The three lectures with tracked views, built the way release.yml
+          # checks them, so what the site publishes is the committed bytes
+          # whatever encoder a runner image ships one day.
+          npm run build:tracked
           node build.js lectures/python-intro/source.md
-          node build.js lectures/diagrams/source.md
-          node build.js lectures/decoration/source.md
           # A 39-line lecture, published so a reader can take in one whole
           # source at a glance. The screenshots come from python-intro.
           node build.js docs/site/example/source.md

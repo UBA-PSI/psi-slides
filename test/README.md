@@ -25,7 +25,10 @@ they share is the same bytes. It needs no browser and no `npm install` beyond
 what `build.js` already has, but it is not a gate either, because it runs a
 build. It exists because `release.yml` fails when a tracked view on disk does
 not match a rebuild, and that check is only meaningful if a rebuild is a
-function of the source alone - which, for a while, it was not.
+function of the source alone - which, for a while, it was not. (Of the source
+and of the encoder, strictly: an inlined PNG becomes WebP through the local
+`cwebp` or `magick`, so the tracked views are built with `--no-optimize-images`,
+through `npm run build:tracked`.)
 
 A fourth place exists and is deliberately not one of these: `desktop/test/`
 holds the desktop app's own tests, run by `npm test` inside `desktop/` and by
