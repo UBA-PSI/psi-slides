@@ -220,8 +220,10 @@ on the pages as they then stand.
 - [x] Site counts and tutorial descriptions after the split – f719a203.
 - [x] Browser suite after the split: 1737 passed, 0 failed.
 - [ ] `img/builder.webp` is used by no page any more; `shoot.mjs` still takes it (owned by the other session – tell it).
-- [ ] Dark mode of the changed site pages not checked.
-- [ ] Browser suite after the prose passes (running).
+- [x] Dark and light mode of the eight site pages at 1440 and 390: no overflow, no invisible text, the figures page's bar matches.
+- [ ] figures.html, light: the teal accent (`rgb(0,121,130)`) on tinted backgrounds measures 4.1–4.4:1 – darken it slightly (`docs/artifact/figures-you-write.html`).
+- [ ] getting-started, 390 px: a ~40 px gap in the collapsed „Your first lecture“ block (grid row-gap in `site.css`).
+- [x] Browser suite after the prose passes: 1737 passed, 0 failed.
 - [ ] Site shots to re-shoot (`shoot.mjs`, owned by the other session): `deco-display-cover` (display-face subtitle changed), maybe `deco-display-divider`, the prompter cockpit shots EN + DE (`#two-numbers` note changed), maybe the decoration tiles (chunks above moved), `builder-lecture.webp` (alt says 92 slides).
 - [ ] python-intro: „the hour ahead“ vs „all afternoon“ – left because of the shots.
 - [ ] spoken-talk `#board`: sub-heading says „six steps“, the drawing has three boxes – check.
