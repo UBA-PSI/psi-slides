@@ -132,6 +132,19 @@ export async function run({ report }) {
   ok(j(marks) === j([{ idx: 2, beat: 0, at: 750 }, { idx: 3, beat: 0, at: 900 }]),
      'flattenMarks puts every mark on the slide it belongs to, in talk order', j(marks));
 
+  // A `> note:` under a `#` heading is the divider's, and the cockpit's
+  // cueMarkList counts its @mm:ss. The payload used to give every divider
+  // `notes: [], marks: []`, so the sidecar measured its drift against one
+  // mark fewer than the cockpit beside it.
+  const withDivNotes = fixture();
+  withDivNotes.columns[1].speakerNotes = ['@10:00 Zum **Einstieg**', 'Dann **weiter**'];
+  withDivNotes.columns[1].speakerNoteFrom = [null, 2];
+  const divDeck = deckOf(withDivNotes);
+  ok(j(divDeck.chunks[1].notes) === j([{ at: 0, cards: ['Einstieg'], prose: null }, { at: 2, cards: ['weiter'], prose: null }]),
+     'a divider carries its own notes, unpinned on beat 0 and pinned where `from` says', j(divDeck.chunks[1].notes));
+  ok(j(flattenMarks(divDeck)) === j([{ idx: 1, beat: 0, at: 600 }, { idx: 2, beat: 0, at: 750 }, { idx: 3, beat: 0, at: 900 }]),
+     'and its @mm:ss is a mark the drift is measured against, as in the cockpit', j(flattenMarks(divDeck)));
+
   // ── cue targets ──────────────────────────────────────────────────
   ok(j(cueTargets(deck, 2)) === j(['beispiel', 'kette', 'schluss', 'zugabe']),
      'cue targets are the next three slides with an id, and a divider is skipped', j(cueTargets(deck, 2)));

@@ -365,8 +365,13 @@ export function deckPayload(lecture, opts = {}) {
   columns.forEach((col, ci) => {
     const part = col && col.heading ? String(col.heading) : null;
     if (part) {
-      // The divider slide. It carries no notes of its own – what the author
-      // wrote under the heading is its body, and that is on the screen.
+      // The divider slide. What the author wrote under the heading is its
+      // body, and that is on the screen; a `> note:` under the heading is the
+      // divider's own (`col.speakerNotes`), and the cockpit files it on the
+      // divider's card list – unpinned on beat 0, since a divider has no
+      // top-level segments. Its `@mm:ss` is therefore a mark the cockpit's
+      // drift is measured against, and it has to be one here too, or the two
+      // halves report two different drifts for the same talk.
       const divider = {
         n: chunks.length + 1,
         id: (col.id && String(col.id)) || `col:${ci + 1}`,
@@ -378,6 +383,7 @@ export function deckPayload(lecture, opts = {}) {
         notes: [],
         marks: [],
       };
+      pushNotes(divider, col.speakerNotes, col.speakerNoteFrom, []);
       chunks.push(divider);
     }
     const own = (col && Array.isArray(col.chunks)) ? col.chunks : [];

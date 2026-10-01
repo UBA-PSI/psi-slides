@@ -318,7 +318,11 @@ they are said on, and the `@mm:ss` marks. `deckPayload` builds it off the parsed
 `lecture` (`buildOnce` returns it for this one caller), capped at about 1500
 characters of screen text and 2500 of notes per chunk, with a compiled `::: draw`
 reduced to `[figure, steps: N]` and code fences keeping their lines – a speaker
-can misstate code, and that is a `fact` hint.
+can misstate code, and that is a `fact` hint. **A divider carries its own notes
+and marks** (`col.speakerNotes`, unpinned on beat 0 as the cockpit files them):
+it used to get `notes: [], marks: []`, so a `@10:00` under a `#` heading was a
+mark the cockpit's `cueMarkList` counted and the sidecar's `flattenMarks` did
+not, and the two reported different drifts for one talk.
 
 **What the tick message holds** (`tickMessage`): a state line (`slide 12/38 · #id
 · beat 2/3 · elapsed · drift · time_hint_allowed · cue_targets=[…] ·

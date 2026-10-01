@@ -1463,6 +1463,10 @@ tag:
 
 ### Fixed
 
+- **The live prompter measures the clock against a part's own `@mm:ss`.** A
+  `> note:` under a `#` heading belongs to that part's divider slide, and the
+  cockpit counted its time mark; the prompter did not see the note at all, so
+  the drift it was told differed from the one on the cockpit's clock.
 - **A figure focused from the cockpit stays focused on the projection.** Any
   key in the cockpit that sent a snapshot – a zoom, a theme – closed the
   card on the projection alone, and the cockpit's `+`, `−` and `0` then went
