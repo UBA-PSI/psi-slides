@@ -24,72 +24,72 @@ Ground rules for every slice:
 
 ### F1 – Site: counts and pasted output (`index`, `getting-started`, EN + DE)
 
-`[~]` site-a
+`[x]` site-a – 8251f450
 
-- [ ] ✓ Pasted build output says „12 columns, 92 chunks“, 2 images, 0.00 MB,
+- [x] ✓ Pasted build output says „12 columns, 92 chunks“, 2 images, 0.00 MB,
       ~2.3 MB files – today 13 columns, 104 chunks, 8 images. `index.html:621–631`,
       `getting-started.html:359`, both `.de` twins. Paste a fresh run.
-- [ ] Lecture counts: python-intro 36 → 39 (`index.html:269`, `:492`, alt text
+- [x] Lecture counts: python-intro 36 → 39 (`index.html:269`, `:492`, alt text
       `in-the-room.html:335`), tutorial 92 → current, Figures 40 → 42, Decoration
       39 → 40 (`index.html:503–535`, `index.de.html:498–543`). Decide once how a
       „slide“ is counted (chunks, or chunks + dividers) and apply it everywhere.
 - [ ] `getting-started` points at the „Breaking“ list „at the head of 2.0.0“;
       `CHANGELOG.md` still says `[Unreleased]` – true only once the tag lands.
       Leave, but check at tagging.
-- [ ] PDF prerequisite: site says „needs Chrome“ (`getting-started.html:241`,
+- [x] PDF prerequisite: site says „needs Chrome“ (`getting-started.html:241`,
       `in-the-room.html:507`); README names `$PSI_CHROME`, the Playwright cache
       or system Chrome. Say also that the app's export needs nothing.
 
 ### F2 – Site: missing 2.0.0 features, small contradictions
 
-`[~]` site-b
+`[x]` site-b – cd4a85c4
 
-- [ ] `in-the-room` mentions Cmd-K but not the start menu on the projection –
+- [x] `in-the-room` mentions Cmd-K but not the start menu on the projection –
       the first thing a lecturer sees. Also `G` (go to slide) and `W`
       (fullscreen).
-- [ ] `prompter` never says the desktop app cannot run it.
-- [ ] `decoration.html:41` „builds exactly as it did before – byte for byte“:
+- [x] `prompter` never says the desktop app cannot run it.
+- [x] `decoration.html:41` „builds exactly as it did before – byte for byte“:
       „before“ undefined, and a 1.0.0 deck does not (slide-numbers default).
-- [ ] `decoration.html:215` face kinds „a hand, a machine, a poster“ vs
+- [x] `decoration.html:215` face kinds „a hand, a machine, a poster“ vs
       `display-faces.html` „hand, machine, graphic“.
-- [ ] `decoration.html:34–38` „Nothing here is drawn … no box to drag“
+- [x] `decoration.html:34–38` „Nothing here is drawn … no box to drag“
       contradicts the editor sold on other pages.
-- [ ] `build-site.js:136–137` comment speaks of five live entries; six are live.
+- [x] `build-site.js:136–137` comment speaks of five live entries; six are live.
 
 ### F3 – `docs/comparison.md`
 
-`[~]` site-c
+`[x]` site-c – ae1c642f
 
-- [ ] ✓ `:181` „psi-slides does not have URL deep links“ – `chunkIdxFromHash`
+- [x] ✓ `:181` „psi-slides does not have URL deep links“ – `chunkIdxFromHash`
       (build.js) opens the live views at `#id`.
-- [ ] ✓ `:40` „eight types and eight `:::` directives“ – 11 types, ~16 directives.
-- [ ] `:233` „fifty specs“ → 51. `PRD §4.5 / §6 / §10` cited unlinked
+- [x] ✓ `:40` „eight types and eight `:::` directives“ – 11 types, ~16 directives.
+- [x] `:233` „fifty specs“ → 51. `PRD §4.5 / §6 / §10` cited unlinked
       (`:59`, `:145`, `:259`).
-- [ ] `:55` „exactly the failure this project is named after“ – unclear (the
+- [x] `:55` „exactly the failure this project is named after“ – unclear (the
       name is the chair's).
 
 ### F4 – DE site: terminology and drift
 
-`[~]` site-a + site-b
+`[x]` site-a (8251f450), site-b (cd4a85c4)
 
-- [ ] Footer and licence line differ across the five DE pages; use the German
+- [x] Footer and licence line differ across the five DE pages; use the German
       chair name everywhere (`index.de.html:695–697`, `getting-started.de.html:488`).
-- [ ] `prompter.de.html:68` „Füllwörter“ → „Fülllaute (äh, ähm)“.
-- [ ] Address form: `index.de.html:370` „dir“, `getting-started.de.html:352`
+- [x] `prompter.de.html:68` „Füllwörter“ → „Fülllaute (äh, ähm)“.
+- [x] Address form: `index.de.html:370` „dir“, `getting-started.de.html:352`
       `C:\Users\du\…` → impersonal.
-- [ ] One word each, applied across all DE pages: Build (introduce once),
+- [x] One word each, applied across all DE pages: Build (introduce once),
       Farbschema (not „Thema“/„Themes“), Sprechernotizen, Leertaste (not Space),
       Tastendruck (not „Druck“, esp. the PDF section), Schritte (not „Beats“),
       „die Lesenden“, Frontmatter (glossed once; „Vorspann“ is the credit block).
-- [ ] Translationese in `decoration.de` (`:40`, `:43`, `:136`, `:152`, `:261`,
+- [x] Translationese in `decoration.de` (`:40`, `:43`, `:136`, `:152`, `:261`,
       `:399`, `:414`) and `getting-started.de` (`:171`, `:174`, `:185`).
-- [ ] Mark English targets „(englisch)“ + `hreflang="en"`: figures,
+- [x] Mark English targets „(englisch)“ + `hreflang="en"`: figures,
       figures-you-write, comparison, display-faces, and the tutorial
       (`index.de.html:509–513`, `:684`, `in-the-room.de`, `getting-started.de:347`).
       Point to `docs/site/example/` as the German model to copy.
-- [ ] Say that the desktop app speaks German.
-- [ ] Unify „Zum Weiterlesen“ / „Wo es weitergeht“.
-- [ ] Nav „Im Raum“ → „Im Hörsaal“ (`BAR_TEXT.de.nav.room`, H1).
+- [x] Say that the desktop app speaks German.
+- [x] Unify „Zum Weiterlesen“ / „Wo es weitergeht“.
+- [x] Nav „Im Raum“ → „Im Hörsaal“ (`BAR_TEXT.de.nav.room`, H1).
 
 ### F5 – Tutorial: statements that are false now
 
@@ -208,6 +208,11 @@ on the pages as they then stand.
 - [ ] Credits: one scheme across the decks (`presenter:` + `affiliation:`).
 
 ## Phase 4 – close
+
+- [ ] Top bar at its breakpoints: the DE entry is now „Im Hörsaal“ (was „Im
+      Raum“) – check it does not wrap (`PSI_SITE_NAV_ALL`, DESIGN.md).
+- [ ] Re-shoot `img/builder-lecture.webp` (its alt text, getting-started EN
+      :104 / DE :109, still describes „12 sections, 92 slides, 2 pictures“).
 
 - [ ] `npm run build:tracked`, `npm run gate`, `node lint.js lectures/ --strict`,
       site build with both gates, `node docs/artifact/refresh-figures.mjs --check`.
