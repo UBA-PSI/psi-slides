@@ -254,6 +254,8 @@ What is different here is the combination: one text rendered at two densities, a
 | [`lectures/python-intro/`](lectures/python-intro/) | The richest worked example – 39 chunks, the full layout vocabulary. |
 | [`lectures/diagrams/`](lectures/diagrams/) | Every `::: draw` statement drawn rather than described, with real lecture figures among them. |
 | [`lectures/decoration/`](lectures/decoration/) | Everything that decorates a slide, drawn rather than described: the cover family, the six dividers and the three kinds of divider content, cards and rows, backdrops with a reveal, overlays and panels, docks, beats below the top level, `{.bare}` headings. |
+| [`lectures/title-block/`](lectures/title-block/) | The title pair and the credit block: `headline: eyebrow`, `caps: on`, all four credit ranks and `closing-credits: cover`. |
+| [`lectures/display-face/`](lectures/display-face/) | The `fonts: {display: …}` role: what it reaches (cover, dividers, closing slide), the 32-face roster and how a face is paired with a body face. |
 | [`figure-design.md`](figure-design.md) | How to lay out a `::: draw` block so a room can read it. Rules with a wrong and a right version each, in real syntax, and a checklist. |
 | [`docs/artifact/`](docs/artifact/) | The figure language, published on the project site as `figures.html`: first the case for it, then the manual from nothing: a figure built a line at a time, then beats, then every class and statement, fifteen design rules and a gallery. Every drawing on it is compiled by the build rather than redrawn. |
 | [`editor.md`](editor.md) | Design and build log for the experimental graphical editor: what it edits, what it refuses to edit, and why. |

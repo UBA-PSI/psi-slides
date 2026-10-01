@@ -28,6 +28,16 @@ lectures/*/print.html
 lectures/*/print-notes.html
 lectures/*/audience.html
 lectures/*/speaker.html
+# the corpus decks under test/corpus/ are source-only, like most lectures
+test/corpus/*/print.html
+test/corpus/*/print-notes.html
+test/corpus/*/audience.html
+test/corpus/*/speaker.html
+test/corpus/*/slides.pdf
+test/corpus/*/print.pdf
+test/corpus/*/print-notes.pdf
+test/corpus/*/squint.txt
+test/corpus/*/videos/
 # --slides-pdf, and no lecture tracks one. The three that ship their HTML do so
 # because a reader should be able to read the reference without running the
 # build; a PDF is a fallback deck for a room, not something anyone reads here,

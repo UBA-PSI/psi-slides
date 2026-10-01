@@ -404,6 +404,18 @@ produce no pairs at all, and therefore no `between` candidate, however neatly
 they line up. The fixture's `b` is written `below a` for that reason alone. Two
 browser runs were spent guessing at this before anyone read the function.
 
+## The corpus decks
+
+`test/corpus/` holds three decks that no spec drives: `demo-tracking` (German),
+`demo-responsibility` and `demo-deco`. They are the decks the pre-2.0.0 stress
+test was written against – real content that combines the whole vocabulary,
+and in `demo-deco`'s case a coverage probe for the decoration constructs no
+other lecture uses. `pages.yml` builds all three on every push, as it builds
+`lectures/network-security`, so a line the build refuses and the linter passes
+fails there rather than merging green. They are not published and their views
+are not tracked. They live here rather than in `lectures/` because that folder
+holds the canonical examples of what the tool supports, and these are tests.
+
 ## Running it
 
 The runner builds and serves the lectures itself, so it never reports on stale

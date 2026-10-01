@@ -77,9 +77,9 @@ jobs:
           # vocabulary, built here for the same reason network-security is -
           # linted on every push, so built on every push, or a line the build
           # refuses and the linter passes merges green. Not published.
-          node build.js lectures/demo-tracking/source.md
-          node build.js lectures/demo-responsibility/source.md
-          node build.js lectures/demo-deco/source.md
+          node build.js test/corpus/demo-tracking/source.md
+          node build.js test/corpus/demo-responsibility/source.md
+          node build.js test/corpus/demo-deco/source.md
 
       # The figures page this job publishes carries figures compiled from the
       # lecture above, and `refresh-figures.mjs` is the only text that compiles
