@@ -30485,6 +30485,10 @@ function readViewportFlag(argv, fallback = { width: 1600, height: 900 }) {
 // the size and forty frames on five pages is a review, forty files is not.
 // The sheet is drawn by the same browser from an HTML page of the frames,
 // so it costs no image library. Never fails a build.
+function frameIdPart(id) {
+  return String(id).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 80) || 'chunk';
+}
+
 async function runFrames(absIn, viewport, outDir) {
   const opened = await openAudienceProbe(absIn, '--frames', viewport, 'written');
   if (!opened.page) return opened.code;
@@ -30517,7 +30521,11 @@ async function runFrames(absIn, viewport, outDir) {
       same = 0;
       beat = id === lastId ? beat + 1 : 0;
       lastId = id;
-      const name = `${String(frames.length + 1).padStart(3, '0')}-${id}-b${beat}.png`;
+      // The id comes out of the live page, which runs the deck's scripts, so
+      // it is a name only after this: a script that set data-chunk-id to
+      // ../../x wrote frames outside the folder, and the caption below put
+      // the same string into the sheet's markup.
+      const name = `${String(frames.length + 1).padStart(3, '0')}-${frameIdPart(id)}-b${beat}.png`;
       writeOutputFile(path.join(dir, name), shot);
       frames.push({ name, id, beat });
     }

@@ -163,6 +163,11 @@ tag:
   and on the command line open a WebSocket from a Worker. The browser the
   export starts now sends every connection to a proxy that does not exist
   and lets WebRTC use no UDP outside it.
+- **`--frames` writes only into its folder.** It named each picture after
+  the chunk id it read from the running projection, which the deck's own
+  scripts can change: an id of `../../../x` wrote pictures two folders above
+  the lecture. Characters other than letters, digits, `_` and `-` in that
+  part of the name are now replaced by `_`.
 
 ### Added
 

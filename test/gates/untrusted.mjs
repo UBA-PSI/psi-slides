@@ -267,6 +267,22 @@ export async function run({ report }) {
   ok(/execFileSync\('magick', \[\.\.\.args, `webp:\$\{dst\}`\]/.test(buildSrc),
      'the output is named webp: too – the temporary name ends in .tmp, which magick cannot read a format from');
 
+  // ── 5. a name made from the live page ─────────────────────────────
+  // --frames names each PNG after the active chunk's data-chunk-id, which
+  // the deck's own scripts can set: '../../../x' wrote two folders up.
+  const fr = load('build.js', ['frameIdPart']);
+  for (const [id, want] of [['intro', 'intro'], ['a_b-c9', 'a_b-c9'], ['../../../x', '_________x'],
+    ['a/b\\c', 'a_b_c'], ['<img src=x>', '_img_src_x_'], ['', 'chunk']]) {
+    ok(fr.frameIdPart(id) === want, `--frames names chunk id ${JSON.stringify(id)} as ${JSON.stringify(want)}`,
+       fr.frameIdPart(id));
+  }
+  ok(fr.frameIdPart('x'.repeat(500)).length === 80, 'and cuts a long one to 80 characters');
+  const rfAt = buildSrc.indexOf('\nasync function runFrames(');
+  const rf = buildSrc.slice(rfAt, buildSrc.indexOf('\n}\n', rfAt));
+  ok(rfAt > 0 && /const name = `\$\{[^`]*\}-\$\{frameIdPart\(id\)\}-b\$\{beat\}\.png`;/.test(rf)
+     && !/-\$\{id\}-/.test(rf),
+     'and runFrames builds every file name through it');
+
   // ── the linter says it ────────────────────────────────────────────
   const deck = path.join(lec, 'source.md');
   const lintOf = (src) => {

@@ -22,10 +22,6 @@ Not in this file, because they are decisions rather than defects:
 
 ## S1 – Security (a source.md someone sent you)
 
-3. **`--frames` writes outside the lecture folder** (`build.js:30520`): the
-   chunk id from the live DOM goes into the file name unsanitised; a deck
-   script setting `data-chunk-id='../../../../x'` wrote PNGs two folders up.
-   Restrict to `[A-Za-z0-9_-]` or check with `pathWithin`.
 4. **Desktop: a spoofed `--events` line** (`desktop/main/builder.js:37,81–90`,
    `ipc.js:184,222`; source build.js `[fonts]` notes at 2063/2082, printed at
    29637). A font file name or `fonts:` family with a newline and
