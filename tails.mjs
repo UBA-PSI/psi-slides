@@ -500,17 +500,27 @@ export function parseLegacyDrawTail(text) {
   // the refusal message may format the rest as the line to write.
   if (out.unknown.length) out.why = `does not understand "${out.unknown.join(' ')}"`;
   else if (out.repeated.length) out.why = `writes ${out.repeated.join(' and ')} twice - which one was meant is not for a script to guess`;
-  else if (out.unit != null && !validUnit(out.unit)) out.why = `has a zero side in its grid (${out.unit})`;
+  else if (out.unit != null && !validUnit(out.unit)) {
+    out.why = /(^|x)0+(x|$)/.test(out.unit) ? `has a zero side in its grid (${out.unit})`
+      : `has a grid side over ${UNIT_MAX_PX} (${out.unit})`;
+  }
   else if (out.cycle && out.autoplay == null) out.why = 'has cycle with no autoplay to repeat';
   else if (out.autoplay != null && (out.autoplay < AUTOPLAY_MIN || out.autoplay > AUTOPLAY_MAX)) out.why = `autoplay ${out.autoplay} is out of range`;
   else if (out.id) out.why = `carries #${out.id} - draw ids were diagnostic-only and are no longer supported; remove it by hand`;
   return out;
 }
 
-// A grid is WxH with both sides positive.
+// A grid is WxH with both sides positive and at most UNIT_MAX_PX. The bound
+// is not taste: a side of 22 digits is a Number that prints as `1e+21`, and
+// the canonical opener formatted from it failed its own check and threw with
+// a stack while lint.js passed the line. A cell wider than the nominal slide
+// (DG_NOMINAL_W, 2000 px) is a typo, not a grid.
+export const UNIT_MAX_PX = 2000;
 export function validUnit(unit) {
   const m = UNIT_RE.exec(String(unit));
-  return !!m && Number(m[1]) >= 1 && Number(m[2]) >= 1;
+  if (!m) return false;
+  const [w, h] = [Number(m[1]), Number(m[2])];
+  return w >= 1 && h >= 1 && w <= UNIT_MAX_PX && h <= UNIT_MAX_PX;
 }
 
 // The canonical line for a valid field set. Throws on an impossible one -
@@ -583,7 +593,10 @@ export function parseDrawOpener(line) {
     if (u) {
       if (stage > 0) problem('stray-attribute', `"${tok}" - the grid comes first, and a second WxH is not a second grid.`
         + ` A canvas is written  frame ${tok} ; otherwise  ${DRAW_OPENER_EXAMPLE}`);
-      else if (!validUnit(tok)) { problem('bad-unit', `"${tok}" has a zero side. A grid is WxH in units, as in 150x56`); stage = 1; }
+      else if (!validUnit(tok)) {
+        problem('bad-unit', `"${tok}" is not a grid. A grid is WxH in px, both sides from 1 to ${UNIT_MAX_PX}, as in 150x56`);
+        stage = 1;
+      }
       else { out.unit = `${Number(u[1])}x${Number(u[2])}`; stage = 1; }
       continue;
     }
