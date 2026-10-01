@@ -228,7 +228,7 @@ on the pages as they then stand.
 - [ ] python-intro: „the hour ahead“ vs „all afternoon“ – left because of the shots.
 - [ ] spoken-talk `#board`: sub-heading says „six steps“, the drawing has three boxes – check.
 
-- [ ] `comparison`'s details: a `summary` style in `site.css` (it is the
+- [x] `comparison`'s details: a `summary` style in `site.css` (it is the
       browser default now) and open the block a `#fragment` names (`site.js`,
       on load and `hashchange`). After site-s1, which may touch `site.css`.
 
@@ -237,7 +237,7 @@ on the pages as they then stand.
 - [ ] Re-shoot `img/builder-lecture.webp` (its alt text, getting-started EN
       :104 / DE :109, still describes „12 sections, 92 slides, 2 pictures“).
 
-- [ ] `npm run build:tracked`, `npm run gate`, `node lint.js lectures/ --strict`,
+- [x] `npm run build:tracked`, `npm run gate`, `node lint.js lectures/ --strict`,
       site build with both gates, `node docs/artifact/refresh-figures.mjs --check`.
-- [ ] Browser specs touching tutorial / diagrams / decoration.
+- [x] Browser specs touching tutorial / diagrams / decoration.
 - [ ] Move this file to `docs/history/`.
