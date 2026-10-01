@@ -219,12 +219,15 @@ on the pages as they then stand.
 
 - [x] Site counts and tutorial descriptions after the split – f719a203.
 - [x] Browser suite after the split: 1737 passed, 0 failed.
-- [ ] `img/builder.webp` is used by no page any more; `shoot.mjs` still takes it (owned by the other session – tell it).
+- [x] `img/builder.webp` is used by no page any more – deleted; it was taken by `desktop/test/smoke.mjs` (a comment), not `shoot.mjs`, and that comment now publishes `builder-lecture.webp`.
 - [x] Dark and light mode of the eight site pages at 1440 and 390: no overflow, no invisible text, the figures page's bar matches.
 - [ ] figures.html, light: the teal accent (`rgb(0,121,130)`) on tinted backgrounds measures 4.1–4.4:1 – darken it slightly (`docs/artifact/figures-you-write.html`).
 - [ ] getting-started, 390 px: a ~40 px gap in the collapsed „Your first lecture“ block (grid row-gap in `site.css`).
 - [x] Browser suite after the prose passes: 1737 passed, 0 failed.
-- [ ] Site shots to re-shoot (`shoot.mjs`, owned by the other session): `deco-display-cover` (display-face subtitle changed), maybe `deco-display-divider`, the prompter cockpit shots EN + DE (`#two-numbers` note changed), maybe the decoration tiles (chunks above moved), `builder-lecture.webp` (alt says 92 slides).
+- [x] Site shots re-shot: `deco-display-cover`, the five decoration tiles (slide numbers moved, `deco-dock` wording), `editor` (figure count 33), `figure` (larger raster, same drawing), `cue-beat-0`/`-1` (invisible but reproducible), `builder-lecture.webp` with its alt texts. `deco-display-divider` unchanged. `shoot.mjs`'s PDF sheet reads the `psiINT-pdf-p` wrapper id.
+- [ ] Prompter shots `prompter-hint` and `prompter-hint-de` are stale (`#two-numbers` note changed) – `shoot-prompter.mjs` costs model calls, not run.
+- [ ] python-intro shots drifted with the engine, not re-shot: `printed`, `handout`, `handout-plain` (the reader tools' Contents button and a shifted column), `full` (the start-menu chevron beside `?`), small drift in `cockpit`, `collapsed`, `overview`, `search`, `annotation`.
+- [ ] Desktop smoke, parity step: 2 failures – slides.pdf page 9 (`#arrows` beat 1) fits at zoom 0.95 in the app and 0.9 on the command line, so 3 pages' text differs.
 - [ ] python-intro: „the hour ahead“ vs „all afternoon“ – left because of the shots.
 - [ ] spoken-talk `#board`: sub-heading says „six steps“, the drawing has three boxes – check.
 
@@ -234,7 +237,7 @@ on the pages as they then stand.
 
 - [ ] Top bar at its breakpoints: the DE entry is now „Im Hörsaal“ (was „Im
       Raum“) – check it does not wrap (`PSI_SITE_NAV_ALL`, DESIGN.md).
-- [ ] Re-shoot `img/builder-lecture.webp` (its alt text, getting-started EN
+- [x] Re-shoot `img/builder-lecture.webp` (its alt text, getting-started EN
       :104 / DE :109, still describes „12 sections, 92 slides, 2 pictures“).
 
 - [x] `npm run build:tracked`, `npm run gate`, `node lint.js lectures/ --strict`,

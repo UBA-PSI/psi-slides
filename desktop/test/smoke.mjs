@@ -395,34 +395,33 @@ try {
   // window is taller than this project screen needs, and on a stage that void
   // reads as a rendering fault rather than as an app that does little.
   //
-  // 800 rather than 1150, since the site's rows became bands: the words beside
-  // this shot name the status line, the Build now button and the four view
-  // buttons, and the crop now ends one row under them. At 1150 the picture was
-  // 724px tall against 241px of words - DESIGN.md's fifth rule, and the answer
-  // it gives is a crop rather than an arrangement that manages the difference.
+  // 1146 rows, under the lecture figures: the words beside this shot on
+  // getting-started name the status line, the Build now button, the four view
+  // buttons and the count of the lecture under them, so the crop ends one row
+  // under the count. The page's alt text quotes the figures, so a re-take
+  // means reading them off the new picture and writing them into both
+  // languages. (The front page used to carry a tighter 800-row crop of the
+  // same capture, builder.webp; no page shows it any more.)
   //
-  //   magick desktop/test/shots/site-builder.png -crop 1520x800+0+0 +repage /tmp/b.png
-  //   cwebp -quiet -q 86 -m 6 /tmp/b.png -o docs/site/img/builder.webp
+  //   magick desktop/test/shots/site-builder.png -crop 1520x1146+0+0 +repage /tmp/b.png
+  //   cwebp -quiet -q 86 -m 6 /tmp/b.png -o docs/site/img/builder-lecture.webp
   //
   // Where a crop may cut. The capture is 1520x1496 (a 2x shot of the 760x780
   // window, whose viewport is 748), and these are its blocks in shot pixels -
   // measured rather than estimated, so a later crop need not launch the app to
-  // find a seam. Cut in a gap; three of the blocks carry a hairline on top and
+  // find a seam. Cut in a gap; two of the blocks carry a hairline on top and
   // a crop that lands on one leaves a stray rule along the picture's foot.
   //
-  //   top bar            0.. 68     output grid      414.. 652  (hairline)
-  //   project name      96..152     editor button    688.. 730
-  //   path line        160..196     editor note      736.. 774
-  //   status sentence  228..278     lecture figures  806..1130  (hairline)
-  //   Build now row    310..378     serve block     1162..1320  (hairline)
-  //                                 build details   1352..1392
+  //   top bar            32.. 58     output grid      414.. 652
+  //   project name      108..140     editor and PDF   695.. 720
+  //   path line         165..189     editor note      737.. 762
+  //   status sentence   240..272     lecture figures  798..1119  (hairline)
+  //   Build now row     310..377     serve block     1155..1309  (hairline)
+  //                                  build details   1355..1375
   //
-  // So the seams are 790 (under the editor note, clear of the figures' rule),
-  // 1146 (under the figures, clear of serve's) and 1336. Below 1392 the shot
+  // So the seams are 780 (under the editor note, clear of the figures' rule),
+  // 1146 (under the figures, clear of serve's) and 1340. Below 1375 the shot
   // is empty ground, which is what the crop exists to remove.
-  //
-  // The published crop of 800 still lands in a gap, six pixels above the
-  // figures' hairline. 790 is the same picture with room to spare.
   const shown = path.join(work, 'netsec-04');
   fs.mkdirSync(shown);
   fs.copyFileSync(source, path.join(shown, 'source.md'));

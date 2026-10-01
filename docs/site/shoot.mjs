@@ -456,7 +456,7 @@ function contactSheet(s, dir) {
   // chunk it holds.
   const text = fs.readFileSync(dom, 'utf8');
   const pages = [];
-  const re = /class="pdf-page" id="pdf-p(\d+)"[\s\S]*?\bid="([^"]+)"/g;
+  const re = /class="pdf-page" id="psiINT-pdf-p(\d+)"[\s\S]*?\bid="([^"]+)"/g;
   for (let m; (m = re.exec(text));) {
     if (s.sheet.chunks.includes(m[2])) pages.push(Number(m[1]));
   }
