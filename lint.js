@@ -28,7 +28,8 @@
  *   1  one or more errors
  *   2  --strict and at least one warning
  *
- * Per-file override anywhere in the source:
+ * Per-file override anywhere in the source, for warnings only – an error is
+ * a deck the build refuses and is reported whatever the comment says:
  *   <!-- linter: ignore reveal-overuse, density -->
  */
 
@@ -2762,8 +2763,11 @@ function lintFile(filePath) {
   // the heading is readable and text-on-picture yields to it.
   const sectionVariant = (header.match(/^section:[ \t]*["']?([a-z]+)/m) || [, 'plain'])[1];
 
+  // An ignore comment silences a warning and never an error. An error is a
+  // deck the build refuses, and a deck somebody sent could otherwise carry
+  // its own `ignore asset-outside-root` past the pre-commit gate.
   const add = (bodyLine, severity, rule, msg) => {
-    if (ignores.has(rule)) return;
+    if (severity !== 'error' && ignores.has(rule)) return;
     findings.push({
       file: filePath, line: fmLines + bodyLine, severity, rule, msg,
     });
@@ -2771,7 +2775,7 @@ function lintFile(filePath) {
   // Frontmatter findings carry their own line numbers, counted from the
   // opening `---`, so they must not go through `add`'s fmLines offset.
   const addFm = (fmLine, severity, rule, msg) => {
-    if (ignores.has(rule)) return;
+    if (severity !== 'error' && ignores.has(rule)) return;
     findings.push({ file: filePath, line: fmLine, severity, rule, msg });
   };
 
@@ -3083,6 +3087,60 @@ function lintFile(filePath) {
           + 'is German – a cover, closing or divider heading containing one gets a '
           + 'fallback glyph mid-word. Pick another display face, or keep ß out of '
           + 'those three headings.');
+      }
+    }
+  }
+
+  // The faces in fonts/ the `fonts:` block names, held to the asset root
+  // like any other file the build reads (collectEmbeddedFonts runs
+  // assetEscape on each). Every role, flow form or indented; a family the
+  // build would find bundled is checked too, which errs towards reporting -
+  // the only file it can report is a link out of the root, or into a
+  // dot-folder, sitting in fonts/ under a name the block asks for. The match
+  // is fontsDirHolds' lenient prefix, so this reports every file the build
+  // could read for the family.
+  {
+    const srcDir = path.dirname(filePath);
+    const named = [];
+    const ls = header.split('\n');
+    let inFonts = false;
+    const take = (line, raw) => {
+      const v = String(raw).replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+      if (v && !/^none$/i.test(v)) named.push({ line, family: v });
+    };
+    for (let i = 0; i < ls.length; i++) {
+      const raw = ls[i];
+      const flow = raw.match(/^fonts:[ \t]*\{(.*)\}[ \t]*$/);
+      if (flow) {
+        for (const pair of flow[1].split(',')) {
+          const kv = pair.match(/^\s*["']?(serif|sans|mono|display)["']?\s*:\s*(.*?)\s*$/);
+          if (kv) take(i, kv[2]);
+        }
+        break;
+      }
+      if (/^fonts:[ \t]*$/.test(raw)) { inFonts = true; continue; }
+      if (!inFonts) continue;
+      if (!/^[ \t]+\S/.test(raw)) { if (raw.trim()) inFonts = false; continue; }
+      const m = raw.match(/^[ \t]+(serif|sans|mono|display):[ \t]*(.*)$/);
+      if (m) take(i, m[2]);
+    }
+    let entries = [];
+    if (named.length) {
+      try { entries = fs.readdirSync(path.join(srcDir, 'fonts')); } catch (e) { entries = []; }
+    }
+    const reported = new Set();
+    for (const { line, family } of named) {
+      const wanted = normFontName(family);
+      for (const f of entries) {
+        if (reported.has(f) || assetKindOf(f) !== 'font') continue;
+        if (!normFontName(path.basename(f, path.extname(f))).startsWith(wanted)) continue;
+        const out = assetEscape(path.join(srcDir, 'fonts', f), srcDir);
+        if (out === null) continue;
+        reported.add(f);
+        addFm(line + 2, 'error', 'asset-outside-root',
+          `'fonts/${f}' (for '${family}') is ${out} – the build reads a face from the asset root `
+          + `(${assetRootOf(srcDir)}) alone, links resolved, never from a folder whose name starts `
+          + 'with a dot, and a link only to a font; it refuses this deck');
       }
     }
   }

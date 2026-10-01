@@ -22,13 +22,8 @@ Not in this file, because they are decisions rather than defects:
 
 ## S1 – Security (a source.md someone sent you)
 
-7. **`lint.js` does not check `fonts/`**, though SECURITY.md:104–106 says it
-   reports the first three refusals: `fonts/MyFace.woff2` linked outside the
-   root lints clean, the build refuses.
-8. **`<!-- linter: ignore … -->` silences errors** (`lint.js:667`, filters at
-   2766/2774), including `asset-outside-root`, `unknown-view-default`,
-   `oversized-asset`; a sent deck can pass the pre-commit gate. Restrict the
-   ignore list to warnings.
+All eight findings are fixed; the fourth set of bullets under Security in
+CHANGELOG.md says what changed.
 
 ## S2 – Data loss
 

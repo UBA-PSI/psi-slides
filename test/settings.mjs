@@ -3991,6 +3991,7 @@ console.log('\nlayout generations');
   });
   ok(font.code !== 0 && /fonts\/Evil-Regular\.woff2\s+->/.test(font.out) && !font.views.length,
      'a face in fonts/ that links out of the root is refused', font.out.split('\n')[0]);
+  ok(/asset-outside-root.*fonts\/Evil-Regular\.woff2/.test(font.lint), 'and lint.js says the same', font.lint.split('\n')[0]);
   const example = deck(YAML, 'Written as `![](../../outside/secret.png)`, which is text.\n\n```\n![](../../outside/secret.png)\n```');
   ok(example.code === 0 && !/asset-outside-root/.test(example.lint),
      'a reference in a code span or a fence is text, and builds and lints clean', example.out.split('\n')[0]);

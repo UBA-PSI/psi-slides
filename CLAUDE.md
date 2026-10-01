@@ -328,7 +328,7 @@ stylesheets plus the rig plus the Chromium that drew it; the trigger to
 re-shoot, the threshold for bothering, and the reason `refresh-figures --check`
 drifts whenever `img/editor.webp` moves are written out beside the shot table.
 
-A source file can silence specific lint warnings with an HTML comment anywhere in the body:
+A source file can silence specific lint warnings (never an error) with an HTML comment anywhere in the body:
 
 ```
 <!-- linter: ignore reveal-overuse, density -->

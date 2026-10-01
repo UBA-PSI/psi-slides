@@ -193,6 +193,16 @@ tag:
   replaced by a file, and the build says so: an author who linked it on
   purpose finds the change in the lecture's folder, not in the file the link
   pointed to.
+- **The linter checks the faces in `fonts/`.** `node build.js` refused a
+  face in `fonts/` that links out of the lecture's folder and the folder
+  above, while `node lint.js` passed the deck. The linter now reports it as
+  `asset-outside-root` on the `fonts:` line that names the family.
+- **Breaking for the linter: `<!-- linter: ignore … -->` silences warnings
+  only.** It silenced errors too, so a deck someone sent could carry
+  `ignore asset-outside-root` or `ignore frontmatter-language` and pass the
+  linter as a pre-commit gate while `node build.js` refused it. An error is
+  now reported whatever the comment says. No lecture in this repository or
+  in the content repository ignores an error.
 
 ### Added
 

@@ -103,7 +103,9 @@ four HTML files.
 
 `node lint.js <source.md>` gives a safe first look: it reads the source, runs
 nothing from it, and reports the first three refusals below as errors
-(`frontmatter-language`, `asset-outside-root`).
+(`frontmatter-language`, `asset-outside-root`), faces in `fonts/` included.
+A `<!-- linter: ignore … -->` comment in the source silences warnings only,
+so a lecture cannot hide these errors from it.
 
 **What `node build.js` refuses.** It stops before it writes any of the four
 files, and its message says why:

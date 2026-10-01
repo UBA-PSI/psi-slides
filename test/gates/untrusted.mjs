@@ -336,4 +336,25 @@ export async function run({ report }) {
   ok(/asset-outside-root/.test(bd), 'and a backdrop', bd.split('\n')[0]);
   const dg = lintOf('---\ntitle: T\n---\n' + BODY.replace('IMG', '::: draw\nimage k ../../outside/key at 1,1 h 2\n:::'));
   ok(/asset-outside-root/.test(dg), 'and a ::: draw image', dg.split('\n')[0]);
+  // A face in fonts/ is read like a picture, so lint.js holds it to the same
+  // root: SECURITY.md promises the linter reports what the build refuses.
+  fs.mkdirSync(path.join(lec, 'fonts'), { recursive: true });
+  link(path.join(base, 'outside', 'key'), path.join(lec, 'fonts', 'Evil-Regular.woff2'));
+  put(path.join(lec, 'fonts', 'Good-Regular.woff2'));
+  const fo = lintOf('---\ntitle: T\nfonts:\n  sans: Evil\n---\n' + BODY.replace('IMG', ''));
+  ok(/:4\s+error\s+asset-outside-root.*fonts\/Evil-Regular\.woff2/.test(fo),
+     'and a face in fonts/ that links out of the root, on its fonts: line', fo.split('\n')[0]);
+  const ff = lintOf('---\ntitle: T\nfonts: {display: Evil}\n---\n' + BODY.replace('IMG', ''));
+  ok(/asset-outside-root.*Evil-Regular/.test(ff), 'in the flow form too', ff.split('\n')[0]);
+  const fg = lintOf('---\ntitle: T\nfonts:\n  sans: Good\n---\n' + BODY.replace('IMG', ''));
+  ok(!/asset-outside-root/.test(fg), 'and passes a face that is a file in fonts/', fg.split('\n')[0]);
+  // An ignore comment silences a warning, never an error: a sent deck could
+  // otherwise carry its own way past the pre-commit gate.
+  const ig = lintOf('---\ntitle: T\n---\n<!-- linter: ignore asset-outside-root, frontmatter-language, orphan-column -->\n'
+    + BODY.replace('IMG', '![](../../outside/key)'));
+  ok(/error\s+asset-outside-root/.test(ig), 'an ignore comment does not silence an error', ig.split('\n')[0]);
+  const igw = lintOf('---\ntitle: T\nbogus-key: 1\n---\n<!-- linter: ignore unknown-frontmatter-key -->\n' + BODY.replace('IMG', ''));
+  const igw0 = lintOf('---\ntitle: T\nbogus-key: 1\n---\n' + BODY.replace('IMG', ''));
+  ok(/unknown-frontmatter-key/.test(igw0) && !/unknown-frontmatter-key/.test(igw),
+     'and still silences a warning', igw.split('\n')[0]);
 }

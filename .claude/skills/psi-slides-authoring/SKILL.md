@@ -1931,7 +1931,8 @@ Run them in that order. The first three are cheap and specific; `--frames` is
 the one that needs your eyes, and it is the one that finds what the others were
 not asked about.
 
-A source file can silence checks with an HTML comment anywhere in the body:
+A source file can silence warnings with an HTML comment anywhere in the body
+(an error is a deck the build refuses, and no comment silences it):
 
 ```md
 <!-- linter: ignore reveal-overuse, density -->
