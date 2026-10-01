@@ -256,6 +256,35 @@ export async function run({ report }) {
     ok(fs.readFileSync(plain, 'utf8') === 'a\nb\n', 'and an ordinary log is appended to');
   }
 
+  // source.md is rewritten by three verbs (--integrate-annotations,
+  // --optimize-images, the editor's patch), and a sent folder can carry one
+  // that links to the reader's profile: all three go through
+  // rewriteSourceFile, which replaces a link and keeps a plain file's mode.
+  const rs = load('build.js', ['writeOutputFile', 'rewriteSourceFile']);
+  const srcLink = link(victim, path.join(lec, 'source.md'));
+  const said = [];
+  const realLog = console.log;
+  console.log = (m) => said.push(String(m));
+  try { rs.rewriteSourceFile(srcLink, '# rewritten\n'); } finally { console.log = realLog; }
+  ok(fs.readFileSync(victim, 'utf8') === 'x' && !fs.lstatSync(srcLink).isSymbolicLink()
+     && fs.readFileSync(srcLink, 'utf8') === '# rewritten\n',
+     'a source.md that is a link is replaced by the rewrite, not written through');
+  ok(said.some(m => /was a symbolic link/.test(m)), 'and the build says the link is gone', said.join(' | '));
+  if (process.platform !== 'win32') {
+    fs.chmodSync(srcLink, 0o600);
+    rs.rewriteSourceFile(srcLink, '# again\n');
+    ok((fs.statSync(srcLink).mode & 0o777) === 0o600, 'a plain source.md keeps its mode across a rewrite',
+       (fs.statSync(srcLink).mode & 0o777).toString(8));
+  }
+  const direct = [...buildSrc.matchAll(/fs\.(writeFileSync|appendFileSync)\((absIn|srcPath|sourcePath)\b/g)]
+    .map(m => buildSrc.slice(0, m.index).split('\n').length);
+  const newAt = buildSrc.indexOf('\nfunction runNew(');
+  const newLines = [buildSrc.slice(0, newAt).split('\n').length, buildSrc.slice(0, buildSrc.indexOf('\n}\n', newAt)).split('\n').length];
+  const strayWrites = direct.filter(n => n < newLines[0] || n > newLines[1]);
+  ok(strayWrites.length === 0 && (buildSrc.match(/rewriteSourceFile\(absIn, /g) || []).length === 3,
+     'build.js writes source.md only through rewriteSourceFile, at its three sites (--new writes a fresh folder)',
+     `direct writes on lines ${strayWrites.join(', ')}`);
+
   // ── 4. the ImageMagick decoder ────────────────────────────────────
   const mg = load('build.js', ['magickInput'], '\n' + constLine(buildSrc, 'MAGICK_DECODERS'));
   ok(mg.magickInput('/a/b.png') === 'png:/a/b.png', 'a .png goes to magick as png:');

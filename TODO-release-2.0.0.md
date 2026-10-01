@@ -22,10 +22,6 @@ Not in this file, because they are decisions rather than defects:
 
 ## S1 – Security (a source.md someone sent you)
 
-6. **`source.md` is written through a symlink** (`build.js:27849`
-   `--integrate-annotations`, `:28276` `--optimize-images`, `:30088` editor
-   patch) with `fs.writeFileSync`; SECURITY.md:126–128 says every write goes
-   through temp-and-rename. Use `writeOutputFile` or narrow the sentence.
 7. **`lint.js` does not check `fonts/`**, though SECURITY.md:104–106 says it
    reports the first three refusals: `fonts/MyFace.woff2` linked outside the
    root lints clean, the build refuses.

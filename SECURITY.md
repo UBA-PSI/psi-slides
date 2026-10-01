@@ -123,11 +123,14 @@ files, and its message says why:
 - **A symbolic link whose target is a different kind of file than its name
   says.** A link counts as the file it points to, so it is held to the same
   folders, and `assets/pic.png` pointing at a PDF or a key is refused.
-- **Writing through a link.** The four files, and the other files `node
-  build.js` writes, are written under a new name and renamed into place. A
-  `print.html` that arrived as a link to your shell profile is therefore
-  replaced, and your profile is left alone. The prompter's log, the one file
-  that is appended to, refuses a link at its path.
+- **Writing through a link.** The four files, the other files `node
+  build.js` writes, and `source.md` itself when `--integrate-annotations`,
+  `--optimize-images` or the diagram editor changes it, are written under a
+  new name and renamed into place. A `print.html` or a `source.md` that
+  arrived as a link to your shell profile is therefore replaced, and your
+  profile is left alone; for `source.md` the build says that it replaced a
+  link. The prompter's log, the one file that is appended to, refuses a link
+  at its path.
 - **`--optimize-images` outside the lecture's own folder.** That command
   replaces and deletes pictures. It converts only files inside the lecture's
   folder and lists the others as shared or refused.

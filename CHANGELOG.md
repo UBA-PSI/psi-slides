@@ -184,6 +184,15 @@ tag:
   space, so only an event can start one; the app takes a `serving` address
   only when it is `http` on this computer, and keeps the lecture it opened
   whatever a `watching` line says.
+- **`source.md` is not written through a link either.** The rule above
+  covered every file the build makes, but `--integrate-annotations`,
+  `--optimize-images` and the diagram editor wrote `source.md` in place, so a
+  folder whose `source.md` linked to the reader's shell profile had the
+  profile rewritten. The three now write under a new name and rename it into
+  place, keeping the file's permissions. A `source.md` that is a link is
+  replaced by a file, and the build says so: an author who linked it on
+  purpose finds the change in the lecture's folder, not in the file the link
+  pointed to.
 
 ### Added
 

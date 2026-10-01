@@ -366,6 +366,23 @@ function appendOutputFile(p, data, mode = 0o666) {
   try { fs.writeSync(fd, data); } finally { fs.closeSync(fd); }
 }
 
+// source.md itself, rewritten by --integrate-annotations, --optimize-images
+// and the editor's patch: the same rule as an output, because a sent folder
+// can carry a source.md that links to the reader's shell profile. Its mode is
+// kept; a link is replaced by a file, and the build says so, since an author
+// who linked source.md on purpose would otherwise find the edit missing from
+// the file the link pointed to.
+function rewriteSourceFile(p, text) {
+  let st = null;
+  try { st = fs.lstatSync(p); } catch { /* not there */ }
+  const wasLink = !!(st && st.isSymbolicLink());
+  writeOutputFile(p, text, st && !wasLink ? (st.mode & 0o777) : 0o666);
+  if (wasLink) {
+    console.log(`${path.basename(p)} was a symbolic link. The change is written to a file in its place,`
+      + ' and the file the link pointed to is unchanged.');
+  }
+}
+
 // A folder the build writes into, created when missing and refused when it is
 // a link - a rename inside a linked folder still lands wherever it points.
 function outputDir(dir) {
@@ -27846,7 +27863,7 @@ function runIntegrate(absIn) {
     console.log('Marker block was empty — nothing to integrate. Source unchanged.');
     return;
   }
-  fs.writeFileSync(absIn, result.src);
+  rewriteSourceFile(absIn, result.src);
   console.log('Integrated ' + result.moved + ' annotation' + (result.moved === 1 ? '' : 's') + ' into ' + absIn);
   for (const w of result.warnings) console.warn('Warning: ' + w);
   if (result.unresolved.length) {
@@ -28273,7 +28290,7 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
   }
 
   if (sourceEdits.length) {
-    fs.writeFileSync(absIn, src, 'utf8');
+    rewriteSourceFile(absIn, src);
     console.log('');
     console.log(`Rewrote ${sourceEdits.length} explicit image path(s) in ${path.basename(absIn)}:`);
     for (const e of sourceEdits) console.log(`  ${e.from} → ${e.to}`);
@@ -30132,7 +30149,7 @@ async function runWatch(absIn, only, baseOpts = {}) {
         return reply(false, 'another window has already edited this figure – reload the page and try again');
       }
       try {
-        fs.writeFileSync(absIn, src.slice(0, range[0]) + msg.text + src.slice(range[1]), 'utf8');
+        rewriteSourceFile(absIn, src.slice(0, range[0]) + msg.text + src.slice(range[1]));
       } catch (e) { return reply(false, 'cannot write the source: ' + e.message); }
       console.log(`[patch] ${path.relative(process.cwd(), absIn)} – ${hit.chunk ? '#' + hit.chunk : 'a diagram'}, ${msg.text.length - hit.body.length >= 0 ? '+' : ''}${msg.text.length - hit.body.length} bytes`);
       emitEvent({ type: 'patch', chunk: hit.chunk || null, delta: msg.text.length - hit.body.length });
