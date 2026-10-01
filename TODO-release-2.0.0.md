@@ -31,51 +31,10 @@ All four fixed: items 1, 2 and 4 in `351e6b9`, item 3 (the editor key) in `9afbe
 
 ## S3 – Parser, build and lint congruence
 
-1. **Fences are only ```` ``` ```` at column 0** (`build.js:5526, 5319, 5154`,
-   `segmentIndexer` ~4790). `~~~`, indented and four-backtick fences are
-   missed: a `~~~yaml` block with `---` is split into two segments. The image
-   collectors and `rewriteAssetRef` do know `~~~`, so a `::: draw` inside one
-   is live to the parser and documentation to them. Lint is silent.
-2. **An unclosed fence swallows every later slide**, exit 0; lint says only
-   `orphan-column`. One end-of-file check in both files.
-3. **Unclosed `::: cols` / `slide` / `script` / `marginalia` / `side` /
-   `embed` build silently** (`build.js:5293–5304`) while lint errors
-   (`lint.js:3415–3419`). Refuse in the build.
-4. **A trailing `---` buys a beat or not depending on a blank line**
-   (`build.js:5329`, `if (cur.length)`): without a blank line before the next
-   heading the empty segment is dropped and a `::: footnote` after it loses
-   its `data-seg`; lint counts the beat.
-5. **Images that silently ship as external paths**:
-   `![](assets/pic.png?v=2)` (`build.js:3094, 3112`, the existence check
-   strips the query, inlining does not); reference-style `![a][r]` and
-   `![a](<path>)` (`collectDecorationImageRefs` build.js:817, lint.js:4691/4698
-   match only the inline form; lint calls the angle form unresolved).
-6. **Clips**: explicit-path clips over the cap are never staged
-   (`build.js:3124`, only the shorthand branch at 3060 calls `stageVideo`)
-   though the summary says "staged into videos/"; a clip-only deck has
-   `count === 0` and auto mode turns inlining off (`build.js:29515`, ~857).
-7. **Lint silent, build refuses**: a BOM before the frontmatter or a closing
-   `--- ` with a trailing space (`lint.js:630–639`); `cover: split|hero`
-   without `cover-image` (build.js:8233) and `beside|above` with neither body
-   nor image (~8395); `lang: 123`, `cover-ground`, `closing-credits`,
-   `cover-align` applicability, scalar `style:` / `labels:` /
-   `draw-defaults:`; `prompter:` number bounds (`lint.js:2958–2963` vs
-   build.js ~7760); `theme:\n  bogus`, `"theme": bogus`, a multi-line flow map.
-   The reverse: `auto-fit: True`, `theme: >-` are refused by lint, accepted by
-   the build.
-8. **Invalid YAML** (`title: Security: an intro`, a duplicate key) escapes
-   `safeMatter` (build.js:206) as a stack trace without `userFacing`; lint
-   never notices.
-9. **`oversized-asset` message is stale** (`lint.js:4645`): it says the
-   image stays external; the build refuses the deck.
-10. **A positional id can collide with an author id** (`build.js:13229`,
-    `c${col}-${idx}`): `## free: Noid` plus `{#c0-3}` → two articles with one
-    `data-chunk-id`, no word. Refuse it in `assertDistinctIds`.
-11. **`fonts: off` and `fonts: {heading: Anton}` are silent no-ops** in both
-    files (build.js:1775, 2002).
-12. *Read*: `--serve` answers `Range: bytes=-500` with bytes 0–500
-    (build.js:30334); a `../shared/x.png` under `--no-inline-images` is 403
-    under `--serve` because the asset root is one level up.
+All twelve fixed; the seven **Breaking** bullets at the head of the first
+`### Changed` and the first five bullets of the first `### Fixed` under
+`[Unreleased]` in CHANGELOG.md say what changed. Item 10 has no linter half beyond `missing-id`, which
+already refuses a chunk without an id.
 
 ## S4 – Live runtime (all confirmed in Chrome)
 

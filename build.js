@@ -30564,11 +30564,32 @@ async function runServe(rootDir, wantedPort) {
     // check on the lexical path still serves whatever a symlink inside the
     // lecture folder points at.
     let abs = path.resolve(rootDir, '.' + rel);
-    try { abs = fs.realpathSync(abs); } catch { res.writeHead(404); return res.end('not found'); }
-    if (abs !== rootDir && !abs.startsWith(rootDir + path.sep)) {
-      res.writeHead(403); return res.end('forbidden');
+    try { abs = fs.realpathSync(abs); } catch { abs = null; }
+    // A picture, clip or face the deck reads from the folder one level up -
+    // `../shared/logo.png`, which the build allows so lectures side by side
+    // can share one - is asked for as /shared/logo.png, because a URL cannot
+    // climb above the served root. Answered from that folder when the
+    // lecture's own has no such file, and only for a file the build itself
+    // would read (assetEscape: inside the asset root, no dot-folder, a link
+    // only to its own kind); a view, a PDF or a script up there is not part
+    // of this deck and stays unserved. Without this a deck that inlined its
+    // shared logo broke under --no-inline-images --serve.
+    if (!abs) {
+      const up = path.dirname(rootDir);
+      const cand = path.resolve(up, '.' + rel);
+      let real = null;
+      try { real = fs.realpathSync(cand); } catch { /* not there either */ }
+      if (real && up !== rootDir && !assetRootNarrowed(rootDir)
+          && assetKindOf(cand) && assetEscape(cand, rootDir) === null
+          && pathWithin(up, real) && servePathAllowed(path.relative(up, real))) {
+        abs = real;
+      } else { res.writeHead(404); return res.end('not found'); }
+    } else {
+      if (abs !== rootDir && !abs.startsWith(rootDir + path.sep)) {
+        res.writeHead(403); return res.end('forbidden');
+      }
+      if (!servePathAllowed(path.relative(rootDir, abs))) { res.writeHead(404); return res.end('not found'); }
     }
-    if (!servePathAllowed(path.relative(rootDir, abs))) { res.writeHead(404); return res.end('not found'); }
     let stat;
     try { stat = fs.statSync(abs); } catch { res.writeHead(404); return res.end('not found'); }
     if (stat.isDirectory()) { res.writeHead(404); return res.end('not found'); }
@@ -30582,6 +30603,15 @@ async function runServe(rootDir, wantedPort) {
       const size = stat.size;
       let start = range[1] ? parseInt(range[1], 10) : 0;
       let end = range[2] ? parseInt(range[2], 10) : size - 1;
+      // `bytes=-500` is a suffix: the last 500 bytes, not the first 501
+      // (RFC 9110 14.1.2). Safari asks for one before it plays a clip.
+      if (!range[1] && range[2]) {
+        const n = parseInt(range[2], 10);
+        start = Math.max(0, size - n);
+        end = size - 1;
+        if (n === 0) start = size;
+      }
+      if (!range[1] && !range[2]) start = size;
       if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= size) {
         res.writeHead(416, { 'content-range': `bytes */${size}` });
         return res.end();

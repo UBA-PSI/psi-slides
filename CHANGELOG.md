@@ -1479,6 +1479,11 @@ tag:
 - **The linter's `oversized-asset` warning says the build refuses the
   deck.** It said the picture would stay an external path, which stopped
   being true when the cap became a build failure.
+- **`--serve` answers `Range: bytes=-500` with the last 500 bytes**, not the
+  first 501, and serves a picture, clip or font the deck reads from the
+  folder one level up (`../shared/logo.png`, asked for as
+  `/shared/logo.png`), which was a 404 under `--no-inline-images`.
+
 - **`--integrate-annotations` deleted every slide after a pasted snippet
   whose end marker was missing.** A `<!-- annotations:start -->` with no
   `<!-- annotations:end -->` after it was read as a block running to the end

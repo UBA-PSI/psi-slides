@@ -4002,6 +4002,41 @@ console.log('\nlayout generations');
     ok(pos.code !== 0 && /id 'c0-2' is used twice/.test(pos.out), 'an author id equal to a chunk\'s positional id is refused',
        pos.out.split('\n')[0]);
 
+    // --serve: a suffix range is the end of the file, and a picture shared
+    // from the folder above is served the way the build reads it.
+    {
+      const outer = tmpDir('psi-serve-');
+      fs.mkdirSync(path.join(outer, 'talk'));
+      fs.mkdirSync(path.join(outer, 'shared'));
+      fs.writeFileSync(path.join(outer, 'shared/logo.png'), png);
+      fs.writeFileSync(path.join(outer, 'other.html'), '<p>not this deck</p>');
+      fs.writeFileSync(path.join(outer, 'talk/n.pdf'), 'abcdefghij');
+      fs.writeFileSync(path.join(outer, 'talk/source.md'), T + '![](../shared/logo.png)\n');
+      const { spawn } = await import('node:child_process');
+      const child = spawn(process.execPath, [path.join(ROOT, 'build.js'), path.join(outer, 'talk/source.md'),
+        '--audience-only', '--no-inline-images', '--serve'], { cwd: ROOT });
+      const base = await new Promise((resolve) => {
+        let buf = '';
+        const timer = setTimeout(() => resolve(null), 30000);
+        child.stdout.on('data', (d) => {
+          buf += d;
+          const m = buf.match(/Serving .* on (http:\/\/localhost:\d+)/);
+          if (m) { clearTimeout(timer); resolve(m[1]); }
+        });
+      });
+      const get = async (p, headers = {}) => {
+        const r = await fetch(base + p, { headers });
+        return { status: r.status, body: await r.text(), range: r.headers.get('content-range') };
+      };
+      if (base) {
+        const tail = await get('/n.pdf', { range: 'bytes=-3' });
+        ok(tail.status === 206 && tail.body === 'hij' && tail.range === 'bytes 7-9/10',
+           '--serve answers bytes=-3 with the last three bytes', JSON.stringify(tail));
+        ok((await get('/shared/logo.png')).status === 200, 'and serves a picture the deck shares from the folder above');
+        ok((await get('/other.html')).status === 404, 'but nothing else from up there');
+      } else ok(false, '--serve started', 'no Serving line');
+      child.kill();
+    }
   }
 
 }
