@@ -21,8 +21,8 @@
   <h1>In the room</h1>
 
   <p class="lede">The lecture is running, the room is full, and what is on the
-  wall is the file you built this morning. This is the hour from behind the
-  laptop: what happens, and what you press when it does.</p>
+  wall is the file you built this morning. This page follows the hour from
+  behind the laptop: what happens, and what you press when it does.</p>
 
   <!-- Half-empty row, answer 1. A hero of a heading and one paragraph leaves
        most of the first screen empty. The two paragraphs here are the two
@@ -30,17 +30,15 @@
        the key list, and that nothing on this page needs a network. -->
   <div class="pair-up">
    <div>
-    <p><strong>This is not the list of keys.</strong> The lecture carries that
-    itself, on <kbd>?</kbd>, grouped by task and with the mouse gestures beside
-    the keys; <kbd>Cmd</kbd>-<kbd>K</kbd> opens it ready to type, and
-    <kbd>Enter</kbd> runs the row you found. It is generated from the build, so
-    it is never out of date. What
-    it cannot tell you is which of them you reach for when a room goes quiet,
-    and that is what is written here.</p>
+    <p><strong>This page is about which key to reach for, and when.</strong>
+    The full list of keys is in the lecture itself: press <kbd>?</kbd> and it
+    opens, grouped by task, with the mouse gestures beside the keys.
+    <kbd>Cmd</kbd>-<kbd>K</kbd> opens the same list ready to type a search, and
+    <kbd>Enter</kbd> runs the row you found.</p>
    </div>
    <div>
-    <p><strong>Nothing here needs a server or a network.</strong> The two
-    windows find each other in the browser; the timer, your notes, where you are
+    <p><strong>The two windows need no server and no network.</strong> They
+    find each other in the browser; the timer, your notes, where you are
     in the lecture and anything you type stay on the machine you are standing
     at. A lecture on a memory stick, in a room with no wifi, behaves the same
     way. Two things on this page go online, and only if you choose them: a
@@ -64,12 +62,10 @@
   <div class="beside heading-in">
    <div class="said">
     <h2 id="two-windows">Two windows</h2>
-    <p class="lede">The projection goes on the wall. You open the
-    cockpit in a second window with <kbd>S</kbd>; that one goes on the laptop.
-    What you press in either lands in both.</p>
-    <p class="cue">The two talk over the browser&rsquo;s own message channel,
-    between the window that opened and the one it opened. No server, no port, no
-    pairing code &ndash; and so it works from a file on a stick.</p>
+    <p class="lede">The projection goes on the wall. Press <kbd>S</kbd> and
+    the cockpit opens in a second window: your own view, which stays on the
+    laptop and which the room does not see. Move through the lecture in either
+    window and the other follows.</p>
     <p class="cue">Before the talk starts, the projection carries a small start
     menu: <b>Fullscreen</b>, <b>Speaker cockpit</b> and <b>Print view</b>, each
     with its key, so the first three things you do need no key list. It opens
@@ -106,10 +102,9 @@
    </div>
    <div>
     <p><strong>The clock</strong> sits over the corner of the mirror, large
-    enough to read without leaning in. It starts when the window opens, which is
-    ten minutes early whenever you are early, so a click sets it back to zero. It
-    does not pause: a paused clock is one stray click away from being wrong for
-    the rest of the hour.</p>
+    enough to read without leaning in. It counts from the moment the window
+    opened; click it when the talk begins and it starts again at zero. There is
+    no pause.</p>
    </div>
   </div>
  </div>
@@ -193,15 +188,15 @@ where the rest of the hour is going to be spent.
   <div class="beside frames-beside heading-in">
    <div class="said">
     <h2 id="cue-cards">The other cockpit, for a talk you have written out</h2>
-    <p class="lede">A talk written word for word, with almost nothing on the
-    slides, is given differently from a lecture, and <kbd>K</kbd> rearranges the
-    window for it: the projection small in a strip on the left, your notes as
-    cards down a rail on the right. It is a mode you switch into and stay in
-    rather than a panel you open, and it changes what <kbd>Space</kbd> does.</p>
-    <p class="cue">You go card by card, and the press on the last card of a step
-    is the one that clicks the projector. Below are four presses of one
-    slide, one frame each. That slide carries a drawing with steps of its own, and
-    three of its cards name the press they belong to, with
+    <p class="lede">Press <kbd>K</kbd> in the cockpit when you give a talk
+    from a script. The projection moves into a small strip on the left and your
+    notes become cards down a rail on the right. The cockpit stays that way
+    until you press <kbd>K</kbd> again, and <kbd>Space</kbd> now moves from
+    card to card: only the press on the last card of a step moves the
+    projection on.</p>
+    <p class="cue">Below are four presses on one slide, one picture each. That
+    slide carries a drawing with steps of its own, and three of its cards name
+    the press they belong to, with
     <code>&gt; note: from 1</code>, <code>from 2</code> and <code>from 3</code>:
     a drawing&rsquo;s steps have no three-dash line between them for a note to
     stand after.</p>
@@ -270,16 +265,16 @@ where the rest of the hour is going to be spent.
    <div>
     <p><strong>Where the note stands decides when it is said.</strong> A note written
     above the first three-dash line belongs to the step the slide opens on, a
-    note under it to the step that line opens. Nothing has to be pinned by hand,
-    and a lecture written before this existed shows its notes on the first step,
-    as it did before.</p>
+    note under it to the step that line opens. Nothing has to be pinned by hand.
+    One exception: when every note of a slide
+    stands at its end, after the last three-dash line, they all show on the
+    first step.</p>
    </div>
    <div>
-    <p><strong><code>@12:30</code> at the start of a card</strong> is when you
+    <p><strong><code>@12:30</code> at the start of a card</strong> marks when you
     meant to reach it. The cockpit then shows beside the clock how far off that
-    is, rounded to ten seconds and red when you are behind. A deck with no such
-    marks shows nothing there, so the mark stays out of your way until you want
-    it.</p>
+    is, rounded to ten seconds and red when you are behind. A lecture with no
+    such marks shows nothing there.</p>
    </div>
   </div>
  </div>
@@ -298,13 +293,14 @@ where the rest of the hour is going to be spent.
     <h2 id="prompter">A prompter, if you switch one on</h2>
     <p class="lede">Switched on, the prompter listens while you talk and puts a
     short hint on the cockpit&rsquo;s copy of the slide when something needs
-    saying. It stays off unless you run <code>node build.js</code>
-    with <code class="flag">--watch --prompter</code>. It asks a language model
+    saying.</p>
+    <p class="cue">It is off unless you start it on the command line, with
+    <code>node build.js</code> and <code class="flag">--watch --prompter</code>;
+    the desktop app cannot run it. It sends a transcript of what it hears to a language model
     over the internet, so it needs a network connection and an OpenRouter key,
-    each call to the model costs money, and the microphone hears the whole
-    room.</p>
-    <p class="cue">The red strip carries the model&rsquo;s answer to a number the
-    speaker got wrong. <a href="prompter.html">The prompter&rsquo;s own
+    and each call costs money. The microphone hears the whole room.</p>
+    <p class="cue">In the picture, the red strip carries the model&rsquo;s answer
+    to a number the speaker got wrong. <a href="prompter.html">The prompter&rsquo;s own
     page</a> says what it speaks up about, what it costs, what leaves your
     computer, and how to rehearse with it.</p>
    </div>
@@ -328,12 +324,13 @@ where the rest of the hour is going to be spent.
   <h2 id="finding">A question about slide forty</h2>
   <div class="beside beside-flip">
    <div class="said">
-    <p class="lede">Somebody asks about something you said half an hour ago. Two
-    ways back to it, both over the projection itself, and both of them leave you
-    where you were when you press <kbd>Esc</kbd>.</p>
+    <p class="lede">Somebody asks about something you said half an hour ago.
+    There are two ways back to it, and <kbd>Esc</kbd> in either leaves you
+    where you were.</p>
     <p class="cue">With <kbd>O</kbd> you lay the whole lecture out as a board,
     in both windows at once, so the room searches with you rather than watching
-    you scroll. The search on <kbd>/</kbd> stays in the cockpit until you pick a
+    you scroll. The search on <kbd>/</kbd> opens only in the window you press
+    it in; press it in the cockpit and the room sees nothing until you pick a
     hit. If someone asks for slide 23, <kbd>G</kbd>, the digits from the
     corner of the slide and <kbd>Enter</kbd> land there.</p>
    </div>
@@ -375,15 +372,13 @@ where the rest of the hour is going to be spent.
     the slide it has while you go looking somewhere else &ndash; three slides
     ahead, into a detail you folded away, wherever the answer is. Press it again
     and the room comes to where you are now, in one step.</p>
-    <p>The readout is the button: the cockpit&rsquo;s footer says
-    <b>live</b> or <b>frozen</b> and clicking it does the same thing as the
-    key.</p>
+    <p>The cockpit&rsquo;s footer says <b>live</b> or <b>frozen</b>, and
+    clicking that word does the same thing as the key.</p>
    </div>
    <div>
     <p><strong>You blank the projection with <kbd>B</kbd>.</strong> The wall
-    goes dark and the room looks at you instead. It works while the projection is frozen
-    too: it is an order to the projector rather than something the two windows
-    have to agree on.</p>
+    goes dark and the room looks at you instead. It works while the projection
+    is frozen too.</p>
     <p><strong>The laser has no key.</strong> Move the mouse over the mirror in
     the cockpit and a dot appears in the same place on the wall &ndash; you point
     at the slide on your own screen, at the size it is on yours, and the room
@@ -414,7 +409,7 @@ where the rest of the hour is going to be spent.
    <div class="said">
     <h2 id="annotation">Writing on the slide</h2>
     <p class="lede">Press <kbd>N</kbd> and a box fills the frame; what you
-    type is the slide while you type it. One word stands large and centred,
+    type appears on the wall as you type it. One word stands large and centred,
     several lines as a block, ASCII art keeps its columns.</p>
     <p class="cue">Type an address into it and a QR code appears above the
     words, drawn in the page: the room can take the link with a phone instead of
@@ -453,22 +448,24 @@ where the rest of the hour is going to be spent.
 <section class="band">
  <div class="wrap">
   <h2 id="afterwards">What you wrote in the room goes back into the source</h2>
-  <p class="lede">The notes you typed on the wall are drafts, kept in the
-  browser per lecture. They are worth keeping: what a room made you write down
-  is usually what the slide was missing.</p>
+  <p class="lede">What you typed on the wall with <kbd>N</kbd> is kept in the
+  browser as a draft, per lecture, and two steps move it into
+  <code>source.md</code>, under the slide it was written on. It is worth
+  keeping: what you wrote down in the room is usually what the slide was
+  missing.</p>
 
   <!-- Half-empty row, answer 1: the command takes the wide half, the two
        steps around it the narrow one. -->
   <div class="aside-code words-first heading-in">
    <div class="said">
     <h3>Two steps, after the hour</h3>
-    <p class="cue">Press <kbd>Shift</kbd>-<kbd>E</kbd> in the cockpit and every
-    note you typed on the wall goes to the clipboard as one marked block; the
-    cockpit then asks before clearing the drafts. Say no and they stay, so a
+    <p class="cue">Press <kbd>Shift</kbd>-<kbd>E</kbd> in the cockpit and
+    everything you typed on the wall goes to the clipboard as one marked block;
+    the cockpit then asks before clearing the drafts. Say no and they stay, so a
     blocked clipboard never costs you the text.</p>
     <p class="cue">Paste the block at the end of <code>source.md</code> and run
-    the build once. Each note moves under the slide it was written on and the
-    marker goes; anything it could not place is left at the end for you.</p>
+    the build once. Each piece moves under the slide it was written on and the
+    markers go; anything it could not place is left at the end for you.</p>
    </div>
 <pre><code><span class="t-cmt"># what Shift-E puts on the clipboard, pasted at the end of source.md</span>
 <span class="t-dir">&lt;!-- annotations:start --&gt;</span>

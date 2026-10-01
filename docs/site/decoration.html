@@ -31,8 +31,8 @@
        it is placed by hand, and none of it costs a lecture that ignores it. -->
   <div class="pair-up">
    <div>
-    <p><strong>Nothing here is placed by hand.</strong> A composition takes one word in the
-    frontmatter &ndash; the settings block at the top of the file &ndash; or one
+    <p><strong>Nothing here is placed by hand.</strong> Each layout on this
+    page takes one word in the frontmatter &ndash; the settings block at the top of the file &ndash; or one
     <code>:::</code> line in the body. There is no canvas to arrange and no
     second file to keep in step &ndash; so a slide that was rewritten the
     night before still lays out.</p>
@@ -53,9 +53,8 @@
   <h2 id="covers">Ten ways to open a lecture</h2>
   <p class="lede">A lecture can open on a title in the corner, on a wall of
   colour, or on a photograph with the words standing over it.
-  You name the one you want in the frontmatter, with <code>cover:</code>. The ten below run
-  quiet to loud rather than alphabetically, because loud or quiet is the
-  question you answer when you pick one.</p>
+  You name the one you want in the frontmatter, with <code>cover:</code>. The ten
+  below are ordered quiet to loud.</p>
 
   <p class="cue">Three of them, in that order. <code>classic</code> is the
   default, and a lecture that does not name one gets it.</p>
@@ -82,7 +81,7 @@
       <code>hero</code> from <code>cover-image:</code>, <code>beside</code> and
       <code>above</code> from whatever the title slide itself carries, so a
       figure written in the lecture can be the cover picture. Two more settings move the
-      type rather than replacing the composition &ndash; with
+      type within a composition &ndash; with
       <code>cover-align:</code> you set it high, in the middle or low on the
       seven that leave it any freedom, and with <code>cover-ratio:</code> you
       say how much of the slide the picture gets on the ones that divide
@@ -130,12 +129,9 @@
     <p><strong>The last slide is the cover&rsquo;s bookend.</strong> A slide
     written as <code>## closing:</code> is drawn in whatever composition you
     named with <code>cover:</code>, so the hour ends on the shape it began
-    with. It carries your own words and neither the presenter line nor the date: those
-    say who is talking and when, and the room learned that an hour ago.
-    <code>closing-credits:</code> is how you ask for them back &ndash;
-    <code>contact</code> for the foot row alone, which is usually the one
-    line a last slide is wanted for, or <code>cover</code> for the whole
-    block.</p>
+    with. It carries your own words, without the presenter line or the date.
+    <code>closing-credits:</code> brings them back: <code>contact</code> for
+    the foot row alone, <code>cover</code> for the whole block.</p>
    </div>
    <div>
     <p><strong>The six compositions with no picture can still have one.</strong>
@@ -155,8 +151,8 @@
   <p class="lede">You start a new part with a <code>#</code> heading in the
   source, and the lecture puts a divider in front of it so the room arrives at
   the heading before the first slide of the part. You name one of six
-  compositions with <code>section:</code>, and they stay quieter than the cover:
-  a divider that can be mistaken for it has failed at its one job.</p>
+  compositions with <code>section:</code>, and they stay quieter than the
+  cover, so a divider is not mistaken for it.</p>
 
   <!-- All six at full size, where the covers keep eight of theirs folded, and
        the group is where that decision goes the other way. The dividers differ
@@ -187,7 +183,7 @@
    <div>
     <p><strong>A divider can carry its own slide.</strong> Whatever you write
     between the <code>#</code> heading and the first slide under it is on that
-    slide, and it used to be dropped without a word. A quotation, a photograph,
+    slide. A quotation, a photograph,
     a figure or a row of three names: the part opens on it, and it needs no
     directive of its own.</p>
    </div>
@@ -196,8 +192,7 @@
     Write <code>## outline:</code> where you want it and you get the same list
     as the <code>outline</code> divider &ndash; usually straight after the cover, where
     there is no part boundary for a divider to be generated at. Before the
-    first part nothing in it is marked as current, because a plan nobody has
-    started is read at full strength.</p>
+    first part, no item in it is marked as current.</p>
    </div>
   </div>
  </div>
@@ -206,12 +201,11 @@
 <section class="band">
  <div class="wrap">
   <h2 id="display-face">A face the transition slides wear alone</h2>
-  <p class="lede">The cover, the closing slide and the section dividers are the
-  one place in a deck where a loud typeface is not a mistake: nobody reads a
-  divider, they see that one has arrived and know where they are in the hour.
-  <code>fonts: {display: Anton}</code> gives those three a face and reaches
-  nothing else &ndash; an ordinary heading, a card lead, a figure label all keep the
-  body type. Thirty-two ship with the tool, under the SIL Open Font License, in
+  <p class="lede"><code>fonts: {display: Anton}</code> gives the cover, the
+  closing slide and the section dividers a typeface of their own, often a
+  loud one, and reaches nothing else: an ordinary heading, a card lead and a
+  figure label keep the body type. Thirty-two such typefaces ship with the
+  tool, under the SIL Open Font License, in
   three kinds: hand, machine and graphic &ndash; and
   <a href="display-faces.html">each one is drawn here in a cover and a
   divider</a>, with your own title in it.</p>
@@ -221,24 +215,23 @@
     <figure class="shot">
      <div class="bar"><b>audience.html</b> &middot; cover: display</div>
      <img src="img/deco-display-cover.webp" alt="A title slide with the two words of the title set very large in a heavy condensed sans, the subtitle and the credits below it in the body serif.">
-     <figcaption><strong>The title is the slide.</strong> The credit block under
-     it stays in the body face, which is what keeps the contrast a contrast
-     rather than a slide set in one loud typeface.</figcaption>
+     <figcaption><strong>The title fills the slide.</strong> The credit block
+     under it stays in the body face.</figcaption>
     </figure>
     <figure class="shot">
      <div class="bar"><b>audience.html</b> &middot; section: number</div>
      <img src="img/deco-display-divider.webp" alt="A divider slide with a large accent numeral two above a part heading set in a heavy condensed sans.">
      <figcaption><strong>The numeral follows the theme, the words do not.</strong>
      Press <kbd>A</kbd> and the accent walks through seven colours while the
-     heading beside it stays the face the deck chose.</figcaption>
+     heading beside it keeps the face the lecture chose.</figcaption>
     </figure>
    </div>
   </div>
 
   <div class="pair-up">
    <div>
-    <p><strong>The size is measured, not guessed.</strong> These faces differ in
-    width by a factor of three, and the cover's type size was tuned for the body
+    <p><strong>The size is measured, not guessed.</strong> These typefaces differ
+    in width by a factor of three, and the cover's type size was tuned for the body
     serif &ndash; so without a correction the condensed ones look timid and the wide
     ones run off the slide. Each carries one measured against that serif.
     <code>style: {display-scale: 1.4}</code> is there for when the face is right
@@ -248,7 +241,7 @@
     <p><strong>No keypress can disturb it.</strong> <kbd>F</kbd> cycles the body
     face and <kbd>A</kbd> the accent theme; the cover and the dividers ignore
     both, while their colour still follows the theme so they stay readable in
-    dark. A deck that names no display face embeds nothing.</p>
+    dark. A lecture that names no display face embeds nothing.</p>
    </div>
   </div>
  </div>
@@ -272,15 +265,13 @@
      <div class="bar"><b>audience.html</b> &middot; ::: cards 3</div>
      <img src="img/deco-cards.webp" alt="A projected slide with a paragraph and, below it, three boxes in a row, each outlined with a hairline and opening with a bold word.">
      <figcaption><strong>One size for the whole row</strong>, taken from the
-     longest item. Three sizes in one row read as a mistake rather than as a
-     hierarchy.</figcaption>
+     longest item, so the three cards match.</figcaption>
     </figure>
     <figure class="shot">
      <div class="bar"><b>audience.html</b> &middot; ::: rows</div>
      <img src="img/deco-rows.webp" alt="A projected slide with three stacked rows, each a short term in a tinted box on the left and its explanation set beside it.">
-     <figcaption><strong>One term column for the whole stack</strong>, because the
-     stack is one grid rather than one grid per row. The explanations line up
-     however long the terms are.</figcaption>
+     <figcaption><strong>One term column for the whole stack.</strong> The
+     explanations line up however long the terms are.</figcaption>
     </figure>
    </div>
   </div>
@@ -297,11 +288,11 @@
     question needs them, without writing it twice.</p>
    </div>
    <div>
-    <p><strong>What a card sits on takes one word.</strong> A tinted fill, a
-    hairline outline, the accent colour with pale type on it, the page colour,
-    no box at all, or a picture as the card&rsquo;s own ground.
-    Never a fill and a hairline together: a grey box inside a grey border reads
-    as a form field rather than as a card.</p>
+    <p><strong>What a card sits on takes one word, out of six.</strong> A
+    tinted fill, a hairline outline, the accent colour with pale type on it,
+    the page colour, no box at all, or a picture as the card&rsquo;s own
+    ground. Writing two of them on one card row stops the build with a
+    message.</p>
    </div>
   </div>
  </div>
@@ -343,8 +334,7 @@
   <h2 id="overlay-dock">Over the slide, or part of the frame</h2>
   <p class="lede">An overlay lies <em>over</em> the slide and takes nothing
   from it. A dock is <em>part of the frame</em>, and the text column yields to
-  it. That is the whole difference; the settings you write are the same for
-  both.</p>
+  it. The settings you write are the same for both.</p>
 
   <p class="cue">Both take an edge, a ground and a width, and both can be held
   back until a later press of <kbd>Space</kbd>.</p>
@@ -382,9 +372,8 @@
    <div>
     <p><strong>A link in a dock is a live marker.</strong> Each item points at
     one slide by name, and the item for the slide the room is on lights up while
-    the rest step back. An item naming nothing fails the
-    build rather than sitting there dead, which is what a hand-kept list does
-    on the third rewrite.</p>
+    the rest step back. An item naming a slide that does not exist stops the
+    build with a message, rather than standing there as a dead link.</p>
    </div>
   </div>
  </div>
@@ -396,14 +385,14 @@
   <h2>Where to read further</h2>
   <ul class="reads">
     <li><b><a href="decoration/audience.html">The decoration lecture</a></b>
-      Every construction on this page, on the slide that describes it, in a
-      lecture you can walk through. Its <a href="decoration/print.html">printed
+      The constructions on this page on slides of their own, in a lecture you
+      can walk through. It wears one cover and lists all ten. Its <a href="decoration/print.html">printed
       document</a> is the same source as the hand-out.</li>
     <li><b><a href="index.html">What psi-slides is</a></b>
       The front page: one lecture as the room sees it and as the reader gets
       it, and why those are the same file.</li>
     <li><b><a href="in-the-room.html">In the room</a></b>
-      The hour from behind the laptop: the cockpit, the beats, and what you
+      The hour from behind the laptop: the cockpit, the steps, and what you
       press when a room goes quiet.</li>
     <li><b><a href="figures.html">Figures you write</a></b>
       The case for the figure language, and
