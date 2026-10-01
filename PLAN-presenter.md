@@ -27,9 +27,9 @@ the browser's rules rather than the tool's:
 1. Open `audience.html` (the builder does this through `openInBrowser` in
    `desktop/main/browsers.js`, which runs `open -a <Chrome>` on macOS)
    **[read]**.
-2. Press `S` in it. The `case 's'` branch of the key map in `AUDIENCE_JS`
-   runs `window.open('speaker.html', 'psi-slides-speaker',
-   'width=1400,height=900')` and `setPeer(w)` **[read]**. The cockpit boots,
+2. Press `S` in it. The `cockpit` command (`s` in `commands.mjs`,
+   `COMMAND_RUN.cockpit` in `AUDIENCE_JS`) runs `window.open('speaker.html',
+   'psi-slides-speaker', 'width=1400,height=900')` and `setPeer(w)` **[read]**. The cockpit boots,
    `setPeer(window.opener)`, sends `hello`, and the projection answers with a
    `state` snapshot (the `message` listener after `isPeerWindow`) **[read]**.
    The direction is load-bearing: the cockpit finds the projection only
@@ -49,7 +49,11 @@ Nothing keeps the laptop awake, nothing keeps notifications off the
 projection, and a projector unplugged mid-talk leaves the audience window
 wherever macOS puts it.
 
-### Discovering what the cockpit can do today
+### Discovering what the cockpit could do before B1
+
+This section describes the code as it stood when the plan was written. B1
+has since replaced the `switch` with `commands.mjs` and `COMMAND_RUN`, and
+the `?` panel is rendered from that registry; the footer is unchanged.
 
 - `renderHelpOverlay(view, withEditor, withSouffleuse)` builds the `?` panel
   from nested arrays of `[keysHtml, descriptionHtml]` pairs **[read]**. The
@@ -188,10 +192,17 @@ tells the cockpit `on: true`, the resize listener re-runs `setSlideRef` /
 `autoFitNow` and re-sends `slide-ref` – every state machine that exists for
 the browser path stays truthful in the app **[read]**.
 
-A cockpit `W` inside the app is taken by main before the page sees it
-(`before-input-event` on the cockpit's `webContents`, plain `w` without
-modifiers) and answered with the same hook call on the projection. Otherwise
-the cockpit would send `fullscreen enter`, and the projection would arm and
+A cockpit `W` inside the app is answered with the same hook call on the
+projection, but main does not take the raw key. `before-input-event` runs
+ahead of the page, and so ahead of every guard at the head of the key map –
+text fields, the go-to prompt, the `?` panel's search, the notes textarea – so
+a `w` typed into a note would never arrive and would put the projection into
+fullscreen in front of the room instead. The page decides: the cockpit's
+`fullscreen` command, when `psiPresent` reports it runs inside the app, asks
+main through the preload's `present` channel rather than sending `fullscreen
+enter` to its peer, and main makes the hook call. That keeps the rule Decision
+11.6 keeps for `B`: the page handles a bare key, the app never steals it.
+Without the request, the cockpit would send `fullscreen enter`, and the projection would arm and
 put the hint on the wall for a gesture nobody will make **[read:
 `armFullscreen`]**. `Shift`-`W` is left to the page: it is a gesture in the
 cockpit's own window and already works.
@@ -205,15 +216,16 @@ the whole of Part A depends on]**. If the spike confirms it, the projection
 uses `setSimpleFullScreen(true)` (pre-Lion fullscreen, no Space) or a
 frameless window at the display's bounds, and the hook is still called so the
 page's own idea of fullscreen matches – or, if the page cannot be told without
-the Fullscreen API, main intercepts `W` as above and the cockpit's `W` badge
-state comes from main. The spike picks one; the plan does not.
+the Fullscreen API, main answers the cockpit's `W` request as above and the
+cockpit's `W` badge state comes from main. The spike picks one; the plan does
+not.
 
 What becomes unnecessary **in the app** and must keep working **in the
 browser**:
 
 | protocol | in the app | in a browser |
 | --- | --- | --- |
-| `fullscreen` `enter` / `exit` from the cockpit, `armFullscreen`, the 20 s hint | never sent – main takes the cockpit's `W` | unchanged, `test/nav-fullscreen.mjs` stays |
+| `fullscreen` `enter` / `exit` from the cockpit, `armFullscreen`, the 20 s hint | never sent – the cockpit's `W` asks main instead | unchanged, `test/nav-fullscreen.mjs` stays |
 | `fullscreen` `state` from the projection | still sent and still read – it is what keeps the cockpit's `W` direction right after an `Escape` | unchanged |
 | `S` / `window.open` / `hello` | used as is – the app triggers it through the hook | unchanged |
 | `slide-ref` after resize | used as is | unchanged |
@@ -229,7 +241,7 @@ in silence” **[read]**. So the app gets a hook of the same kind, beside
 
 ```js
 window.psiPresent = {
-  openCockpit,            // the body of today's `case 's'`, which then calls it
+  openCockpit,            // the body of `COMMAND_RUN.cockpit`, which then calls it
   fullscreen: (on) => …,  // requestFullscreenHere / exitFullscreenHere, returns a promise
   toast: (text) => flashMode(String(text)),
   run: (id) => …,         // one command of the registry (Decision 7), by id
@@ -603,8 +615,8 @@ which CLAUDE.md names as the trigger); `desktop/test/stage-engine.test.mjs`.
 
 ### Slice A1 – `window.psiPresent` (engine)
 
-The hook beside `psiExport`; `case 's'` calls `openCockpit`. `run(id)` and
-`state()` read the registry from B1. `watching` gains `port`. Files:
+The hook beside `psiExport`; `COMMAND_RUN.cockpit` calls `openCockpit`.
+`run(id)` and `state()` read the registry from B1. `watching` gains `port`. Files:
 `build.js`, `desktop/main/builder.js` and `desktop/test/events.test.mjs` (the
 `--events` rule), `CLAUDE.md`'s `--events` paragraph, tracked views. Tests: a
 browser spec `test/present-hook.mjs` on a fixture deck of its own –
@@ -626,8 +638,9 @@ plus two, lid closed). Added to the `npm test` list, which names its files
 
 `desktop/main/present.js`: the two windows (Decision 8 steps 3–5), the
 partition and its request filter, `setWindowOpenHandler`, `will-navigate`,
-`W` interception, key forwarding, `F5` / `Cmd-.`, the power blocker, the
-auto-build pause and restore, the quit guard, `render-process-gone`.
+the cockpit's `W` request (asked by the page, never a raw-key intercept), key
+forwarding, `F5` / `Cmd-.`, the power blocker, the auto-build pause and
+restore, the quit guard, `render-process-gone`.
 `main.js` wires it; `ipc.js` gets `present` / `rehearse` / `endPresentation`
 channels (kind words only, no paths); `preload.js` names them. Tests: the
 smoke test gains a rehearsal run (CI has one virtual display under xvfb):
