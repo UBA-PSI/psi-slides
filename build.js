@@ -19656,7 +19656,14 @@ function applyRemoteState(payload) {
 function applyRemoteStateNow(payload, changed) {
   isApplyingRemote = true;
   try {
-    unfocusFigure();
+    // Only a slide change takes a focused figure down. A snapshot is also how
+    // a knob arrives - a zoom, a theme, a reveal - and closing the card on
+    // every one of them closed it on the projection alone while the cockpit
+    // kept it open and went on sending figure-view into nothing. The card is
+    // a clone in the overlay, so the apply below cannot leave it stale; a
+    // stepped figure's clone follows the step runtime. Closing it on purpose
+    // travels as figure-unfocus.
+    if (changed) unfocusFigure();
     state.activeIdx = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0));
     state.collapse = COLLAPSE_MODES.includes(payload.collapse) ? payload.collapse : 'topic-bold';
     state.zoom = payload.zoom || 1.35;

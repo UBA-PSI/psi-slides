@@ -1452,6 +1452,10 @@ tag:
 
 ### Fixed
 
+- **A figure focused from the cockpit stays focused on the projection.** Any
+  key in the cockpit that sent a snapshot – a zoom, a theme – closed the
+  card on the projection alone, and the cockpit's `+`, `−` and `0` then went
+  nowhere. Only a slide change closes it now, as it does in the cockpit.
 - **A figure's `step` blocks inside a container held to a beat wait for
   it.** In an `::: overlay … from N`, a `::: dock … from N` or a
   `--- from N` segment they were counted in the slide's own order, so they
