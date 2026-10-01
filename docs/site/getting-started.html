@@ -107,11 +107,10 @@
   </div>
 
   <h3>Download it</h3>
-  <p>Take the package for your system from the three below. Until 2.0.0 the app
-  is published separately from psi-slides itself, under a tag of its own,
-  <code>builder-0.1.4</code>, and marked on GitHub as a
-  <strong>pre-release</strong>: not the current version of anything, a package
-  offered early.</p>
+  <p>Take the package for your system from the three below. They are part of
+  the latest psi-slides release and carry that release&rsquo;s
+  <code>build.js</code> inside them, so the app builds a lecture exactly as
+  the command line of the same version does.</p>
 
   <!-- Half-empty row, answer 2: the packages take the frame's width, as a row
        of three systems rather than as a table.
@@ -136,23 +135,23 @@
   <div class="pair-up trio gets">
    <div class="get">
     <p class="sys">Windows <span class="size">64-bit</span> <span class="try">(experimental)</span></p>
-    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.4/psi-slides-builder-win-x64.exe">
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides-builder-win-x64.exe">
      <b>Installer</b><span>runs through without a question and starts the app</span>
      <code>psi-slides-builder-win-x64.exe</code></a>
    </div>
    <div class="get">
     <p class="sys">macOS <span class="size">Apple&nbsp;Silicon</span></p>
-    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.4/psi-slides-builder-mac-arm64.dmg">
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides-builder-mac-arm64.dmg">
      <b>Disk image</b><span>open it, drag the app into Applications</span>
      <code>psi-slides-builder-mac-arm64.dmg</code></a>
-    <p class="alt"><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.4/psi-slides-builder-mac-arm64.zip">psi-slides-builder-mac-arm64.zip</a></p>
+    <p class="alt"><a href="https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides-builder-mac-arm64.zip">psi-slides-builder-mac-arm64.zip</a></p>
    </div>
    <div class="get">
     <p class="sys">Linux <span class="size">64-bit</span> <span class="try">(experimental)</span></p>
-    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.4/psi-slides-builder-linux-x86_64.AppImage">
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides-builder-linux-x86_64.AppImage">
      <b>AppImage</b><span>one file to mark executable and run, on any distribution</span>
      <code>psi-slides-builder-linux-x86_64.AppImage</code></a>
-    <p class="alt"><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.4/psi-slides-builder-linux-amd64.deb">psi-slides-builder-linux-amd64.deb</a></p>
+    <p class="alt"><a href="https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides-builder-linux-amd64.deb">psi-slides-builder-linux-amd64.deb</a></p>
    </div>
   </div>
 
@@ -221,8 +220,7 @@
   newer</strong>, which is what runs <code>build.js</code>, and nothing else:
   no LaTeX, no Pandoc, no server, nothing installed system-wide. Not even git:
   the clone below is the quickest way to the files, and the
-  <a href="https://github.com/UBA-PSI/psi-slides/archive/refs/heads/main.zip">ZIP
-  of the current sources</a> is the same files unpacked.</p>
+  <a href="https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.zip">release archive</a> holds the same tool as one ZIP.</p>
 
   <!-- Half-empty row, answer 1: the listing is the wide half, its three or
        four lines of explanation the narrow one. -->
@@ -315,7 +313,7 @@
       Terminal if it appears, PowerShell otherwise. You get a window with a cursor
       in it. You type one line, press Return, and it answers.</p>
 <pre><code>node --version</code></pre>
-      <p>The answer is a version number. Anything from v20 upwards works, and a
+      <p>The answer is a version number. Anything from v22 upwards works, and a
       fresh LTS download is well above it. If you instead get <code>command not
       found</code> or <code>is not recognized</code>, close the window and open a
       new one: a terminal that was already running when you installed Node has not
@@ -323,12 +321,10 @@
 
       <h3>Get the files</h3>
       <p>Take a clone if you have git, and the
-      <a href="https://github.com/UBA-PSI/psi-slides/archive/refs/heads/main.zip">ZIP
-      of the current sources</a> otherwise &ndash; the same file the green
-      <b>Code</b> button of the
-      <a href="https://github.com/UBA-PSI/psi-slides">repository</a> offers as
-      <b>Download ZIP</b>. It is not the <b>Source code (zip)</b> hanging off a
-      release: that one is the last tagged release rather than the current state.
+      <a href="https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.zip">release archive</a> otherwise &ndash;
+      <code>psi-slides.zip</code>, attached to the latest release on the
+      <a href="https://github.com/UBA-PSI/psi-slides/releases">releases page</a>
+      under that name, with the example lectures already built.
       Unpack that ZIP the way you would any
       other download; double-clicking is enough on both systems. You get a folder
       whose name starts with <code>psi-slides</code>, and that folder is the whole
@@ -378,41 +374,20 @@
 </section>
 
 <!--
-  This section used to say what the tagged 1.0.0 did not have and what the
-  format promise did not yet cover. 2.0.0 is the release that covers it, and
-  it is a major version, so what is left to say is the cost of that: a lecture
-  written for 1.0.0 may need an edit. Same in de/. decoration.*.html links to
-  #version.
+  What the version number promises, and the one sentence an upgrading user
+  needs. The difference between two versions is the changelog's business, not
+  this page's. Same in de/.
 -->
 <section class="band">
  <div class="wrap">
-  <h2 id="version">What 2.0.0 changes</h2>
+  <h2 id="version">Versions</h2>
   <p class="lede">The source format is the interface: a change that stops an
   existing <code>source.md</code> from building the same way is a major
-  version. 2.0.0 is one.</p>
-
-  <div class="hint wide">
-   <div class="pair-up">
-    <div>
-     <p><strong>Figures</strong> written as <code>::: draw</code>, the
-     <strong>title slides and section dividers</strong> and <strong>cards and
-     rows</strong> came after 1.0.0, and from 2.0.0 the format promise covers
-     them as it covers the rest. The reference lectures on this site are built
-     with them, and so is the thirty-six-slide network-security lecture the
-     figure language was written for.</p>
-    </div>
-    <div>
-     <p>A lecture written for 1.0.0 may need an edit to build the same way
-     under 2.0.0. The
-     <a href="https://github.com/UBA-PSI/psi-slides/blob/main/CHANGELOG.md">changelog</a>
-     lists the breaking changes at the head of the release&rsquo;s entry.</p>
-     <p class="tiny">On this site,
-     <a href="decoration.html">A slide is a frame</a> shows the title slides,
-     dividers, cards and rows, and
-     <a href="figures.html">Figures you write</a> the figures.</p>
-    </div>
-   </div>
-  </div>
+  version.</p>
+  <p>2.0.0 is a major version: a lecture written for 1.0.0 may need an edit to
+  build the same way, and the Breaking list at the head of 2.0.0 in the
+  <a href="https://github.com/UBA-PSI/psi-slides/blob/main/CHANGELOG.md">changelog</a>
+  says which.</p>
  </div>
 </section>
 
