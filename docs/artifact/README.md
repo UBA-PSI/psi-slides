@@ -89,6 +89,10 @@ It replaces, keyed by markers in the HTML:
   copy that could disagree with it &ndash; and the stylesheet was a hand-made
   copy once, which is how `.mono` labels went on rendering in the wrong face
   here for a commit after the rule causing it had been fixed.
+- **Two screenshots**, embedded as `data:` URIs out of `docs/site/img/`: the
+  slide of `lectures/diagrams` beside the links to that lecture at the top
+  (`diagrams-cbc.webp`), and the editor's window (`editor.webp`). Re-take one
+  with `node docs/site/shoot.mjs <name>`, then run the script.
 - **The anatomy diagram** at the top, drawn from the code line it annotates.
   Hand-counted, its brackets were one to four columns too wide and the error
   accumulated along the line.

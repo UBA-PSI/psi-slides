@@ -685,28 +685,49 @@ page = replaceBetween(page, '// demo-controls-start', '// demo-controls-end',
   '\n' + CONTROLS.trimEnd() + '\n', 'demo controls');
 say('  demo controls inlined, ' + CONTROLS.length + ' bytes');
 
-// The one raster the manual carries: the screenshot of the editor's window,
-// embedded as a data: URI rather than referenced. Everything else on this page
-// is compiler output, and the page's own promise is the one the lectures make
-// - it fetches nothing at run time - so an `img/…` path would be the single
-// line that breaks it. Re-take it with `node docs/site/shoot.mjs editor` and
-// run this script.
-const SHOT = path.join(ROOT, 'docs/site/img/editor.webp');
-if (!fs.existsSync(SHOT)) {
-  throw new Error('the editor screenshot is missing: ' + path.relative(ROOT, SHOT) +
-    '\nTake it with: node docs/site/shoot.mjs editor');
+// The two rasters the page carries: a slide of lectures/diagrams beside the
+// links to that lecture at the top, and the screenshot of the editor's window.
+// Both are embedded as data: URIs rather than referenced. Everything else on
+// this page is compiler output, and the page's own promise is the one the
+// lectures make - it fetches nothing at run time - so an `img/…` path would be
+// the single line that breaks it. Re-take one with
+// `node docs/site/shoot.mjs <name>` and run this script.
+const SHOTS = [
+  {
+    name: 'diagrams-cbc',
+    open: '<div class="golecture-frame" data-shot="diagrams-cbc">',
+    close: '</div><!--/lectureshot-->',
+    alt: 'A projected slide from the lecture, light type on a dark ground. ' +
+      'Under the heading &ldquo;Cipher Block Chaining, decryption&rdquo;, a ' +
+      'random IV and three ciphertext blocks c0, c1 and c2 stand in a row; ' +
+      'each block feeds a Dec box with a key k beside it, and each Dec box an ' +
+      'XOR circle. Three chaining arrows, lit in orange, run from the IV, c0 ' +
+      'and c1 down to the XOR of the next column. The plaintext row under the ' +
+      'XOR circles has not appeared yet.',
+  },
+  {
+    name: 'editor',
+    open: '<div class="uishot-frame" data-shot="editor">',
+    close: '</div><!--/editorshot-->',
+    alt: 'The diagram editor open over a lecture slide: a dark canvas ' +
+      'holding a CBC decryption figure with one box selected, the relations that ' +
+      'place it written on the canvas beside it, a panel on the right describing ' +
+      'the beat that is standing, a rail of the figure&rsquo;s beats along the ' +
+      'bottom, and a strip of the lecture&rsquo;s other figures under that.',
+  },
+];
+for (const shot of SHOTS) {
+  const file = path.join(ROOT, 'docs/site/img', shot.name + '.webp');
+  if (!fs.existsSync(file)) {
+    throw new Error('a screenshot is missing: ' + path.relative(ROOT, file) +
+      '\nTake it with: node docs/site/shoot.mjs ' + shot.name);
+  }
+  const b64 = fs.readFileSync(file).toString('base64');
+  page = replaceBetween(page, shot.open, shot.close,
+    '<img src="data:image/webp;base64,' + b64 + '" alt="' + shot.alt + '">',
+    shot.name + ' screenshot');
+  say('  ' + shot.name + ' screenshot embedded, ' + Math.round(b64.length / 1024) + ' KB base64');
 }
-const shotB64 = fs.readFileSync(SHOT).toString('base64');
-const SHOT_ALT = 'The diagram editor open over a lecture slide: a dark canvas ' +
-  'holding a CBC decryption figure with one box selected, the relations that ' +
-  'place it written on the canvas beside it, a panel on the right describing ' +
-  'the beat that is standing, a rail of the figure&rsquo;s beats along the ' +
-  'bottom, and a strip of the lecture&rsquo;s other figures under that.';
-page = replaceBetween(page, '<div class="uishot-frame" data-shot="editor">',
-  '</div><!--/editorshot-->',
-  '<img src="data:image/webp;base64,' + shotB64 + '" alt="' + SHOT_ALT + '">',
-  'editor screenshot');
-say('  editor screenshot embedded, ' + Math.round(shotB64.length / 1024) + ' KB base64');
 
 if (CHECK) {
   say(page !== was ? '\nDRIFT: figures-you-write.html does not match a fresh build' : '\nup to date');

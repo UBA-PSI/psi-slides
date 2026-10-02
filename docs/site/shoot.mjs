@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Re-shoots the site's screenshots from lectures/python-intro, plus the one of
- * the diagram editor from lectures/diagrams, the five decoration.html needs
+ * Re-shoots the site's screenshots from lectures/python-intro, plus the two
+ * from lectures/diagrams (the diagram editor, and a stepped slide for the
+ * figures page), the five decoration.html needs
  * from lectures/decoration, and the four-frame cue-card sequence from
  * lectures/spoken-talk. One row is not a view at all: four pages of
  * python-intro's slides.pdf, exported by build.js and rasterised by pdftoppm
@@ -227,6 +228,25 @@ const SHOTS = [
   // half, and a screenshot of a clipped UI reads as a broken one.
   { name: 'editor', src: 'audience.html', w: 1280, h: 850, dsf: 1.5,
     lecture: 'diagrams', target: 'cbc', frag: true, act: openEditor },
+  // The lecture the figures page opens with, shown as its projection: the
+  // page links lectures/diagrams as the place to watch a figure step, so the
+  // picture beside those links is a slide of it. #cbc, the same chunk the
+  // editor shot opens, stood at the third of its four beats - the chaining
+  // arrows lit, the plaintext row still to come - because a figure partway
+  // through its beats says "this steps" without a word, and the finished one
+  // reads as any other diagram. Two presses, because #cbc has no `---`: its
+  // beats after the first are the figure's own `step` blocks.
+  //
+  // The 1280x720 frame and LIVE_RIG of the decoration rows, for their
+  // reason: a picture of a slide, not of the controls round it. And dark,
+  // unlike the landing page's set on paper (see toLightTheme), because the
+  // lecture pins `theme: dark` and this picture stands beside the link that
+  // opens it - a reader who clicks should find the slide they were shown.
+  { name: 'diagrams-cbc', src: 'audience.html', w: 1280, h: 720, dsf: 1.5,
+    lecture: 'diagrams', target: 'cbc', frag: true, rig: LIVE_RIG,
+    act: async (p) => {
+      for (let i = 0; i < 2; i++) { await p.keyboard.press(' '); await p.waitForTimeout(900); }
+    } },
   // A figure on the slide, for the preview section on the landing page. It is
   // a projection rather than a cut-out drawing, because what the section
   // claims is that these are lecture slides, not pictures pasted onto them.
