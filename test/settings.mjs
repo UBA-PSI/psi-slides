@@ -3993,6 +3993,32 @@ console.log('\nlayout generations');
     const beside = '---\ntitle: T\ncover: beside\n---\n\n## title: T {#t}\n\n## free: A {#a}\n\nText.\n';
     ok(raw(beside, ['--audience-only']).code !== 0 && errs(lintOf(beside)).includes('cover-needs-body'),
        'cover: beside with neither a body nor a cover-image is refused by both');
+    // The title chunk's body is what the parser leaves in it: a speaker note
+    // with its continuation lines, a ::: footnote and a ::: expand with their
+    // bodies are all lifted off it. The linter skipped only the opening lines
+    // and counted the rest as the claim, so each of these linted clean while
+    // the build refused it. And the other way round, every one of the kept
+    // shapes builds and lints clean.
+    const lifted = [
+      ['a multi-line note', '> note: Say hello.\n> And then the second line.'],
+      ['a footnote', '::: footnote\nA footnote only.\n:::'],
+      ['an expansion', '::: expand More\nHidden detail.\n:::'],
+    ];
+    for (const cover of ['quote', 'beside']) {
+      for (const [what, b] of lifted) {
+        const src = `---\ntitle: T\ncover: ${cover}\n---\n\n## title: T {#t}\n\n${b}\n\n## free: A {#a}\n\nText.\n`;
+        ok(raw(src, ['--audience-only']).code !== 0 && errs(lintOf(src)).includes('cover-needs-body'),
+           `cover: ${cover} with only ${what} under ## title: is refused by both`, errs(lintOf(src)).join(','));
+      }
+      for (const [what, b] of [
+        ['a claim under a multi-line note', '> note: hi\n> more\n\nThe claim.'],
+        ['a marginalia wrapper', '::: marginalia\nA side remark.\n:::'],
+      ]) {
+        const src = `---\ntitle: T\ncover: ${cover}\n---\n\n## title: T {#t}\n\n${b}\n\n## free: A {#a}\n\nText.\n`;
+        ok(raw(src, ['--audience-only']).code === 0 && !errs(lintOf(src)).length,
+           `cover: ${cover} with ${what} builds and lints clean`, errs(lintOf(src)).join(','));
+      }
+    }
     const yamlErr = raw('---\ntitle: T\ntitle: U\n---\n' + BODY, ['--audience-only']);
     ok(/YAML on line 3 does not parse/.test(yamlErr.out), 'a YAML error names its line', yamlErr.out.split('\n')[0]);
     const fmAccepted = [

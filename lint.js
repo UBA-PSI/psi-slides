@@ -2903,6 +2903,46 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   if (lectureTags) for (const t of tags) lectureTags.add(t);
 }
 
+// What the build calls the title chunk's body, as source text: the lines
+// under `## title:` up to the next # or ## heading, less the speaker notes and
+// annotations (the `> note:` line *and* every `>` line continuing it, which
+// the parser peels off with it), less the blocks it lifts off the slide with
+// everything inside them (::: expand, ::: footnote / margin, ::: pulse,
+// ::: overlay, ::: dock) and less the one-line ::: backdrop. A layout wrapper
+// stays, because the build's body keeps it as an HTML block. Both cover
+// checks read this, because a walk that skipped only the directive lines
+// counted a footnote's or a multi-line note's words as the claim and passed
+// a deck the build then refused.
+function titleChunkBodyText(lines, at) {
+  const out = [];
+  const fence = fenceTracker();
+  let note = false;
+  let lifted = 0;           // depth inside a lifted block, its own ::: draw included
+  for (let j = at + 1; at >= 0 && j < lines.length; j++) {
+    const l = lines[j];
+    const delim = fence.step(l);
+    const code = delim || fence.inside;
+    if (!code && /^#{1,2}[ \t]/.test(l)) break;
+    if (!code && note) {
+      if (/^>/.test(l)) continue;
+      note = false;
+    }
+    if (!code && /^>\s*(note|annot):/i.test(l)) { note = true; continue; }
+    if (lifted) {
+      if (!code && /^:::\s*$/.test(l)) lifted--;
+      else if (!code && /^:::\s+\S/.test(l)) lifted++;
+      continue;
+    }
+    if (!code && /^:::\s+(?:expand\s+\S|footnote\s*$|margin\s*$|pulse\b|overlay\b|dock\b)/.test(l)) {
+      lifted = 1;
+      continue;
+    }
+    if (!code && /^:::\s+backdrop\b/.test(l)) continue;
+    out.push(l);
+  }
+  return out.join('\n');
+}
+
 function lintFile(filePath) {
   let diagram = null;   // { open, lines } while inside a ::: draw block
   // LF coordinates, as parseLecture reads them: a CRLF source used to miss
@@ -2992,13 +3032,8 @@ function lintFile(filePath) {
       // does not contain them either.
       const ls = body.split('\n');
       const at = ls.findIndex(l => /^##[ \t]+title:/.test(l));
-      let said = '';
-      for (let j = at + 1; at >= 0 && j < ls.length; j++) {
-        if (/^#{1,2}[ \t]/.test(ls[j])) break;
-        if (/^:::/.test(ls[j]) || /^>[ \t]*(note|annot):/i.test(ls[j])) continue;
-        said += ls[j] + '\n';
-      }
-      said = said.replace(/<!--[\s\S]*?-->/g, '').trim();
+      // The build strips comments before it asks (coverSettings' body check).
+      const said = titleChunkBodyText(ls, at).replace(/<!--[\s\S]*?-->/g, '').trim();
       if (!said) {
         add(1, 'error', 'cover-needs-body',
             `'cover: ${m[1]}' sets the title chunk's body as the claim, and the title `
@@ -3064,16 +3099,9 @@ function lintFile(filePath) {
     }
     const titleAt = body.split('\n').findIndex(l => /^##[ \t]+title:/.test(l));
     if (COVER_BODY_ART.has(cover) && !hasImage && titleAt >= 0) {
-      const ls = body.split('\n');
-      const at = titleAt;
-      let said = '';
-      for (let j = at + 1; at >= 0 && j < ls.length; j++) {
-        if (/^#{1,2}[ \t]/.test(ls[j])) break;
-        if (/^:::[ \t]*(?:backdrop|overlay|dock|footnote|margin|marginalia|expand)\b/.test(ls[j])
-            || /^>[ \t]*(note|annot):/i.test(ls[j])) continue;
-        said += ls[j] + '\n';
-      }
-      if (!said.replace(/<!--[\s\S]*?-->/g, '').trim()) {
+      // renderCoverArt asks whether the rendered body is anything at all, and
+      // a comment renders as itself, so a comment is a body here.
+      if (!titleChunkBodyText(body.split('\n'), titleAt).trim()) {
         addFm(coverLine + 2, 'error', 'cover-needs-body',
           `'cover: ${cover}' draws a picture beside the title, and the title chunk has neither a body `
           + 'nor a cover-image – put a ::: draw block or an image under ## title:, or set cover-image');

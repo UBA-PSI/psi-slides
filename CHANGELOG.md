@@ -3490,7 +3490,11 @@ tag:
   `prompter:` number out of its bounds all built nothing and linted clean.
   The other way round, `auto-fit: True` (YAML's spelling of `true`) and
   `theme: >-` were refused by the linter and accepted by the build. New
-  codes: `bad-lang`, `bad-cover-align`, `bad-frontmatter`.
+  codes: `bad-lang`, `bad-cover-align`, `bad-frontmatter`. And a title chunk
+  whose only body is a speaker note running over several lines, a
+  `::: footnote` or a `::: expand` is no body to the linter either, under
+  `cover: quote` as under `beside` and `above`: it counted their words as
+  the claim and passed a deck the build refused.
 - **A frontmatter block YAML cannot read stops the build with its line.**
   `title: Security: an intro` and a key written twice ended in a
   `YAMLException` stack trace; the message now names the line and says to
