@@ -19800,6 +19800,20 @@ let isApplyingRemote = false;
 // "null" for both sides, which is why location.origin ("file://") is the
 // wrong thing to compare against.
 const SELF_ORIGIN = (typeof window.origin === 'string') ? window.origin : location.origin;
+// Which deck this window belongs to: the folder it was loaded from, hashed,
+// because the two views of one deck are always side by side and two decks
+// never share a folder. Every message carries it and a message from another
+// deck is dropped, which the opener relationship alone cannot do - a tab
+// that went from one deck's projection to another's is still the opener of
+// the first deck's cockpit, and that cockpit and the new projection used to
+// drive each other. The folder rather than the title, which two decks can
+// share; hashed, so the path on disk is not what travels.
+const DECK_ID = (() => {
+  const s = new URL('.', location.href).href;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(36);
+})();
 function setPeer(w) {
   if (w && w !== window && !w.closed) peer = w;
 }
@@ -19823,7 +19837,7 @@ function isPeerWindow(w) {
 }
 function sendToPeer(msg) {
   if (!peer || peer.closed) { peer = null; return; }
-  try { peer.postMessage(msg, '*'); } catch (e) { peer = null; }
+  try { peer.postMessage(Object.assign({ deck: DECK_ID }, msg), '*'); } catch (e) { peer = null; }
 }
 // Is the other window actually there? Drives the two decisions that differ
 // between "running alone" and "driving a projector": where a mode toast
@@ -20098,11 +20112,32 @@ window.addEventListener('message', (ev) => {
   // Both live views are the same origin as each other by construction
   // (two file:// pages, or two pages off the same --serve).
   if (ev.origin !== SELF_ORIGIN) return;
+  const m = ev.data;
+  if (!m || typeof m !== 'object') return;
+  // The cockpit handshake (openCockpit): a projection that found a window
+  // called psi-slides-speaker it cannot read asks which deck it shows. Ahead
+  // of the peer check, because the asker is not yet anyone's peer; answered
+  // only to a top-level window, never to a frame, and it gives away nothing
+  // but the hash.
+  if (m.type === 'whois') {
+    let top = false;
+    try { top = !!ev.source && ev.source.top === ev.source; } catch (e) {}
+    if (VIEW === 'speaker' && (top || isPeerWindow(ev.source))) {
+      try { ev.source.postMessage({ type: 'iam', source: VIEW, deck: DECK_ID }, '*'); } catch (e) {}
+    }
+    return;
+  }
+  if (m.type === 'iam') {
+    if (cockpitAsk && ev.source === cockpitAsk.w) cockpitAsk.settle(m.deck === DECK_ID);
+    return;
+  }
   // And the origin is not enough: a sandboxed frame is "null" too. See
   // isPeerWindow.
   if (!isPeerWindow(ev.source)) return;
-  const m = ev.data;
-  if (!m || typeof m !== 'object') return;
+  // Another deck's window - see DECK_ID. A message without the field is
+  // from a build before it and is taken, so --audience-only beside an older
+  // cockpit still pairs.
+  if (m.deck !== undefined && m.deck !== DECK_ID) return;
   if (m.source === VIEW) return; // ignore our own postings (shouldn't happen, defensive)
   // Adopt sender as peer. Handles two cases: audience reload while
   // speaker is alive (speaker's next push reconnects us); audience
@@ -23886,10 +23921,9 @@ const COMMAND_RUN = {
   // window.open with a URL re-navigates the named window, which reloaded the
   // cockpit and lost its freeze, its clock and its cue cursor. Opening with
   // an empty URL finds the named window without navigating it; only when
-  // that is not already this deck's cockpit is it sent to speaker.html. A
-  // cockpit page on file:// is another origin, so reading its address
-  // throws - which says it is the cockpit and not a blank window this call
-  // just made.
+  // that is not already this deck's cockpit is it sent to speaker.html.
+  // Whether it is this deck's is read off its address where the address can
+  // be read, and asked where it cannot (openCockpit).
   'cockpit': (e) => {
     e.preventDefault();
     if (hasLivePeer()) { try { peer.focus(); } catch (err) {} return; }
@@ -23897,18 +23931,44 @@ const COMMAND_RUN = {
   },
   'help': (e) => { toggleHelp(); e.preventDefault(); },
 };
+// How long a found cockpit has to say which deck it shows. It answers from
+// its message handler, so a few milliseconds when it is there at all;
+// silence means a page that is no cockpit of this build.
+const COCKPIT_ASK_MS = 250;
+let cockpitAsk = null;
 function openCockpit() {
   const w = window.open('', 'psi-slides-speaker', 'width=1400,height=900');
   if (!w) return;
+  try { w.focus(); } catch (err) {}
   // Readable means same origin: a blank window, or under --serve a page
   // that may be another deck's cockpit - either way, unless it already is
   // this deck's cockpit, it is sent there.
   const want = new URL('speaker.html', location.href).href;
   let here = null;
   try { here = String(w.location.href).split(/[?#]/)[0]; } catch (err) { here = null; }
-  if (here !== null && here !== want) w.location.href = want;
-  setPeer(w);
-  try { w.focus(); } catch (err) {}
+  if (here !== null) {
+    if (here !== want) w.location.href = want;
+    setPeer(w);
+    return;
+  }
+  // Unreadable: a page from another file:// address. That used to be taken
+  // for this deck's cockpit, and on a tab that had gone from one deck to
+  // another it was the first deck's, driven by the second. So it is asked,
+  // and only an answer naming this deck keeps it as it is; another deck, or
+  // no answer, and it is sent to this deck's speaker.html.
+  if (cockpitAsk) clearTimeout(cockpitAsk.timer);
+  const ask = { w, timer: 0 };
+  ask.settle = (ours) => {
+    if (cockpitAsk !== ask) return;
+    cockpitAsk = null;
+    clearTimeout(ask.timer);
+    if (w.closed) return;
+    if (!ours) { try { w.location.href = want; } catch (err) { return; } }
+    setPeer(w);
+  };
+  cockpitAsk = ask;
+  ask.timer = setTimeout(() => ask.settle(false), COCKPIT_ASK_MS);
+  try { w.postMessage({ type: 'whois', source: VIEW }, '*'); } catch (err) { ask.settle(false); }
 }
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('.annot-textarea')) return;
