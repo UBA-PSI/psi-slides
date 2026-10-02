@@ -1,9 +1,17 @@
-# Display-face playground
+# Typeface playground
 
-The generator behind **`docs/site/display-faces.html`**, a page of the project
-site that draws a cover and a section divider in each face of the **display
-role** – the typeface a `cover:`, a `closing:` and a `section:` slide use for
-their headline, and that nothing else in the deck touches.
+The generator behind **`docs/site/display-faces.html`**, the project site's
+typefaces page. It has two sections:
+
+- **the text faces** – the nine serif, sans and mono faces of `BUNDLED_FONTS`,
+  drawn into one mock slide and one mock page of the handout, with a control
+  per role, the `F` key's reading face, and a card per face;
+- **the display faces** – a cover and a section divider in each face of the
+  **display role**, the typeface a `cover:`, a `closing:` and a `section:`
+  slide use for their headline, and that nothing else in the deck touches.
+
+The file keeps the name it had when it held the display faces alone, because
+links to it exist.
 
 ```bash
 node tools/font-playground/build-playground.mjs          # write the page
@@ -14,8 +22,34 @@ cd tools/font-playground && npm install                  # only for the next ros
 node measure-scale.mjs                                   # re-measure the size correction (needs Chrome)
 ```
 
-32 faces, **OFL-1.1 only**, in three flavours: 6 hand, 8 machine, 18 graphic
-(8 serif, 10 sans).
+32 display faces, **OFL-1.1 only**, in three flavours: 6 hand, 8 machine, 18
+graphic (8 serif, 10 sans).
+
+## The text faces
+
+Read out of `build.js` by `text-roster.mjs`, the file `measure-xheight.mjs` and
+the `xheight` gate already use, so a face added to `BUNDLED_FONTS` appears on
+the page at the next run and `--check` reports the tracked page stale until
+then. The defaults come from `BUNDLED_DEFAULTS` and the inline-code ratio from
+`CODE_XHEIGHT_RATIO`, by the same kind of text match. What the generator adds
+by hand is `TEXT_NOTES`, one line per face; a face without one gets an empty
+line and a warning.
+
+Each face is declared the way `fontStyleTag` declares it: the same files,
+`font-weight: 100 900`, `font-display: block`, the named instance in the
+descriptor. **Three files are also the site's own type** – IBM Plex Sans
+upright and italic and JetBrains Mono upright in `docs/site/fonts/` – and those
+are referenced by URL instead of embedded a second time, after a byte
+comparison with the package; a mismatch makes the page embed the package's
+bytes. The KB on a card is upright plus italic as the package ships them, which
+is what the build reports as the cost per view.
+
+The mocks follow the engine's numbers rather than a likeness of them: the
+slide is the 1600 × 900 frame with the body at `1rem × --zoom`, the bold look
+is `style: {bold: plain}` with the stress mark, the page is print's 10pt column
+with `print-bold: bold`; `F` moves the reading face on the slide only, with the
+`--bold-weight`, the mono leading and the per-face inline-code size that
+`codeTag` emits.
 
 ## The page is tracked, and that is why there is a `--check`
 
@@ -24,7 +58,9 @@ node measure-scale.mjs                                   # re-measure the size c
 `--check` fails when it no longer matches a fresh build. `pages.yml` runs it
 before assembling the site, beside `refresh-figures.mjs --check` – a staleness
 gate nothing runs is a comment. **Edit `roster.mjs` or `scales.json`, then
-regenerate and commit the page in the same change.**
+regenerate and commit the page in the same change** – and the same holds for a
+change to the text half of `BUNDLED_FONTS`, `BUNDLED_DEFAULTS` or
+`CODE_XHEIGHT_RATIO` in `build.js`, which the page reads too.
 
 There used to be a second, local `font-playground.html` beside this file with
 the same specimens in a plain shell. Two near-identical pages is a duplication
@@ -130,6 +166,11 @@ glyph, because both generic fallbacks resolve CJK through the same system
 font. For the latin characters this page asks about, they differ.*
 
 ## The controls
+
+The text section has five rows of buttons: one face per role, the reading face
+(`slide text · F`, the three words `font:` takes) and `slide` / `page`. The line
+under them prints the frontmatter that choice needs and its KB per view. The
+display section's controls:
 
 | control | what it answers |
 | --- | --- |

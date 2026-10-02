@@ -703,13 +703,16 @@ function main() {
   // it and older links still do.
   landing('decoration.html', 'decoration.html', 'decoration', 'en', '');
   landing('decoration.de.html', path.join('de', 'decoration.html'), 'decoration', 'de', '../');
-  // The thirty-two display faces, each drawn into a cover and a divider. Like
-  // figures.html it is generated rather than rendered from Markdown, and unlike
-  // it, it stays out of the bar: the decoration page's display-face section is
-  // where a reader meets the role, and that is the only place it is linked
-  // from. Generated, not hand-written - tools/font-playground/
-  // build-playground.mjs writes it out of the roster and the measured scales,
-  // and its --check is what keeps the tracked page from going stale.
+  // The typefaces page: the nine text faces drawn into a slide and a page of
+  // the handout, then the thirty-two display faces, each drawn into a cover
+  // and a divider. The file keeps the name it had when it held the display
+  // faces alone, because links to it exist. Like figures.html it is generated
+  // rather than rendered from Markdown, and unlike it, it stays out of the
+  // bar: the decoration page's display-face section is where a reader meets
+  // it, and that is the only place it is linked from. Generated, not
+  // hand-written - tools/font-playground/build-playground.mjs writes it out of
+  // the roster, the measured scales and the text faces of BUNDLED_FONTS, and
+  // its --check is what keeps the tracked page from going stale.
   landing('display-faces.html', 'display-faces.html', 'faces', 'en', '');
   landing('getting-started.html', 'getting-started.html', 'start', 'en', '');
   landing('getting-started.de.html', path.join('de', 'getting-started.html'), 'start', 'de', '../');

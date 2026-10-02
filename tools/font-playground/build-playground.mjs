@@ -1,5 +1,6 @@
-// Generate docs/site/display-faces.html: every candidate display face drawn
-// into a cover and a section divider, as a page of the project site.
+// Generate docs/site/display-faces.html, the site's typefaces page: the nine
+// text faces of the bundle drawn into a slide and a page of the handout, then
+// every display face drawn into a cover and a section divider.
 //
 //   node tools/font-playground/build-playground.mjs           # write the page
 //   node tools/font-playground/build-playground.mjs --check   # report drift
@@ -25,6 +26,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CANDIDATES, FLAVOURS } from './roster.mjs';
+import { readTextFaces, TEXT_ROLES } from './text-roster.mjs';
 const SCALES = JSON.parse(fs.readFileSync(new URL('./scales.json', import.meta.url), 'utf8'));
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -66,14 +68,90 @@ const faceCss = (family, b64, weight, sizeAdjust) =>
   + (sizeAdjust && sizeAdjust !== 100 ? `size-adjust:${sizeAdjust}%;` : '')
   + `src:url(data:font/woff2;base64,${b64}) format('woff2');}`;
 
-// ── the body face the candidates are set against ─────────────────────
-// Literata, embedded: it is the deck's serif and the site does not carry it.
-// The sans half of the pairing is the site's own IBM Plex Sans, already loaded
-// from fonts/ beside site.css and the same Fontsource cut build.js embeds - so
-// a card shows the contrast a real slide would have without this page paying
-// 100 KB for a second copy of a face the reader has already downloaded.
-const literata = face('@fontsource-variable/literata', 'literata-latin-wght-normal.woff2');
-const deckCss = faceCss('Literata', literata.b64, '100 900');
+// ── the text faces ───────────────────────────────────────────────────
+// The nine serif, sans and mono faces of BUNDLED_FONTS, read out of build.js
+// by text-roster.mjs, so a face that joins the roster joins this page on the
+// next run and --check reports the page stale until it does. Each one is
+// declared the way fontStyleTag declares it: the same files, weight 100 900,
+// font-display: block, and the named instance pinned in the descriptor
+// (Noto Sans Mono Condensed's wdth 62.5).
+//
+// Three of the files are also the site's own type, byte for byte - IBM Plex
+// Sans upright and italic and JetBrains Mono upright, copied into
+// docs/site/fonts/ from the same packages. Those are referenced by URL rather
+// than embedded a second time, and only after a byte comparison: a package
+// upgrade that left the site's copies behind makes this page embed the
+// package's bytes instead of showing the site's older ones.
+//
+// Literata doubles as the body face behind the display cards below.
+const BUILD_JS = path.join(repo, 'build.js');
+const SITE_FONTS = path.join(repo, 'docs/site/fonts');
+const textFaces = readTextFaces(BUILD_JS);
+const DEFAULTS = (() => {
+  const m = fs.readFileSync(BUILD_JS, 'utf8').match(/const BUNDLED_DEFAULTS = \{([^}]*)\}/);
+  if (!m) throw new Error('BUNDLED_DEFAULTS not found in build.js');
+  return Object.fromEntries(TEXT_ROLES.map((r) => {
+    const v = m[1].match(new RegExp(`\\b${r}:\\s*'([^']+)'`));
+    return [r, v && v[1]];
+  }));
+})();
+
+// One line per face, in the words of build.js's own comments. A face added to
+// the roster without one gets an empty line and a warning, not a guess.
+const TEXT_NOTES = {
+  'Literata': 'The default serif.',
+  'Source Serif 4': 'Finer hairlines than Literata, and the bold sits closest to the regular of the five.',
+  'Bitter': 'A slab with the lowest stroke contrast of the five, and the smallest file.',
+  'Noto Serif': 'The highest stroke contrast of the five.',
+  'Roboto Serif': '8 % wider than Literata, so a finished deck re-wraps; the widest step from regular to bold.',
+  'IBM Plex Sans': 'The default sans. Figure label widths are measured against it.',
+  'Inter Tight': 'The sans up to 1.0.0: condensed, narrower than Plex.',
+  'JetBrains Mono': 'The default mono. Its code ligatures stay off unless the deck says ligatures: all.',
+  'Noto Sans Mono Condensed': '0.50 em a character where JetBrains Mono takes 0.60, so a long listing fits. Upright only.',
+};
+
+function textSrc(pkg, file) {
+  const { buf, meta, b64 } = face(pkg, file);
+  const site = path.join(SITE_FONTS, file);
+  const shared = fs.existsSync(site) && fs.readFileSync(site).equals(buf);
+  return {
+    bytes: buf.length, meta,
+    src: shared ? `url('fonts/${file}') format('woff2')` : `url(data:font/woff2;base64,${b64}) format('woff2')`,
+  };
+}
+const texts = textFaces.map((t) => {
+  const files = [['normal', t.normal], ['italic', t.italic]].filter(([, f]) => f);
+  const parts = files.map(([style, file]) => ({ style, ...textSrc(t.pkg, file) }));
+  if (!TEXT_NOTES[t.family]) console.warn(`No note for the text face ${t.family} - add one to TEXT_NOTES.`);
+  return {
+    ...t,
+    italicFile: !!t.italic,
+    isDefault: DEFAULTS[t.role] === t.family,
+    bytes: parts.reduce((a, p) => a + p.bytes, 0),
+    licence: parts[0].meta.license?.type || 'unknown',
+    note: TEXT_NOTES[t.family] || '',
+    css: parts.map((p) =>
+      `@font-face{font-family:'${t.family}';font-style:${p.style};font-weight:100 900;font-display:block;`
+      + (t.variations ? `font-variation-settings:${t.variations};` : '')
+      + `src:${p.src};}`).join('\n'),
+  };
+});
+for (const r of TEXT_ROLES) {
+  if (!texts.some((t) => t.role === r && t.isDefault)) throw new Error(`no default ${r} face among the text faces`);
+}
+const textCss = texts.map((t) => t.css).join('\n');
+const defaultKb = kb(texts.filter((t) => t.isDefault).reduce((a, t) => a + t.bytes, 0));
+const byRole = (r) => texts.filter((t) => t.role === r);
+const NUM_WORD = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+const numWord = (n) => NUM_WORD[n] || String(n);
+const sentenceCase = (s) => s[0].toUpperCase() + s.slice(1);
+// The inline-code size codeTag emits for a pairing: CODE_XHEIGHT_RATIO times
+// the prose face's x-height over the mono's, to three decimals. Read off
+// build.js rather than copied, for the reason the faces are.
+const CODE_RATIO = Number((fs.readFileSync(BUILD_JS, 'utf8').match(/const CODE_XHEIGHT_RATIO = ([0-9.]+)/) || [])[1]);
+if (!CODE_RATIO) throw new Error('CODE_XHEIGHT_RATIO not found in build.js');
+const codeEm = (prose, mono) => (Math.round(CODE_RATIO * prose.xHeight / mono.xHeight * 1000) / 1000);
+const dflt = Object.fromEntries(TEXT_ROLES.map((r) => [r, texts.find((t) => t.role === r && t.isDefault)]));
 
 // ── the candidates ───────────────────────────────────────────────────
 const fonts = CANDIDATES.map((c) => {
@@ -175,29 +253,105 @@ const cards = fonts.map((f) => `
     </div>
    </article>`).join('\n');
 
+// ── the text-face section ────────────────────────────────────────────
+const roleCount = (r, one, many) => { const n = byRole(r).length; return `${numWord(n)} ${n === 1 ? one : many}`; };
+const textLede = `${sentenceCase(numWord(texts.length))} faces in three roles: `
+  + `${roleCount('serif', 'serif', 'serifs')}, ${roleCount('sans', 'sans', 'sans faces')} and `
+  + `${roleCount('mono', 'mono', 'monos')}. ${esc(dflt.serif.family)}, ${esc(dflt.sans.family)} and `
+  + `${esc(dflt.mono.family)} are the default and need no line in the frontmatter. A deck embeds `
+  + `one face per role, ${defaultKb}&nbsp;KB in each view for the default three. Pick one per role `
+  + 'to see the pairing on a slide and on a page of the handout.';
+
+// The figure is drawn in the sans, as a ::: draw label is. 21 units of a
+// 330-unit box at 26cqw is the body size of the slide around it, near enough.
+const mockFig = `<svg class="tf-fig" viewBox="0 0 330 92" role="img" aria-label="Two boxes, password and digest, joined by an arrow labelled 12 rounds">
+       <rect x="1" y="34" width="118" height="50" rx="4"/><text x="60" y="66" font-size="21" text-anchor="middle">password</text>
+       <path d="M119 59 H206"/><path d="M197 52 L208 59 L197 66"/>
+       <text class="lbl" x="164" y="24" font-size="18" text-anchor="middle">12 rounds</text>
+       <rect x="211" y="34" width="118" height="50" rx="4"/><text x="270" y="66" font-size="21" text-anchor="middle">digest</text>
+      </svg>`;
+// No ligature can join -> or != here, and that is the engine's rule too: code
+// ligatures are off unless a deck asks for them.
+const mockCode = '<span class="k">import</span> bcrypt\n'
+  + 'salt = bcrypt.gensalt(rounds=12)\n'
+  + 'digest = bcrypt.hashpw(pw, salt)\n'
+  + '<span class="k">assert</span> digest != pw  <span class="c"># -&gt; keep only this</span>';
+const mockHead = 'A fast hash is the wrong place for a password';
+// The slide is what topic-bold projects: the first sentence of each paragraph.
+const mockSlide = `<div class="tf-slide">
+      <span class="tf-num">7</span>
+      <h4>${mockHead}</h4>
+      <p>A graphics card tries <strong>a billion guesses <em>per second</em></strong> against a fast hash.</p>
+      <p>So the password goes through <code>bcrypt</code>, which is <em>slow</em> on purpose.</p>
+      <div class="tf-row">
+       <pre><code>${mockCode}</code></pre>
+       ${mockFig}
+      </div>
+     </div>`;
+const mockPage = `<div class="tf-page">
+      <span class="tf-pnum">7</span>
+      <p class="tf-label">example</p>
+      <h4>${mockHead}</h4>
+      <p>A graphics card tries <strong>a billion guesses <em>per second</em></strong> against a fast
+      hash. Against a leaked list of short passwords that is an afternoon&rsquo;s work, and a
+      <em>salt</em> only keeps the attacker from reusing one table for every account.</p>
+      <p>So the password goes through <code>bcrypt</code>, which is slow on purpose: each step of
+      its cost factor doubles the work, for the attacker on every guess as much as for the server
+      once per login.</p>
+      <pre><code>${mockCode}</code></pre>
+      <figure>
+       ${mockFig}
+       <figcaption>The cost factor stands between the two.</figcaption>
+      </figure>
+     </div>`;
+
+const GENERIC = { serif: 'serif', sans: 'sans-serif', mono: 'monospace' };
+const textCards = texts.map((t) => {
+  const stack = `'${t.family}', ${GENERIC[t.role]}`;
+  return `
+   <article class="tface" data-face="${esc(t.family)}"${t.isDefault ? ' data-on' : ''}>
+    <h3 style="font-family:${esc(stack)}">${esc(t.family)}</h3>
+    <p class="tf-spec" style="font-family:${esc(stack)}">Handgloves ${t.italicFile ? '<i>Handgloves</i> ' : ''}<b>Handgloves</b> 0O Il1 &auml;&ouml;&uuml;&szlig;</p>
+    <p class="badges">
+     <span>${t.role}</span>
+     ${t.isDefault ? '<span>default</span>' : ''}
+     <span class="num" title="${t.italicFile ? 'upright and italic woff2' : 'one upright woff2'}, embedded in each of the four views">${kb(t.bytes)} KB per view</span>
+     <span>${esc(t.licence)}</span>
+    </p>
+    <p class="face-note">${esc(t.note)}</p>
+    <p class="face-pkg"><code>fonts: {${t.role}: ${esc(t.family)}}</code></p>
+   </article>`;
+}).join('');
+
 const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Display faces &ndash; psi-slides</title>
+<title>Typefaces &ndash; psi-slides</title>
 <link rel="stylesheet" href="site.css">
 <style>
 /*
- * GENERATED by tools/font-playground/build-playground.mjs from roster.mjs and
- * scales.json. Do not edit this file - run the script.
+ * GENERATED by tools/font-playground/build-playground.mjs from roster.mjs,
+ * scales.json and the text faces of BUNDLED_FONTS in build.js. Do not edit
+ * this file - run the script.
  *
  * Everything structural comes from site.css: the frame, the bands, the text
  * scale, the palette, the chrome, the stage, .way-tabs for the control row.
- * What is left is the specimen machinery, which no other page has: 32 embedded
- * faces, a mock cover and a mock divider drawn in container units, and the
- * controls that set them.
+ * What is left is the specimen machinery, which no other page has: the nine
+ * text faces and the 32 display faces embedded, a mock slide, a mock page and
+ * a mock cover and divider drawn in container units, and the controls that
+ * set them.
  */
 
-/* ── the deck's serif, and the 32 candidates ──────────────────────────
-   The sans half of every pairing is the site's own --sans, which is the same
-   IBM Plex Sans cut build.js embeds into a lecture. */
-${deckCss}
+/* ── the nine text faces ──────────────────────────────────────────────
+   Declared as fontStyleTag declares them. The three that are also the site's
+   own type point at docs/site/fonts/, whose bytes the generator compared. */
+${textCss}
+
+/* ── the 32 display faces ─────────────────────────────────────────────
+   Set over the deck's Literata above or over the site's own --sans, which is
+   the same IBM Plex Sans cut build.js embeds into a lecture. */
 ${fonts.map((f) => f.css).join('\n')}
 
 /*
@@ -484,6 +638,218 @@ body[data-caps="on"] .slide .section { text-transform: uppercase; }
   color: #cbc7c3;
 }
 .lightbox .zoom-head strong { font-size: var(--fs-lead); color: #ffffff; font-weight: 600; }
+
+/*
+ * ── the text faces: a slide and a page ───────────────────────────────
+ *
+ * Two mocks of one chunk, the projection and the handout, drawn in cqw so the
+ * proportions are the engine's at any width: on the slide the body is
+ * 1rem x --zoom (1.35) of a 1600 x 900 frame, 1.975cqw, the heading 1.55 of
+ * that, a listing 0.78; on the page the body is print's 10pt in a 42rem
+ * column. The faces come in as four custom properties on the stage, set by
+ * the controls: --m-serif, --m-sans, --m-mono, and --m-read, which is what F
+ * moves in a live view (body[data-font] re-points --body-font). --m-bold is
+ * the --bold-weight that goes with it, 500 under the serif and 600 under the
+ * other two, and --m-code / --m-pcode the inline-code size codeTag emits for
+ * the pairing. What a default deck sets in the sans on a slide is the chrome
+ * and the figure labels - the slide number, a label in a drawing - and on the
+ * page the type word, the number and the caption; the mocks carry those, so
+ * the sans control has something to move under every reading face.
+ */
+.tf-controls { position: static; }
+.tf-fm { margin: 0 0 1.2rem; font-size: var(--fs-note); max-width: none; }
+.tf-fm code { white-space: normal; }
+.tf-stage {
+  --m-serif: '${dflt.serif.family}';
+  --m-sans: '${dflt.sans.family}';
+  --m-mono: '${dflt.mono.family}';
+  --m-read: var(--m-serif);
+  --m-bold: 500;
+  --m-lh: 1.5;
+  --m-code: ${codeEm(dflt.serif, dflt.mono)}em;
+  --m-pcode: ${codeEm(dflt.serif, dflt.mono)}em;
+}
+.tf-stage figure.shot { margin: 0; }
+.tf-stage figure.shot[hidden] { display: none; }
+.tf-stage figure.shot + figure.shot { margin-top: 1.4rem; }
+.tf-frame {
+  container-type: inline-size;
+  border: 1px solid var(--frame);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  overflow: hidden;
+}
+.tf-slide, .tf-page { font-variant-ligatures: common-ligatures; font-kerning: normal; }
+.tf-slide pre, .tf-page pre, .tf-slide code, .tf-page code { font-variant-ligatures: none; }
+
+.tf-slide {
+  --t-paper: oklch(0.98 0 0);
+  --t-ink: oklch(0.26 0.01 260);
+  --t-soft: oklch(0.46 0.01 260);
+  --t-emph: oklch(0.42 0.16 30);
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--t-paper);
+  color: var(--t-ink);
+  padding: 6cqw 14cqw 0;
+  font-family: var(--m-read), serif;
+  font-size: 1.975cqw;
+  line-height: var(--m-lh);
+}
+.tf-slide .tf-num {
+  position: absolute;
+  top: 6cqw;
+  right: 4.9cqw;
+  font-family: var(--m-sans), sans-serif;
+  font-size: 0.78em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--t-soft);
+  opacity: 0.32;
+}
+.tf-slide h4 {
+  margin: 0 0 0.7em;
+  font-family: var(--m-read), serif;
+  font-size: 1.55em;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+  color: var(--t-ink);
+  max-width: none;
+  text-wrap: balance;
+}
+.tf-slide p { margin: 0 0 0.7em; max-width: none; font-size: 1em; line-height: inherit; color: inherit; }
+/* style: {bold: plain}, the live default: the phrase keeps the text's weight
+   and colour, and an em inside it is the stress mark - upright, the bold
+   weight, the accent. */
+.tf-slide strong { font-weight: inherit; color: inherit; }
+.tf-slide strong em { font-style: normal; font-weight: var(--m-bold); color: var(--t-emph); }
+.tf-slide code { font-family: var(--m-mono), monospace; font-size: var(--m-code); }
+.tf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6em 2.4em; margin-top: 1em; }
+.tf-slide pre {
+  margin: 0;
+  font-family: var(--m-mono), monospace;
+  font-size: 0.78em;
+  line-height: 1.4;
+  white-space: pre;
+  color: var(--t-ink);
+  background: none;
+  padding: 0;
+}
+.tf-slide pre code, .tf-page pre code { font-size: inherit; font-family: inherit; }
+.tf-slide .c, .tf-page .c { color: var(--t-soft); }
+.tf-slide .k { color: var(--t-emph); }
+.tf-fig { display: block; overflow: visible; }
+.tf-fig text { font-family: var(--m-sans), sans-serif; fill: var(--t-ink); }
+.tf-fig .lbl { fill: var(--t-soft); }
+.tf-fig rect { fill: none; stroke: var(--t-ink); stroke-width: 1.5; }
+.tf-fig path { fill: none; stroke: var(--t-ink); stroke-width: 1.5; }
+.tf-slide .tf-fig { width: 25cqw; }
+
+.tf-pageframe { max-width: 50rem; margin-inline: auto; }
+.tf-page {
+  --t-paper: #fafaf7;
+  --t-ink: #1f1f24;
+  --t-soft: #5d5d66;
+  --t-emph: #8b2e00;
+  position: relative;
+  background: var(--t-paper);
+  color: var(--t-ink);
+  padding: 5cqw 11cqw 6cqw 13cqw;
+  font-family: var(--m-serif), serif;
+  font-size: 2.05cqw;
+  line-height: 1.6;
+}
+.tf-page .tf-pnum {
+  position: absolute;
+  left: 6.5cqw;
+  top: 5cqw;
+  font-family: var(--m-sans), sans-serif;
+  font-size: 0.8em;
+  line-height: 1.9;
+  color: #888;
+}
+.tf-page .tf-label {
+  margin: 0 0 0.15em;
+  font-family: var(--m-sans), sans-serif;
+  font-variant-caps: all-small-caps;
+  font-size: 0.82em;
+  letter-spacing: 0.12em;
+  color: var(--t-soft);
+}
+.tf-page h4 {
+  margin: 0 0 0.5em;
+  font-family: var(--m-serif), serif;
+  font-size: 1.12em;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--t-ink);
+  max-width: none;
+}
+.tf-page p { margin: 0 0 0.8em; max-width: none; font-size: 1em; line-height: inherit; color: inherit; hyphens: auto; }
+/* style: {print-bold: bold}, the document's default: weight 600 in the ink,
+   and the same stress mark inside it. */
+.tf-page strong { font-weight: 600; color: inherit; }
+.tf-page strong em { font-style: normal; font-weight: 600; color: var(--t-emph); }
+.tf-page code { font-family: var(--m-mono), monospace; font-size: var(--m-pcode); }
+.tf-page pre {
+  margin: 0 0 1em;
+  font-family: var(--m-mono), monospace;
+  font-size: 0.85em;
+  line-height: 1.45;
+  white-space: pre;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--t-ink);
+  padding: 0.8em 1em;
+  border-radius: 0.3em;
+}
+.tf-page figure { margin: 0; }
+.tf-page .tf-fig { width: 30cqw; margin: 0 auto; }
+/* Two classes deep, because site.css styles figure.shot figcaption and this
+   caption stands inside one. */
+.tf-stage .tf-page figcaption {
+  margin: 0;
+  padding: 0.5em 0 0;
+  max-width: none;
+  line-height: 1.4;
+  text-align: center;
+  font-family: var(--m-sans), sans-serif;
+  font-size: 0.8em;
+  color: var(--t-soft);
+}
+
+/* The faces themselves, one card each, the name and a line set in the face. */
+/* A gallery, so it runs the frame rather than the prose measure. */
+.wrap > .tfaces, .wrap > .tf-fm { max-width: none; }
+.tfaces {
+  display: grid;
+  gap: clamp(0.8rem, 1.4vw, 1.3rem);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  margin: 1.8rem 0 0;
+}
+.tface {
+  background: var(--shot-bg);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.9rem 1rem 0.9rem;
+  min-width: 0;
+}
+.tface[data-on] { border-color: var(--ink-soft); }
+.tface h3 { margin: 0; font-size: var(--fs-lead); font-weight: 600; line-height: 1.2; }
+.tface .tf-spec {
+  margin: 0.45rem 0 0;
+  font-size: var(--fs-lead);
+  line-height: 1.3;
+  max-width: none;
+  font-synthesis: none;
+  overflow-wrap: anywhere;
+}
+.tface .tf-spec i { font-style: italic; }
+.tface .tf-spec b { font-weight: 650; }
+.tface .face-note { margin-top: 0.55rem; }
 </style>
 </head>
 <body data-view="both" data-ground="paper" data-caps="off">
@@ -492,8 +858,72 @@ body[data-caps="on"] .slide .section { text-transform: uppercase; }
 
 <section class="band band-hero">
  <div class="wrap">
-  <p class="mark"><b>psi-slides</b> &middot; the display role</p>
-  <h1>Thirty-two faces for a title slide</h1>
+  <p class="mark"><b>psi-slides</b> &middot; typefaces</p>
+  <h1>The typefaces that ship with psi-slides</h1>
+  <p class="lede">A lecture sets its text in three typefaces &ndash; a serif, a
+  sans and a mono &ndash; and may give its cover and section dividers a fourth.
+  ${sentenceCase(numWord(texts.length))} text faces and ${fonts.length} display faces come with psi-slides, each
+  drawn here the way a lecture draws it.</p>
+  <p>The faces a lecture uses are embedded into its views, so a deck sent by
+  mail keeps its type, and naming one is a line in the frontmatter.
+  <a href="#text-faces">The text faces</a> come first,
+  <a href="#roster">the display faces</a> after them.</p>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="text-faces">${sentenceCase(numWord(texts.length))} faces for the text</h2>
+  <p class="lede">${textLede}</p>
+  <p>Each one fills a role. On a slide the serif sets the heading and the
+  prose, the mono sets code, and the sans sets the slide number and the labels
+  in a figure; on the printed page the sans also sets the type word and the
+  caption. During a talk, <kbd>F</kbd> switches the slide text between the
+  deck&rsquo;s serif, its sans and its mono, and <kbd>Shift</kbd>&nbsp;<kbd>F</kbd>
+  back again &ndash; the three faces the deck already carries, in the projection
+  and the speaker view at once. <code>font: sans</code> in the frontmatter says
+  which of the three a lecture opens in.</p>
+
+  <div class="controls tf-controls">
+${TEXT_ROLES.map((r) => `   <div class="field"><span class="label" id="l-tf-${r}">${sentenceCase(r)}</span>
+    <div class="way-tabs" data-tf-role="${r}" role="group" aria-labelledby="l-tf-${r}">
+${byRole(r).map((t) => `     <button type="button" data-face="${esc(t.family)}" data-xh="${t.xHeight}" data-kb="${t.bytes}" aria-pressed="${t.isDefault}">${esc(t.family)}</button>`).join('\n')}
+    </div></div>`).join('\n')}
+   <div class="field"><span class="label" id="l-tf-read">Slide text &middot; F</span>
+    <div class="way-tabs" id="tf-read" role="group" aria-labelledby="l-tf-read">
+${TEXT_ROLES.map((r) => `     <button type="button" data-read="${r}" aria-pressed="${r === 'serif'}">${r}</button>`).join('\n')}
+    </div></div>
+   <div class="field"><span class="label" id="l-tf-view">Show</span>
+    <div class="way-tabs" id="tf-view" role="group" aria-labelledby="l-tf-view">
+     <button type="button" data-view="slide" aria-pressed="true">slide</button>
+     <button type="button" data-view="page" aria-pressed="false">page</button>
+    </div></div>
+  </div>
+
+  <p class="tf-fm">In the frontmatter: <code id="tf-fm" hidden></code><span id="tf-fm-none">nothing,
+  the default three need no line</span> &middot; <span id="tf-kb">${defaultKb}</span>&nbsp;KB of type in each view.</p>
+
+  <div class="stage tf-stage" id="tf-stage">
+   <figure class="shot" data-view="slide">
+    <div class="bar"><b>audience.html</b>&nbsp;&middot; the projection</div>
+    <div class="tf-frame">${mockSlide}</div>
+   </figure>
+   <figure class="shot" data-view="page">
+    <div class="tf-pageframe">
+     <div class="bar"><b>print.html</b>&nbsp;&middot; the handout</div>
+     <div class="tf-frame">${mockPage}</div>
+    </div>
+   </figure>
+  </div>
+
+  <div class="tfaces">${textCards}
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="roster">${fonts.length} faces for a title slide</h2>
   <p class="lede">A cover, a closing slide and the section dividers are the one
   place in a lecture where a loud typeface is not a mistake. These are the faces
   that ship with the tool for that job, each one drawn into a real cover and a
@@ -502,14 +932,8 @@ body[data-caps="on"] .slide .section { text-transform: uppercase; }
   and it reaches those three slides and nothing else &ndash; an ordinary heading, a
   card lead, a figure label all keep the body type.
   <a href="decoration.html#display-face">What the role does</a> is on the
-  decoration page; this page is the roster.</p>
- </div>
-</section>
-
-<section class="band">
- <div class="wrap">
-  <h2 id="roster">The roster</h2>
-  <p class="lede">${fonts.length} faces &ndash; ${counts.hand} hand, ${counts.machine} machine,
+  decoration page.</p>
+  <p>They come in three kinds: ${counts.hand} hand, ${counts.machine} machine and
   ${counts.graphic} graphic. Median ${median}&nbsp;KB each, ${totalKb}&nbsp;KB for the
   whole set, but a deck embeds one of them: the figure on a card is what naming
   that face costs a lecture in every view.</p>
@@ -526,7 +950,7 @@ body[data-caps="on"] .slide .section { text-transform: uppercase; }
   the face has no eszett and a German title gets a fallback glyph mid-word;
   exactly one face here does.</p>
 
-  <div class="controls">
+  <div class="controls" id="display-controls">
    <div class="field"><label for="t-title">Title</label>
     <input type="text" id="t-title" data-slot="title" value="Datensicherheit im digitalen Alltag"></div>
    <div class="field"><label for="t-eyebrow">Eyebrow</label>
@@ -593,6 +1017,75 @@ body[data-caps="on"] .slide .section { text-transform: uppercase; }
 (function () {
   'use strict';
 
+  // ── the text faces ─────────────────────────────────────────────────
+  // One face per role, the reading face F would pick, and slide or page.
+  // Everything lands as custom properties on the stage; the numbers are the
+  // engine's: --bold-weight is 500 under the serif and 600 under the other
+  // two, a mono reading face loosens the leading to 1.55, and the inline code
+  // size is codeTag's ratio of x-heights for the pairing.
+  (function textFaces() {
+    var stage = document.getElementById('tf-stage');
+    var DEFAULT = ${JSON.stringify(Object.fromEntries(TEXT_ROLES.map((r) => [r, dflt[r].family])))};
+    var RATIO = ${CODE_RATIO};
+    var pick = {};
+    var read = 'serif';
+    function chosen(role) {
+      return document.querySelector('[data-tf-role="' + role + '"] button[aria-pressed="true"]');
+    }
+    function codeEm(proseXh, monoXh) { return Math.round(RATIO * proseXh / monoXh * 1000) / 1000; }
+    function apply() {
+      var xh = {}, kb = 0;
+      ['serif', 'sans', 'mono'].forEach(function (role) {
+        var b = chosen(role);
+        pick[role] = b.dataset.face;
+        xh[role] = Number(b.dataset.xh);
+        kb += Number(b.dataset.kb);
+        stage.style.setProperty('--m-' + role, "'" + b.dataset.face + "'");
+      });
+      stage.style.setProperty('--m-read', 'var(--m-' + read + ')');
+      stage.style.setProperty('--m-bold', read === 'serif' ? '500' : '600');
+      stage.style.setProperty('--m-lh', read === 'mono' ? '1.55' : '1.5');
+      stage.style.setProperty('--m-code', codeEm(xh[read], xh.mono) + 'em');
+      stage.style.setProperty('--m-pcode', codeEm(xh.serif, xh.mono) + 'em');
+      var named = ['serif', 'sans', 'mono'].filter(function (r) { return pick[r] !== DEFAULT[r]; })
+        .map(function (r) { return r + ': ' + pick[r]; });
+      var lines = [];
+      if (named.length) lines.push('fonts: {' + named.join(', ') + '}');
+      if (read !== 'serif') lines.push('font: ' + read);
+      var fm = document.getElementById('tf-fm');
+      fm.textContent = lines.join('  \\u00b7  ');
+      fm.hidden = !lines.length;
+      document.getElementById('tf-fm-none').hidden = !!lines.length;
+      document.getElementById('tf-kb').textContent = Math.round(kb / 1024);
+      Array.prototype.forEach.call(document.querySelectorAll('.tface'), function (card) {
+        var on = ['serif', 'sans', 'mono'].some(function (r) { return pick[r] === card.dataset.face; });
+        if (on) card.setAttribute('data-on', ''); else card.removeAttribute('data-on');
+      });
+    }
+    function group(el, fn) {
+      el.addEventListener('click', function (ev) {
+        var b = ev.target.closest('button');
+        if (!b) return;
+        Array.prototype.forEach.call(el.querySelectorAll('button'), function (o) {
+          o.setAttribute('aria-pressed', String(o === b));
+        });
+        fn(b);
+        apply();
+      });
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-tf-role]'), function (el) {
+      group(el, function () {});
+    });
+    group(document.getElementById('tf-read'), function (b) { read = b.dataset.read; });
+    var shots = stage.querySelectorAll('figure[data-view]');
+    function show(view) {
+      Array.prototype.forEach.call(shots, function (f) { f.hidden = f.dataset.view !== view; });
+    }
+    group(document.getElementById('tf-view'), function (b) { show(b.dataset.view); });
+    show('slide');
+    apply();
+  })();
+
   // ── the words on the slides ────────────────────────────────────────
   // Four of them are the reader's, and the rest are a real lecture's: umlauts,
   // a long compound, a credit block of the length one actually has.
@@ -603,7 +1096,7 @@ body[data-caps="on"] .slide .section { text-transform: uppercase; }
     info: 'Bamberg \\u00b7 12. September 2026',
     part: '', section: '', 'section-sub': 'Verkehrsdaten, Metadaten und wer sie sammelt'
   };
-  var controls = document.querySelector('.controls');
+  var controls = document.getElementById('display-controls');
   function paint() {
     Object.keys(SLOTS).forEach(function (slot) {
       var els = document.querySelectorAll('[data-slot="' + slot + '"]');
@@ -805,7 +1298,7 @@ const mb = (Buffer.byteLength(html) / 1048576).toFixed(2);
 
 if (CHECK) {
   if (was === html) {
-    console.log(`${rel} is up to date (${mb} MB, ${fonts.length} faces)`);
+    console.log(`${rel} is up to date (${mb} MB, ${texts.length} text faces, ${fonts.length} display faces)`);
     process.exit(0);
   }
   console.error(`\nDRIFT: ${rel} does not match a fresh build.\n`
@@ -815,4 +1308,4 @@ if (CHECK) {
 }
 
 fs.writeFileSync(OUT, html);
-console.log(`wrote ${rel}  ${mb} MB  ${fonts.length} faces` + (was === html ? '  - unchanged' : ''));
+console.log(`wrote ${rel}  ${mb} MB  ${texts.length} text faces, ${fonts.length} display faces` + (was === html ? '  - unchanged' : ''));

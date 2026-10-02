@@ -90,12 +90,13 @@ jobs:
       - name: Check the published figure pages are current
         run: node docs/artifact/refresh-figures.mjs --check
 
-      # Same arrangement for the display-face roster: display-faces.html is
-      # tracked and generated out of tools/font-playground/roster.mjs, the
-      # measured scales, and the 32 font packages the engine depends on. A
-      # roster edit that nobody regenerated would publish a page describing a
-      # set of faces that is no longer the set.
-      - name: Check the published display-face page is current
+      # Same arrangement for the typefaces page: display-faces.html is tracked
+      # and generated out of build.js's nine text faces (read by
+      # text-roster.mjs), tools/font-playground/roster.mjs, the measured
+      # scales, and the font packages the engine depends on. A roster edit
+      # that nobody regenerated would publish a page describing a set of faces
+      # that is no longer the set.
+      - name: Check the published typefaces page is current
         run: node tools/font-playground/build-playground.mjs --check
 
       # Renders the docs from the same Markdown the repository serves, so the
