@@ -7,6 +7,19 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Added
+
+- The six Claude skills in `.claude/skills/` are downloads on the project
+  site – one ZIP per skill for claude.ai and one with all six for Claude
+  Code – built from `main` by `docs/site/build-site.js`, with a note on what a
+  repository path means and the address of each file a skill names, and
+  `figure-design.md` bundled into the figures skill. *Writing with Claude* on
+  the getting-started page says what each one is for and how to install it,
+  and the front page points there. Four of the six descriptions were plain
+  YAML values with `: ` in them, which a strict parser refuses, and one was
+  over the 1,024-character limit; all six are quoted and within it now, held
+  by a new `skills` gate.
+
 ### Changed
 
 - CI only: the workflows use the current major of each GitHub action

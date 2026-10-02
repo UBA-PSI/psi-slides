@@ -56,8 +56,8 @@
     <strong><a href="#command-line">der Kommandozeile</a></strong>. Dieser Weg
     beginnt mit einer Kopie des Repositorys und einem <code>npm install</code>.
     Danach kann ein Server Vorlesungen bauen, ohne dass jemand zusieht, und ein
-    Programmierassistent wie Claude Code findet im Repository Anleitungen, die
-    ihm das Format beibringen.</p>
+    Programmierassistent wie Claude Code findet im Repository
+    <a href="#skills">Anleitungen</a>, die ihm das Format beschreiben.</p>
    </div>
   </div>
  </div>
@@ -426,6 +426,121 @@
       <code>node --version</code> lohnt sich also trotzdem.</p>
     </div>
   </details>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="skills">Schreiben mit Claude</h2>
+  <p class="lede">psi-slides bringt sechs Claude-Skills mit: Anleitungen im
+  Agent-Skills-Format von Anthropic, die Claude das Quellformat und die
+  Maschinerie dahinter beschreiben. Mit ihnen entwirft Claude aus den eigenen
+  Notizen die <code>source.md</code> einer Vorlesung oder überarbeitet eine
+  vorhandene. Gebaut wird sie weiter mit der App oder mit
+  <code>build.js</code>, und <code>lint.js</code> sagt, was nicht zum Format
+  passt.</p>
+
+  <h3>Herunterladen</h3>
+  <p>Das erste Archiv enthält alle sechs. Die einzelnen sind für claude.ai, das
+  pro Upload einen Skill annimmt. Zwei der sechs handeln vom Schreiben einer
+  Vorlesung; die anderen vier beschreiben, wie die Maschinerie gebaut ist, und
+  sind vor allem für alle, die an psi-slides selbst arbeiten.</p>
+
+  <!-- The packages' row from the app section above, for the same reason: one
+       card per kind of reader, and a box per file in it. The ZIPs are written
+       by build-site.js from .claude/skills, and that build fails if one of
+       them is not linked from the English page. -->
+  <div class="pair-up trio gets">
+   <div class="get">
+    <p class="sys">Alle sechs</p>
+    <a class="file" href="../skills/psi-slides-skills.zip">
+     <b>Alle Skills in einem Archiv</b>
+     <span>Entpackt sich in sechs Ordner, einen pro Skill, für Claude Code.</span>
+     <code>psi-slides-skills.zip</code>
+    </a>
+   </div>
+   <div class="get">
+    <p class="sys">Eine Vorlesung schreiben</p>
+    <a class="file" href="../skills/psi-slides-authoring.zip">
+     <b>psi-slides-authoring</b>
+     <span>Das Quellformat: Chunk-Typen, die <code>:::</code>-Blöcke, Aufdeckschritte, Notizen und der Einstellungsblock.</span>
+     <code>psi-slides-authoring.zip</code>
+    </a>
+    <a class="file" href="../skills/psi-slides-figures.zip">
+     <b>psi-slides-figures</b>
+     <span>Abbildungen als Text in einem <code>::: draw</code>-Block, mit der Anleitung zum Anordnen dabei.</span>
+     <code>psi-slides-figures.zip</code>
+    </a>
+   </div>
+   <div class="get">
+    <p class="sys">An psi-slides arbeiten</p>
+    <a class="file" href="../skills/psi-slides-decoration.zip">
+     <b>psi-slides-decoration</b>
+     <span>Titelfolien, Abschnittstrenner, Karten, Hintergründe und Overlays, und wie der Build sie zeichnet.</span>
+     <code>psi-slides-decoration.zip</code>
+    </a>
+    <a class="file" href="../skills/psi-slides-appearance.zip">
+     <b>psi-slides-appearance</b>
+     <span>Schriften, Farbschemata, die Ansichtsvorgaben und der <code>style:</code>-Block.</span>
+     <code>psi-slides-appearance.zip</code>
+    </a>
+    <a class="file" href="../skills/psi-slides-media.zip">
+     <b>psi-slides-media</b>
+     <span>Video, YouTube- und Vimeo-Player, Linkadressen mit QR-Codes, die Live-Demo.</span>
+     <code>psi-slides-media.zip</code>
+    </a>
+    <a class="file" href="../skills/psi-slides-prompter.zip">
+     <b>psi-slides-prompter</b>
+     <span>Der Live-Prompter im Cockpit, seine Einstellungen und sein Protokoll.</span>
+     <code>psi-slides-prompter.zip</code>
+    </a>
+   </div>
+  </div>
+
+  <div class="aside-code words-first second-picture">
+   <div class="said">
+    <h3>In Claude Code</h3>
+    <p class="cue">Ein Skill ist ein Ordner mit einer <code>SKILL.md</code>
+    darin. Nach <code>~/.claude/skills/</code> entpackt, stehen die sechs in
+    jedem Projekt auf diesem Rechner bereit; in das
+    <code>.claude/skills/</code> eines Vorlesungs-Repositorys entpackt, gehören
+    sie zu diesem Repository.</p>
+    <p class="cue">Eine laufende Sitzung bemerkt neue Skills. Gab es den
+    Ordner beim Start der Sitzung noch nicht, holt <code>/reload-skills</code>
+    sie nach. Eine Kopie von psi-slides braucht nichts davon: Die sechs liegen
+    in ihrem eigenen <code>.claude/skills/</code>.</p>
+   </div>
+<pre><code><span class="t-cmt"># alle sechs, für jedes Projekt auf diesem Rechner</span>
+<span class="t-cmd">mkdir</span> -p <span class="t-path">~/.claude/skills</span>
+<span class="t-cmd">unzip</span> <span class="t-path">psi-slides-skills.zip</span> -d <span class="t-path">~/.claude/skills</span>
+
+<span class="t-cmt"># oder für ein Vorlesungs-Repository, in dessen Ordner ausgeführt</span>
+<span class="t-cmd">mkdir</span> -p <span class="t-path">.claude/skills</span>
+<span class="t-cmd">unzip</span> <span class="t-path">psi-slides-skills.zip</span> -d <span class="t-path">.claude/skills</span></code></pre>
+  </div>
+
+  <h3>Auf claude.ai und in der Claude-Desktop-App</h3>
+  <div class="pair-up">
+   <div>
+    <p>Skills brauchen dort die Codeausführung. Unter <b>Settings &#9656;
+    Capabilities</b> muss <b>Code execution and file creation</b> eingeschaltet
+    sein; in einem Team- oder Enterprise-Tarif schaltet sie ein Owner für die
+    Organisation ein. Dann <b>Customize &#9656; Skills</b> öffnen, <b>+</b>
+    drücken, <b>Create skill</b> und danach <b>Upload a skill</b> wählen und
+    eines der einzelnen Archive auswählen. Das für jeden gewünschten Skill
+    wiederholen und jeden in derselben Liste einschalten.</p>
+   </div>
+   <div>
+    <p>Diese Schritte stehen so im
+    <a href="https://support.claude.com/en/articles/12512180-use-skills-in-claude">Hilfeartikel
+    von Anthropic</a> (englisch); Menünamen ändern sich, und der Artikel ist
+    die Stelle zum Nachsehen, wenn einer nicht dort ist, wo er stehen soll.
+    Dort eingeschaltete Skills laden auch in Claude Code, wenn es mit demselben
+    Konto angemeldet ist. Die Skills nennen Dateien im psi-slides-Repository
+    und geben zu jeder die Adresse an; ob Claude diese Adressen auf claude.ai
+    öffnen kann, hängt von der Netzwerkeinstellung der Codeausführung ab.</p>
+   </div>
   </div>
  </div>
 </section>

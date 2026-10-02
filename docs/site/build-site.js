@@ -22,6 +22,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { marked } from 'marked';
+import matter from 'gray-matter';
+import { buildSkillZips, unzip, skillNames, skillProblems, BUNDLE_ZIP } from './skills.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -648,6 +650,65 @@ function topbarCss() {
   return 'html { scroll-padding-top: 3.5rem; }\n.topbar { --shot-bg: var(--panel); }\n' + rules.join('\n');
 }
 
+/*
+ * ── The Claude skills, as downloads ───────────────────────────────────────
+ *
+ * `.claude/skills/` holds six skills that teach Claude the source format and
+ * the engine's internals. The site offers each as a ZIP, plus one with all
+ * six, written here so a local build has the same files as the deployed one.
+ * What goes into a ZIP, and why, is in skills.mjs; this checks what came out
+ * of it, read back from the bytes: every entry in the skill's folder, a
+ * SKILL.md the published limits allow, and frontmatter a strict YAML parser
+ * reads - gray-matter's js-yaml here, on top of the subset reader the
+ * `skills` gate uses without npm. The ZIP is also built twice, and the two
+ * have to be the same bytes. The link gate below then covers the links to the
+ * files, and the last check says every ZIP is linked from the page that
+ * explains them, so a seventh skill cannot ship as a file nobody is shown.
+ */
+function writeSkills(outDir) {
+  const views = Object.fromEntries(LECTURE_VIEWS.map((l) => [l.from, l.dir]));
+  const zips = buildSkillZips({ root: ROOT, views });
+  const again = buildSkillZips({ root: ROOT, views });
+  const names = skillNames(ROOT);
+  const problems = [];
+  for (const [file, buf] of Object.entries(zips)) {
+    if (!again[file] || !again[file].equals(buf)) problems.push(`${file}: a second build gave different bytes`);
+    const entries = unzip(buf);
+    const holds = file === BUNDLE_ZIP ? names : [file.replace(/\.zip$/, '')];
+    for (const e of entries) {
+      if (!holds.some((n) => e.path.startsWith(n + '/'))) problems.push(`${file}: ${e.path} is outside the skill's folder`);
+    }
+    for (const n of holds) {
+      const skill = entries.find((e) => e.path === `${n}/SKILL.md`);
+      if (!skill) { problems.push(`${file}: no ${n}/SKILL.md`); continue; }
+      const text = skill.data.toString('utf8');
+      problems.push(...skillProblems(n, text).map((p) => `${file}: ${p}`));
+      try {
+        const { data } = matter(text);
+        if (data.name !== n || typeof data.description !== 'string') {
+          problems.push(`${file}: ${n}/SKILL.md frontmatter reads as ${JSON.stringify(data).slice(0, 80)}`);
+        }
+      } catch (err) {
+        problems.push(`${file}: ${n}/SKILL.md frontmatter is not YAML: ${err.message.split('\n')[0]}`);
+      }
+    }
+  }
+  if (problems.length) throw new Error('the skill downloads are not what claude.ai accepts:\n  ' + problems.join('\n  '));
+  fs.mkdirSync(path.join(outDir, 'skills'), { recursive: true });
+  for (const [file, buf] of Object.entries(zips)) fs.writeFileSync(path.join(outDir, 'skills', file), buf);
+  const kb = (b) => `${Math.round(b.length / 1024)} KB`;
+  console.log(`  .claude/skills -> skills/ (${names.length} skills, ${BUNDLE_ZIP} ${kb(zips[BUNDLE_ZIP])})`);
+  return Object.keys(zips);
+}
+
+function checkSkillLinks(files, page) {
+  const html = fs.readFileSync(page.file, 'utf8');
+  const missing = files.filter((f) => !hrefsIn(html).includes(`skills/${f}`));
+  if (missing.length) {
+    throw new Error(`${page.out} does not link every skill download: ${missing.join(', ')}`);
+  }
+}
+
 function main() {
   const args = process.argv.slice(2);
   // `--words` prints the per-section prose count of every page this script
@@ -777,6 +838,7 @@ function main() {
     console.log(`  docs/site/img -> img/ (${fs.readdirSync(img).length} files)`);
   }
   copyFonts(path.join(outDir, 'fonts'));
+  const skillZips = writeSkills(outDir);
 
   for (const page of PAGES) {
     const abs = path.join(ROOT, page.src);
@@ -793,6 +855,7 @@ function main() {
   // command builds the site *and* checks it, and the workflow gets them
   // without a step of its own.
   checkLinks(outDir, written);
+  checkSkillLinks(skillZips, written.find((w) => w.out === 'getting-started.html'));
   checkTwins([
     { en: 'index.html', de: 'index.de.html' },
     { en: 'getting-started.html', de: 'getting-started.de.html' },

@@ -56,8 +56,8 @@
     <strong><a href="#command-line">the command line</a></strong>. It starts
     with a copy of the repository and one <code>npm install</code>. A server can
     then build lectures with nobody watching, and a coding assistant such as
-    Claude Code finds instructions in the repository that teach it the
-    format.</p>
+    Claude Code finds <a href="#skills">instructions</a> in the repository
+    that describe the format to it.</p>
    </div>
   </div>
  </div>
@@ -412,6 +412,119 @@
       <code>node --version</code> is still worth running.</p>
     </div>
   </details>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="skills">Writing with Claude</h2>
+  <p class="lede">psi-slides comes with six Claude skills: instruction files in
+  Anthropic&rsquo;s Agent Skills format that describe the source format and the
+  engine to Claude. With them installed, Claude can draft a lecture&rsquo;s
+  <code>source.md</code> from your notes or revise one you have written. The
+  app or <code>build.js</code> still builds it, and <code>lint.js</code> says
+  what does not fit the format.</p>
+
+  <h3>Download them</h3>
+  <p>The first archive holds all six. The single ones are for claude.ai, which
+  takes one skill per upload. Two of the six are about writing a lecture; the
+  other four describe how the engine is built and matter mostly to somebody
+  changing psi-slides itself.</p>
+
+  <!-- The packages' row from the app section above, for the same reason: one
+       card per kind of reader, and a box per file in it. The ZIPs are written
+       by build-site.js from .claude/skills, and that build fails if one of
+       them is not linked here. -->
+  <div class="pair-up trio gets">
+   <div class="get">
+    <p class="sys">All six</p>
+    <a class="file" href="skills/psi-slides-skills.zip">
+     <b>Every skill in one archive</b>
+     <span>Unpacks into six folders, one per skill, for Claude Code.</span>
+     <code>psi-slides-skills.zip</code>
+    </a>
+   </div>
+   <div class="get">
+    <p class="sys">Writing a lecture</p>
+    <a class="file" href="skills/psi-slides-authoring.zip">
+     <b>psi-slides-authoring</b>
+     <span>The source format: chunk types, the <code>:::</code> blocks, reveals, notes and the settings block.</span>
+     <code>psi-slides-authoring.zip</code>
+    </a>
+    <a class="file" href="skills/psi-slides-figures.zip">
+     <b>psi-slides-figures</b>
+     <span>Figures written as text in a <code>::: draw</code> block, with the guide to laying one out included.</span>
+     <code>psi-slides-figures.zip</code>
+    </a>
+   </div>
+   <div class="get">
+    <p class="sys">Working on psi-slides</p>
+    <a class="file" href="skills/psi-slides-decoration.zip">
+     <b>psi-slides-decoration</b>
+     <span>Covers, section dividers, cards, backdrops and overlays, and how the build draws them.</span>
+     <code>psi-slides-decoration.zip</code>
+    </a>
+    <a class="file" href="skills/psi-slides-appearance.zip">
+     <b>psi-slides-appearance</b>
+     <span>Typefaces, themes, the viewer defaults and the <code>style:</code> block.</span>
+     <code>psi-slides-appearance.zip</code>
+    </a>
+    <a class="file" href="skills/psi-slides-media.zip">
+     <b>psi-slides-media</b>
+     <span>Video, YouTube and Vimeo players, link addresses with QR codes, the live demo.</span>
+     <code>psi-slides-media.zip</code>
+    </a>
+    <a class="file" href="skills/psi-slides-prompter.zip">
+     <b>psi-slides-prompter</b>
+     <span>The live prompter in the cockpit, its settings and its protocol.</span>
+     <code>psi-slides-prompter.zip</code>
+    </a>
+   </div>
+  </div>
+
+  <div class="aside-code words-first second-picture">
+   <div class="said">
+    <h3>In Claude Code</h3>
+    <p class="cue">A skill is a folder with a <code>SKILL.md</code> in it.
+    Unpacked into <code>~/.claude/skills/</code>, the six are there in every
+    project on this computer; unpacked into a lecture repository&rsquo;s
+    <code>.claude/skills/</code>, they come with that repository.</p>
+    <p class="cue">A running session notices new skills. If the folder did
+    not exist when the session started, <code>/reload-skills</code> picks
+    them up. A clone of psi-slides needs none of this: the six are in its own
+    <code>.claude/skills/</code>.</p>
+   </div>
+<pre><code><span class="t-cmt"># all six, for every project on this computer</span>
+<span class="t-cmd">mkdir</span> -p <span class="t-path">~/.claude/skills</span>
+<span class="t-cmd">unzip</span> <span class="t-path">psi-slides-skills.zip</span> -d <span class="t-path">~/.claude/skills</span>
+
+<span class="t-cmt"># or for one lecture repository, run in its folder</span>
+<span class="t-cmd">mkdir</span> -p <span class="t-path">.claude/skills</span>
+<span class="t-cmd">unzip</span> <span class="t-path">psi-slides-skills.zip</span> -d <span class="t-path">.claude/skills</span></code></pre>
+  </div>
+
+  <h3>On claude.ai and in the Claude desktop app</h3>
+  <div class="pair-up">
+   <div>
+    <p>Skills there need code execution. Under <b>Settings &#9656;
+    Capabilities</b>, <b>Code execution and file creation</b> has to be on; on
+    a Team or Enterprise plan an owner switches it on for the organisation.
+    Then open <b>Customize &#9656; Skills</b>, press <b>+</b>, choose
+    <b>Create skill</b> and then <b>Upload a skill</b>, and pick one of the
+    single archives. Repeat for each skill you want, and switch each one on in
+    that list.</p>
+   </div>
+   <div>
+    <p>Those steps are the ones in
+    <a href="https://support.claude.com/en/articles/12512180-use-skills-in-claude">Anthropic&rsquo;s
+    help article</a>; menu names change, and the article is the place to
+    check when one is not where it says. Skills switched on there also load in
+    Claude Code when it is signed in with the same account. The skills name
+    files in the psi-slides repository and give each one&rsquo;s address;
+    whether Claude can open those addresses on claude.ai depends on the
+    network setting for code execution.</p>
+   </div>
   </div>
  </div>
 </section>

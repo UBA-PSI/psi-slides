@@ -1,6 +1,6 @@
 ---
 name: psi-slides-figures
-description: The `::: draw` figure language and the graphical diagram editor in psi-slides – the full statement and class vocabulary (box, dot, text, image, edge, container, brace, bars, grid, plot, table, lanes, sequence, step, style, default), the slot tables, the generated names, the three design decisions behind the compiler, and the editor's span-rewriting contract. Use when authoring or debugging a `::: draw` block, when changing `diagram-core.mjs`, the diagram half of `lint.js`, `editor.mjs` or `editor.css`, or when a figure compiles but draws the wrong thing. `figure-design.md` is the craft; this is the machinery.
+description: 'The `::: draw` figure language and the graphical diagram editor in psi-slides – the full statement and class vocabulary (box, dot, text, image, edge, container, brace, bars, grid, plot, table, lanes, sequence, step, style, default), the slot tables, the generated names, the three design decisions behind the compiler, and the editor''s span-rewriting contract. Use when authoring or debugging a `::: draw` block, when changing `diagram-core.mjs`, the diagram half of `lint.js`, `editor.mjs` or `editor.css`, or when a figure compiles but draws the wrong thing. `figure-design.md` is the craft; this is the machinery.'
 ---
 
 # The psi-slides figure language and its editor

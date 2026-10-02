@@ -192,6 +192,11 @@ bold discipline, and typography. Claude Code picks it up automatically inside
 this repository or a content repo that has a copy; for any other assistant,
 paste the two files into the context.
 
+Outside this repository, the six skills in `.claude/skills/` are downloads on
+the project site, as one archive or one per skill, with the files they refer to
+linked or bundled, and with the steps to install them in Claude Code or upload
+them on claude.ai: [Writing with Claude](https://uba-psi.github.io/psi-slides/getting-started.html#skills).
+
 If you would rather not use the skill, the minimum useful set is:
 
 - [`lectures/tutorial/source.md`](lectures/tutorial/source.md) – the canonical

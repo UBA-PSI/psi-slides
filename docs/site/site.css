@@ -1863,6 +1863,9 @@ footer p { max-width: none; }
   overflow-wrap: anywhere;
 }
 .file:hover code, .file:focus-visible code { color: var(--ink); }
+/* A code word inside the line that says what a file is for (the skill
+   downloads name `::: draw`) is part of the sentence, not the filename. */
+.file span code { display: inline; font-size: inherit; color: inherit; }
 
 /*
  * ── The three ways a lecture's text can end up ────────────────────────────

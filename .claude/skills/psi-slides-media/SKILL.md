@@ -1,6 +1,6 @@
 ---
 name: psi-slides-media
-description: How a psi-slides lecture references something that is not text – `![](clip-id)` video (inlined, staged to `videos/`, or remote) with its cross-window play/pause/seek sync, `::: embed <url>` for YouTube and Vimeo (the `data-src` privacy property, the SDK-free postMessage control protocol, the `file://` Error 153 card), external link addresses with their build-time QR codes and the `style.link-codes` switch, and the live demo (`D`: a captured window or screen on the projection, direct under `--serve`, WebRTC loopback from `file://`). Use when changing `VIDEO_EXTS`, `stageVideo`, `parseEmbedUrl`, `wireEmbeds`, `qrSvg`, the `LINK_QR` map, the `demo*` runtime, or their `lint.js` mirrors.
+description: 'How a psi-slides lecture references something that is not text – `![](clip-id)` video (inlined, staged to `videos/`, or remote) with its cross-window play/pause/seek sync, `::: embed` for a YouTube or Vimeo address (the `data-src` privacy property, the SDK-free postMessage control protocol, the `file://` Error 153 card), external link addresses with their build-time QR codes and the `style.link-codes` switch, and the live demo (`D`: a captured window or screen on the projection, direct under `--serve`, WebRTC loopback from `file://`). Use when changing `VIDEO_EXTS`, `stageVideo`, `parseEmbedUrl`, `wireEmbeds`, `qrSvg`, the `LINK_QR` map, the `demo*` runtime, or their `lint.js` mirrors.'
 ---
 
 # Video, hosted embeds and link addresses in psi-slides

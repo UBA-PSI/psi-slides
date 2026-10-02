@@ -1,6 +1,6 @@
 ---
 name: psi-slides-decoration
-description: How psi-slides draws the frame around a slide – the ten `cover:` compositions with `cover-image`/`cover-ratio`/`cover-align`, `## closing:` and `## outline:` chunks, `::: backdrop` with `reveal` and `layer`, `::: overlay` with `from`, `::: dock` with `.every` (the frame element the text yields to), `::: cards` and `::: rows` with their slot vocabulary, `::: side` ratios, and the six `section:` divider variants. Carries the CSS traps each one cost. Use when changing the decoration or divider renderers in `build.js`, their mirrors in `lint.js`, or `test/settings.mjs`, or when a cover, card row, backdrop or divider lays out wrong.
+description: 'How psi-slides draws the frame around a slide – the ten `cover:` compositions with `cover-image`/`cover-ratio`/`cover-align`, `## closing:` and `## outline:` chunks, `::: backdrop` with `reveal` and `layer`, `::: overlay` with `from`, `::: dock` with `.every` (the frame element the text yields to), `::: cards` and `::: rows` with their slot vocabulary, `::: side` ratios, and the six `section:` divider variants. Carries the CSS traps each one cost. Use when changing the decoration or divider renderers in `build.js`, their mirrors in `lint.js`, or `test/settings.mjs`, or when a cover, card row, backdrop or divider lays out wrong.'
 ---
 
 # Slide decoration and section dividers in psi-slides

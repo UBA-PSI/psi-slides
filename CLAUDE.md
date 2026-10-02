@@ -258,7 +258,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
 # tail grammar that can, plus the cue-card grammar, the prompter's policy and
-# the PDF export's - twenty-one gates, about three seconds, no browser and no
+# the PDF export's - twenty-two gates, about three seconds, no browser and no
 # `npm install` (diagram-core.mjs, tails.mjs, cue-cards.mjs, souffleuse.mjs,
 # pdf-core.mjs, commands.mjs and lint.js are all zero-dep).
 # It is also where a hand-mirrored list one file keeps of another's belongs,
@@ -305,6 +305,10 @@ PSI_PDF_KEEP=1 node test/pdf-export.mjs        # leave the fixture in $TMPDIR
 # project site (GitHub Pages). Assembling it also runs its two gates: every
 # link on every page it writes resolves (fragments included), and index.de.html
 # still matches index.html in headings, pictures, commands and link targets.
+# It also writes skills/*.zip, the six Claude skills as downloads
+# (docs/site/skills.mjs: a note on repository paths, their addresses,
+# figure-design.md bundled), and refuses one a strict YAML parser or the
+# published name/description limits would refuse.
 # Neither is a separate step - pages.yml gets them by building the site.
 node docs/site/build-site.js _site              # assemble the site into _site/
 node docs/site/build-site.js _site --words      # …and print each page's prose
@@ -937,7 +941,7 @@ plan, its decisions and its build log are `docs/history/PLAN-electron-builder.md
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
 - `SECURITY.md` – **what a deck someone sent can do, what the build refuses from a `source.md` someone else wrote, and what `--watch`, `--serve` and `--prompter` expose** – written for lecturers and evaluators, its claims checked against the code or in a browser. Change it in the same commit as a refusal, a `--serve` rule or a prompter data flow it describes.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-one gates guards, the four browser-spec families, and the twenty specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-two gates guards, the four browser-spec families, and the twenty specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
