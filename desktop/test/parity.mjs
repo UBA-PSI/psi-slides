@@ -22,9 +22,16 @@
 // the straddle and nothing else – re-measured at fill 0.94, 0.945, 0.95,
 // 0.955 and 0.96, each one left between one and three of the tutorial's 72
 // chunks a step apart. So a page may be a *borderline fit*: the same chunk,
-// beat and held-back count, its zoom exactly one fit step (0.05) apart, and
-// its words the same once the lines are let go of. Everything else stays
-// exact, and the borderline pages are named in the log.
+// beat and held-back count, its zoom exactly one fit step (0.05) apart, its
+// words the same once the lines are let go of – and the two drivers' own
+// measurements saying it was the threshold: at the larger of the two zooms,
+// the chunk's flow height fits the limit by at most FIT_TOLERANCE px in the
+// driver that took it and overruns it by at most that in the driver that did
+// not. pdf-core appends those heights to each dump. Without them a missing
+// raster picture, a fallback face or a smaller viewport – a real one-chunk
+// regression that also comes out one step apart with the same words – would
+// pass as a borderline fit. Everything else stays exact, and the borderline
+// pages are named in the log with both heights.
 //
 // It runs at the end of the smoke test, on the working copy the smoke's
 // exports were written into, so it costs one command-line export and no
@@ -96,6 +103,7 @@ function pagesText(pdf) {
 // body only: the head's inlined stylesheets mention .pdf-page in comments.
 export function beatTable(html) {
   const body = html.slice(html.lastIndexOf('</head>'));
+  const fits = fitTable(html);
   const rows = [];
   for (const m of body.matchAll(
     /<div class="pdf-page" id="psiINT-pdf-p\d+" style="--zoom: ([0-9.]+);">([\s\S]*?)(?=<div class="pdf-page"|<\/body>)/g)) {
@@ -106,15 +114,31 @@ export function beatTable(html) {
       beat: prev && prev.chunk === chunk ? prev.beat + 1 : 1,
       zoom: m[1],
       held: (m[2].match(/\sdata-(?:hidden|beat-hidden)(?:=|\s|>)/g) || []).length,
+      fit: fits[rows.length] || null,
     });
   }
   return rows;
+}
+
+// What the fit measured on each page, in page order, as pdf-core appends it
+// to the dump: { limit, h, up, hUp } – the limit, the chunk's flow height at
+// the page's zoom, and its height one fit step up, at `up`. Absent (an older
+// engine, a runtime whose probe was renamed) it is an empty table, and no
+// page can then be a borderline fit.
+export function fitTable(html) {
+  const m = /<!-- psi-pdf-fit (\[[\s\S]*?\]) -->/.exec(html);
+  if (!m) return [];
+  try { return JSON.parse(m[1]); } catch { return []; }
 }
 
 const row = (r) => r ? `${r.chunk} beat ${r.beat}, zoom ${r.zoom}, ${r.held} held back` : '(no page)';
 
 // The fit's step, as fitZoomToChunk walks it in the audience runtime.
 const FIT_STEP = 0.05;
+// How close to the fit limit, in px, both heights have to be for a page a
+// step apart to count as two engines straddling it. #arrows, the case that
+// introduced the allowance, measured 845 and 849 against 846.
+export const FIT_TOLERANCE = 6;
 // How many chunks may be borderline before the difference stops being two
 // engines at a threshold and starts looking like a driver laying the slides
 // out differently. The five fills re-measured above left at most three of 72
@@ -126,6 +150,30 @@ const BORDERLINE_SHARE = 0.05;
 // line, and a different zoom pairs different lines.
 const words = (t) => (t || '').split(/\s+/).filter(Boolean).sort().join(' ');
 
+// Whether two pages a step apart are the threshold and nothing else: at the
+// larger zoom, the driver that chose it measured the chunk inside the limit
+// by at most FIT_TOLERANCE px, and the other measured it over by at most that.
+// A page either driver has no measurement for is not borderline.
+export function straddlesLimit(a, c) {
+  const [hi, lo] = Number(a.zoom) > Number(c.zoom) ? [a, c] : [c, a];
+  if (!hi.fit || !lo.fit) return false;
+  if (Math.abs(Number(lo.fit.up) - Number(hi.zoom)) > 1e-9) return false;
+  const inside = hi.fit.limit - hi.fit.h;
+  const over = lo.fit.hUp - lo.fit.limit;
+  return inside >= 0 && inside <= FIT_TOLERANCE && over > 0 && over <= FIT_TOLERANCE;
+}
+
+// Both drivers' heights at the larger zoom of a page, for the log and for a
+// failure message.
+export function fitHeights(a, c) {
+  if (!a || !c) return '';
+  const [hi, lo] = Number(a.zoom) > Number(c.zoom) ? [a, c] : [c, a];
+  if (!hi.fit || !lo.fit) return 'no fit measurement in one of the dumps';
+  const name = (r) => r === a ? 'app' : 'cli';
+  return `at zoom ${hi.zoom} ${name(hi)} measured ${hi.fit.h} px against ${hi.fit.limit}, `
+    + `${name(lo)} ${lo.fit.hUp} px against ${lo.fit.limit}`;
+}
+
 // Pairs the two beat tables page by page. Returns the first page that is
 // not the same chunk at the same beat (or not a borderline fit of one), and
 // the indices of the borderline pages.
@@ -135,7 +183,8 @@ export function compareBeats(ba, bc) {
     const a = ba[i], c = bc[i];
     if (row(a) === row(c)) continue;
     const step = a && c && a.chunk === c.chunk && a.beat === c.beat && a.held === c.held
-      && Math.abs(Math.abs(Number(a.zoom) - Number(c.zoom)) - FIT_STEP) < 1e-9;
+      && Math.abs(Math.abs(Number(a.zoom) - Number(c.zoom)) - FIT_STEP) < 1e-9
+      && straddlesLimit(a, c);
     if (!step) return { at: i, borderline };
     borderline.push(i);
   }
@@ -239,10 +288,11 @@ export async function parity({ work, check, log }) {
     check(`parity: the app's beat table has a row per page of its slides.pdf (${ba.length})`,
       ba.length > 0 && ba.length === slidesPages);
     check(`parity: every slide page shows the same chunk at the same beat (${new Set(ba.map(x => x.chunk)).size} chunks)`
-      + (at >= 0 ? ` – page ${at + 1}: app ${row(ba[at])} / cli ${row(bc[at])}` : ''), at < 0);
+      + (at >= 0 ? ` – page ${at + 1}: app ${row(ba[at])} / cli ${row(bc[at])}`
+        + (ba[at] && bc[at] && ba[at].zoom !== bc[at].zoom ? ` (${fitHeights(ba[at], bc[at])})` : '') : ''), at < 0);
     if (borderline.length) {
       for (const i of borderline) {
-        log(`parity: page ${i + 1} is a borderline fit – ${ba[i].chunk} beat ${ba[i].beat} at zoom ${ba[i].zoom} in the app, ${bc[i].zoom} on the command line`);
+        log(`parity: page ${i + 1} is a borderline fit – ${ba[i].chunk} beat ${ba[i].beat} at zoom ${ba[i].zoom} in the app, ${bc[i].zoom} on the command line; ${fitHeights(ba[i], bc[i])}`);
       }
       const share = borderlineWithinShare(ba, borderline);
       check(`parity: borderline fits on ${share.chunks} of ${share.all} chunks, at most ${BORDERLINE_SHARE * 100}%`, share.ok);

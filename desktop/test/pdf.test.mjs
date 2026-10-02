@@ -224,15 +224,38 @@ test('the export window keeps WebRTC off the network', () => {
 // Chromium 152 and Playwright's 153 measured it 845 and 849 px against an
 // 846 px fit limit, so one fitted it a step larger than the other.
 test('parity allows a borderline fit and nothing more', async () => {
-  const { compareBeats, textDifferences, borderlineWithinShare } = await import('./parity.mjs');
-  const r = (chunk, beat, zoom, held = 0) => ({ chunk, beat, zoom, held });
-  const app = [r('pace', 1, '1.35'), r('arrows', 1, '0.95', 2), r('arrows', 2, '0.95', 1)];
-  const cli = [r('pace', 1, '1.35'), r('arrows', 1, '0.9', 2), r('arrows', 2, '0.9', 1)];
+  const { compareBeats, textDifferences, borderlineWithinShare, fitTable, beatTable } = await import('./parity.mjs');
+  const r = (chunk, beat, zoom, held = 0, fit = null) => ({ chunk, beat, zoom, held, fit });
+  // What each driver measured: the app fitted at 0.95 with 845 px against 846,
+  // the command line stopped at 0.9 because 0.95 measured 849.
+  const fa = { limit: 846, h: 845, up: 1, hUp: 880 };
+  const fc = { limit: 846, h: 810, up: 0.95, hUp: 849 };
+  const app = [r('pace', 1, '1.35'), r('arrows', 1, '0.95', 2, fa), r('arrows', 2, '0.95', 1, fa)];
+  const cli = [r('pace', 1, '1.35'), r('arrows', 1, '0.9', 2, fc), r('arrows', 2, '0.9', 1, fc)];
   assert.deepEqual(compareBeats(app, cli), { at: -1, borderline: [1, 2] });
+  // Either side of the pair may be the larger one.
+  assert.deepEqual(compareBeats(cli, app), { at: -1, borderline: [1, 2] });
+  // One step apart with the heights far from the limit is not a threshold –
+  // it is what a missing picture or a fallback face looks like – and neither
+  // is a step with no measurement behind it.
+  const far = { limit: 846, h: 700, up: 0.95, hUp: 900 };
+  assert.equal(compareBeats(app, [cli[0], r('arrows', 1, '0.9', 2, far), cli[2]]).at, 1);
+  assert.equal(compareBeats([app[0], r('arrows', 1, '0.95', 2, { ...fa, h: 790 }), app[2]], cli).at, 1);
+  assert.equal(compareBeats(app, [cli[0], r('arrows', 1, '0.9', 2), cli[2]]).at, 1);
+  // The measurement has to be at the other driver's zoom.
+  assert.equal(compareBeats(app, [cli[0], r('arrows', 1, '0.9', 2, { ...fc, up: 1 }), cli[2]]).at, 1);
+  // The heights come out of the dump, a comment pdf-core appends after </html>.
+  const page = (n, z) => `<div class="pdf-page" id="psiINT-pdf-p${n}" style="--zoom: ${z};"><article data-chunk-id="a-b"></article></div>`;
+  const dump = `<html><head></head><body>${page(1, 0.95)}</body></html>\n<!-- psi-pdf-fit `
+    + JSON.stringify([{ page: 'psiINT-pdf-p1', ...fa }]).replace(/-/g, '\\u002d') + ' -->\n';
+  assert.equal(fitTable(dump)[0].h, 845);
+  assert.deepEqual(beatTable(dump)[0].fit, { page: 'psiINT-pdf-p1', ...fa });
+  assert.equal(beatTable(dump)[0].chunk, 'a-b');
+  assert.deepEqual(fitTable('<html></html>'), []);
   // Two steps apart, another beat or another held-back count is a drift.
-  assert.equal(compareBeats(app, [cli[0], r('arrows', 1, '0.85', 2), cli[2]]).at, 1);
-  assert.equal(compareBeats(app, [cli[0], r('arrows', 1, '0.9', 1), cli[2]]).at, 1);
-  assert.equal(compareBeats(app, [cli[0], r('expand', 1, '0.9', 2), cli[2]]).at, 1);
+  assert.equal(compareBeats(app, [cli[0], r('arrows', 1, '0.85', 2, fc), cli[2]]).at, 1);
+  assert.equal(compareBeats(app, [cli[0], r('arrows', 1, '0.9', 1, fc), cli[2]]).at, 1);
+  assert.equal(compareBeats(app, [cli[0], r('expand', 1, '0.9', 2, fc), cli[2]]).at, 1);
   // On a borderline page the words have to be the same, on any other the text.
   const ta = ['a b', 'Two keys move\nyou through', 'x'];
   const tc = ['a b', 'Two keys\nmove you through', 'x'];

@@ -440,6 +440,33 @@ function pageCollect(cfg) {
     pages.push({ chunkId: id, beat, wrapperId: wrap.id, zoom: P.zoom() });
   };
 
+  // What the fit measured on the page just captured, for the dump only: the
+  // chunk's flow height at the zoom shown and one fit step above it, and the
+  // limit it is held to. Two Chromiums a few pixels apart straddle that limit
+  // whenever a chunk lands close to it, and fit the chunk a step apart; only
+  // these numbers tell such a page from a real difference that also comes
+  // out a step apart (a picture that did not load, a fallback face). The
+  // probe is the runtime's own (flowHeightProbe, FULL_FIT_FILL) because a
+  // second measurement here would disagree with the fit by tens of pixels -
+  // reached by name, so a rename leaves the page without numbers and the
+  // parity check then counts the page as a difference rather than passing it.
+  // The second zoom is undone before anything else reads the page.
+  const fitMeasure = (el, shown) => {
+    let probe, limit;
+    try {
+      probe = flowHeightProbe(el); limit = viewport.clientHeight * FULL_FIT_FILL;
+    } catch { return; }
+    if (typeof probe !== 'function' || !(limit > 0)) return;
+    const up = Math.round((Number(shown) + 0.05) * 100) / 100;
+    const root = document.documentElement.style;
+    const h = probe();
+    root.setProperty('--zoom', up);
+    const hUp = probe();
+    root.setProperty('--zoom', shown);
+    const r1 = (x) => Math.round(x * 10) / 10;
+    pages[pages.length - 1].fit = { limit: r1(limit), h: r1(h), up, hUp: r1(hUp) };
+  };
+
   const run = async () => {
     for (let i = 0; i < chunks.length; i++) {
       const { el, id } = chunks[i];
@@ -507,6 +534,7 @@ function pageCollect(cfg) {
           });
         }
         capture(el, id, pos, shown);
+        if (cfg.zoom === null) fitMeasure(el, shown);
       }
     }
   };
@@ -686,9 +714,17 @@ export async function exportSlides(driver, opts) {
     const css = PDF_CSS.replace(/%W%/g, String(w)).replace(/%H%/g, String(h));
     const installed = await page.evaluate(pageInstall, { css, links: linkTable(got) });
 
-    const dom = dumpDom
+    let dom = dumpDom
       ? await page.evaluate(() => document.documentElement.outerHTML)
       : null;
+    // The fit's measurements ride the dump and never the print DOM, so the
+    // PDF is the same bytes whether a dump was asked for or not. One comment
+    // after </html>, a JSON array in page order; every `-` is escaped so no
+    // chunk id can close the comment.
+    const fits = got.pages.map(p => p.fit ? { page: p.wrapperId, ...p.fit } : null);
+    if (dom !== null && fits.some(Boolean)) {
+      dom += '\n<!-- psi-pdf-fit ' + JSON.stringify(fits).replace(/-/g, '\\u002d') + ' -->\n';
+    }
 
     // The live views carry @media print rules meant for a document, not for
     // slides; 'screen' is what the pages were laid out against.
