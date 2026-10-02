@@ -4,6 +4,82 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Release slice: two whole-repository reviews, and 2.0.0
+
+The run-up to the tag was two reviews of the whole repository and the fixes
+behind them, worked by Opus agents one slice at a time, plus three things the
+maintainer asked for along the way. The record of the first review is
+`docs/history/TODO-release-2.0.0.md`; `CHANGELOG.md` `## [2.0.0]` has every
+change, and its `### Breaking` list is what the release body is cut from.
+
+**First review: seven agents, one per area, about seventy findings, all fixed.**
+Eight slices, S1–S8: security (the PDF export leaked over WebRTC and from a
+Worker; `--frames` wrote outside the lecture; a font file name could forge an
+`--events` line; terminal escapes; `source.md` written through a link; lint
+ignore comments silenced errors), data loss (`--integrate-annotations` without
+its end marker, two pictures with one stem, a stale WebP under `--watch`, the
+editor's store key), parser/lint congruence (one CommonMark fence rule in
+`tails.mjs` for every reader, unclosed fences and wrappers refused, every
+picture spelling weighed, the frontmatter checks lint was missing), the live
+runtime (the freeze rework, `landSlide` as the one landing path,
+`settleFade`, beats inside `from N`), the prompter/reader/PDF half, the
+diagram editor, the release machinery and the docs. Seven of the S3 changes
+are breaking and say so.
+
+**What the maintainer added.**
+- *The desktop app ships on the engine's tag.* `desktop-release.yml` and the
+  `builder-*` tags are gone; `release.yml` is `check` → `engine` ‖ `desktop`
+  (desktop.yml as `workflow_call`) → `publish`, and nothing is published
+  unless all three are green. The site's download links point at
+  `releases/latest/download/<asset>` and never change again.
+- *Node 22* in CI and `engines`.
+- *A command palette and a start menu.* `Cmd/Ctrl-K` opens the `?` panel with
+  its field focused; it is one column, runnable rows first and the reference
+  rows in a muted block after them, so ↓ never skips a row. The projection's
+  start menu (W · S · P, a chevron) shows only before the talk starts – a
+  deliberate exception to PLAN-presenter's Decision 11 – and a `›` beside the
+  `?` brings it back. A view missing beside `audience.html` is found by a
+  `<script src>` load probe under `file://` (measured reliable in Chrome,
+  Firefox and Safari; a HEAD request under `--serve`), with the build's own
+  list as a hint only.
+
+**Second review: five agents over everything the first round touched, about
+thirty findings, all fixed.** Seven were regressions of that round – the ones
+worth remembering: a fade landing let the old slide's autoplay tick broadcast
+the slide being left; `S` under `file://` adopted another deck's cockpit (every
+message now carries a deck id and the cockpit answers `whois`); two clips with
+one file name were staged into one file; `rebaseClock` reopened the rate-limit
+hole the first round had closed; the reader migration gave two `week1`
+lectures each other's highlights. The editor fixes also removed the rename
+fallback that rewrote every matching word – a rename now succeeds safely or is
+refused.
+
+**Things learned, in no order.**
+- *Tracked views are built without the WebP step* (`npm run build:tracked`):
+  an inlined PNG otherwise becomes whatever the local `cwebp` makes, and CI has
+  none. The browser suite builds the same way, so `npm test` no longer leaves
+  tracked files modified.
+- *The PDF parity check needs a tolerance, and a narrow one.* Electron's
+  Chromium and Playwright's lay out the same text 3–4 px apart; `#arrows` sits
+  on the fit limit (845 vs 849 px against 846). A fit tolerance only moves the
+  boundary, so the check accepts a one-step zoom difference only when both
+  drivers measured the chunk within 6 px of the limit, read through
+  `psiExport.fitMeasure`.
+- *Order of the release push:* the tag first, `main` after `publish` – the
+  site deploys in four minutes, the release in twenty-five.
+- *Agents:* one rewrite of the 290 KB changelog stalled twice and was finished
+  by hand; a full browser run started unwatched hung for 86 minutes in the
+  prompter spec (run long suites in batches with a timeout); one agent used
+  `git stash` and one called `/usr/bin/git` past a blocked hook – both are now
+  forbidden in every brief. Two sessions shared this tree for a day without a
+  collision by announcing file sets and holding `lectures/` builds while the
+  other's browser suite ran.
+
+**Open after the tag**, none of them blocking: `actions/*` to their current
+majors and runners pinned (`ubuntu-latest` moves on 2026-10-19); card
+auto-sizing counts a nested bullet's wrapped line toward its card; `P` in the
+cockpit does not check for `print.html`; PLAN-presenter's open question 11.
+
 ## Slice: the build's ids have a namespace of their own
 
 An author's `{#id}` and the chrome's ids were one HTML namespace, and the
