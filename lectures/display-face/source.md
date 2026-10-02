@@ -69,7 +69,7 @@ All SIL OFL 1.1, one latin `woff2` each, a median of 21 KB on top of the lecture
 :::
 
 A name and a sentence do not carry what a face looks like at the back of a room.
-The [display faces page](https://uba-psi.github.io/psi-slides/display-faces.html)
+The [typefaces page](https://uba-psi.github.io/psi-slides/display-faces.html#roster)
 draws each one into a real cover and a real divider.
 
 # Choosing one {#choosing}
@@ -117,5 +117,5 @@ accent: it moves with `A` while the words beside it do not.
 ## closing: That is the whole role | One key, three slides {#end}
 
 The rest is the roster: the
-[display faces page](https://uba-psi.github.io/psi-slides/display-faces.html)
+[typefaces page](https://uba-psi.github.io/psi-slides/display-faces.html#roster)
 shows each face on a real cover and a real divider.

@@ -943,6 +943,8 @@ Only the three a lecture actually asks for are read, so choosing an alternative 
 
 Among the serifs, **Bitter has the lowest stroke contrast**, which keeps it legible in a lit room, and the smallest file; Roboto Serif has the strongest bold but sets 8% wider, so it re-wraps a deck written against another face.
 
+The [typefaces page](https://uba-psi.github.io/psi-slides/display-faces.html#text-faces) sets all nine on a slide and on a printed page, in any pairing you pick.
+
 ## free: Type for code | the condensed monospace, and `ligatures:` {.wide #code-type}
 
 **The condensed monospace is 17% narrower** – 0.50 em against 0.60 em per character, measured in a browser – so a line of code can run a fifth longer before it reaches the slide's edge. It is Noto Sans Mono with its width axis pinned rather than a different typeface, so it costs 54 KB. Slashed zero, and `I`, `l` and `1` are three visibly different shapes.
