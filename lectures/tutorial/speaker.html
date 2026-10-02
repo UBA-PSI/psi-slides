@@ -13152,6 +13152,20 @@ let isApplyingRemote = false;
 // "null" for both sides, which is why location.origin ("file://") is the
 // wrong thing to compare against.
 const SELF_ORIGIN = (typeof window.origin === 'string') ? window.origin : location.origin;
+// Which deck this window belongs to: the folder it was loaded from, hashed,
+// because the two views of one deck are always side by side and two decks
+// never share a folder. Every message carries it and a message from another
+// deck is dropped, which the opener relationship alone cannot do - a tab
+// that went from one deck's projection to another's is still the opener of
+// the first deck's cockpit, and that cockpit and the new projection used to
+// drive each other. The folder rather than the title, which two decks can
+// share; hashed, so the path on disk is not what travels.
+const DECK_ID = (() => {
+  const s = new URL('.', location.href).href;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(36);
+})();
 function setPeer(w) {
   if (w && w !== window && !w.closed) peer = w;
 }
@@ -13175,7 +13189,7 @@ function isPeerWindow(w) {
 }
 function sendToPeer(msg) {
   if (!peer || peer.closed) { peer = null; return; }
-  try { peer.postMessage(msg, '*'); } catch (e) { peer = null; }
+  try { peer.postMessage(Object.assign({ deck: DECK_ID }, msg), '*'); } catch (e) { peer = null; }
 }
 // Is the other window actually there? Drives the two decisions that differ
 // between "running alone" and "driving a projector": where a mode toast
@@ -13450,11 +13464,32 @@ window.addEventListener('message', (ev) => {
   // Both live views are the same origin as each other by construction
   // (two file:// pages, or two pages off the same --serve).
   if (ev.origin !== SELF_ORIGIN) return;
+  const m = ev.data;
+  if (!m || typeof m !== 'object') return;
+  // The cockpit handshake (openCockpit): a projection that found a window
+  // called psi-slides-speaker it cannot read asks which deck it shows. Ahead
+  // of the peer check, because the asker is not yet anyone's peer; answered
+  // only to a top-level window, never to a frame, and it gives away nothing
+  // but the hash.
+  if (m.type === 'whois') {
+    let top = false;
+    try { top = !!ev.source && ev.source.top === ev.source; } catch (e) {}
+    if (VIEW === 'speaker' && (top || isPeerWindow(ev.source))) {
+      try { ev.source.postMessage({ type: 'iam', source: VIEW, deck: DECK_ID }, '*'); } catch (e) {}
+    }
+    return;
+  }
+  if (m.type === 'iam') {
+    if (cockpitAsk && ev.source === cockpitAsk.w) cockpitAsk.settle(m.deck === DECK_ID);
+    return;
+  }
   // And the origin is not enough: a sandboxed frame is "null" too. See
   // isPeerWindow.
   if (!isPeerWindow(ev.source)) return;
-  const m = ev.data;
-  if (!m || typeof m !== 'object') return;
+  // Another deck's window - see DECK_ID. A message without the field is
+  // from a build before it and is taken, so --audience-only beside an older
+  // cockpit still pairs.
+  if (m.deck !== undefined && m.deck !== DECK_ID) return;
   if (m.source === VIEW) return; // ignore our own postings (shouldn't happen, defensive)
   // Adopt sender as peer. Handles two cases: audience reload while
   // speaker is alive (speaker's next push reconnects us); audience
@@ -13599,6 +13634,8 @@ window.addEventListener('message', (ev) => {
   }
   if (VIEW === 'audience') {
     if (m.type === 'figure-focus') {
+      // A slide change still in its dip would close the card when it lands.
+      settleFade();
       const chunk = flatChunks[m.chunkIdx];
       if (chunk) {
         const el = chunk.el.querySelectorAll(FOCUSABLE_SEL)[m.figureIdx];
@@ -13614,6 +13651,7 @@ window.addEventListener('message', (ev) => {
     // aside is on the projection: the lecturer clicks it in the cockpit and
     // the room is what has to move.
     if (m.type === 'figure-pan') {
+      settleFade();
       const chunk = flatChunks[m.chunkIdx];
       if (chunk) {
         const el = chunk.el.querySelectorAll(FOCUSABLE_SEL)[m.figureIdx];
@@ -14318,7 +14356,16 @@ function fadeSwap(land) {
 // slide reached by a key here, by a snapshot from the other window, or by
 // leaving the overview - it used to start from jumpTo alone, so a figure the
 // cockpit drove onto never played.
+//
+// The slide being left loses its clock here, at the start, and not when the
+// new one starts its own at the end: under fade the two are a dip apart, and
+// a tick of the old figure inside the dip advanced the slide being left and
+// broadcast it. On the projection, landing a cockpit's move, that snapshot
+// put the old slide back in the cockpit, and the landing that followed runs
+// under isApplyingRemote and sends nothing - the two windows stayed on two
+// different slides until the next press.
 function landSlide(land) {
+  stopAutoplay();
   const arrive = () => { land(); restartAutoplay(); };
   if (SLIDE_TRANSITION === 'fade') fadeSwap(arrive);
   else arrive();
@@ -14412,6 +14459,9 @@ function selectOverviewCol(dir) {
 //                         own selectedIdx/anchor land right afterwards.
 function setOverviewMode(on, opts = {}) {
   if (!!on === overview) return;
+  // The board opens on the live slide and lands against it, so a slide
+  // change still in its dip is finished first.
+  settleFade();
   if (on) {
     overview = true;
     document.body.classList.add('overview-mode');
@@ -14466,6 +14516,7 @@ function markTocActive() {
   });
 }
 function jumpToColumn(colIdx) {
+  settleFade();
   const idx = flatChunks.findIndex(c => c.colIdx === colIdx);
   if (idx >= 0) jumpTo(idx, idx < state.activeIdx ? 'back' : 'forward');
 }
@@ -14647,6 +14698,7 @@ function gotoCommit() {
   const idx = gotoTyped ? gotoMap().get(parseInt(gotoTyped, 10)) : undefined;
   if (idx === undefined) { gotoRefuse(); return; }
   endGoto();
+  settleFade();
   // The same landing a click in the contents or a committed search hit uses,
   // so the broadcast, the cue-card cursor, auto-fit and the stored position
   // all see an ordinary jump and nothing here has to know about any of them.
@@ -14744,6 +14796,7 @@ function commitSearchHit() {
   const hit = searchHits[searchCursor];
   endSearch();
   if (!hit) return;
+  settleFade();
   if (overview) {
     setSelectedIdx(hit.idx, { recenter: true });
     exitOverview(true);
@@ -14814,6 +14867,10 @@ function chunkIdxFromHash() {
   return flatChunks.findIndex(c => c.id === id);
 }
 window.addEventListener('hashchange', () => {
+  // Every caller below that compares a target with state.activeIdx lands a
+  // pending fade first: a target equal to the slide being left read as
+  // "already here" and the fade then went on to the other one.
+  settleFade();
   const idx = chunkIdxFromHash();
   if (idx < 0 || idx === state.activeIdx) return;
   jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
@@ -15025,10 +15082,12 @@ function markColumnEdges() {
 }
 
 function nextChunk() {
+  settleFade();
   if (state.activeIdx + 1 >= flatChunks.length) return;
   jumpTo(state.activeIdx + 1, 'forward');
 }
 function prevChunk() {
+  settleFade();
   if (state.activeIdx <= 0) return;
   jumpTo(state.activeIdx - 1, 'back');
 }
@@ -15040,13 +15099,19 @@ function prevChunk() {
 // what the marks at the edge were drawn from. Shift reaches it from every
 // slide in the last column, so the fallback would now be one keystroke from
 // the end of the lecture, in front of a room.
+//
+// Both read state.activeIdx to find the target, so a pending fade is landed
+// first (settleFade): two quick presses otherwise both counted from the
+// column being left and moved one column between them.
 function nextCol() {
+  settleFade();
   const cur = flatChunks[state.activeIdx];
   for (let i = state.activeIdx + 1; i < flatChunks.length; i++) {
     if (flatChunks[i].colIdx > cur.colIdx) return jumpTo(i, 'forward');
   }
 }
 function prevCol() {
+  settleFade();
   const cur = flatChunks[state.activeIdx];
   const target = cur.colIdx;
   // jump to the first chunk of the previous column (or first chunk of current
@@ -15075,6 +15140,9 @@ function closeAnyExpansion() {
   openExp = null;
 }
 function toggleExp(chunkIdx, expIdx) {
+  // It makes chunkIdx the live chunk without jumpTo, so a fade still on its
+  // way to another slide must land first or it would land over this.
+  settleFade();
   const entry = flatChunks[chunkIdx];
   if (!entry) return;
   const chev = entry.el.querySelector(`.exp-chev[data-exp="${expIdx}"]`);
@@ -15216,6 +15284,7 @@ function startAnnotate(chunkId) {
   if (!entry) return;
   const ta = entry.el.querySelector('.annot-textarea');
   if (!ta) return;
+  settleFade();
   entry.el.classList.add('annot-visible', 'has-annot');
   state.activeIdx = flatChunks.indexOf(entry);
   applyState();
@@ -15299,6 +15368,7 @@ function wireClicks() {
         if (shouldBroadcast()) sendToPeer({ type: 'figure-unpan' });
         return;
       }
+      settleFade();
       if (idx !== state.activeIdx) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
     });
   });
@@ -16176,9 +16246,10 @@ function setStartMenu(open) {
   if (startMenuShow) startMenuShow.hidden = open;
   if (open) probeStartMenu();
 }
-// An entry whose view the build put beside this file and the page cannot
-// find now (probeView) steps out of the menu, as one the build found
-// missing was never rendered into it.
+// An entry steps out of the menu when the page cannot find its view now
+// (probeView), and back in when it can - one the build found missing is
+// rendered hidden rather than left out, so a view a later partial build put
+// beside this file is offered the next time the menu is shown.
 function probeStartMenu() {
   for (const b of startMenu.querySelectorAll('button[data-cmd]')) {
     const c = PSI_COMMANDS.COMMANDS.find((x) => x.id === b.dataset.cmd);
@@ -16832,12 +16903,19 @@ function flashMode(text) {
 }
 // A view that is not beside this file: the S or P press says so in the
 // mode badge and opens nothing, and the start menu leaves its entry out.
-// Two answers, the build's and the page's own:
+// Two answers, the build's and the page's own, and the page's wins:
 //
 // - window.PSI_ABSENT_VIEWS, written by the build only when a view was
-//   missing when it ran - certain, and known before anything is pressed.
+//   missing when it ran. A hint and not a verdict: it is known before
+//   anything is pressed, which is why the start menu is drawn without the
+//   entry, but a later partial build can write the view beside this file
+//   without rewriting this file - --audience-only, then --speaker-only, then
+//   --print-only into an empty folder left an audience.html that said both
+//   were missing and never looked. It decides only where the page cannot
+//   ask (no file: or http(s): address, or a probe that never answers).
 // - A probe at run time, for the view that was there when the build ran and
-//   is not now: audience.html mailed on alone, or copied out of its folder.
+//   is not now - audience.html mailed on alone, or copied out of its folder -
+//   and for the one that was not there and is now.
 //   Under http(s) it is a HEAD request. From file:// no request can read a
 //   file, but a script element can try to load one, and the load and error
 //   events tell the two apart - measured in Chrome 154, Firefox 156 and
@@ -16860,13 +16938,12 @@ function buildSaysAbsent(name) {
 function probeView(name, done) {
   const file = name + '.html';
   const settle = (there) => { viewThere[name] = there; if (done) done(there); };
-  if (buildSaysAbsent(name)) { settle(false); return; }
   if (location.protocol === 'http:' || location.protocol === 'https:') {
     fetch(file, { method: 'HEAD', cache: 'no-store' })
-      .then((r) => settle(r.status !== 404 && r.status !== 410), () => settle(true));
+      .then((r) => settle(r.status !== 404 && r.status !== 410), () => settle(!buildSaysAbsent(name)));
     return;
   }
-  if (location.protocol !== 'file:') { settle(true); return; }
+  if (location.protocol !== 'file:') { settle(!buildSaysAbsent(name)); return; }
   const want = new URL(file, location.href).href;
   const quiet = (ev) => {
     if (ev.filename === want || (!ev.filename && /^Script error/.test(ev.message || ''))) ev.preventDefault();
@@ -16885,13 +16962,13 @@ function probeView(name, done) {
   s.onerror = () => end(false);
   s.src = file;
   document.head.appendChild(s);
-  // No answer at all is not an answer that the file is missing.
-  setTimeout(() => end(true), 3000);
+  // No answer at all is not an answer that the file is missing - unless the
+  // build said so.
+  setTimeout(() => end(!buildSaysAbsent(name)), 3000);
 }
 // Opens the view through open() when it is there, says so when it is not.
 function withView(name, open) {
   const absent = () => flashMode(name + '.html is not beside this file');
-  if (buildSaysAbsent(name)) { absent(); return; }
   if (viewThere[name] === true) { open(); probeView(name); return; }
   probeView(name, (there) => (there ? open() : absent()));
 }
@@ -17203,10 +17280,9 @@ const COMMAND_RUN = {
   // window.open with a URL re-navigates the named window, which reloaded the
   // cockpit and lost its freeze, its clock and its cue cursor. Opening with
   // an empty URL finds the named window without navigating it; only when
-  // that is not already this deck's cockpit is it sent to speaker.html. A
-  // cockpit page on file:// is another origin, so reading its address
-  // throws - which says it is the cockpit and not a blank window this call
-  // just made.
+  // that is not already this deck's cockpit is it sent to speaker.html.
+  // Whether it is this deck's is read off its address where the address can
+  // be read, and asked where it cannot (openCockpit).
   'cockpit': (e) => {
     e.preventDefault();
     if (hasLivePeer()) { try { peer.focus(); } catch (err) {} return; }
@@ -17214,18 +17290,44 @@ const COMMAND_RUN = {
   },
   'help': (e) => { toggleHelp(); e.preventDefault(); },
 };
+// How long a found cockpit has to say which deck it shows. It answers from
+// its message handler, so a few milliseconds when it is there at all;
+// silence means a page that is no cockpit of this build.
+const COCKPIT_ASK_MS = 250;
+let cockpitAsk = null;
 function openCockpit() {
   const w = window.open('', 'psi-slides-speaker', 'width=1400,height=900');
   if (!w) return;
+  try { w.focus(); } catch (err) {}
   // Readable means same origin: a blank window, or under --serve a page
   // that may be another deck's cockpit - either way, unless it already is
   // this deck's cockpit, it is sent there.
   const want = new URL('speaker.html', location.href).href;
   let here = null;
   try { here = String(w.location.href).split(/[?#]/)[0]; } catch (err) { here = null; }
-  if (here !== null && here !== want) w.location.href = want;
-  setPeer(w);
-  try { w.focus(); } catch (err) {}
+  if (here !== null) {
+    if (here !== want) w.location.href = want;
+    setPeer(w);
+    return;
+  }
+  // Unreadable: a page from another file:// address. That used to be taken
+  // for this deck's cockpit, and on a tab that had gone from one deck to
+  // another it was the first deck's, driven by the second. So it is asked,
+  // and only an answer naming this deck keeps it as it is; another deck, or
+  // no answer, and it is sent to this deck's speaker.html.
+  if (cockpitAsk) clearTimeout(cockpitAsk.timer);
+  const ask = { w, timer: 0 };
+  ask.settle = (ours) => {
+    if (cockpitAsk !== ask) return;
+    cockpitAsk = null;
+    clearTimeout(ask.timer);
+    if (w.closed) return;
+    if (!ours) { try { w.location.href = want; } catch (err) { return; } }
+    setPeer(w);
+  };
+  cockpitAsk = ask;
+  ask.timer = setTimeout(() => ask.settle(false), COCKPIT_ASK_MS);
+  try { w.postMessage({ type: 'whois', source: VIEW }, '*'); } catch (err) { ask.settle(false); }
 }
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('.annot-textarea')) return;
@@ -17497,6 +17599,9 @@ window.addEventListener('resize', () => {
 // far enough to put the whole aside inside the frame. See setAsidePan.
 const figureOverlay = document.getElementById('psiINT-figure-overlay');
 let focusedFigure = null;
+// The element on the slide the card is a clone of, so a thawing cockpit can
+// name it to the projection (figureFocusState).
+let focusedFigureSrc = null;
 // Per-focus zoom + pan: +/− keys (and wheel) scale; drag pans. Reset
 // every time a new figure gets focused so each one starts at 1x. Pan
 // is in CSS px on the focus-target's layout box. The transform is
@@ -17575,6 +17680,7 @@ function unfocusFigure() {
   if (!focusedFigure) return;
   focusedFigure.style.transform = '';
   focusedFigure = null;
+  focusedFigureSrc = null;
   figureOverlay.replaceChildren();
   document.body.classList.remove('figure-focused');
   resetFigureView();
@@ -17588,6 +17694,7 @@ function focusFigure(el) {
   figureOverlay.replaceChildren(clone);
   document.body.classList.add('figure-focused');
   focusedFigure = clone;
+  focusedFigureSrc = el;
   applyFigureTransform();
   // A stepped diagram opens on the beat the slide is on, not on beat 0: the
   // clone carries whatever the emitter wrote statically, which is the *last*
@@ -17811,6 +17918,25 @@ function clearAsidePan() {
   document.body.classList.remove('aside-panned');
   return true;
 }
+// What is open over or beside the live slide, as the messages that would put
+// the other window in the same place: the focus card with its zoom, or the
+// brought-in aside - and the closing message for each that is not open. A
+// frozen cockpit sends none of these as they happen, and the snapshot a thaw
+// pushes carries neither, so a card closed while frozen stayed up on the
+// projection. Thawing sends this list after the snapshot (toggleFreeze).
+function figureFocusState() {
+  const entry = flatChunks[state.activeIdx];
+  const idxIn = (el) => (entry && el ? Array.from(entry.el.querySelectorAll(FOCUSABLE_SEL)).indexOf(el) : -1);
+  const out = [];
+  const f = focusedFigure ? idxIn(focusedFigureSrc) : -1;
+  if (f >= 0) {
+    out.push({ type: 'figure-focus', chunkIdx: state.activeIdx, figureIdx: f });
+    out.push({ type: 'figure-view', scale: figureScale, panX: figurePan.x, panY: figurePan.y });
+  } else out.push({ type: 'figure-unfocus' });
+  const a = asidePan ? idxIn(asidePan.el) : -1;
+  out.push(a >= 0 ? { type: 'figure-pan', chunkIdx: state.activeIdx, figureIdx: a } : { type: 'figure-unpan' });
+  return out;
+}
 
 // ── where forward will take you ───────────────────────────────────
 // One fact about the current slide that the picture cannot carry and that the
@@ -17999,6 +18125,21 @@ window.psiExport = {
   setCollapse: (m) => { state.collapse = m; },
   quiesce: () => { autoplayStopped = true; stopAutoplay(); },
   zoom: () => state.zoom,
+  // What the fit would measure, without fitting: el's flow height at each
+  // zoom given, by the probe fitZoomToChunk uses, and the limit it holds a
+  // chunk to. Only --zoom on <html> is written, and its inline value is put
+  // back before returning; state.zoom is not touched. Read by the PDF
+  // export's parity numbers and by nothing in the live views.
+  fitMeasure: (el, zooms) => {
+    const limit = viewport ? viewport.clientHeight * FULL_FIT_FILL : 0;
+    if (!(limit > 0)) return null;
+    const probe = flowHeightProbe(el);
+    const root = document.documentElement.style;
+    const before = root.getPropertyValue('--zoom');
+    const heights = zooms.map(z => { root.setProperty('--zoom', z); return probe(); });
+    if (before) root.setProperty('--zoom', before); else root.removeProperty('--zoom');
+    return { limit, heights };
+  },
 };
 
 // Boot
@@ -18120,6 +18261,11 @@ function toggleFreeze() {
   // land on would look like it did nothing at all.
   if (!frozen && !isApplyingRemote) {
     sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
+    // The snapshot moves the slide, not the focus card or a brought-in
+    // aside: those travel as their own messages, and a frozen window sent
+    // none, so the room's card has to be told explicitly - opened, closed or
+    // left as it is.
+    figureFocusState().forEach(sendToPeer);
     // The room is now on this window's slide, so this is the position a
     // reloaded projection should come back to.
     saveActive();
@@ -18453,6 +18599,7 @@ scrubberEl.addEventListener('click', (e) => {
     const ci = parseInt(dot.dataset.colIdx, 10);
     const xi = parseInt(dot.dataset.chunkIdx, 10);
     const idx = colChunkIdx[ci]?.[xi];
+    settleFade();
     if (idx !== undefined) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
     return;
   }
@@ -18460,6 +18607,7 @@ scrubberEl.addEventListener('click', (e) => {
   if (btn) {
     const ci = parseInt(btn.closest('.col-entry').dataset.colIdx, 10);
     const idx = colChunkIdx[ci]?.[0];
+    settleFade();
     if (idx !== undefined) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
   }
 });
@@ -18601,6 +18749,7 @@ previewStrip.addEventListener('pointerup', (e) => {
   previewStrip.classList.remove('dragging');
   if (moved || !slot) return;
   const idx = parseInt(slot.dataset.idx, 10);
+  settleFade();
   if (!Number.isFinite(idx) || idx === state.activeIdx) return;
   jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
 });
@@ -23840,14 +23989,20 @@ function createSpanTable(model, body) {
     // (positions 0 and 1) are never keywords, and neither is a token that
     // sits in a reference slot – right after the word that introduces one,
     // or after a comma-carrying member of an `over`/`between` list.
-    // `same` is here for the axis word after it rather than for a reference:
-    // in `same w as a` the `w` is not the width keyword, and taken for one it
-    // handed a resize the token `as` to overwrite, so every drag on such a box
-    // was refused.
-    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', 'same', ...DG_EDGE_ARROWS]);
-    const find = (word) => toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === word
-      && !(toks[i - 1] && !toks[i - 1].q && !toks[i - 1].attr
-        && (REF_INTRO.has(toks[i - 1].v) || toks[i - 1].v.endsWith(','))));
+    // One more slot is not a reference: the axis word in `same w as a` /
+    // `same h as a` is not the width keyword, and taken for one it handed a
+    // resize the token `as` to overwrite, so every drag on such a box was
+    // refused. Only that form counts – the `same` keyword followed by an axis
+    // word and `as` – because `same` is also a legal element name, and in
+    // `right of same w 2` the `w` after it is the width keyword.
+    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', ...DG_EDGE_ARROWS]);
+    const plain = (t) => t && !t.q && !t.attr;
+    const inRefSlot = (i) => plain(toks[i - 1])
+      && (REF_INTRO.has(toks[i - 1].v) || toks[i - 1].v.endsWith(','));
+    const sameAxis = (i) => plain(toks[i - 1]) && toks[i - 1].v === 'same' && !inRefSlot(i - 1)
+      && plain(toks[i + 1]) && toks[i + 1].v === 'as';
+    const find = (word) => toks.findIndex((x, i) => i >= 2 && plain(x) && x.v === word
+      && !inRefSlot(i) && !sameAxis(i));
 
     if (attr === 'line') return hit(el.span[0], el.span[1], src.slice(el.span[0], el.span[1]));
 
@@ -24162,45 +24317,139 @@ function createSpanTable(model, body) {
   // Every statement that names an element, for the reference list a delete
   // owes the author (§9.3). Ids, not spans: what the author needs first is
   // "three lines refer to this", and the lines are what they are shown.
+  //
+  // **It has to be every statement**, because the editor deletes what this
+  // lists and nothing else: a reference missing here is a line left naming an
+  // element that is gone, and the delete is refused with a compiler sentence
+  // the author cannot act on. It walks what the compiler's own reference check
+  // walks – placements of all four kinds, the three size relations, both
+  // endpoints of an edge whether a name or a coordinate, every waypoint, a
+  // series' chart, a chart's or a table's `same as` (model.copies), a
+  // sequence's message ends and note actors, a row's zone,
+  // and in a step every target, a tag included, and the place a `move` goes.
+  //
+  // Two kinds of entry. Most name the element in a slot the statement cannot
+  // do without, and the line goes with it. A **member list** – `over a,b,d`,
+  // `align …`, `spread …`, `row …`, a step's `show a, b` – only loses one
+  // member, so those carry `list: {start, end, members, min}`: the source
+  // range of the run, the members as written there, and how many the statement
+  // needs to stand. Whether a written member is gone – a tag is gone only with
+  // the last element carrying it – is the caller's to decide, since only the
+  // caller knows what else is going.
   function referencesTo(id) {
     const out = [];
     // `from` is the element doing the referring. The caller needs it to drop
     // the entries that are inside its own selection – without it a delete of
     // two elements reports each as a reason not to delete the other.
-    const note = (line, what, from) => out.push({ line, what, from, id: from });
+    // Once per line and referrer: a chart's columns are each placed against
+    // the frame they stand in, and that is one line, not twelve.
+    const seen = new Set();
+    const note = (line, what, from, list) => {
+      const key = `${line}|${from}|${what}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(list ? { line, what, from, id: from, list } : { line, what, from, id: from });
+    };
+    const refsOf = (p) => (p && (p.kind === 'rel' || p.kind === 'in') ? [p.ref]
+      : p && p.kind === 'between' ? p.refs.map(r => r.ref)
+      : p && p.kind === 'abs' ? dgPairRefs(p.at) : []);
+    const carries = (tag) => ((model.tags && model.tags.get(tag)) || []).includes(id);
+    const names = (written) => written === id || (written.startsWith('@') && carries(written.slice(1)));
+    // The run of members on a line, from body token `from` up to `stop`
+    // (exclusive), cut short at the first quoted or tail token so a rewrite of
+    // the run can never reach a label or an attribute tail.
+    const runOf = (rec, from, stop) => {
+      const toks = toksOf(rec);
+      const body = [];
+      for (const x of toks) {
+        if (x.q || x.attr) { if (body.length > from) break; continue; }
+        body.push(x);
+      }
+      const end = Math.min(stop == null ? body.length : stop, body.length);
+      if (from < 0 || from >= end) return null;
+      const run = body.slice(from, end);
+      return {
+        start: run[0].s, end: run[run.length - 1].e,
+        members: dgParseMembers(run.map(x => x.v).join(',')),
+      };
+    };
+    const listOf = (rec, from, stop, min) => {
+      const r = runOf(rec, from, stop);
+      return r ? { ...r, min } : null;
+    };
     for (const n of model.nodes) {
       if (n.id === id) continue;
-      const p = n.place;
-      const refs = p && p.kind === 'rel' ? [p.ref]
-        : p && p.kind === 'between' ? p.refs.map(r => r.ref)
-        : p && p.kind === 'abs' ? dgPairRefs(p.at) : [];
-      if (refs.includes(id)) note(n.line, `${n.kind} ${n.id} is placed against it`, n.id);
-      if (n.sameAs === id) note(n.line, `${n.kind} ${n.id} takes its size from it (same as)`, n.id);
-      if (n.sameWAs === id) note(n.line, `${n.kind} ${n.id} takes its width from it (same w as)`, n.id);
-      if (n.sameHAs === id) note(n.line, `${n.kind} ${n.id} takes its height from it (same h as)`, n.id);
+      // A generated box – a `bars … series of` column, a cell – has no line of
+      // its own, so the statement that drew it is what refers. One drawn by
+      // `id` itself is not a reference to it at all.
+      const gen = n.synth && n.synth !== n.id && !n.entry;
+      if (gen && n.synth === id) continue;
+      const who = gen ? n.synth : n.id;
+      const kind = gen ? ((model.statements || []).find(x => x.id === who) || {}).kind
+        || model.byId.get(who) || n.kind : (n.frame || n.kind);
+      if (refsOf(n.place).includes(id)) note(n.line, `${kind} ${who} is placed against ${id}`, who);
+      if (n.sameAs === id) note(n.line, `${n.kind} ${n.id} takes its size from ${id} (same as)`, n.id);
+      if (n.sameWAs === id) note(n.line, `${n.kind} ${n.id} takes its width from ${id} (same w as)`, n.id);
+      if (n.sameHAs === id) note(n.line, `${n.kind} ${n.id} takes its height from ${id} (same h as)`, n.id);
+      if (n.entry === 'note' && (n.on || []).includes(id)) {
+        note(n.line, `note ${n.id} stands on ${id}`, n.id);
+      }
+    }
+    for (const s of model.statements || []) {
+      if (s.series === id) note(s.line, `${s.kind} ${s.id} draws its columns in ${id} (series of)`, s.id);
+    }
+    for (const c of model.copies || []) {
+      if (c.of === id && c.id !== id) note(c.line, `${c.kind} ${c.id} takes its size from ${id} (same as)`, c.id);
     }
     for (const e of model.edges) {
       if (e.id === id) continue;
-      if ((!e.from.point && e.from.ref === id) || (!e.to.point && e.to.ref === id)) {
-        note(e.line, `edge ${e.id} ends on it`, e.id);
+      // A leader is an aspect of its `text`, so the text is what goes.
+      const who = e.lead ? e.from.ref : e.id;
+      const what = e.lead ? `text ${who} points at ${id}` : `edge ${e.id} ends on ${id}`;
+      const ends = [e.from, e.to].some(p => (p.point ? dgPairRefs(p.point) : [p.ref]).includes(id));
+      if (ends) note(e.line, what, who);
+      else if ((e.via || []).some(p => dgPairRefs(p).includes(id))) {
+        note(e.line, `edge ${e.id} has a waypoint on ${id}`, who);
+      }
+      if (e.entry === 'message' && (e.ends || []).includes(id)) {
+        note(e.line, `message ${e.id} (${(e.ends || []).join(` ${e.arrow || '->'} `)}) runs from or to ${id}`, e.id);
       }
     }
     for (const c of [...model.containers, ...model.braces]) {
-      if (c.members.includes(id)) note(c.line, `${c.kind} ${c.id} holds it`, c.id);
+      if (!c.members.includes(id)) continue;
+      const k = toksOf(c).filter(x => !x.q && !x.attr).findIndex(x => x.v === 'over');
+      // The run ends where the commas stop, exactly as the parser reads it.
+      const body = toksOf(c).filter(x => !x.q && !x.attr);
+      let stop = k + 2;
+      while (stop < body.length && (body[stop - 1].v.endsWith(',') || body[stop].v.startsWith(','))) stop++;
+      note(c.line, `${c.kind} ${c.id} holds ${id}`, c.id, k < 0 ? null : listOf(c, k + 1, stop, 1));
     }
     for (const a of model.aligns) {
-      if (a.members.includes(id)) note(a.line, `align ${a.axis} ${a.edge}`, null);
+      if (a.members.includes(id)) note(a.line, `align ${a.axis} ${a.edge} lines ${id} up`, null, listOf(a, 3, null, 2));
     }
     for (const s of model.spreads) {
-      if (s.members.includes(id)) note(s.line, `spread ${s.axis}`, null);
+      if (s.members.includes(id)) note(s.line, `spread ${s.axis} spaces ${id}`, null, listOf(s, 2, null, 3));
     }
     for (const r of model.rows) {
-      if (r.members.includes(id)) note(r.line, r.axis === 'x' ? 'row' : 'col', null);
+      const word = r.axis === 'x' ? 'row' : 'col';
+      if (r.inPlace && r.inPlace.ref === id) note(r.line, `${word} stands in ${id}`, null);
+      if (!r.members.includes(id)) continue;
+      const body = toksOf(r).filter(x => !x.q && !x.attr);
+      const stop = body.findIndex((x, i) => i > 0 && (x.v === 'gap' || x.v === 'in'));
+      note(r.line, `${word} sizes ${id} with its peers`, null, listOf(r, 1, stop < 0 ? null : stop, 2));
     }
     for (const st of model.steps) {
       for (const op of st.ops) {
-        const targets = op.targets || (op.target ? [op.target] : []);
-        if (targets.includes(id)) note(op.line, `step ${st.name}: ${op.op}`, null);
+        if (op.targets) {
+          if (op.targets.some(names)) {
+            note(op.line, `step ${st.name}: ${op.op} ${op.targets.join(', ')}`, null, listOf(op, 1, null, 1));
+          }
+        } else if (op.target && names(op.target)) {
+          note(op.line, `step ${st.name}: ${op.op} ${op.target}`, null);
+        }
+        if (refsOf(op.to).includes(id)) {
+          note(op.line, `step ${st.name}: move ${op.target} to a place against ${id}`, null);
+        }
       }
     }
     return out;
@@ -24275,6 +24524,12 @@ function createDiagramCompiler(env = {}) {
       // so without this a series had no entry at all, and the editor could
       // select the statement, name it, and then edit nothing on it.
       statements: [],
+      // `same as X` on a `table`, a `plot` or a `bars` chart. It is answered
+      // while the line is read – the columns or the size are copied there and
+      // then – so it leaves no `sameAs` on the frame for the layout to read,
+      // and without this list nothing after the parse knew the line named X:
+      // a delete of X left it naming nothing, and a rename could not see it.
+      copies: [],
       aligns: [],
       spreads: [],
       // `row` / `col`: a set of boxes declared to be peers. It is the explicit
@@ -24825,6 +25080,7 @@ function createDiagramCompiler(env = {}) {
               + 'thing a second way. Drop one.', 'semantic');
             continue;
           }
+          model.copies.push({ kind: 'table', id, of: opts.sameAs, line: lineNo });
           copied = tableCols.get(opts.sameAs);
           if (!copied) {
             const kind = model.byId.get(opts.sameAs) || (tableNames.has(opts.sameAs) ? 'table' : null);
@@ -25540,6 +25796,9 @@ function createDiagramCompiler(env = {}) {
               // banner, and a long one between two near columns unreadable.
               place: at(((xOf(on[0]) + xOf(on[on.length - 1])) / 2) / uw, p.y / uh),
               w: null, h: p.h / uh, r: null, pad: null,
+              // The actors it stands on, as written – what referencesTo hands
+              // a delete, the way a message's `ends` are.
+              on: [...it.on],
             }, it.ln, 'note', it.span));
             continue;
           }
@@ -25718,6 +25977,7 @@ function createDiagramCompiler(env = {}) {
             dgErr(errors, lineNo, `plot ${id}: "same as" takes the whole size from another chart, `
               + 'so w, h and aspect have nothing left to say – drop them or drop the "same as"');
           }
+          model.copies.push({ kind: 'plot', id, of: o.sameAs, line: lineNo });
           const got = sameAsFrame('plot', id, o.sameAs, lineNo);
           if (got) { o.w = got.w; o.h = got.h; o.aspect = null; }
         }
@@ -25935,6 +26195,7 @@ function createDiagramCompiler(env = {}) {
               dgErr(errors, lineNo, `bars ${id}: "same as" takes the whole size from another chart, `
                 + 'so w, h and aspect have nothing left to say – drop them or drop the "same as"');
             }
+            model.copies.push({ kind: 'bars', id, of: opts.sameAs, line: lineNo });
             const got = sameAsFrame('bars', id, opts.sameAs, lineNo);
             if (got) { opts.w = got.w; opts.h = got.h; opts.aspect = null; }
           } else if (opts.sameAs) {
@@ -34581,7 +34842,9 @@ function dgeAppendLine(line) {
   // Only say "written" when it stuck – dgeSetSource reverts a line the
   // compiler refuses and has already named the problem in the status bar,
   // and overwriting that with a success message was a lie on top of it.
-  if (dgeSetSource(lines.join('\n'))) dgeStatus(line, 'written');
+  if (!dgeSetSource(lines.join('\n'))) return false;
+  dgeStatus(line, 'written');
+  return true;
 }
 
 function dgeStartEdge(ev, pt0) {
@@ -34658,41 +34921,48 @@ function dgeSpread(axis) {
 }
 
 // Deleting lists what else refers to the element rather than leaving a block
-// that will not compile.
+// that will not compile – and says what each listed line has to do with it,
+// in three groups: the lines that go with it, the member lists that only lose
+// it, and the generated names that move because a message or a note is named
+// by its place in the run.
 function dgeDelete() {
   if (!DGE.selection.length) return;
   const plan = dgeDeletePlan(DGE.selection);
-  // Lines that name something being deleted, *excluding* the statements of
-  // the other elements in the same selection – deleting a and b together
-  // should not report b's own line as a reason not to delete a.
-  const refs = plan.refs;
-  const seenLines = plan.own;
   const what = DGE.selection.join(', ');
-  if (refs.length && !window.confirm(
-    `Delete ${what}?\n\n${refs.length} other line(s) name ${DGE.selection.length > 1 ? 'them' : 'it'}:\n`
-    + refs.slice(0, 8).join('\n')
-    + (refs.length > 8 ? `\n… and ${refs.length - 8} more` : '')
-    + '\n\nDeleting only these lines leaves the block unable to compile; the lines above have to go too.\n\n'
-    + 'OK deletes the element and every line that names it.')) return;
-  // Delete the statements themselves and every line that names them, which
-  // is what keeps the block compiling.
-  const doomed = plan.lines;
-  const lines = DGE.source.split('\n').filter((_, i) => !doomed.has(i + 1));
-  const alsoGone = Math.max(0, doomed.size - seenLines.size);
   const many = DGE.selection.length > 1;
+  const them = many ? 'them' : 'it';
+  const rows = (list) => list.slice(0, 8).map((r) => `line ${r.line}: ${r.why}`).join('\n')
+    + (list.length > 8 ? `\n… and ${list.length - 8} more` : '');
+  const parts = [];
+  if (plan.goes.length) {
+    parts.push(`${plan.goes.length} other line(s) go too, because each needs something that goes:\n`
+      + rows(plan.goes));
+  }
+  if (plan.trims.length) {
+    parts.push(`${plan.trims.length} line(s) stay, with what goes taken out of their list:\n` + rows(plan.trims));
+  }
+  if (plan.renumbered.length) {
+    parts.push('A message or a note is named by its place in the run, so the later ones move up, '
+      + 'and the lines that name them follow:\n' + plan.renumbered.slice(0, 8).join('\n')
+      + (plan.renumbered.length > 8 ? `\n… and ${plan.renumbered.length - 8} more` : ''));
+  }
+  if (parts.length && !window.confirm(`Delete ${what}?\n\n${parts.join('\n\n')}\n\n`
+    + `OK deletes ${them} and makes these changes, which is what keeps the block compiling.`)) return;
   // Only a delete that stuck is reported as one. dgeSetSource has already put
   // the refusal in the status bar, and "deleted a" over an `a` still on the
   // canvas was a second sentence contradicting the first.
-  if (!dgeSetSource(lines.join('\n'))) return;
+  if (!dgeSetSource(plan.text)) return;
   dgeSelect([]);
-  dgeStatus('', alsoGone
-    ? `deleted ${what} and ${alsoGone} line(s) that named ${many ? 'them' : 'it'}`
-    : `deleted ${what}`);
+  const also = [];
+  if (plan.goes.length) also.push(`${plan.goes.length} line(s) that needed ${them}`);
+  if (plan.trims.length) also.push(`${them} out of ${plan.trims.length} list(s)`);
+  if (plan.renumbered.length) also.push(`${plan.renumbered.length} name(s) renumbered`);
+  dgeStatus('', `deleted ${what}` + (also.length ? ' – and ' + also.join(', ') : ''));
 }
 
-// What deleting a selection takes with it, as 1-based line numbers. Three
-// things the first version missed, each of which left a block that would not
-// compile and so a delete that was always refused:
+// What deleting a selection does to the source. Each of these left a block
+// that would not compile, so a delete that was always refused, or – worse – one
+// that compiled and meant something else:
 //
 // - **A statement can be longer than its line.** A `table`'s rows and a
 //   `sequence`'s run sit under the head line, and `endLine` is where they end.
@@ -34700,17 +34970,33 @@ function dgeDelete() {
 //   deleting `a` takes `b`'s line, and `c` then names nothing. So whatever goes
 //   is asked in turn what names it, until nothing new turns up.
 // - **A statement owns the names it generates.** `emph t-0-1` in a step names
-//   a cell of the table being deleted, not the table.
+//   a cell of the table being deleted, not the table; `style @t-row-1` names
+//   it through a generated tag.
+// - **A member list loses a member; it does not go.** Deleting `b` out of
+//   `brace br over a,b,d` writes `over a,d` and keeps the brace and everything
+//   placed against it. Only a list left shorter than its statement needs – a
+//   brace with nothing to hold, an `align` with one element – takes its line,
+//   and then its dependents. A `@tag` member is gone with the last element
+//   carrying it. Decided after everything else, because whether a list is
+//   left empty depends on all of what goes.
+// - **A message is named by its place.** `s-1` is the second message of `s`,
+//   so deleting the first makes the second `s-0`. Every reference to a later
+//   message – its name, its number `s-n-1`, its second line, `@s-msg-1` – is
+//   rewritten to the name it has now, or a `brace over s-1` would quietly
+//   move to the next message along. Notes, `s-note-N`, the same.
 //
-// `own` is the selection's own lines, so the confirmation lists only what
-// else goes; `refs` is that list.
-function dgeDeletePlan(ids, model, spans) {
+// Returns the new source and the three lists the confirmation shows: `goes`
+// (lines that go, with why), `trims` (lists that lose a member) and
+// `renumbered` (generated names that move, where a line names one).
+function dgeDeletePlan(ids, model, spans, source) {
   const m = model || DGE.model;
   const table = spans || DGE.spans;
+  const src = source === undefined ? DGE.source : source;
   const lines = new Set();
   const own = new Set();
-  const refs = [];
+  const goes = [];
   const gone = new Set();
+  const lists = new Map();
   const all = [...m.nodes, ...m.edges, ...m.containers, ...m.braces, ...(m.statements || [])];
   const take = (el, into) => {
     if (!el || !el.line) return;
@@ -34730,24 +35016,157 @@ function dgeDeletePlan(ids, model, spans) {
     for (const g of all) {
       if (g.synth === id && g.id !== id) drop(g.id, fromSelection);
     }
+    // A message's number and second line are generated from its place rather
+    // than from its name; the positional tag is what they share with it.
+    const at = dgeMsgIndex(el);
+    if (at >= 0) {
+      for (const c of m.tags.get(window.PSI_DG.dgMsgTag(el.synth, at)) || []) drop(c, fromSelection);
+    }
+  };
+  const dead = (w) => (w.startsWith('@')
+    ? (m.tags.get(w.slice(1)) || []).every((c) => gone.has(c))
+    : gone.has(w));
+  const settle = () => {
+    while (queue.length) {
+      const id = queue.shift();
+      for (const r of table.referencesTo(id)) {
+        if (r.from && gone.has(r.from)) continue;
+        if (r.list) { if (!lists.has(r.line)) lists.set(r.line, r); continue; }
+        if (!lines.has(r.line)) goes.push({ line: r.line, why: r.what });
+        lines.add(r.line);
+        if (r.from) drop(r.from, false);
+      }
+    }
   };
   for (const id of ids) drop(id, true);
-  while (queue.length) {
-    const id = queue.shift();
-    for (const r of table.referencesTo(id)) {
-      if (r.from && gone.has(r.from)) continue;
-      if (!lines.has(r.line)) refs.push(`line ${r.line}: ${r.what}`);
-      lines.add(r.line);
+  for (let more = true; more;) {
+    settle();
+    more = false;
+    for (const [line, r] of lists) {
+      if (lines.has(line)) continue;
+      const left = r.list.members.filter((w) => !dead(w));
+      if (left.length >= r.list.min) continue;
+      goes.push({ line, why: left.length
+        ? `${r.what}, and ${left.join(', ')} alone is too few for it`
+        : `${r.what}, and nothing else in its list is left` });
+      lines.add(line);
+      more = true;
       if (r.from) drop(r.from, false);
     }
   }
-  return { lines, own, refs };
+  // The lists that only lose members. Edits inside a line never add or take
+  // a newline, so they are applied before the lines are dropped and the line
+  // numbers still hold.
+  const edits = [];
+  const trims = [];
+  for (const [line, r] of lists) {
+    if (lines.has(line)) continue;
+    const left = r.list.members.filter((w) => !dead(w));
+    if (left.length === r.list.members.length) continue;
+    const was = src.slice(r.list.start, r.list.end);
+    const next = left.join(/\s/.test(was) ? ', ' : ',');
+    edits.push({ start: r.list.start, end: r.list.end, text: next });
+    trims.push({ line, why: `${r.what} – ${was} becomes ${next}` });
+  }
+  let text = src;
+  edits.sort((a, b) => b.start - a.start);
+  for (const e of edits) text = text.slice(0, e.start) + e.text + text.slice(e.end);
+  text = text.split('\n').filter((_, i) => !lines.has(i + 1)).join('\n');
+  // Renumbering, per sequence that keeps standing and lost an entry.
+  const seqs = new Set();
+  for (const id of gone) {
+    const el = dgeFind(id, m);
+    if (el && (el.entry === 'message' || el.entry === 'note') && !gone.has(el.synth)) seqs.add(el.synth);
+  }
+  const renumbered = [];
+  for (const seq of seqs) {
+    const goneAt = (kind) => dgeSeqEntries(seq, kind, m).filter((x) => gone.has(x.el.id)).map((x) => x.i);
+    const shift = { message: goneAt('message'), note: goneAt('note') };
+    const map = dgeSeqRenumber(seq, m, (kind, i, el) => (gone.has(el.id) ? null
+      : i - shift[kind].filter((k) => k < i).length));
+    renumbered.push(...dgeNamedIn(text, map));
+    text = dgeRenameIn(text, map.ids, map.tags);
+  }
+  goes.sort((a, b) => a.line - b.line);
+  trims.sort((a, b) => a.line - b.line);
+  return { text, lines, own, goes, trims, renumbered };
 }
 
+// A sequence message's place in its run, read off the positional tag the
+// compiler gives it (`@s-msg-2` is the third message), or -1 for anything
+// that is not a message. The tag and not the id: a named message has no
+// positional id, but its number and its tag are still positional.
+function dgeMsgIndex(el) {
+  if (!el || el.entry !== 'message' || !el.synth) return -1;
+  const pre = window.PSI_DG.dgMsgTag(el.synth, '');
+  const t = (el.tags || []).find((x) => x.startsWith(pre) && /^\d+$/.test(x.slice(pre.length)));
+  return t ? Number(t.slice(pre.length)) : -1;
+}
+
+// A sequence's messages or notes with their places, in order.
+function dgeSeqEntries(seq, kind, model) {
+  const m = model || DGE.model;
+  const pre = window.PSI_DG.dgNoteName(seq, '');
+  const out = [];
+  for (const el of kind === 'message' ? m.edges : m.nodes) {
+    if (el.synth !== seq || el.entry !== kind) continue;
+    const i = kind === 'message' ? dgeMsgIndex(el)
+      : (el.id.startsWith(pre) && /^\d+$/.test(el.id.slice(pre.length)) ? Number(el.id.slice(pre.length)) : -1);
+    if (i >= 0) out.push({ el, i });
+  }
+  return out.sort((a, b) => a.i - b.i);
+}
+
+// The generated names that move when a sequence's entries move, as the two
+// maps dgeRenameIn takes. `place(kind, i, el)` answers an entry's new place,
+// or null for one that is gone. A message the author named keeps its name and
+// moves only its number, its second line and its tag; an unnamed one is
+// `s-<i>` and moves that too.
+function dgeSeqRenumber(seq, model, place) {
+  const P = window.PSI_DG;
+  const ids = new Map();
+  const tags = new Map();
+  for (const { el, i } of dgeSeqEntries(seq, 'message', model)) {
+    const j = place('message', i, el);
+    if (j == null || j === i) continue;
+    if (el.named === false) ids.set(P.dgMsgName(seq, i), P.dgMsgName(seq, j));
+    ids.set(P.dgMsgNumName(seq, i), P.dgMsgNumName(seq, j));
+    ids.set(P.dgMsgSubName(seq, i), P.dgMsgSubName(seq, j));
+    tags.set(P.dgMsgTag(seq, i), P.dgMsgTag(seq, j));
+  }
+  for (const { el, i } of dgeSeqEntries(seq, 'note', model)) {
+    const j = place('note', i, el);
+    if (j == null || j === i) continue;
+    ids.set(P.dgNoteName(seq, i), P.dgNoteName(seq, j));
+  }
+  return { ids, tags };
+}
+
+// Which of a renumbering's names a text actually uses, as "old is new now"
+// lines for a confirmation. A shifted name nobody wrote down is not news.
+function dgeNamedIn(text, map) {
+  const esc = (n) => n.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
+  const out = [];
+  for (const [a, b] of map.ids) {
+    if (new RegExp('(^|[^\\w@-])' + esc(a) + '(?![\\w-])').test(text)) out.push(`${a} is ${b} now`);
+  }
+  for (const [a, b] of map.tags) {
+    if (new RegExp('@' + esc(a) + '(?![\\w-])').test(text)) out.push(`@${a} is @${b} now`);
+  }
+  return out;
+}
+
+// Duplicate the one selected element. An element a statement generated – a
+// table cell, a lane, a chart column, a lifeline – has no line of its own to
+// copy, so the statement that drew it is duplicated, which is what dgeCopy
+// takes too. A sequence's own entries are lines inside its run, and a copy of
+// one goes into the run right after the original (dgeDuplicateEntry).
 function dgeDuplicate() {
   if (DGE.selection.length !== 1) return;
-  const el = dgeFind(DGE.selection[0]);
+  let el = dgeFind(DGE.selection[0]);
+  if (el && el.synth && el.synth !== el.id && !el.entry) el = dgeFind(el.synth);
   if (!el || !el.span) return;
+  if (el.entry) { dgeDuplicateEntry(el); return; }
   const [line, ...rest] = dgeWholeStatement(el).split('\n');
   const name = dgeFreshName(el.id);
   // Rename only the element's own name token – the second word of the
@@ -34772,8 +35191,46 @@ function dgeDuplicate() {
     for (const n of owned) { const f = dgeFreshName(n, taken); taken.add(f); map.set(n, f); }
     tail = dgeRenameIn(tail, map);
   }
-  dgeAppendLine(tail ? placed + '\n' + tail : placed);
-  dgeSelect([name]);
+  // Selected only once it stuck: a refused copy has no name to select.
+  if (dgeAppendLine(tail ? placed + '\n' + tail : placed)) dgeSelect([name]);
+}
+
+// An actor, a message or a note, copied into its sequence's run on the line
+// after the original. An actor and a named message get a fresh name; an
+// unnamed message or a note is named by its place, so the copy takes the next
+// place and every later entry of its kind moves down one, with the lines that
+// name them rewritten – the renumbering a delete does, the other way round.
+function dgeDuplicateEntry(el) {
+  const P = window.PSI_DG;
+  const seq = el.synth;
+  const raw = DGE.source.split('\n')[el.line - 1] || '';
+  const indent = raw.match(/^\s*/)[0];
+  const line = DGE.source.slice(el.span[0], el.span[1]);
+  let copy = line;
+  let pick = null;
+  const toks = P.dgTokenize(line, 0).filter((x) => !x.q && !x.attr);
+  if (el.entry === 'actor' || (el.entry === 'message' && el.named !== false)) {
+    // The name is an actor's second token and a named message's first.
+    const tk = el.entry === 'actor' ? toks[1] : toks[0];
+    if (!tk) return;
+    pick = dgeFreshName(el.id);
+    copy = line.slice(0, tk.s) + pick + line.slice(tk.e);
+  }
+  let text = DGE.source;
+  if (el.entry !== 'actor') {
+    const kind = el.entry;
+    const at = kind === 'message' ? dgeMsgIndex(el)
+      : Number(el.id.slice(P.dgNoteName(seq, '').length));
+    if (!(at >= 0)) return;
+    const map = dgeSeqRenumber(seq, DGE.model, (k, i) => (k === kind && i > at ? i + 1 : i));
+    text = dgeRenameIn(text, map.ids, map.tags);
+    if (!pick) pick = kind === 'message' ? P.dgMsgName(seq, at + 1) : P.dgNoteName(seq, at + 1);
+  }
+  const lines = text.split('\n');
+  lines.splice(el.line, 0, indent + copy);
+  if (!dgeSetSource(lines.join('\n'))) return;
+  dgeSelect([pick]);
+  dgeStatus(copy, `a copy of ${el.id}, in the run of ${seq} after it`);
 }
 
 // A statement's whole text: its own line, trimmed as `span` has it, and the
@@ -36154,7 +36611,21 @@ function dgeRename(id, raw) {
   }
   const map = dgeRenameMap(id, next);
   const also = map.ids.size - 1 + map.tags.size;
-  if (dgeSetSource(dgeRenameIn(DGE.source, map.ids, map.tags, dgeParseOf))) {
+  // dgeRenameIn rewrites only the words it could show to be the name, so a
+  // result that does not compile means a line uses the name somewhere the
+  // parser cannot tell it from a keyword. The fallback that used to follow
+  // rewrote the keywords too – `sequence s at 0,0` became `sequence s c 0,0`
+  // – so this refuses instead, in words about the rename rather than the
+  // compiler's sentence about a line the author never touched.
+  const out = dgeRenameIn(DGE.source, map.ids, map.tags, dgeParseOf);
+  const res = dgeParseOf(out);
+  if (!res || !res.model || res.errors.length) {
+    const why = res && res.errors.length ? ` (${res.errors[0].msg.replace(/\.$/, '')})` : '';
+    return say(`${id} cannot be renamed to ${next}: a line names it where the word can also be read `
+      + `as a keyword, and only the words that are certainly the name are rewritten, which would leave `
+      + `the block unable to compile${why}. Nothing was changed.`);
+  }
+  if (dgeSetSource(out)) {
     dgeSelect([next]);
     dgeStatus('', `${id} is ${next}, in every line that named it`
       + (also ? ` – and ${also} name(s) the statement generates from it` : ''));
@@ -37742,7 +38213,16 @@ function dgeCopy() {
   // those lines generate, each with its maker – so a paste that renames `t`
   // to `t2` sends `edge … t-0-0.bottom` to `t2-0-0` rather than to a fresh
   // `t-0-02` that nothing generates.
-  const generatedHere = (n) => { const e = dgeFind(n); return !!(e && e.synth && e.synth !== e.id && !e.entry); };
+  // Authored is what dgeOwnedNames calls authored: a sequence's actors and
+  // the messages someone named. A message's positional `s-1`, a note's
+  // `s-note-0` and a lifeline are generated like a table's cells, so they
+  // follow their maker – taken for authored, `s-1` was renamed on its own and
+  // the paste then refused its own messages.
+  const generatedHere = (n) => {
+    const e = dgeFind(n);
+    return !!(e && e.synth && e.synth !== e.id
+      && (!e.entry || e.entry === 'note' || e.named === false));
+  };
   const authored = [...want].filter((n) => !generatedHere(n));
   const generated = [];
   for (const n of want) {
@@ -37766,8 +38246,10 @@ function dgeCopy() {
 // `box mix "the mix of a and b"` into a figure that already has `mix` turned
 // the caption into "the mix2 of a2 and b". So this tokenizes each line and
 // rewrites only the tokens that can hold a *name*, and a quoted token is never
-// one of them. Two callers: a paste, which renames to dodge a collision, and
-// the name field, which renames because that is what it is for.
+// one of them. The callers: a paste, which renames to dodge a collision; the
+// name field, which renames because that is what it is for; and a delete or a
+// duplicate inside a sequence's run, which moves the names a message or a
+// note has by its place.
 //
 // **A tag is not an element name**, and `tags` is a second map rather than the
 // same one because the two live in different namespaces. `style @mix` is a
@@ -37785,20 +38267,34 @@ function dgeCopy() {
 // called what an element is. Rewriting every such word turned `w 2` into
 // `c 2` and `step a` into `step c`: the first is refused, so an element
 // called `w` could never be renamed; the second compiles and silently renames
-// a beat. Two rules close that. A step's own name, the word after `step`, is
-// never an element's. And a whole-token occurrence is swapped, alone, for a
-// probe name and the block parsed: if the probe turns up in the model as an
-// element or a reference, the word was the name; if it vanishes into a
-// refusal, it was a keyword. A match inside a longer token – `a.cx+0.2`,
-// `a,b` – has no keyword reading and is not asked.
+// a beat. Three rules close that. A step's own name, the word after `step`, is
+// never an element's. A match right after a dot is never one either: it is a
+// port or a coordinate, `a.left` or `a.cx`, and with an element called `left`
+// in the block, renaming it wrote `a.c`. And a whole-token occurrence is
+// swapped for a probe name and the block parsed: if the probe turns up in the
+// model as an element or a reference, the word was the name; if it vanishes
+// into a refusal, it was a keyword. Any other match inside a longer token –
+// `a,b`, `a.cx+0.2` – is a name and is not asked.
 //
-// The probe has one blind spot: a reference the parser checks on the spot,
-// like a sequence message's actor, drops the whole statement with the probe
-// in it. So the careful answer is kept only when it compiles; otherwise the
-// rewrite of every occurrence is tried, and whichever compiles is returned –
-// the careful one when neither does, since dgeSetSource will refuse it and
-// say why. `compile` parses a body the way the caller's figure does and
-// answers `{model, errors}` or null; without it every occurrence is swapped.
+// **The occurrences are asked in source order, each on top of the ones
+// already answered.** Some references are checked on the spot against a
+// declaration above them – a message's actors, `series of`, a plot's
+// `same as` – and a name there that is not declared drops the whole
+// statement. Asked one at a time against the untouched block, `at -> v` lost
+// its statement the moment the probe stood where `at` was, still declared as
+// `actor at`, and so read as a keyword. With the declaration already answered
+// a name, the probe is declared, and the message keeps it. Each name gets a
+// probe of its own, so a paste renaming two names at once cannot make one
+// probe collide with the other.
+//
+// **Nothing is rewritten that was not answered a name.** When the careful
+// rewrite does not compile it is returned as it is, for the caller to refuse:
+// the earlier fallback rewrote every occurrence instead, keywords included,
+// and renaming an actor called `at` wrote `sequence s c 0,0`. `compile`
+// parses a body the way the caller's figure does and answers `{model,
+// errors}` or null; without it every occurrence but a port is swapped, which
+// is right for the callers that pass none – generated names, which no keyword
+// spells, and a run of sequence entries, which has no keyword to spell.
 function dgeRenameIn(text, rename, tags, compile) {
   const tagMap = tags || new Map();
   const alt = [...rename.keys(), ...tagMap.keys()]
@@ -37809,55 +38305,85 @@ function dgeRenameIn(text, rename, tags, compile) {
   // A name is bounded by anything that cannot be part of one. Element names
   // are letters, digits, _ and -, which is what makes this exact.
   const re = new RegExp('(^|[^\\w-])(' + alt + ')(?![\\w-])', 'g');
-  let probe = 'dgeProbe';
-  while (text.includes(probe)) probe += 'x';
-  const isName = (at, len) => {
-    const res = compile(text.slice(0, at) + probe + text.slice(at + len));
-    if (!res || !res.model) return true;
+  // Every occurrence, in source order: where it is, what replaces it, and
+  // whether it is a whole bare token and so has to be asked.
+  const occ = [];
+  let lineStart = 0;
+  for (const line of text.split('\n')) {
+    const toks = window.PSI_DG.dgTokenize(line, 0);
+    const bare = toks.filter((t) => !t.q && !t.attr);
+    for (const t of toks) {
+      // A comment runs to the end of the line, and dgTokenize does not strip
+      // one – it hands `#` back as a bare token and every word after it as
+      // another. Measured: a rename of an element called `a` rewrote the word
+      // "a" inside the German prose comments of `lectures/network-security`,
+      // which compiles perfectly and is nonsense. A name is a name only before
+      // the hash.
+      if (!t.q && !t.attr && t.v.startsWith('#')) break;
+      if (t.q) continue;                       // a label is not a name
+      if (t.attr) continue;                    // classes, removals and tags
+      if (bare[0] && bare[0].v === 'step' && t === bare[1]) continue;   // a beat's own name
+      for (const mt of t.v.matchAll(re)) {
+        const [whole, pre, name] = mt;
+        const at = lineStart + t.s + mt.index + pre.length;
+        if (pre === '@') {
+          if (tagMap.has(name)) occ.push({ at, len: name.length, to: tagMap.get(name), tag: true });
+          continue;
+        }
+        if (pre === '.') continue;             // a port or a coordinate
+        if (!rename.has(name)) continue;
+        occ.push({ at, len: name.length, name, to: rename.get(name), ask: whole === t.v });
+      }
+    }
+    lineStart += line.length + 1;
+  }
+  const build = (list, as) => {
+    let out = '';
+    let k = 0;
+    for (const o of [...list].sort((a, b) => a.at - b.at)) { out += text.slice(k, o.at) + as(o); k = o.at + o.len; }
+    return out + text.slice(k);
+  };
+  if (!compile) return build(occ, (o) => o.to);
+  let stem = 'dgeProbe';
+  while (text.includes(stem)) stem += 'x';
+  const names = [...rename.keys()];
+  const probeOf = (name) => `${stem}_${names.indexOf(name)}_`;
+  const probed = (o) => (o.tag ? o.to : probeOf(o.name));
+  // How often each name's probe shows up in the model – an element, a
+  // reference, a member – or null when the block does not parse at all.
+  const counts = (body) => {
+    let res = null;
+    try { res = compile(body); } catch (e) { res = null; }
+    if (!res || !res.model) return null;
     const m = res.model;
     const seen = JSON.stringify({ ...m, steps: (m.steps || []).map((s) => s.ops) },
       (k, v) => (v instanceof Map || v instanceof Set ? [...v] : v));
-    return seen.includes(probe);
+    return new Map(names.map((n) => [n, seen.split(probeOf(n)).length - 1]));
   };
-  const rewrite = (careful) => {
-    let lineStart = 0;
-    return text.split('\n').map((line) => {
-      const toks = window.PSI_DG.dgTokenize(line, 0);
-      const edits = [];
-      const bare = toks.filter((t) => !t.q && !t.attr);
-      for (const t of toks) {
-        // A comment runs to the end of the line, and dgTokenize does not strip
-        // one – it hands `#` back as a bare token and every word after it as
-        // another. Measured: a rename of an element called `a` rewrote the word
-        // "a" inside the German prose comments of `lectures/network-security`,
-        // which compiles perfectly and is nonsense. A name is a name only before
-        // the hash.
-        if (!t.q && !t.attr && t.v.startsWith('#')) break;
-        if (t.q) continue;                       // a label is not a name
-        if (t.attr) continue;                    // classes, removals and tags
-        if (bare[0] && bare[0].v === 'step' && t === bare[1]) continue;   // a beat's own name
-        const next = t.v.replace(re, (m, pre, name) => {
-          if (pre === '@') return pre + (tagMap.get(name) || name);
-          const to = rename.get(name);
-          if (!to) return m;
-          if (careful && m === t.v && !isName(lineStart + t.s, t.e - t.s)) return m;
-          return pre + to;
-        });
-        if (next !== t.v) edits.push({ start: t.s, end: t.e, text: next });
-      }
-      lineStart += line.length + 1;
-      edits.sort((a, b) => b.start - a.start);
-      let out = line;
-      for (const e of edits) out = out.slice(0, e.start) + e.text + out.slice(e.end);
-      return out;
-    }).join('\n');
+  // Whether swapping `o` in, on top of `with`, makes its name's probe show up
+  // more often – which is what being read as the name means.
+  const gains = (o, with_, known) => {
+    const before = known || counts(build(with_, probed));
+    const after = counts(build([...with_, o], probed));
+    return !!after && (!before || after.get(o.name) > before.get(o.name));
   };
-  if (!compile) return rewrite(false);
-  const compiles = (t) => { const r = compile(t); return !!(r && r.model && !r.errors.length); };
-  const careful = rewrite(true);
-  if (compiles(careful)) return careful;
-  const blunt = rewrite(false);
-  return compiles(blunt) ? blunt : careful;
+  // Asked twice when the first answer is no. First as the line stands: that
+  // tells `right of w w 2` apart, the reference from the width. Then with the
+  // rest of its line already swapped, for a line that names the element twice
+  // and drops whole while either is undeclared: in `plot p2 below at same as
+  // at` the `below at` is not seen until `same as at` is answered too.
+  const kept = occ.filter((o) => !o.ask);
+  const lineOf = (o) => text.lastIndexOf('\n', o.at - 1);
+  let base = counts(build(kept, probed));
+  for (const o of occ) {
+    if (!o.ask) continue;
+    const rest = occ.filter((x) => x.ask && x.at > o.at && lineOf(x) === lineOf(o));
+    if (gains(o, kept, base) || (rest.length && gains(o, [...kept, ...rest]))) {
+      kept.push(o);
+      base = counts(build(kept, probed));
+    }
+  }
+  return build(kept.sort((a, b) => a.at - b.at), (o) => o.to);
 }
 
 // The parse dgeRenameIn asks its questions with: this figure's compiler and

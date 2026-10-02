@@ -13,10 +13,10 @@
  *
  * **The order of the beats is not reimplemented here.** It has exactly one
  * definition, in AUDIENCE_JS, and this module calls it through
- * `window.psiExport` - ten lines of mechanism that ship in the two live views.
- * That is what makes the export unable to be wrong about the order; it can
- * only be wrong about the rendering, and that is a class of fault you look at
- * rather than hunt for.
+ * `window.psiExport` - eleven members of mechanism that ship in the two live
+ * views. That is what makes the export unable to be wrong about the order;
+ * it can only be wrong about the rendering, and that is a class of fault you
+ * look at rather than hunt for.
  *
  * What lives here is the policy: which states become pages, what leaves the
  * clone, what the print DOM is, every diagnostic, and the order in which a
@@ -446,25 +446,21 @@ function pageCollect(cfg) {
   // whenever a chunk lands close to it, and fit the chunk a step apart; only
   // these numbers tell such a page from a real difference that also comes
   // out a step apart (a picture that did not load, a fallback face). The
-  // probe is the runtime's own (flowHeightProbe, FULL_FIT_FILL) because a
-  // second measurement here would disagree with the fit by tens of pixels -
-  // reached by name, so a rename leaves the page without numbers and the
-  // parity check then counts the page as a difference rather than passing it.
-  // The second zoom is undone before anything else reads the page.
+  // numbers are the runtime's own, through psiExport.fitMeasure, because a
+  // second measurement here would disagree with the fit by tens of pixels.
+  // A page without the member, or one it answers with nothing, carries no
+  // numbers, and the parity check then counts the page as a difference rather
+  // than passing it. The hook puts the shown zoom back before returning.
   const fitMeasure = (el, shown) => {
-    let probe, limit;
-    try {
-      probe = flowHeightProbe(el); limit = viewport.clientHeight * FULL_FIT_FILL;
-    } catch { return; }
-    if (typeof probe !== 'function' || !(limit > 0)) return;
+    if (typeof P.fitMeasure !== 'function') return;
     const up = Math.round((Number(shown) + 0.05) * 100) / 100;
-    const root = document.documentElement.style;
-    const h = probe();
-    root.setProperty('--zoom', up);
-    const hUp = probe();
-    root.setProperty('--zoom', shown);
+    let m;
+    try { m = P.fitMeasure(el, [shown, up]); } catch { return; }
+    if (!m || !(m.limit > 0) || !Array.isArray(m.heights) || m.heights.length !== 2) return;
     const r1 = (x) => Math.round(x * 10) / 10;
-    pages[pages.length - 1].fit = { limit: r1(limit), h: r1(h), up, hUp: r1(hUp) };
+    pages[pages.length - 1].fit = {
+      limit: r1(m.limit), h: r1(m.heights[0]), up, hUp: r1(m.heights[1]),
+    };
   };
 
   const run = async () => {

@@ -378,8 +378,10 @@ fake driver that records its calls. The app therefore carries no
 playwright-core and `--omit=optional` in `stage-engine.mjs` stays.
 
 The order of the beats stays in `AUDIENCE_JS`, where it has always had its one
-definition; the slide export calls it through a ten-line `window.psiExport`
-hook that ships in the two live views and changes no behaviour. That is what
+definition; the slide export calls it through `window.psiExport`, eleven
+members of mechanism that ship in the two live views and change no behaviour –
+the last, `fitMeasure(el, zooms)`, hands parity the fit's own heights and limit
+so pdf-core never reads a runtime name directly. That is what
 makes the export unable to be wrong about the order – it can only be wrong
 about the rendering. Three things are load-bearing and none should be traded
 away: auto-fit is forced on regardless of the frontmatter (a chunk taller than

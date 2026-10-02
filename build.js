@@ -24851,6 +24851,21 @@ window.psiExport = {
   setCollapse: (m) => { state.collapse = m; },
   quiesce: () => { autoplayStopped = true; stopAutoplay(); },
   zoom: () => state.zoom,
+  // What the fit would measure, without fitting: el's flow height at each
+  // zoom given, by the probe fitZoomToChunk uses, and the limit it holds a
+  // chunk to. Only --zoom on <html> is written, and its inline value is put
+  // back before returning; state.zoom is not touched. Read by the PDF
+  // export's parity numbers and by nothing in the live views.
+  fitMeasure: (el, zooms) => {
+    const limit = viewport ? viewport.clientHeight * FULL_FIT_FILL : 0;
+    if (!(limit > 0)) return null;
+    const probe = flowHeightProbe(el);
+    const root = document.documentElement.style;
+    const before = root.getPropertyValue('--zoom');
+    const heights = zooms.map(z => { root.setProperty('--zoom', z); return probe(); });
+    if (before) root.setProperty('--zoom', before); else root.removeProperty('--zoom');
+    return { limit, heights };
+  },
 };
 
 // Boot
