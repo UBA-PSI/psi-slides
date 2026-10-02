@@ -28,12 +28,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Runners are pinned, not -latest: these jobs rely on measured image properties (Chrome at /usr/bin/google-chrome, no cwebp or magick, xvfb and poppler from apt), so moving one is a deliberate change that needs a browser.yml run first.
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -129,16 +130,16 @@ jobs:
              _site/decoration/
           cp docs/site/example/{audience,speaker,print,print-notes}.html _site/example/
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

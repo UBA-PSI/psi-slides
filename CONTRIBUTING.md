@@ -249,10 +249,16 @@ this. Once `release.yml` has published all seven assets, check them
 `curl -sIL -o /dev/null -w '%{http_code}'` per link on
 `getting-started.html`).
 
-**`ubuntu-latest` moves to Ubuntu 26 on 2026-10-19.** Every workflow here runs
-on that label; run the browser suite (`browser.yml`) once after the switch,
-before the next tag, because a runner image that moves the browser fails the
-release, not a push.
+**The runners are pinned** – `ubuntu-24.04` everywhere, plus `macos-26` and
+`windows-2025-vs2026` in the desktop matrix – rather than `-latest`, so the
+move of `ubuntu-latest` to Ubuntu 26 on 2026-10-19 changes nothing here. To
+move one, change the label on a branch and run the browser suite
+(`gh workflow run browser.yml --ref <branch>`) and, for the matrix,
+`desktop.yml` before the next tag: release.yml relies on measured properties
+of the image (Chrome at `/usr/bin/google-chrome`, no cwebp or magick, xvfb and
+poppler-utils from apt), and a runner image that moves the browser fails the
+release, not a push. A mac label must stay arm64, or the `mac-arm64` asset
+names stop matching.
 
 **The macOS release is signed and notarised on the maintainer's machine**, not
 in CI – `npm run dist:signed` in `desktop/`, with the Developer ID

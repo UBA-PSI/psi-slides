@@ -78,12 +78,13 @@ permissions:
   contents: read
 
 jobs:
+  # Runners are pinned, not -latest: these jobs rely on measured image properties (Chrome at /usr/bin/google-chrome, no cwebp or magick, xvfb and poppler from apt), so moving one is a deliberate change that needs a browser.yml run first.
   test:
     name: Tests and smoke test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
 
@@ -120,10 +121,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        # Pinned like every runner here (see the line under jobs:); macos-26 is arm64, which the mac-arm64 asset names in release.yml rely on.
+        os: [macos-26, windows-2025-vs2026, ubuntu-24.04]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
 
@@ -160,7 +162,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npm run dist -- --publish never
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: psi-slides-builder-${{ matrix.os }}
           if-no-files-found: error

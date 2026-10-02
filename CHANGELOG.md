@@ -7,6 +7,14 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Changed
+
+- CI only: the workflows use the current major of each GitHub action
+  (checkout and setup-node v7, upload-artifact v7, download-artifact v8,
+  upload-pages-artifact and deploy-pages v5), which run on Node.js 24, and
+  run on pinned images (`ubuntu-24.04`, `macos-26`, `windows-2025-vs2026`)
+  instead of `-latest`.
+
 ## [2.0.0]
 
 ### Breaking

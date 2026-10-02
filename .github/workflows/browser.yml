@@ -24,15 +24,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Runners are pinned, not -latest: these jobs rely on measured image properties (Chrome at /usr/bin/google-chrome, no cwebp or magick, xvfb and poppler from apt), so moving one is a deliberate change that needs a browser.yml run first.
   browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The last runs took 16 to 17.5 minutes, so 25 was a flaky runner away
     # from a timeout that says nothing about the tree.
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -45,7 +46,7 @@ jobs:
       # browser answered, and so a missing one fails here with the list of
       # paths it tried rather than inside the suite.
       #
-      # On an ubuntu-latest runner this answers /usr/bin/google-chrome, the
+      # On an ubuntu-24.04 runner this answers /usr/bin/google-chrome, the
       # first entry in findChrome()'s Linux list, and the suite ran the whole
       # way from it. If a future runner image moves the browser, this step is
       # where that shows up, and the fix is one path added in

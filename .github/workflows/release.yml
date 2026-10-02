@@ -56,17 +56,18 @@ permissions:
   contents: read
 
 jobs:
+  # Runners are pinned, not -latest: these jobs rely on measured image properties (Chrome at /usr/bin/google-chrome, no cwebp or magick, xvfb and poppler from apt), so moving one is a deliberate change that needs a browser.yml run first.
   check:
     name: Tag, versions and release notes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       have_notes: ${{ steps.notes.outputs.have_notes }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The checks below run `node`; named, so they do not run on whatever
       # version the runner image happens to ship.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
 
@@ -146,7 +147,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-notes
           if-no-files-found: error
@@ -155,16 +156,16 @@ jobs:
   engine:
     name: Engine checks and archives
     needs: check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The browser suite alone takes about seventeen minutes; this is the
     # bound on a hung browser, not on a slow one.
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # git archive needs the tagged tree, not a shallow tip
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -247,7 +248,7 @@ jobs:
       # /usr/bin/google-chrome. Named in its own step so a missing browser
       # fails with the list of paths it tried rather than inside the suite.
       #
-      # Exercised on a runner before this job was ever relied on: ubuntu-latest
+      # Exercised on a runner before this job was ever relied on: ubuntu-24.04
       # answers /usr/bin/google-chrome and the suite passed from it, 577
       # assertions in 430 s. Placed after every check that can fail cheaply
       # and before anything is staged or published, so if a future runner
@@ -283,7 +284,7 @@ jobs:
 
       # Handed to `publish` rather than released from here, so that the
       # archives and the desktop packages go up together or not at all.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: psi-slides-engine
           if-no-files-found: error
@@ -302,20 +303,20 @@ jobs:
   publish:
     name: Publish the release
     needs: [check, engine, desktop]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: release-notes
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: psi-slides-engine
           path: assets
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: psi-slides-builder-*
           path: assets
