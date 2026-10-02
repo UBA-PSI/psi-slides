@@ -20247,6 +20247,8 @@ window.addEventListener('message', (ev) => {
   }
   if (VIEW === 'audience') {
     if (m.type === 'figure-focus') {
+      // A slide change still in its dip would close the card when it lands.
+      settleFade();
       const chunk = flatChunks[m.chunkIdx];
       if (chunk) {
         const el = chunk.el.querySelectorAll(FOCUSABLE_SEL)[m.figureIdx];
@@ -20262,6 +20264,7 @@ window.addEventListener('message', (ev) => {
     // aside is on the projection: the lecturer clicks it in the cockpit and
     // the room is what has to move.
     if (m.type === 'figure-pan') {
+      settleFade();
       const chunk = flatChunks[m.chunkIdx];
       if (chunk) {
         const el = chunk.el.querySelectorAll(FOCUSABLE_SEL)[m.figureIdx];
@@ -24177,6 +24180,9 @@ window.addEventListener('resize', () => {
 // far enough to put the whole aside inside the frame. See setAsidePan.
 const figureOverlay = document.getElementById('psiINT-figure-overlay');
 let focusedFigure = null;
+// The element on the slide the card is a clone of, so a thawing cockpit can
+// name it to the projection (figureFocusState).
+let focusedFigureSrc = null;
 // Per-focus zoom + pan: +/− keys (and wheel) scale; drag pans. Reset
 // every time a new figure gets focused so each one starts at 1x. Pan
 // is in CSS px on the focus-target's layout box. The transform is
@@ -24255,6 +24261,7 @@ function unfocusFigure() {
   if (!focusedFigure) return;
   focusedFigure.style.transform = '';
   focusedFigure = null;
+  focusedFigureSrc = null;
   figureOverlay.replaceChildren();
   document.body.classList.remove('figure-focused');
   resetFigureView();
@@ -24268,6 +24275,7 @@ function focusFigure(el) {
   figureOverlay.replaceChildren(clone);
   document.body.classList.add('figure-focused');
   focusedFigure = clone;
+  focusedFigureSrc = el;
   applyFigureTransform();
   // A stepped diagram opens on the beat the slide is on, not on beat 0: the
   // clone carries whatever the emitter wrote statically, which is the *last*
@@ -24490,6 +24498,25 @@ function clearAsidePan() {
   asidePan = null;
   document.body.classList.remove('aside-panned');
   return true;
+}
+// What is open over or beside the live slide, as the messages that would put
+// the other window in the same place: the focus card with its zoom, or the
+// brought-in aside - and the closing message for each that is not open. A
+// frozen cockpit sends none of these as they happen, and the snapshot a thaw
+// pushes carries neither, so a card closed while frozen stayed up on the
+// projection. Thawing sends this list after the snapshot (toggleFreeze).
+function figureFocusState() {
+  const entry = flatChunks[state.activeIdx];
+  const idxIn = (el) => (entry && el ? Array.from(entry.el.querySelectorAll(FOCUSABLE_SEL)).indexOf(el) : -1);
+  const out = [];
+  const f = focusedFigure ? idxIn(focusedFigureSrc) : -1;
+  if (f >= 0) {
+    out.push({ type: 'figure-focus', chunkIdx: state.activeIdx, figureIdx: f });
+    out.push({ type: 'figure-view', scale: figureScale, panX: figurePan.x, panY: figurePan.y });
+  } else out.push({ type: 'figure-unfocus' });
+  const a = asidePan ? idxIn(asidePan.el) : -1;
+  out.push(a >= 0 ? { type: 'figure-pan', chunkIdx: state.activeIdx, figureIdx: a } : { type: 'figure-unpan' });
+  return out;
 }
 
 // ── where forward will take you ───────────────────────────────────
@@ -26079,6 +26106,11 @@ function toggleFreeze() {
   // land on would look like it did nothing at all.
   if (!frozen && !isApplyingRemote) {
     sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
+    // The snapshot moves the slide, not the focus card or a brought-in
+    // aside: those travel as their own messages, and a frozen window sent
+    // none, so the room's card has to be told explicitly - opened, closed or
+    // left as it is.
+    figureFocusState().forEach(sendToPeer);
     // The room is now on this window's slide, so this is the position a
     // reloaded projection should come back to.
     saveActive();
