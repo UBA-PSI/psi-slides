@@ -57,7 +57,7 @@ Der Browser fragt. Der Server antwortet. Die Seite erscheint.
 
 # Die Anfrage, zweimal
 
-## figure: Wie ich es an die Tafel zeichne | sechs Schritte, von links nach rechts {.wide #board}
+## figure: Wie ich es an die Tafel zeichne | drei Kästen, zwei Pfeile, eine Zahl {.wide #board}
 
 ::: draw 100x40
 default box {.tone-2} w 1.72 pad 0.16

@@ -65,7 +65,7 @@ the scanner – `pathlib` and `re` – are there because the next script needs t
 
 ::: rows
 - **Python 3.11 or newer** `python3 --version` in a terminal has to answer, and the answer has to start with a 3.11 or better
-- **A terminal you are at home in** we install, activate and run from it all afternoon; which shell it is does not matter
+- **A terminal you are at home in** we install, activate and run from it throughout the session; which shell it is does not matter
 - **The shape of a loop** a variable, a function and a `for` should be familiar ideas, even if the Python spelling is not
 :::
 

@@ -74,7 +74,7 @@ The browser asks. The server answers. The page appears.
 
 # The request, twice
 
-## figure: As I draw it on the board | six steps, left to right {.wide #board}
+## figure: As I draw it on the board | three boxes, two arrows, a number {.wide #board}
 
 ::: draw 100x40
 default box {.tone-2} w 1.72 pad 0.16
