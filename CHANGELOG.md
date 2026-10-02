@@ -3507,7 +3507,16 @@ tag:
   the build reported it as staged. A deck whose only media are clips counted
   as a deck with nothing to inline, turned inlining off and staged a 20 KB
   clip as “too large to inline (0.0 MB)”; it now inlines what fits, and with
-  inlining off the line says that is why.
+  inlining off the line says that is why. What fits is measured against the
+  10 MB auto-inline budget the pictures are held to, which the clips share:
+  each clip was inlined up to its own 12 MB cap with no total, so three 8 MB
+  clips wrote about 32 MB into every view; a clip that does not fit what the
+  pictures leave now plays from `videos/`, and `--inline-images` still
+  inlines each one up to the cap. And two clips with one file name –
+  `a/intro.mp4` and `b/intro.mp4`, or `![](intro)` and
+  `../shared/intro.mp4` – were both staged as `videos/intro.mp4`, so one
+  slide played the other's clip; each now gets a short hash of its path in
+  its name, the same on every build.
 - **The linter's `oversized-asset` warning says the build refuses the
   deck.** It said the picture would stay an external path, which stopped
   being true when the cap became a build failure.

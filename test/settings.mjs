@@ -76,6 +76,7 @@
  * would still pass.
  */
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -3960,6 +3961,47 @@ console.log('\nlayout generations');
     const ex = raw(T + '## figure: C {#a}\n\n![](assets/big.mp4)\n', ['--audience-only'], { 'assets/big.mp4': bigClip });
     ok(ex.code === 0 && /<video src="videos\/big\.mp4"/.test(ex.html) && fs.existsSync(path.join(ex.dir, 'videos/big.mp4')),
        'an explicit-path clip over the cap is staged into videos/, like the shorthand', String((ex.html || '').match(/<video src="[^"]{0,30}/)));
+
+    // Two clips with one file name used to be staged as one videos/intro.mp4:
+    // the second copy overwrote the first and slide A played slide B's clip.
+    // A shared name takes a short hash of the clip's path relative to the
+    // source, which a rebuild reproduces; a name only one clip has is kept.
+    {
+      const clipA = Buffer.alloc(3000, 1), clipB = Buffer.alloc(4000, 2), clipC = Buffer.alloc(5000, 3), clipD = Buffer.alloc(6000, 4);
+      const same = T + '## figure: A {#a}\n\n![](a/intro.mp4)\n\n## figure: B {#b}\n\n![](b/intro.mp4)\n\n'
+        + '## figure: C {#c}\n\n![](intro)\n\n## figure: D {#d}\n\n![](solo)\n';
+      const files = { 'a/intro.mp4': clipA, 'b/intro.mp4': clipB, 'assets/intro.mp4': clipC, 'assets/solo.mp4': clipD };
+      const sm = raw(same, ['--audience-only', '--no-inline-images'], files);
+      const h = (rel) => crypto.createHash('sha256').update(rel).digest('hex').slice(0, 8);
+      const want = [['a/intro.mp4', `videos/intro-${h('a/intro.mp4')}.mp4`, clipA],
+        ['b/intro.mp4', `videos/intro-${h('b/intro.mp4')}.mp4`, clipB],
+        ['assets/intro.mp4', `videos/intro-${h('assets/intro.mp4')}.mp4`, clipC],
+        ['assets/solo.mp4', 'videos/solo.mp4', clipD]];
+      const srcs = ((sm.html || '').match(/<video src="[^"]*"/g) || []).map(x => x.slice(12, -1));
+      ok(sm.code === 0 && want.every(([, rel], i) => srcs[i] === rel),
+         'clips sharing a file name are staged under names of their own, and a name one clip has is kept', srcs.join(' '));
+      ok(want.every(([, rel, bytes]) => { try { return fs.readFileSync(path.join(sm.dir, rel)).equals(bytes); } catch { return false; } }),
+         'and each staged file is the clip its slide names');
+    }
+
+    // Clips count against the auto-inline budget. Each used to be inlined up
+    // to its own 12 MB cap with no total, so three 8 MB clips wrote ~32 MB
+    // into every view. Without a flag the clips are fitted into the 10 MB in
+    // the order the deck names them; --inline-images keeps the old rule.
+    {
+      const four = Buffer.alloc(4 * 1024 * 1024, 7);
+      const three = T + '## figure: A {#a}\n\n![](one)\n\n## figure: B {#b}\n\n![](two)\n\n## figure: C {#c}\n\n![](three)\n';
+      const files = { 'assets/one.mp4': four, 'assets/two.mp4': four, 'assets/three.mp4': four };
+      const au = raw(three, ['--audience-only'], files);
+      const kinds = ((au.html || '').match(/<video src="[^"]{0,12}/g) || []).map(x => x.slice(12));
+      ok(au.code === 0 && kinds[0] === 'data:video/m' && kinds[1] === 'data:video/m' && kinds[2] === 'videos/three',
+         'without a flag, three 4 MB clips inline the two that fit 10 MB and stage the third', kinds.join(' '));
+      ok(/2 clip\(s\) inlined.*1 past the budget play from videos\//.test(au.out),
+         'and the decision line says so', au.out.split('\n').find(l => /inline-images/.test(l)));
+      const fo = raw(three, ['--audience-only', '--inline-images'], files);
+      ok(fo.code === 0 && ((fo.html || '').match(/<video src="data:video\/mp4/g) || []).length === 3,
+         '--inline-images still inlines every clip up to the clip cap');
+    }
 
     // Frontmatter: lint reports what the build refuses, and passes what it
     // accepts.

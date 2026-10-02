@@ -641,7 +641,7 @@ That player is a real clip embedded in this HTML file, a pan across the overview
 ::: expand Size, and clips on a server
 **A clip goes inside the HTML up to a limit of its own, 12 MB**, well above the 2 MB a picture may take.
 
-**Over that limit the clip is stored beside the file**, in a `videos/` folder next to the output. The build says so on the terminal and suggests an `ffmpeg` line that would make it small enough to go inside – one named folder to copy along with the HTML.
+**Over that limit the clip is stored beside the file**, in a `videos/` folder next to the output. The build says so on the terminal and suggests an `ffmpeg` line that would make it small enough to go inside – one named folder to copy along with the HTML. So is a clip that would take the deck's pictures and clips together past 10 MB; `--inline-images` puts each one inside up to its own limit.
 
 **A clip can also live on a web server:** `![](https://host/clip.mp4)` stays an ordinary player, still synchronised between the two windows. The player's own button is the fullscreen control, and a click on a clip does not open it in a card, which would fight the play button.
 :::

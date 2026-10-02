@@ -619,6 +619,10 @@ function toDataUri(absPath) {
   if (!absPath) return null;
   if (dataUriCache.has(absPath)) return dataUriCache.get(absPath);
   if (!assetAllowed(absPath)) { dataUriCache.set(absPath, null); return null; }
+  // Under the clip cap, and staged all the same: the auto decision found no
+  // room for it in the deck's budget. Not an oversize, so no warning - the
+  // decision line and the [video] summary say what happened.
+  if (clipsOverBudget.has(path.resolve(absPath))) { dataUriCache.set(absPath, null); return null; }
   let stat;
   try { stat = fs.statSync(absPath); }
   catch { dataUriCache.set(absPath, null); return null; }
@@ -927,6 +931,10 @@ function scanReferencedImages(src, sourceDir) {
   // inline, and counting it as a deck with nothing turned inlining off and
   // staged a 20 KB clip into videos/ as "too large to inline".
   let clips = 0;
+  // And listed, in the order the deck names them: the auto decision fits
+  // them into what the images leave of the budget, and the staging plan
+  // gives each its name under videos/.
+  const clipList = [];
   // Assets past the per-image cap are collected rather than merely counted:
   // buildOnce refuses to emit a half-inlined output (see assertInlinable).
   const oversized = [];
@@ -945,21 +953,23 @@ function scanReferencedImages(src, sourceDir) {
     if (assetEscape(abs, sourceDir) !== null) continue;
     try {
       const stat = fs.statSync(abs);
-      // Video is deliberately kept out of the auto-inline total. That budget
-      // decides "inline the images or none of them"; a clip has its own,
-      // larger per-file cap and its own fallback (staging into videos/), so
-      // letting one push the sum past 10 MB turned inlining off for every
-      // diagram in the lecture and reported the clip as an "image".
+      // Video is kept out of the images' total. That total decides "inline
+      // the images or none of them"; a clip has its own, larger per-file cap
+      // and its own fallback (staging into videos/), so letting one push the
+      // sum past 10 MB turned inlining off for every diagram in the lecture
+      // and reported the clip as an "image". The clips are fitted into what
+      // the images leave of the budget afterwards, one by one (buildOnce).
       if (!isVideoExt(abs)) {
         total += stat.size;
         count += 1;
       } else {
         clips += 1;
+        clipList.push({ abs: path.resolve(abs), size: stat.size });
       }
       if (stat.size > inlineCapFor(abs)) oversized.push({ abs, size: stat.size });
     } catch { /* missing assets surface elsewhere as figure-missing */ }
   }
-  return { total, count, clips, oversized };
+  return { total, count, clips, clipList, oversized };
 }
 
 // Refuse to emit an output that claims to be single-file and is not.
@@ -1290,6 +1300,60 @@ function renderEmbedOpen(rawUrl) {
 // Copied, never moved: the source stays where the author put it.
 const VIDEO_STAGE_DIR = 'videos';
 const stagedVideos = new Map();   // abs source path -> relative emitted path
+// The name each clip the deck names gets under videos/, planned once per
+// build from the whole list (planClipStageNames) so it is the same in every
+// view and under every partial flag. Keyed by resolved path.
+const clipStageNames = new Map();
+// Clips the auto-inline decision stages although each is under the clip cap,
+// because inlining it would take the deck past AUTO_INLINE_BUDGET. Per build.
+const clipsOverBudget = new Set();
+
+// One folder, so two clips with one file name - `a/intro.mp4` and
+// `b/intro.mp4`, or a shorthand `![](intro)` and `../shared/intro.mp4` - were
+// both staged as videos/intro.mp4, the second copy overwrote the first, and
+// slide A played slide B's clip. A name only one clip of the deck has stays
+// as it is; where two or more share one (compared without case, which is how
+// the file systems the decks are made on compare), each gets a short hash of
+// its path relative to the source folder - a function of the source alone,
+// so a rebuild names it the same. A clip already living in videos/ keeps
+// its name, because it is played where it is.
+function clipHashName(absPath) {
+  const name = path.basename(absPath);
+  const ext = path.extname(name);
+  const rel = path.relative(currentSourceDir, absPath).split(path.sep).join('/');
+  const h = crypto.createHash('sha256').update(rel).digest('hex').slice(0, 8);
+  return `${name.slice(0, name.length - ext.length)}-${h}${ext}`;
+}
+function planClipStageNames(clips) {
+  clipStageNames.clear();
+  const groups = new Map();
+  for (const c of clips) {
+    const abs = path.resolve(c);
+    const key = path.basename(abs).toLowerCase();
+    if (!groups.has(key)) groups.set(key, []);
+    if (!groups.get(key).includes(abs)) groups.get(key).push(abs);
+  }
+  for (const list of groups.values()) {
+    for (const abs of list) {
+      const name = path.basename(abs);
+      const home = path.resolve(currentSourceDir, VIDEO_STAGE_DIR, name);
+      clipStageNames.set(abs, list.length === 1 || abs === home ? name : clipHashName(abs));
+    }
+  }
+}
+// A clip the plan did not see (a reference only a renderer reads) takes its
+// own name unless a clip staged before it in this build has it already.
+function clipStageName(absPath) {
+  const abs = path.resolve(absPath);
+  if (clipStageNames.has(abs)) return clipStageNames.get(abs);
+  const name = path.basename(abs);
+  const taken = [...clipStageNames.values(), ...[...stagedVideos.values()]
+    .map(v => v.rel && v.rel.slice(VIDEO_STAGE_DIR.length + 1))]
+    .some(n => n && n.toLowerCase() === name.toLowerCase());
+  const chosen = taken && abs !== path.resolve(currentSourceDir, VIDEO_STAGE_DIR, name) ? clipHashName(abs) : name;
+  clipStageNames.set(abs, chosen);
+  return chosen;
+}
 
 function stageVideo(absPath) {
   if (stagedVideos.has(absPath)) return stagedVideos.get(absPath);
@@ -1297,7 +1361,7 @@ function stageVideo(absPath) {
     stagedVideos.set(absPath, { rel: null, copied: false, bytes: 0 });
     return stagedVideos.get(absPath);
   }
-  const name = path.basename(absPath);
+  const name = clipStageName(absPath);
   const destDir = path.join(currentSourceDir, VIDEO_STAGE_DIR);
   const dest = path.join(destDir, name);
   const rel = `${VIDEO_STAGE_DIR}/${name}`;
@@ -30585,24 +30649,45 @@ function buildOnce(absIn, only, opts = {}) {
   // Either way log the decision so authors notice when a deck silently flips
   // from inlined back to external (e.g. after adding a heavy asset).
   let inlineImages = opts.inlineImages;
-  let scan = null;
+  // Every build plans its clips' names under videos/, whatever the flags:
+  // the plan needs the whole list, and a name has to be the same under
+  // --audience-only as under a full build.
+  let scan = scanReferencedImages(src, outDir);
+  clipsOverBudget.clear();
+  planClipStageNames(scan.clipList.map(c => c.abs));
   if (inlineImages === undefined) {
-    scan = scanReferencedImages(src, outDir);
-    const { total, count, clips } = scan;
+    const { total, count, clips, clipList } = scan;
+    const budgetMb = AUTO_INLINE_BUDGET / 1024 / 1024;
+    // What the images leave of the budget is what the clips may take, in the
+    // order the deck names them; a clip that does not fit plays from videos/.
+    // They used to be inlined each up to their own 12 MB cap with no total at
+    // all, so three 8 MB clips wrote about 32 MB into every view.
+    const fitClips = (room) => {
+      let inl = 0, bytes = 0, staged = 0;
+      for (const c of clipList) {
+        if (c.size > MAX_INLINE_VIDEO_BYTES) continue;  // staged by the cap, and said so
+        if (c.size <= room) { room -= c.size; bytes += c.size; inl += 1; }
+        else { clipsOverBudget.add(c.abs); staged += 1; }
+      }
+      return { inl, bytes, staged };
+    };
+    const clipNote = (f) => `${f.inl} clip(s) inlined, ${(f.bytes / 1024 / 1024).toFixed(2)} MB`
+      + (f.staged ? `, ${f.staged} past the budget play from ${VIDEO_STAGE_DIR}/ (--inline-images inlines each up to the ${MAX_INLINE_VIDEO_BYTES / 1024 / 1024} MB clip cap)` : '');
     if (count === 0) {
-      // Nothing to weigh. A clip has a cap of its own and a fallback past it
-      // (videos/), so a deck of clips alone inlines what fits.
+      // Nothing to weigh but the clips. A deck of clips alone inlines what
+      // fits the budget, and the rest plays from videos/.
       inlineImages = clips > 0;
-      if (clips) console.log(`[inline-images] no images, ${clips} clip(s): auto-inlining each clip up to the ${MAX_INLINE_VIDEO_BYTES / 1024 / 1024} MB per-clip cap; a larger one plays from ${VIDEO_STAGE_DIR}/. Use --no-inline-images to disable.`);
+      if (clips) {
+        console.log(`[inline-images] no images, ${clips} clip(s) under a ${budgetMb} MB auto-inline budget: ${clipNote(fitClips(AUTO_INLINE_BUDGET))}. Use --no-inline-images to disable.`);
+      }
     } else if (total <= AUTO_INLINE_BUDGET) {
       inlineImages = true;
       const mb = (total / 1024 / 1024).toFixed(2);
-      const budgetMb = AUTO_INLINE_BUDGET / 1024 / 1024;
-      console.log(`[inline-images] auto-inlining ${count} image(s), ${mb} MB total (under ${budgetMb} MB budget). Use --no-inline-images to disable.`);
+      const f = clips ? fitClips(AUTO_INLINE_BUDGET - total) : null;
+      console.log(`[inline-images] auto-inlining ${count} image(s), ${mb} MB total (under ${budgetMb} MB budget)${f ? '; ' + clipNote(f) : ''}. Use --no-inline-images to disable.`);
     } else {
       inlineImages = false;
       const mb = (total / 1024 / 1024).toFixed(2);
-      const budgetMb = AUTO_INLINE_BUDGET / 1024 / 1024;
       console.log(`[inline-images] ${count} image(s) total ${mb} MB exceed ${budgetMb} MB auto-inline budget; using external paths. Use --inline-images to force.`);
     }
   }
@@ -30611,7 +30696,6 @@ function buildOnce(absIn, only, opts = {}) {
   // artefact on disk. Only matters when inlining is on – with external paths
   // the size cap is irrelevant and nothing is being promised.
   if (inlineAssetsEnabled) {
-    if (!scan) scan = scanReferencedImages(src, outDir);
     // Oversized *images* still fail: there is no good answer for them, only
     // a broken figure later. Oversized clips do have one – staging into
     // videos/ – so they are handled rather than refused.
@@ -30823,7 +30907,9 @@ function buildOnce(absIn, only, opts = {}) {
     const copied = rows.filter(v => v.copied).length;
     console.log(
       `[video] ${rows.length} clip(s), ${mb} MB, ` +
-      `${inlineAssetsEnabled ? 'are too large to inline and play' : 'are not inlined (inlining is off) and play'} from ` +
+      `${!inlineAssetsEnabled ? 'are not inlined (inlining is off) and play'
+        : clipsOverBudget.size ? 'are too large to inline, or past the auto-inline budget, and play'
+        : 'are too large to inline and play'} from ` +
       `${VIDEO_STAGE_DIR}/ instead${copied ? ` (${copied} copied there now)` : ' (already there)'}.\n` +
       `        These outputs are NOT self-contained: keep the ${VIDEO_STAGE_DIR}/ folder beside the HTML when you share it.`
     );
