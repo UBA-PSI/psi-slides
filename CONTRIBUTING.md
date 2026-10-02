@@ -237,16 +237,22 @@ reader of the site a beta engine.
 a release needs no edit on the site. What they do depend on is timing:
 `pages.yml` redeploys the site on every push to `main`, and until
 `release.yml` has published the new release, `latest` is the previous one.
-A site that describes the new version therefore goes out together with the
-tag – push `main` and the tag in one `git push` (step 6 below), never `main`
-on its own ahead of it, or the site describes a version the download links
-do not deliver yet, and an asset the previous release did not carry is a
-404. The link gate in `docs/site/build-site.js` resolves internal targets
-and fragments; it does not fetch an external URL, so it cannot see this.
-Once `release.yml` has published all seven assets, check them
+So the tag goes first and `main` follows once the release is out (step 6
+below): the site deploys in about four minutes while `publish` waits for the
+engine job's browser suite, about twenty, so pushing the two together still
+left the site describing a version the links did not deliver for that long,
+and an asset the previous release did not carry was a 404 – longer if the
+release failed. The link gate in `docs/site/build-site.js` resolves internal
+targets and fragments; it does not fetch an external URL, so it cannot see
+this. Once `release.yml` has published all seven assets, check them
 (`gh release view v<version> --json assets`, or a
 `curl -sIL -o /dev/null -w '%{http_code}'` per link on
 `getting-started.html`).
+
+**`ubuntu-latest` moves to Ubuntu 26 on 2026-10-19.** Every workflow here runs
+on that label; run the browser suite (`browser.yml`) once after the switch,
+before the next tag, because a runner image that moves the browser fails the
+release, not a push.
 
 **The macOS release is signed and notarised on the maintainer's machine**, not
 in CI – `npm run dist:signed` in `desktop/`, with the Developer ID
@@ -304,16 +310,23 @@ Cutting a release:
    three and neither commits nor tags. Run the same command in `desktop/`,
    for `desktop/package.json` and its lockfile; the release job refuses a
    tag that either `package.json` disagrees with.
-6. Commit, then tag and push:
+6. Commit, then tag and push the tag alone. The tag is on the commit that
+   will be `main`, so `release.yml` builds exactly what the site will
+   describe. Wait for its `publish` job to go green, then push `main`, which
+   deploys the site:
 
 ```bash
 git tag -a v1.2.3 -m "psi-slides 1.2.3"
-git push origin main v1.2.3
+git push origin v1.2.3
+gh run watch "$(gh run list --workflow release.yml --limit 1 --json databaseId -q '.[0].databaseId')" --exit-status
+git push origin main
 ```
 
-Pushing `main` redeploys the site; pushing the tag publishes the release. If
-a job of the release run fails, nothing is published. A runner that failed
-for no reason of the tree's is retried with "Re-run failed jobs"; otherwise
+Pushing `main` first, or with the tag, puts a site that describes the new
+version in front of download links that still hand out the previous one. If
+a job of the release run fails, nothing is published and `main` waits. A
+runner that failed for no reason of the tree's is retried with "Re-run failed
+jobs"; otherwise
 delete the tag on both sides (`git tag -d v1.2.3`, `git push --delete origin
 v1.2.3`), fix, and tag again – a partially published release is worse than a
 late one.
