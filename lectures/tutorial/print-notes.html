@@ -3566,7 +3566,7 @@ which usually brings it well under the 2 MB limit.</p>
   
   <aside class="chunk-expansion chunk-expansion-expand" data-label="Size, and clips on a server">
 <p><strong>A clip goes inside the HTML up to a limit of its own, 12 MB</strong>, well above the 2 MB a picture may take.</p>
-<p><strong>Over that limit the clip is stored beside the file</strong>, in a <code class="nb">videos/</code> folder next to the output. The build says so on the terminal and suggests an <code class="nb">ffmpeg</code> line that would make it small enough to go inside – one named folder to copy along with the HTML.</p>
+<p><strong>Over that limit the clip is stored beside the file</strong>, in a <code class="nb">videos/</code> folder next to the output. The build says so on the terminal and suggests an <code class="nb">ffmpeg</code> line that would make it small enough to go inside – one named folder to copy along with the HTML. So is a clip that would take the deck&#39;s pictures and clips together past 10 MB; <code class="nb">--inline-images</code> puts each one inside up to its own limit.</p>
 <p><strong>A clip can also live on a web server:</strong> <code class="nb">![](https://host/clip.mp4)</code> stays an ordinary player, still synchronised between the two windows. The player&#39;s own button is the fullscreen control, and a click on a clip does not open it in a card, which would fight the play button.</p>
 
 </aside>
@@ -5033,9 +5033,12 @@ and answer. A rule inside either half is written <code class="nb">***</code>.</p
   const KEY = 'psi-reader:v1:' + (data.key || 'lecture');
   // The key up to this version: the source folder's name alone, which two
   // lectures in two week1 folders shared - one store, each lecture's
-  // highlights listed as not found in the other. A store under it is copied
-  // to the new key the first time the new key is empty, and left where it
-  // is, so a document built before still finds it.
+  // highlights listed as not found in the other. While the new key is empty,
+  // the entries of the old store whose slide is in this document are copied
+  // to it, and only those: copying the whole store gave each of the two
+  // lectures the other's highlights, listed at the foot as not found. The
+  // old store is left as it is, so the other lecture finds its own there and
+  // a document built before still finds everything.
   const LEGACY = 'psi-reader:v1:' + (data.name || 'lecture');
   const foot = document.querySelector('[data-reader-slot=tools]');
   const narrowMq = window.matchMedia('(max-width: 919.98px)');
@@ -5078,10 +5081,14 @@ and answer. A rule inside either half is written <code class="nb">***</code>.</p
   };
   const load = () => {
     try {
-      let raw = window.localStorage.getItem(KEY);
+      const raw = window.localStorage.getItem(KEY);
       if (raw == null && LEGACY !== KEY) {
-        raw = window.localStorage.getItem(LEGACY);
-        if (raw != null) window.localStorage.setItem(KEY, raw);
+        const ours = parse(window.localStorage.getItem(LEGACY)).filter((h) => {
+          const el = document.getElementById(h.chunk);
+          return !!el && main.contains(el);
+        });
+        if (ours.length) window.localStorage.setItem(KEY, JSON.stringify(ours));
+        return ours;
       }
       return parse(raw);
     } catch (e) { persistent = false; return []; }
