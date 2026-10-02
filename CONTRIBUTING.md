@@ -40,10 +40,11 @@ compiler regression fails in seconds rather than after twelve minutes.
 **`node lint.js lectures/` is the gate**, and `node test/run.mjs` is the
 safety net. The linter is zero-dependency and runs anywhere, so run it on every
 commit. The suite drives built lectures in a headless Chromium and covers what
-can only break in a built page, in three families: the navigation model, the
-diagram editor's gestures and panel, and the geometry of an emitted figure. It
-said "three things" for as long as it had three specs; it has fifty, and
-about 1,500 assertions. It builds and serves the lectures itself, so it never
+can only break in a built page, in four families: the navigation model, the
+geometry the live chrome leaves the slide, the diagram editor's gestures and
+panel, and the geometry of an emitted figure (`test/README.md` lists them). It
+said "three things" for as long as it had three specs; it has fifty-one, and
+about 1,800 assertions. It builds and serves the lectures itself, so it never
 reports on stale HTML. It needs a browser (`$PSI_CHROME`, else the Playwright
 cache, else the browser the host installed) and takes about twelve minutes.
 `node test/run.mjs nav` runs the specs whose name matches.
