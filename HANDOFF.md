@@ -75,10 +75,14 @@ refused.
   collision by announcing file sets and holding `lectures/` builds while the
   other's browser suite ran.
 
-**Open after the tag**, none of them blocking: `actions/*` to their current
-majors and runners pinned (`ubuntu-latest` moves on 2026-10-19); card
-auto-sizing counts a nested bullet's wrapped line toward its card; `P` in the
-cockpit does not check for `print.html`; PLAN-presenter's open question 11.
+**After the tag.** The signed and notarised macOS dmg and zip replaced CI's
+(Apple first answered 403 until a renewed developer agreement was accepted –
+check that before the next `dist:signed`). Then, on main: every workflow on
+the current action majors with pinned runner images (`ubuntu-24.04`,
+`macos-26`, `windows-2025-vs2026`; `343929e`), a card row's size no longer
+counting a nested bullet's wrapped line (`833e2ba`), and the missing-view list
+written into the cockpit too (`d05d60b`). PLAN-presenter's open question 11 has
+a proposed resolution (`a173147`) with four decisions left for the maintainer.
 
 ## Slice: the build's ids have a namespace of their own
 

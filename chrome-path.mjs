@@ -68,9 +68,9 @@ export function findChrome() {
   // more than one platform.
   //
   // Both halves have now actually run. macOS resolves out of the Playwright
-  // cache; an ubuntu-latest runner answers with the first entry here,
+  // cache; an ubuntu-24.04 runner answers with the first entry here,
   // /usr/bin/google-chrome, and drove the whole browser suite from it. Worth
-  // checking rather than assuming, because release.yml runs on ubuntu-latest:
+  // checking rather than assuming, because release.yml runs on ubuntu-24.04:
   // "we build on macOS" is true of the laptop and false of the tag. If a
   // future runner image moves the browser, the failure stays loud and cheap -
   // release.yml resolves it in a step of its own before anything is staged or
