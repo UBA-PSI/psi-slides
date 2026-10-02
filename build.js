@@ -20966,7 +20966,16 @@ function fadeSwap(land) {
 // slide reached by a key here, by a snapshot from the other window, or by
 // leaving the overview - it used to start from jumpTo alone, so a figure the
 // cockpit drove onto never played.
+//
+// The slide being left loses its clock here, at the start, and not when the
+// new one starts its own at the end: under fade the two are a dip apart, and
+// a tick of the old figure inside the dip advanced the slide being left and
+// broadcast it. On the projection, landing a cockpit's move, that snapshot
+// put the old slide back in the cockpit, and the landing that followed runs
+// under isApplyingRemote and sends nothing - the two windows stayed on two
+// different slides until the next press.
 function landSlide(land) {
+  stopAutoplay();
   const arrive = () => { land(); restartAutoplay(); };
   if (SLIDE_TRANSITION === 'fade') fadeSwap(arrive);
   else arrive();
