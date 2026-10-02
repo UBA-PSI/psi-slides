@@ -418,19 +418,30 @@
 
 <section class="band">
  <div class="wrap">
-  <h2 id="skills">Writing with Claude</h2>
-  <p class="lede">psi-slides comes with six Claude skills: instruction files in
-  Anthropic&rsquo;s Agent Skills format that describe the source format and the
-  engine to Claude. With them installed, Claude can draft a lecture&rsquo;s
-  <code>source.md</code> from your notes or revise one you have written. The
-  app or <code>build.js</code> still builds it, and <code>lint.js</code> says
-  what does not fit the format.</p>
+  <h2 id="skills">Writing with an AI assistant</h2>
+  <p class="lede">psi-slides comes with six skills: instruction files that
+  describe the source format and the engine to a language model. With them, an
+  assistant can draft a lecture&rsquo;s <code>source.md</code> from your notes
+  or revise one you have written. The app or <code>build.js</code> still builds
+  it, and <code>lint.js</code> says what does not fit the format.</p>
+
+  <p>The skills use the open
+  <a href="https://agentskills.io/specification">Agent Skills format</a>: a
+  skill is a folder with a <code>SKILL.md</code> in it, Markdown under a short
+  header that names the skill and says when to use it. Anthropic developed the
+  format and released it as an open standard. The
+  <a href="https://agentskills.io/clients">list of tools at agentskills.io</a>
+  that read it includes Claude Code and claude.ai, and also Gemini CLI,
+  OpenAI&rsquo;s Codex, GitHub Copilot and Cursor, among others. A tool without
+  skill support can still be given a <code>SKILL.md</code> as instructions,
+  pasted or attached like any other text.</p>
 
   <h3>Download them</h3>
-  <p>The first archive holds all six. The single ones are for claude.ai, which
-  takes one skill per upload. Two of the six are about writing a lecture; the
-  other four describe how the engine is built and matter mostly to somebody
-  changing psi-slides itself.</p>
+  <p>The first archive holds all six, for a tool that reads a folder of skills.
+  The single ones are for a tool that takes one skill at a time, such as
+  claude.ai, where each upload is one skill. Two of the six are about writing a
+  lecture; the other four describe how the engine is built and matter mostly to
+  somebody changing psi-slides itself.</p>
 
   <!-- The packages' row from the app section above, for the same reason: one
        card per kind of reader, and a box per file in it. The ZIPs are written
@@ -441,7 +452,7 @@
     <p class="sys">All six</p>
     <a class="file" href="skills/psi-slides-skills.zip">
      <b>Every skill in one archive</b>
-     <span>Unpacks into six folders, one per skill, for Claude Code.</span>
+     <span>Unpacks into six folders, one per skill, for a tool that reads a folder of skills.</span>
      <code>psi-slides-skills.zip</code>
     </a>
    </div>
@@ -482,6 +493,10 @@
     </a>
    </div>
   </div>
+
+  <p>Where the folders go differs from tool to tool, and each tool&rsquo;s own
+  documentation says where. The two sections below are examples, for Claude
+  Code and for claude.ai.</p>
 
   <div class="aside-code words-first second-picture">
    <div class="said">

@@ -194,8 +194,12 @@ paste the two files into the context.
 
 Outside this repository, the six skills in `.claude/skills/` are downloads on
 the project site, as one archive or one per skill, with the files they refer to
-linked or bundled, and with the steps to install them in Claude Code or upload
-them on claude.ai: [Writing with Claude](https://uba-psi.github.io/psi-slides/getting-started.html#skills).
+linked or bundled. They use the open [Agent Skills](https://agentskills.io)
+format, which Claude Code, claude.ai, Codex, Gemini CLI and
+[other tools](https://agentskills.io/clients) read; a tool without skill
+support can be given a `SKILL.md` as instructions like any other text. The page
+gives the steps for Claude Code and claude.ai as two examples:
+[Writing with an AI assistant](https://uba-psi.github.io/psi-slides/getting-started.html#skills).
 
 If you would rather not use the skill, the minimum useful set is:
 

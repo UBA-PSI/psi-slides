@@ -432,18 +432,31 @@
 
 <section class="band">
  <div class="wrap">
-  <h2 id="skills">Schreiben mit Claude</h2>
-  <p class="lede">psi-slides bringt sechs Claude-Skills mit: Anleitungen im
-  Agent-Skills-Format von Anthropic, die Claude das Quellformat und die
-  Maschinerie dahinter beschreiben. Mit ihnen entwirft Claude aus den eigenen
-  Notizen die <code>source.md</code> einer Vorlesung oder überarbeitet eine
-  vorhandene. Gebaut wird sie weiter mit der App oder mit
+  <h2 id="skills">Schreiben mit einem KI-Assistenten</h2>
+  <p class="lede">psi-slides bringt sechs Skills mit: Anleitungen, die einem
+  Sprachmodell das Quellformat und die Maschinerie dahinter beschreiben. Mit
+  ihnen entwirft ein Assistent aus den eigenen Notizen die <code>source.md</code>
+  einer Vorlesung oder überarbeitet eine vorhandene. Gebaut wird sie weiter mit der App oder mit
   <code>build.js</code>, und <code>lint.js</code> sagt, was nicht zum Format
   passt.</p>
 
+  <p>Die Skills nutzen das offene
+  <a href="https://agentskills.io/specification">Agent-Skills-Format</a>: Ein
+  Skill ist ein Ordner mit einer <code>SKILL.md</code> darin, Markdown unter
+  einem kurzen Kopf, der den Skill benennt und sagt, wann er gebraucht wird.
+  Anthropic hat das Format entwickelt und als offenen Standard
+  veröffentlicht. Die
+  <a href="https://agentskills.io/clients">Liste der Werkzeuge auf
+  agentskills.io</a>, die es lesen, nennt Claude Code und claude.ai, außerdem
+  unter anderem Gemini CLI, Codex von OpenAI, GitHub Copilot und Cursor. Einem
+  Werkzeug ohne Skill-Unterstützung lässt sich eine <code>SKILL.md</code>
+  trotzdem als Anleitung mitgeben, eingefügt oder angehängt wie jeder andere
+  Text.</p>
+
   <h3>Herunterladen</h3>
-  <p>Das erste Archiv enthält alle sechs. Die einzelnen sind für claude.ai, das
-  pro Upload einen Skill annimmt. Zwei der sechs handeln vom Schreiben einer
+  <p>Das erste Archiv enthält alle sechs, für ein Werkzeug, das einen Ordner
+  mit Skills liest. Die einzelnen sind für ein Werkzeug, das einen Skill nach
+  dem anderen annimmt, etwa claude.ai, wo jeder Upload ein Skill ist. Zwei der sechs handeln vom Schreiben einer
   Vorlesung; die anderen vier beschreiben, wie die Maschinerie gebaut ist, und
   sind vor allem für alle, die an psi-slides selbst arbeiten.</p>
 
@@ -456,7 +469,7 @@
     <p class="sys">Alle sechs</p>
     <a class="file" href="../skills/psi-slides-skills.zip">
      <b>Alle Skills in einem Archiv</b>
-     <span>Entpackt sich in sechs Ordner, einen pro Skill, für Claude Code.</span>
+     <span>Entpackt sich in sechs Ordner, einen pro Skill, für ein Werkzeug, das einen Ordner mit Skills liest.</span>
      <code>psi-slides-skills.zip</code>
     </a>
    </div>
@@ -497,6 +510,10 @@
     </a>
    </div>
   </div>
+
+  <p>Wohin die Ordner gehören, ist von Werkzeug zu Werkzeug verschieden und
+  steht in dessen eigener Dokumentation. Die beiden folgenden Abschnitte sind
+  Beispiele, für Claude Code und für claude.ai.</p>
 
   <div class="aside-code words-first second-picture">
    <div class="said">
