@@ -3431,7 +3431,9 @@ tag:
   opened from disk gave two `week1/` lectures of two courses one store. The
   name of the folder above now goes into the key, as a hash, so the
   document does not name it. Highlights made before are carried across the
-  first time a document is opened. A lecture moved under another folder
+  first time a document is opened, each lecture taking those on its own
+  slides; it took the whole old store, so two `week1/` lectures each
+  listed the other's highlights as not found. A lecture moved under another folder
   starts its readers with no highlights there; the export carries them
   across.
 - **A highlights file someone sent can no longer stop the reader for good.**

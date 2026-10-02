@@ -30,6 +30,7 @@
  * half that has to survive a real click.
  */
 import fs from 'node:fs';
+import http from 'node:http';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { spawnSync } from 'node:child_process';
@@ -284,6 +285,64 @@ async function highlights({ browser, ok, note }) {
          && JSON.parse(moved.now || '[]').length === 1 && JSON.parse(moved.old || '[]').length === 1,
          'a store under the old key is painted, copied to the new key, and left where it was', JSON.stringify(moved));
       await c.close();
+    }
+
+    // ── the old store held two lectures, and each takes its own ──
+    // Two week1 lectures on one origin wrote one store under the old key.
+    // Copying all of it gave each lecture the other's highlights, listed at
+    // the foot as not found; now each takes the entries whose slide it has,
+    // and the old store is left whole for the other.
+    {
+      const root = tmpDir('psi-reader-pair-');
+      const other = '---\ntitle: Other fixture\n---\n\n## title: {#title}\n\n## free: Elsewhere {#other}\n\n'
+        + 'The initialisation vector is XORed into the first block before encryption, said again.\n';
+      const dirs = { a: path.join(root, 'course-a', 'week1'), b: path.join(root, 'course-b', 'week1') };
+      for (const [x, d] of Object.entries(dirs)) {
+        fs.mkdirSync(d, { recursive: true });
+        const r = build(d, x === 'a' ? hlDeck() : other);
+        ok(r.status === 0, `the week1 deck of course ${x} builds`, (r.stdout || '') + (r.stderr || ''));
+      }
+      const keyOf = (d) => 'psi-reader:v1:' + JSON.parse((fs.readFileSync(path.join(d, 'print.html'), 'utf8')
+        .match(/id="psiINT-reader-data">(.*?)<\/script>/) || [])[1] || '{}').key;
+      const theirs = { ...first, id: first.id + '-other', chunk: 'other' };
+      const legacy = 'psi-reader:v1:week1';
+      // One origin for both, as file:// is in Chrome: the harness's server
+      // answers by file name alone, so this one serves the two folders.
+      const pair = await new Promise((resolve) => {
+        const server = http.createServer((req, res) => {
+          if (req.url.endsWith('favicon.ico')) { res.writeHead(204); res.end(); return; }
+          const file = path.join(root, decodeURIComponent(req.url.split('?')[0]));
+          if (!file.startsWith(root + path.sep) || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; }
+          res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+          res.end(fs.readFileSync(file));
+        });
+        server.listen(0, '127.0.0.1', () => resolve({ server, port: server.address().port }));
+      });
+      const c = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      await c.addInitScript(([k, v]) => { if (!localStorage.getItem(k)) localStorage.setItem(k, v); },
+        [legacy, JSON.stringify([first, theirs])]);
+      const open = async (x) => {
+        const q = await c.newPage();
+        q.on('pageerror', e => errors.push('pair ' + x + ': ' + String(e)));
+        await q.goto(`http://127.0.0.1:${pair.port}/course-${x}/week1/print.html`, { waitUntil: 'load' });
+        await q.waitForTimeout(250);
+        return q;
+      };
+      const read = (q, k) => q.evaluate(([k1, l]) => ({ now: JSON.parse(localStorage.getItem(k1) || '[]'),
+        old: JSON.parse(localStorage.getItem(l) || '[]') }), [k, legacy]);
+      const qa = await open('a');
+      const ra = await read(qa, keyOf(dirs.a));
+      ok(ra.now.length === 1 && ra.now[0].chunk === 'term' && ra.old.length === 2,
+         'the first week1 lecture copies only the highlight on its own slide, and leaves the old store whole',
+         JSON.stringify({ now: ra.now.map(h => h.chunk), old: ra.old.length }));
+      const qb = await open('b');
+      const rb = await read(qb, keyOf(dirs.b));
+      ok(rb.now.length === 1 && rb.now[0].chunk === 'other'
+         && (await marks(qb)).join('') === 'initialisation vector is XORed',
+         'and the second takes the other one, and paints it',
+         JSON.stringify({ now: rb.now.map(h => h.chunk), marks: await marks(qb) }));
+      await c.close();
+      pair.server.close();
     }
 
     // ── the card stands in the notes column, level with its highlight ──

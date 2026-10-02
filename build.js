@@ -11603,9 +11603,12 @@ const PRINT_HIGHLIGHTS_JS = `
   const KEY = 'psi-reader:v1:' + (data.key || 'lecture');
   // The key up to this version: the source folder's name alone, which two
   // lectures in two week1 folders shared - one store, each lecture's
-  // highlights listed as not found in the other. A store under it is copied
-  // to the new key the first time the new key is empty, and left where it
-  // is, so a document built before still finds it.
+  // highlights listed as not found in the other. While the new key is empty,
+  // the entries of the old store whose slide is in this document are copied
+  // to it, and only those: copying the whole store gave each of the two
+  // lectures the other's highlights, listed at the foot as not found. The
+  // old store is left as it is, so the other lecture finds its own there and
+  // a document built before still finds everything.
   const LEGACY = 'psi-reader:v1:' + (data.name || 'lecture');
   const foot = document.querySelector('[data-reader-slot=tools]');
   const narrowMq = window.matchMedia('(max-width: ${READER_NOTES_PX - 0.02}px)');
@@ -11648,10 +11651,14 @@ const PRINT_HIGHLIGHTS_JS = `
   };
   const load = () => {
     try {
-      let raw = window.localStorage.getItem(KEY);
+      const raw = window.localStorage.getItem(KEY);
       if (raw == null && LEGACY !== KEY) {
-        raw = window.localStorage.getItem(LEGACY);
-        if (raw != null) window.localStorage.setItem(KEY, raw);
+        const ours = parse(window.localStorage.getItem(LEGACY)).filter((h) => {
+          const el = document.getElementById(h.chunk);
+          return !!el && main.contains(el);
+        });
+        if (ours.length) window.localStorage.setItem(KEY, JSON.stringify(ours));
+        return ours;
       }
       return parse(raw);
     } catch (e) { persistent = false; return []; }
