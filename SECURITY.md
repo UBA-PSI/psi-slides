@@ -188,9 +188,13 @@ request addressed to `localhost`, `127.0.0.1` or `[::1]` on its own port, and
 only with the four files and the kinds of file they use: pictures, clips,
 fonts, stylesheets, scripts and PDFs. It never serves `source.md`, a file
 below a name starting with a dot, or the prompter's files. From the folder one
-level up, which a lecture may share pictures from, it serves only a picture,
-a clip or a font the build itself would read there, and only when the
-lecture's own folder has no file of that name. The live views
+level up, which a lecture may share pictures from, it serves any picture, clip
+or font file the build would be allowed to read there – not only the ones your
+lecture uses, so the pictures of a lecture in a neighbouring folder can be
+fetched too – and only when the lecture's own folder has no file of that
+name. Nothing else up there is served: no other kind of file, nothing below a
+name starting with a dot, and nothing at all when that folder is your home
+folder or the top of a disk. The live views
 talk to `--watch` over a connection that accepts only a page opened from disk
 or delivered by `--serve`, and changing `source.md` through it needs the
 secret `node build.js` writes into the live views. A web page open in the
