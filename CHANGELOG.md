@@ -277,7 +277,9 @@ tag:
   a call to the model per message: 78 in 20 seconds in a dry run, bounded
   only by `calls-per-hour`. The eight seconds between two slide calls and the
   speech counted towards `cadence` are now held to the seconds that actually
-  passed in `node build.js`.
+  passed in `node build.js`, and setting the cockpit's clock back and forth
+  no longer makes a call count as the first of the run, which waits for
+  nothing.
 - **What a page sends the prompter reaches its log cut short.** A slide id,
   a hint id, how a hint was sent away and the name of the speech recogniser
   are cut to 200 characters, a language tag to 35; one message used to put a

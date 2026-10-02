@@ -1164,10 +1164,17 @@ export function rebaseClock({
  */
 export function shouldTick({
   now, lastTickAt, lastTickReason, speechSecondsSince, newWordsSince,
-  cadence, slideChanged, inflight, wallSince, slack = 2,
+  cadence, slideChanged, inflight, wallSince, slack = 2, ticked,
 } = {}) {
   const t = num(now, 0);
   const last = lastTickAt == null ? null : num(lastTickAt, 0);
+  // Whether there has been a call at all, which is what lets the first one
+  // skip the floor. It is a flag of its own and not `lastTickAt == null`,
+  // because `rebaseClock` clears that stamp when the clock it was on is
+  // gone: read as "no call yet", a page sending `move {elapsed: 1000}` and
+  // `move {elapsed: 0}` in turn bought a first call per pair – thirty in a
+  // second. Left out (a replay, and the old rows), the stamp decides.
+  const first = ticked == null ? last == null : !ticked;
   // `wallSince` is the sidecar's own clock: seconds since the last call, or
   // since the switch was thrown if there has been none. Both numbers below
   // are otherwise counted on the cockpit's clock, which the page owns – a
@@ -1187,7 +1194,7 @@ export function shouldTick({
   // this is the same rule seen from inside, so that neither half depends on
   // the other having noticed.
   const raw = last == null ? Infinity : t - last;
-  const since = last == null ? Infinity : wall != null ? wall : raw < 0 ? Infinity : raw;
+  const since = first ? Infinity : wall != null ? wall : raw < 0 ? Infinity : raw;
   const cad = num(cadence, 25);
   const speech = wall == null ? num(speechSecondsSince, 0)
     : Math.min(num(speechSecondsSince, 0), wall + Math.max(0, num(slack, 0)));

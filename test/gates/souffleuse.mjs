@@ -571,6 +571,24 @@ export async function run({ report }) {
      'a cockpit clock that went backwards buys no slide call inside the wall floor either', j(t));
   ok(shouldTick({ now: 900, lastTickAt: null, slideChanged: true, cadence: 25, wallSince: 0 }).tick === true,
      'the first call still has no last call to wait for');
+  // A clock jump clears the stamp of the last call (`rebaseClock` drops what
+  // lands before the new zero), and the cleared stamp was read as "no call
+  // yet": a page alternating `move {elapsed: 1000}` and `move {elapsed: 0}`
+  // bought a first call per pair, thirty in a second. Whether there was a
+  // call is a flag of its own.
+  {
+    const jump = rebaseClock({ prev: 1000, next: 0, onAt: 0, lastTickAt: 990, transcript: [] });
+    ok(jump && jump.lastTickAt === null, 'a jump to zero clears the stamp of the last call', j(jump));
+    t = shouldTick({ now: 0, lastTickAt: jump.lastTickAt, slideChanged: true, cadence: 25, wallSince: 0, ticked: true });
+    ok(t.tick === false,
+       'a rebase between two calls is no first call: the wall floor still holds', j(t));
+    t = shouldTick({ now: 0, lastTickAt: null, speechSecondsSince: 60, newWordsSince: 400, cadence: 25, wallSince: 1, ticked: true, slack: 2 });
+    ok(t.tick === false, 'nor does it credit speech the wall clock did not see', j(t));
+    t = shouldTick({ now: 0, lastTickAt: null, slideChanged: true, cadence: 25, wallSince: 8, ticked: true });
+    ok(t.tick === true && t.reason === 'slide', 'eight wall seconds after it, the slide is an occasion again', j(t));
+    ok(shouldTick({ now: 0, lastTickAt: null, slideChanged: true, cadence: 25, wallSince: 0, ticked: false }).tick === true,
+       'and the first call of a run still waits for nothing');
+  }
 
   // ── the clock going backwards ────────────────────────────────────
   ok(rebaseClock({ prev: 300, next: 299 }) === null && rebaseClock({ prev: 300, next: 300 }) === null,

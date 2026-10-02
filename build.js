@@ -29492,6 +29492,10 @@ async function createSouffleuse({
   // slide floor are held to (`shouldTick`'s `wallSince`).
   let sinceTick = { seconds: 0, words: 0, wall: Date.now() };
   let lastTickAt = null;
+  // Whether any call has gone out in this run. Not `lastTickAt == null`:
+  // a clock jump clears that stamp, and a cleared stamp read as "no call yet"
+  // skipped the floor on every pair of moves (`shouldTick`'s `ticked`).
+  let ticked = false;
   let lastTickReason = null;
   let slideChanged = false;
   let inflight = null;        // the AbortController of the call that is out
@@ -29949,7 +29953,7 @@ async function createSouffleuse({
     if (!budgetLeft()) return;
     const d = souff.shouldTick({
       now: nowElapsed(),
-      lastTickAt, lastTickReason,
+      lastTickAt, lastTickReason, ticked,
       speechSecondsSince: sinceTick.seconds,
       newWordsSince: sinceTick.words,
       cadence, slideChanged, inflight: !!inflight,
@@ -30011,6 +30015,7 @@ async function createSouffleuse({
     };
     const message = souff.tickMessage(session);
     lastTickAt = elapsed;
+    ticked = true;
     lastTickReason = reason;
     sinceTick = { seconds: 0, words: 0, wall: Date.now() };
     slideChanged = false;

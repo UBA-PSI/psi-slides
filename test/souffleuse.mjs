@@ -1352,6 +1352,20 @@ export async function run({ page, report }) {
       const longest = Math.max(0, ...runs);
       ok(longest > 0 && longest <= 200,
          'and an id, a name or a language tag a page sends reaches the log cut to 200 characters', longest);
+
+      // A clock jump clears the stamp of the last call, and the cleared stamp
+      // used to read as "no call yet", which skips the floor: a review sent
+      // `move {elapsed: 1000}` and `move {elapsed: 0}` in pairs and had thirty
+      // calls in under a second. Every pair here is a new slide and a rebase.
+      const beforeJumps = ticksSoFar();
+      for (let k = 0; k < 15; k++) {
+        await ask({ type: 'souffleuse-move', idx: (2 * k) % 4, beat: 0, elapsed: 1000 });
+        await ask({ type: 'souffleuse-move', idx: (2 * k + 1) % 4, beat: 0, elapsed: 0 });
+      }
+      const jumpTicks = ticksSoFar() - beforeJumps;
+      ok(jumpTicks <= 1,
+         'fifteen pairs of moves that set the cockpit clock back and forth buy one call at most',
+         jumpTicks);
       flood.close();
     }
     ok(errs.length === 0, 'no page errors in the pages opened since', errs.join(' | '));

@@ -263,7 +263,11 @@ every `move`:
   and the speech credited since the last call is held to it plus the slack
   *once*. Left out (`--prompter-replay`, which has no wall clock), both rules
   read the cockpit's clock as before; `PSI_PROMPTER_FREE_CLOCK=1` leaves it
-  out too. **Every id or name a page sends is cut before it is logged**:
+  out too. **Only the first call of a run skips the floor, and the sidecar
+  says which one that is with a flag of its own** (`ticked`): `rebaseClock`
+  clears the last-tick stamp when it lands before the new zero, and the
+  cleared stamp read as "no call yet" – a page alternating `move {elapsed:
+  1000}` and `move {elapsed: 0}` had thirty calls in under a second. **Every id or name a page sends is cut before it is logged**:
   `pageString` holds a chunk id, a hint id, a dismissal's `how` and the
   recogniser's name to `SOUFFLEUSE_ID_MAX` (200) and a `lang` to
   `SOUFFLEUSE_LANG_MAX` (35) – a hundred kilobytes in a `dismiss` used to be a
