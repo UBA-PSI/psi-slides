@@ -3470,14 +3470,20 @@ export function createSpanTable(model, body) {
     // (positions 0 and 1) are never keywords, and neither is a token that
     // sits in a reference slot – right after the word that introduces one,
     // or after a comma-carrying member of an `over`/`between` list.
-    // `same` is here for the axis word after it rather than for a reference:
-    // in `same w as a` the `w` is not the width keyword, and taken for one it
-    // handed a resize the token `as` to overwrite, so every drag on such a box
-    // was refused.
-    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', 'same', ...DG_EDGE_ARROWS]);
-    const find = (word) => toks.findIndex((x, i) => i >= 2 && !x.q && !x.attr && x.v === word
-      && !(toks[i - 1] && !toks[i - 1].q && !toks[i - 1].attr
-        && (REF_INTRO.has(toks[i - 1].v) || toks[i - 1].v.endsWith(','))));
+    // One more slot is not a reference: the axis word in `same w as a` /
+    // `same h as a` is not the width keyword, and taken for one it handed a
+    // resize the token `as` to overwrite, so every drag on such a box was
+    // refused. Only that form counts – the `same` keyword followed by an axis
+    // word and `as` – because `same` is also a legal element name, and in
+    // `right of same w 2` the `w` after it is the width keyword.
+    const REF_INTRO = new Set(['of', 'below', 'above', 'as', 'over', 'between', ...DG_EDGE_ARROWS]);
+    const plain = (t) => t && !t.q && !t.attr;
+    const inRefSlot = (i) => plain(toks[i - 1])
+      && (REF_INTRO.has(toks[i - 1].v) || toks[i - 1].v.endsWith(','));
+    const sameAxis = (i) => plain(toks[i - 1]) && toks[i - 1].v === 'same' && !inRefSlot(i - 1)
+      && plain(toks[i + 1]) && toks[i + 1].v === 'as';
+    const find = (word) => toks.findIndex((x, i) => i >= 2 && plain(x) && x.v === word
+      && !inRefSlot(i) && !sameAxis(i));
 
     if (attr === 'line') return hit(el.span[0], el.span[1], src.slice(el.span[0], el.span[1]));
 
@@ -3792,45 +3798,139 @@ export function createSpanTable(model, body) {
   // Every statement that names an element, for the reference list a delete
   // owes the author (§9.3). Ids, not spans: what the author needs first is
   // "three lines refer to this", and the lines are what they are shown.
+  //
+  // **It has to be every statement**, because the editor deletes what this
+  // lists and nothing else: a reference missing here is a line left naming an
+  // element that is gone, and the delete is refused with a compiler sentence
+  // the author cannot act on. It walks what the compiler's own reference check
+  // walks – placements of all four kinds, the three size relations, both
+  // endpoints of an edge whether a name or a coordinate, every waypoint, a
+  // series' chart, a chart's or a table's `same as` (model.copies), a
+  // sequence's message ends and note actors, a row's zone,
+  // and in a step every target, a tag included, and the place a `move` goes.
+  //
+  // Two kinds of entry. Most name the element in a slot the statement cannot
+  // do without, and the line goes with it. A **member list** – `over a,b,d`,
+  // `align …`, `spread …`, `row …`, a step's `show a, b` – only loses one
+  // member, so those carry `list: {start, end, members, min}`: the source
+  // range of the run, the members as written there, and how many the statement
+  // needs to stand. Whether a written member is gone – a tag is gone only with
+  // the last element carrying it – is the caller's to decide, since only the
+  // caller knows what else is going.
   function referencesTo(id) {
     const out = [];
     // `from` is the element doing the referring. The caller needs it to drop
     // the entries that are inside its own selection – without it a delete of
     // two elements reports each as a reason not to delete the other.
-    const note = (line, what, from) => out.push({ line, what, from, id: from });
+    // Once per line and referrer: a chart's columns are each placed against
+    // the frame they stand in, and that is one line, not twelve.
+    const seen = new Set();
+    const note = (line, what, from, list) => {
+      const key = `${line}|${from}|${what}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(list ? { line, what, from, id: from, list } : { line, what, from, id: from });
+    };
+    const refsOf = (p) => (p && (p.kind === 'rel' || p.kind === 'in') ? [p.ref]
+      : p && p.kind === 'between' ? p.refs.map(r => r.ref)
+      : p && p.kind === 'abs' ? dgPairRefs(p.at) : []);
+    const carries = (tag) => ((model.tags && model.tags.get(tag)) || []).includes(id);
+    const names = (written) => written === id || (written.startsWith('@') && carries(written.slice(1)));
+    // The run of members on a line, from body token `from` up to `stop`
+    // (exclusive), cut short at the first quoted or tail token so a rewrite of
+    // the run can never reach a label or an attribute tail.
+    const runOf = (rec, from, stop) => {
+      const toks = toksOf(rec);
+      const body = [];
+      for (const x of toks) {
+        if (x.q || x.attr) { if (body.length > from) break; continue; }
+        body.push(x);
+      }
+      const end = Math.min(stop == null ? body.length : stop, body.length);
+      if (from < 0 || from >= end) return null;
+      const run = body.slice(from, end);
+      return {
+        start: run[0].s, end: run[run.length - 1].e,
+        members: dgParseMembers(run.map(x => x.v).join(',')),
+      };
+    };
+    const listOf = (rec, from, stop, min) => {
+      const r = runOf(rec, from, stop);
+      return r ? { ...r, min } : null;
+    };
     for (const n of model.nodes) {
       if (n.id === id) continue;
-      const p = n.place;
-      const refs = p && p.kind === 'rel' ? [p.ref]
-        : p && p.kind === 'between' ? p.refs.map(r => r.ref)
-        : p && p.kind === 'abs' ? dgPairRefs(p.at) : [];
-      if (refs.includes(id)) note(n.line, `${n.kind} ${n.id} is placed against it`, n.id);
-      if (n.sameAs === id) note(n.line, `${n.kind} ${n.id} takes its size from it (same as)`, n.id);
-      if (n.sameWAs === id) note(n.line, `${n.kind} ${n.id} takes its width from it (same w as)`, n.id);
-      if (n.sameHAs === id) note(n.line, `${n.kind} ${n.id} takes its height from it (same h as)`, n.id);
+      // A generated box – a `bars … series of` column, a cell – has no line of
+      // its own, so the statement that drew it is what refers. One drawn by
+      // `id` itself is not a reference to it at all.
+      const gen = n.synth && n.synth !== n.id && !n.entry;
+      if (gen && n.synth === id) continue;
+      const who = gen ? n.synth : n.id;
+      const kind = gen ? ((model.statements || []).find(x => x.id === who) || {}).kind
+        || model.byId.get(who) || n.kind : (n.frame || n.kind);
+      if (refsOf(n.place).includes(id)) note(n.line, `${kind} ${who} is placed against ${id}`, who);
+      if (n.sameAs === id) note(n.line, `${n.kind} ${n.id} takes its size from ${id} (same as)`, n.id);
+      if (n.sameWAs === id) note(n.line, `${n.kind} ${n.id} takes its width from ${id} (same w as)`, n.id);
+      if (n.sameHAs === id) note(n.line, `${n.kind} ${n.id} takes its height from ${id} (same h as)`, n.id);
+      if (n.entry === 'note' && (n.on || []).includes(id)) {
+        note(n.line, `note ${n.id} stands on ${id}`, n.id);
+      }
+    }
+    for (const s of model.statements || []) {
+      if (s.series === id) note(s.line, `${s.kind} ${s.id} draws its columns in ${id} (series of)`, s.id);
+    }
+    for (const c of model.copies || []) {
+      if (c.of === id && c.id !== id) note(c.line, `${c.kind} ${c.id} takes its size from ${id} (same as)`, c.id);
     }
     for (const e of model.edges) {
       if (e.id === id) continue;
-      if ((!e.from.point && e.from.ref === id) || (!e.to.point && e.to.ref === id)) {
-        note(e.line, `edge ${e.id} ends on it`, e.id);
+      // A leader is an aspect of its `text`, so the text is what goes.
+      const who = e.lead ? e.from.ref : e.id;
+      const what = e.lead ? `text ${who} points at ${id}` : `edge ${e.id} ends on ${id}`;
+      const ends = [e.from, e.to].some(p => (p.point ? dgPairRefs(p.point) : [p.ref]).includes(id));
+      if (ends) note(e.line, what, who);
+      else if ((e.via || []).some(p => dgPairRefs(p).includes(id))) {
+        note(e.line, `edge ${e.id} has a waypoint on ${id}`, who);
+      }
+      if (e.entry === 'message' && (e.ends || []).includes(id)) {
+        note(e.line, `message ${e.id} (${(e.ends || []).join(` ${e.arrow || '->'} `)}) runs from or to ${id}`, e.id);
       }
     }
     for (const c of [...model.containers, ...model.braces]) {
-      if (c.members.includes(id)) note(c.line, `${c.kind} ${c.id} holds it`, c.id);
+      if (!c.members.includes(id)) continue;
+      const k = toksOf(c).filter(x => !x.q && !x.attr).findIndex(x => x.v === 'over');
+      // The run ends where the commas stop, exactly as the parser reads it.
+      const body = toksOf(c).filter(x => !x.q && !x.attr);
+      let stop = k + 2;
+      while (stop < body.length && (body[stop - 1].v.endsWith(',') || body[stop].v.startsWith(','))) stop++;
+      note(c.line, `${c.kind} ${c.id} holds ${id}`, c.id, k < 0 ? null : listOf(c, k + 1, stop, 1));
     }
     for (const a of model.aligns) {
-      if (a.members.includes(id)) note(a.line, `align ${a.axis} ${a.edge}`, null);
+      if (a.members.includes(id)) note(a.line, `align ${a.axis} ${a.edge} lines ${id} up`, null, listOf(a, 3, null, 2));
     }
     for (const s of model.spreads) {
-      if (s.members.includes(id)) note(s.line, `spread ${s.axis}`, null);
+      if (s.members.includes(id)) note(s.line, `spread ${s.axis} spaces ${id}`, null, listOf(s, 2, null, 3));
     }
     for (const r of model.rows) {
-      if (r.members.includes(id)) note(r.line, r.axis === 'x' ? 'row' : 'col', null);
+      const word = r.axis === 'x' ? 'row' : 'col';
+      if (r.inPlace && r.inPlace.ref === id) note(r.line, `${word} stands in ${id}`, null);
+      if (!r.members.includes(id)) continue;
+      const body = toksOf(r).filter(x => !x.q && !x.attr);
+      const stop = body.findIndex((x, i) => i > 0 && (x.v === 'gap' || x.v === 'in'));
+      note(r.line, `${word} sizes ${id} with its peers`, null, listOf(r, 1, stop < 0 ? null : stop, 2));
     }
     for (const st of model.steps) {
       for (const op of st.ops) {
-        const targets = op.targets || (op.target ? [op.target] : []);
-        if (targets.includes(id)) note(op.line, `step ${st.name}: ${op.op}`, null);
+        if (op.targets) {
+          if (op.targets.some(names)) {
+            note(op.line, `step ${st.name}: ${op.op} ${op.targets.join(', ')}`, null, listOf(op, 1, null, 1));
+          }
+        } else if (op.target && names(op.target)) {
+          note(op.line, `step ${st.name}: ${op.op} ${op.target}`, null);
+        }
+        if (refsOf(op.to).includes(id)) {
+          note(op.line, `step ${st.name}: move ${op.target} to a place against ${id}`, null);
+        }
       }
     }
     return out;
@@ -3905,6 +4005,12 @@ export function createDiagramCompiler(env = {}) {
       // so without this a series had no entry at all, and the editor could
       // select the statement, name it, and then edit nothing on it.
       statements: [],
+      // `same as X` on a `table`, a `plot` or a `bars` chart. It is answered
+      // while the line is read – the columns or the size are copied there and
+      // then – so it leaves no `sameAs` on the frame for the layout to read,
+      // and without this list nothing after the parse knew the line named X:
+      // a delete of X left it naming nothing, and a rename could not see it.
+      copies: [],
       aligns: [],
       spreads: [],
       // `row` / `col`: a set of boxes declared to be peers. It is the explicit
@@ -4455,6 +4561,7 @@ export function createDiagramCompiler(env = {}) {
               + 'thing a second way. Drop one.', 'semantic');
             continue;
           }
+          model.copies.push({ kind: 'table', id, of: opts.sameAs, line: lineNo });
           copied = tableCols.get(opts.sameAs);
           if (!copied) {
             const kind = model.byId.get(opts.sameAs) || (tableNames.has(opts.sameAs) ? 'table' : null);
@@ -5170,6 +5277,9 @@ export function createDiagramCompiler(env = {}) {
               // banner, and a long one between two near columns unreadable.
               place: at(((xOf(on[0]) + xOf(on[on.length - 1])) / 2) / uw, p.y / uh),
               w: null, h: p.h / uh, r: null, pad: null,
+              // The actors it stands on, as written – what referencesTo hands
+              // a delete, the way a message's `ends` are.
+              on: [...it.on],
             }, it.ln, 'note', it.span));
             continue;
           }
@@ -5348,6 +5458,7 @@ export function createDiagramCompiler(env = {}) {
             dgErr(errors, lineNo, `plot ${id}: "same as" takes the whole size from another chart, `
               + 'so w, h and aspect have nothing left to say – drop them or drop the "same as"');
           }
+          model.copies.push({ kind: 'plot', id, of: o.sameAs, line: lineNo });
           const got = sameAsFrame('plot', id, o.sameAs, lineNo);
           if (got) { o.w = got.w; o.h = got.h; o.aspect = null; }
         }
@@ -5565,6 +5676,7 @@ export function createDiagramCompiler(env = {}) {
               dgErr(errors, lineNo, `bars ${id}: "same as" takes the whole size from another chart, `
                 + 'so w, h and aspect have nothing left to say – drop them or drop the "same as"');
             }
+            model.copies.push({ kind: 'bars', id, of: opts.sameAs, line: lineNo });
             const got = sameAsFrame('bars', id, opts.sameAs, lineNo);
             if (got) { opts.w = got.w; opts.h = got.h; opts.aspect = null; }
           } else if (opts.sameAs) {
