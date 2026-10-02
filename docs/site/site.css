@@ -1003,6 +1003,14 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
 .pair-up p, .pair-up li { max-width: var(--measure-col); }
 .pair-up pre { max-width: none; }
 @media (min-width: 64rem) { .pair-up { grid-template-columns: 1fr 1fr; } }
+/* Collapsed to one column, the row gap lands on top of the last block's own
+   bottom margin: 22px + 17.6px = 40px before the second half, against the
+   17.6px between two paragraphs. The last block gives its margin up and the
+   gap alone is the paragraph rhythm. */
+@media (max-width: 63.99rem) {
+  .pair-up { row-gap: 1.1rem; }
+  .pair-up > * > :last-child { margin-bottom: 0; }
+}
 /*
  * The gutter, and why the row is capped rather than the paragraph.
  *
