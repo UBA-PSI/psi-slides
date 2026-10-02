@@ -6,6 +6,10 @@ each finding reproduced with a fixture deck or in Chrome unless marked
 Work it slice by slice; strike a finding out of this file when its fix lands,
 and move the file to `docs/history/` when the list is empty.
 
+At tagging: `docs/site/getting-started{,.de}.html` point at the „Breaking“
+list at the head of 2.0.0 in CHANGELOG.md – true once `[Unreleased]` becomes
+`[2.0.0]`. (Carried over from `docs/history/TODO-docs-2.0.0.md`.)
+
 Not in this file, because they are decisions rather than defects:
 
 - `PLAN-presenter.md`: the new W path asks main "through the preload's

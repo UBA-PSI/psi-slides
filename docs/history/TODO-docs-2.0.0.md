@@ -6,6 +6,8 @@ Findings marked ✓ were reproduced by hand. Line numbers are grep targets, not
 promises. Only the coordinating session edits this file: tick a box when the
 slice's commit lands and add its hash.
 
+Closed: everything is done except the one item carried to `TODO-release-2.0.0.md`.
+
 Status: `[ ]` open · `[~]` in progress (agent named) · `[x]` done (commit)
 
 Ground rules for every slice:
@@ -33,7 +35,7 @@ Ground rules for every slice:
       `in-the-room.html:335`), tutorial 92 → current, Figures 40 → 42, Decoration
       39 → 40 (`index.html:503–535`, `index.de.html:498–543`). Decide once how a
       „slide“ is counted (chunks, or chunks + dividers) and apply it everywhere.
-- [ ] `getting-started` points at the „Breaking“ list „at the head of 2.0.0“;
+- [ ] **Carried to TODO-release-2.0.0.md.** `getting-started` points at the „Breaking“ list „at the head of 2.0.0“;
       `CHANGELOG.md` still says `[Unreleased]` – true only once the tag lands.
       Leave, but check at tagging.
 - [x] PDF prerequisite: site says „needs Chrome“ (`getting-started.html:241`,
@@ -221,21 +223,21 @@ on the pages as they then stand.
 - [x] Browser suite after the split: 1737 passed, 0 failed.
 - [x] `img/builder.webp` is used by no page any more – deleted; it was taken by `desktop/test/smoke.mjs` (a comment), not `shoot.mjs`, and that comment now publishes `builder-lecture.webp`.
 - [x] Dark and light mode of the eight site pages at 1440 and 390: no overflow, no invisible text, the figures page's bar matches.
-- [ ] figures.html, light: the teal accent (`rgb(0,121,130)`) on tinted backgrounds measures 4.1–4.4:1 – darken it slightly (`docs/artifact/figures-you-write.html`).
-- [ ] getting-started, 390 px: a ~40 px gap in the collapsed „Your first lecture“ block (grid row-gap in `site.css`).
+- [x] figures.html, light: the teal accent (`rgb(0,121,130)`) on tinted backgrounds measures 4.1–4.4:1 – darken it slightly (`docs/artifact/figures-you-write.html`).
+- [x] getting-started, 390 px: a ~40 px gap in the collapsed „Your first lecture“ block (grid row-gap in `site.css`).
 - [x] Browser suite after the prose passes: 1737 passed, 0 failed.
 - [x] Site shots re-shot: `deco-display-cover`, the five decoration tiles (slide numbers moved, `deco-dock` wording), `editor` (figure count 33), `figure` (larger raster, same drawing), `cue-beat-0`/`-1` (invisible but reproducible), `builder-lecture.webp` with its alt texts. `deco-display-divider` unchanged. `shoot.mjs`'s PDF sheet reads the `psiINT-pdf-p` wrapper id.
-- [ ] Prompter shots `prompter-hint` and `prompter-hint-de` are stale (`#two-numbers` note changed) – `shoot-prompter.mjs` costs model calls, not run.
+- [x] (a6fc3948, alt texts follow the new hints) Prompter shots `prompter-hint` and `prompter-hint-de` are stale (`#two-numbers` note changed) – `shoot-prompter.mjs` costs model calls, not run.
 - [x] python-intro shots re-shot: `printed` without the reader tools (paper), `handout` / `handout-plain` with them, 640 rows from the chunk's heading so the notes are in frame; `full` and `overview` with the start menu kept shut (`PSI_NO_START_MENU`). `collapsed`, `search`, `annotation`, `slides-pdf` reproduce the committed files; `cockpit` differs only run to run – kept.
-- [ ] Desktop smoke, parity step: 2 failures – slides.pdf page 9 (`#arrows` beat 1) fits at zoom 0.95 in the app and 0.9 on the command line, so 3 pages' text differs.
-- [ ] python-intro: „the hour ahead“ vs „all afternoon“ – left because of the shots.
-- [ ] spoken-talk `#board`: sub-heading says „six steps“, the drawing has three boxes – check.
+- [x] (ff12d076, the other session: a borderline fit, one zoom step apart, is accepted and named) Desktop smoke, parity step: 2 failures – slides.pdf page 9 (`#arrows` beat 1) fits at zoom 0.95 in the app and 0.9 on the command line, so 3 pages' text differs.
+- [x] python-intro: „all afternoon“ → „throughout the session“ (dc321ca0); no shot shows that chunk.
+- [x] spoken-talk `#board`: „three boxes, two arrows, a number“, EN and DE (dc321ca0).
 
 - [x] `comparison`'s details: a `summary` style in `site.css` (it is the
       browser default now) and open the block a `#fragment` names (`site.js`,
       on load and `hashchange`). After site-s1, which may touch `site.css`.
 
-- [ ] Top bar at its breakpoints: the DE entry is now „Im Hörsaal“ (was „Im
+- [x] Top bar at its breakpoints: the DE entry is now „Im Hörsaal“ (was „Im
       Raum“) – check it does not wrap (`PSI_SITE_NAV_ALL`, DESIGN.md).
 - [x] Re-shoot `img/builder-lecture.webp` (its alt text, getting-started EN
       :104 / DE :109, still describes „12 sections, 92 slides, 2 pictures“).
@@ -243,4 +245,4 @@ on the pages as they then stand.
 - [x] `npm run build:tracked`, `npm run gate`, `node lint.js lectures/ --strict`,
       site build with both gates, `node docs/artifact/refresh-figures.mjs --check`.
 - [x] Browser specs touching tutorial / diagrams / decoration.
-- [ ] Move this file to `docs/history/`.
+- [x] Move this file to `docs/history/`.
