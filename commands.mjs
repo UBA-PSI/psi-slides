@@ -12,18 +12,22 @@
  * table existed is still answered, every command has a run function in the
  * view that answers it, every panel row spells the keys its command has.
  *
- * One entry is one row of the ? panel, in the panel's order. Three kinds:
+ * One entry is one row of the ? panel. Two kinds:
  *
- *   a command   has `keys`, and the key map dispatches them to COMMAND_RUN[id]
+ *   a command   has `keys`, and the key map dispatches them to COMMAND_RUN[id];
+ *               the panel can run its row as a palette (all but ? itself)
  *   a doc row   has no `keys`: a mouse gesture (`mouse`), or a key answered
  *               somewhere other than the key map (`context`: the overview
  *               board, the search field, a focused figure, the cue cards, a
  *               note, the prompter's strip, the editor) - the guards before
  *               the lookup are code, because they are rules about *where* a
  *               key is pressed rather than about what a command is
- *   a merged    a command whose keys are listed in another command's row
- *               (`row: '<id>'`): Shift-C, Shift-F, Shift-A and Shift-L are
- *               four commands and one line of the panel
+ *
+ * The panel lists a view's commands first, section by section in GROUPS
+ * order, and its doc rows after them as a reference, in the same sections
+ * (helpGroups): a row the arrows can select never has one they skip
+ * between it and the next. Shift-C, Shift-F, Shift-A and Shift-L used to
+ * share one line; they are four lines now, each one runnable.
  *
  * Fields:
  *
@@ -63,9 +67,10 @@ export const CONTEXTS = ['overview', 'search', 'figure', 'cards', 'note', 'strip
 
 // The panel's sections, in the cockpit's order. The audience panel is the
 // same list with the cockpit's own sections left out, which is the order it
-// has always had. The prompter stands first where there is one: it is the
-// only section whose first line is something to read before pressing
-// anything (the privacy row), and in fifth place it began below the fold.
+// has always had. The prompter stands first where there is one, in both of
+// the panel's runs (helpGroups): its switch heads the runnable rows, and its
+// privacy row, the one line to read before pressing anything, heads the
+// reference.
 export const GROUPS = [
   { id: 'prompter', title: 'The prompter', views: ['speaker'], requires: 'prompter' },
   { id: 'cards', title: 'Cue cards', views: ['speaker'] },
@@ -186,10 +191,10 @@ export const COMMANDS = [
     hint: 'the same pair, on every slide' },
   { id: 'next-column', group: 'moving', views: BOTH, keys: ['shift+arrowright'],
     label: 'Next column', reach: 'broadcast',
-    show: '<kbd>Shift</kbd><kbd>→</kbd> · <kbd>Shift</kbd><kbd>←</kbd>',
-    hint: 'the next column · the column before it – from anywhere' },
-  { id: 'prev-column', group: 'moving', views: BOTH, keys: ['shift+arrowleft'], row: 'next-column',
-    label: 'Previous column', reach: 'broadcast' },
+    hint: 'the next column – from anywhere' },
+  { id: 'prev-column', group: 'moving', views: BOTH, keys: ['shift+arrowleft'],
+    label: 'Previous column', reach: 'broadcast',
+    hint: 'the column before it – from anywhere' },
   { id: 'column-mark', group: 'moving', views: BOTH,
     mouse: 'the mark at the foot',
     hint: '⌄ the next forward press leaves this column' },
@@ -286,12 +291,15 @@ export const COMMANDS = [
   // = and _ are the other spellings of the two physical keys on a US layout.
   { id: 'zoom-in', group: 'knobs', views: BOTH, keys: ['+', '='],
     label: 'Larger text', reach: 'broadcast',
-    show: '<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>',
-    hint: 'text size, and zero resets it (kept separately for each collapse mode)' },
-  { id: 'zoom-out', group: 'knobs', views: BOTH, keys: ['-', '_'], row: 'zoom-in',
-    label: 'Smaller text', reach: 'broadcast' },
-  { id: 'zoom-reset', group: 'knobs', views: BOTH, keys: ['0'], row: 'zoom-in',
-    label: 'Reset the text size', reach: 'broadcast' },
+    show: '<kbd>+</kbd>',
+    hint: 'larger text (the size is kept separately for each collapse mode)' },
+  { id: 'zoom-out', group: 'knobs', views: BOTH, keys: ['-', '_'],
+    label: 'Smaller text', reach: 'broadcast',
+    show: '<kbd>-</kbd>',
+    hint: 'smaller text' },
+  { id: 'zoom-reset', group: 'knobs', views: BOTH, keys: ['0'],
+    label: 'Reset the text size', reach: 'broadcast',
+    hint: 'the text size back to where it started' },
   { id: 'auto-fit', group: 'knobs', views: BOTH, keys: ['#'],
     label: 'Cycle auto-fit', reach: 'broadcast',
     hint: 'auto-fit: off → shrink a slide that is too big → size every slide to the screen' },
@@ -337,14 +345,16 @@ export const COMMANDS = [
     hint: 'live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop; the very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk' },
   { id: 'collapse-back', group: 'knobs', views: BOTH, keys: ['shift+c'],
     label: 'Cycle the collapse backwards', reach: 'broadcast',
-    show: '<kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd>',
-    hint: 'cycle that knob backwards' },
-  { id: 'font-back', group: 'knobs', views: BOTH, keys: ['shift+f'], row: 'collapse-back',
-    label: 'Cycle the font backwards', reach: 'broadcast' },
-  { id: 'theme-back', group: 'knobs', views: BOTH, keys: ['shift+a'], row: 'collapse-back',
-    label: 'Cycle the theme backwards', reach: 'broadcast' },
-  { id: 'slide-numbers-back', group: 'knobs', views: BOTH, keys: ['shift+l'], row: 'collapse-back',
-    label: 'Cycle the slide numbers backwards', reach: 'broadcast' },
+    hint: 'the collapse, backwards' },
+  { id: 'font-back', group: 'knobs', views: BOTH, keys: ['shift+f'],
+    label: 'Cycle the font backwards', reach: 'broadcast',
+    hint: 'the font, backwards' },
+  { id: 'theme-back', group: 'knobs', views: BOTH, keys: ['shift+a'],
+    label: 'Cycle the theme backwards', reach: 'broadcast',
+    hint: 'the theme, backwards' },
+  { id: 'slide-numbers-back', group: 'knobs', views: BOTH, keys: ['shift+l'],
+    label: 'Cycle the slide numbers backwards', reach: 'broadcast',
+    hint: 'the slide numbers, backwards' },
   { id: 'touch-palette', group: 'knobs', views: BOTH,
     mouse: 'on a touchscreen',
     hint: 'the same settings sit behind the ⋯ button on the toolbar' },
@@ -449,33 +459,36 @@ export function keyText(combo) {
 
 const pick = (v, view) => (v && typeof v === 'object' ? v[view] : v);
 
-// Whether the panel may run this entry's row as a palette: a command whose
-// row is its own. A row that lists other commands too (Shift-C F A L, + - 0,
-// Shift-→ Shift-←) names more than one thing to do, and the panel's own row
-// would only open the panel again.
+// Whether the panel may run this entry's row as a palette: a command, but
+// not ?, whose row would only open the panel again.
 export function runsFromPanel(c) {
-  return !!(c.keys && !c.row && c.id !== 'help' && !COMMANDS.some((m) => m.row === c.id));
+  return !!(c.keys && c.id !== 'help');
 }
 
-// The panel's sections for one view: [[title, [[keyColumn, hint, runId, rowId], …]], …],
-// both columns HTML, runId the command a click on the row runs (null for a
-// doc row), rowId the entry the row is (the palette splits a row that lists
-// several commands back into one line each). `ships` says which optional
-// modules this view carries.
+// The panel's sections for one view, in two runs:
+// [[title, [[keyColumn, hint, runId, rowId], …], ref], …] - first every
+// section's runnable rows (ref false), then every section's other rows (ref
+// true): the doc rows, and ? itself. Both columns HTML, runId the command a
+// click on the row runs (null for a reference row), rowId the entry the row
+// is. Two runs and not one list per section, so that the arrows, which move
+// through the runnable rows, never pass over a row they cannot select.
+// `ships` says which optional modules this view carries.
 export function helpGroups(view, ships = {}) {
-  const out = [];
+  const run = [], ref = [];
   for (const g of GROUPS) {
     if (!g.views.includes(view) || (g.requires && !ships[g.requires])) continue;
-    const rows = [];
+    const rows = [[], []];
     for (const c of COMMANDS) {
-      if (c.row || !c.views.includes(view) || pick(c.group, view) !== g.id) continue;
+      if (!c.views.includes(view) || pick(c.group, view) !== g.id) continue;
       if (c.requires && !ships[c.requires]) continue;
       const keys = c.show || c.mouse || c.keys.map(keyText).join(' · ');
-      rows.push([keys, pick(c.hint, view), runsFromPanel(c) ? c.id : null, c.id]);
+      const runs = runsFromPanel(c);
+      rows[runs ? 0 : 1].push([keys, pick(c.hint, view), runs ? c.id : null, c.id]);
     }
-    if (rows.length) out.push([g.title, rows]);
+    if (rows[0].length) run.push([g.title, rows[0], false]);
+    if (rows[1].length) ref.push([g.title, rows[1], true]);
   }
-  return out;
+  return run.concat(ref);
 }
 
 // ── the table's own rules, asserted at load ───────────────────────────
@@ -496,14 +509,10 @@ export function helpGroups(view, ships = {}) {
     if (c.when && !WHEN.includes(c.when)) fail(c.id + ' has an unknown when ' + c.when);
     if (c.context && !CONTEXTS.includes(c.context)) fail(c.id + ' has an unknown context ' + c.context);
     if (c.keys && !c.label) fail(c.id + ' is a command without a label');
-    if (!c.row && !c.hint) fail(c.id + ' is a row without a hint');
+    if (!c.hint) fail(c.id + ' is a row without a hint');
     if (!c.keys && !c.show && !c.mouse) fail(c.id + ' has no keys and nothing to show for them');
   }
-  for (const c of COMMANDS) {
-    if (!c.row) continue;
-    const host = COMMANDS.find((h) => h.id === c.row);
-    if (!host || host.row || !host.show) fail(c.id + ' is listed in the row of ' + c.row + ', which spells no keys of its own');
-  }
+  for (const c of COMMANDS) if ('row' in c) fail(c.id + ' names a row to share; every command has a row of its own');
   for (const id of START_MENU) {
     const c = COMMANDS.find((x) => x.id === id);
     if (!c || !c.keys || !c.short || !c.views.includes('audience')) fail('the start menu names ' + id + ', which is no audience command with a short name');

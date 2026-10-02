@@ -291,12 +291,15 @@ tag:
   and `↓` move the selection, and `Enter` or a click runs it – exactly as its
   key would, so in the cockpit `W` from the panel still arms the projection.
   Rows that describe a gesture or a key with a special meaning cannot be
-  selected. The panel keeps one size while you type; the rows scroll inside
-  it. While the field has text, the matches are one list across the panel,
-  best match first – a key, then a command's own name, then a description –
-  with the section each comes from at the end of its line; a row that lists
-  several commands (`Shift-C F A L`, `+ - 0`) is one line per command there,
-  so each can be picked and run.
+  selected, and they stand after all the rows that can, muted, under a line
+  of their own – so `↓` always moves to the row right under the selection,
+  `PageUp` and `PageDown` move by a panel, and the selection stops at either
+  end. The panel is one column, filtered or not, and keeps one size while you
+  type; the rows scroll inside it. While the field has text, the matches are
+  one list, best match first – a key, then a command's own name, then a
+  description – with the section each comes from at the end of its line.
+  `Shift-C F A L` and `+ - 0` are one line per command, so each can be
+  picked and run.
 - **A start menu on the projection, before the talk starts.** Beside the `?`
   button in `audience.html`: *Fullscreen*, *Speaker cockpit* and *Print view*
   with their keys (`W`, `S`, `P`), for someone who does not know the keys
@@ -306,9 +309,11 @@ tag:
   browser. Whenever it is gone – by a move or by `‹` – a small `›` beside the
   `?` button brings it back on any slide and forgets the `‹`. It is never in the cockpit, the two
   documents, a PDF or the `--frames` pictures. A projection built without
-  `speaker.html` or `print.html` beside it (`--audience-only` into an empty
-  folder) offers no entry for the missing view, and `S` or `P` then says the
-  file is not there instead of opening a broken window.
+  `speaker.html` or `print.html` beside it offers no entry for the missing
+  view, and `S` or `P` then says the file is not there instead of opening a
+  broken window – whether the build found it missing (`--audience-only` into
+  an empty folder) or the page does when it is opened: an `audience.html`
+  sent on alone, opened from disk in Chrome, Firefox or Safari, or served.
 - **The `?` panel in both live views has a search field.** It has the focus
   when the panel opens, and typing filters the rows by key and by what the key
   does: every word has to match, case and accents are ignored, and a single

@@ -44,7 +44,8 @@
  *
  *   - **The panel as a palette, and the start menu.** A row names its
  *     command on the dt only where runsFromPanel says the panel may run it -
- *     never a doc row, a row shared by several commands, or the panel's own;
+ *     every command but the panel's own, never a doc row; the runnable rows
+ *     stand before every other row, so the arrows skip none;
  *     both panels list Ctrl/Cmd-K; the listener answers Cmd-K before the
  *     field's keys and before the guard that hands chords to the browser.
  *     renderStartMenu is lifted out as text like renderHelpOverlay: its
@@ -167,9 +168,11 @@ export function dtCombos(dt) {
 }
 
 export function helpSections(html) {
-  return [...html.matchAll(/<section>\s*<h3>([\s\S]*?)<\/h3>([\s\S]*?)<\/section>/g)].map((m) => ({
-    title: m[1],
-    combos: [...m[2].matchAll(/<dt(?: [^>]*)?>([\s\S]*?)<\/dt>/g)].flatMap((d) => dtCombos(d[1])),
+  return [...html.matchAll(/<section( class="help-ref")?>\s*<h3>([\s\S]*?)<\/h3>([\s\S]*?)<\/section>/g)].map((m) => ({
+    ref: !!m[1],
+    title: m[2],
+    rows: [...m[3].matchAll(/<dt([^>]*)>/g)].map((d) => (d[1].match(/data-cmd="([a-z0-9-]+)"/) || [])[1] || null),
+    combos: [...m[3].matchAll(/<dt(?: [^>]*)?>([\s\S]*?)<\/dt>/g)].flatMap((d) => dtCombos(d[1])),
   }));
 }
 
@@ -363,12 +366,11 @@ export async function run({ report }) {
     dtCombos(c.keys.map(CMD.keyText).join(' · ')).join() === c.keys.join()),
   'a generated key column reads back as exactly the keys it was made from');
 
-  // A command's row spells only keys that command, or one listed in its row,
-  // answers - a row cannot advertise a key that does something else.
+  // A command's row spells only keys that command answers - a row cannot
+  // advertise a key that does something else.
   const overclaim = [];
   for (const c of commands) {
-    if (c.row) continue;
-    const own = new Set([...c.keys, ...commands.filter((m) => m.row === c.id).flatMap((m) => m.keys)]);
+    const own = new Set(c.keys);
     const col = c.show || c.keys.map(CMD.keyText).join(' · ');
     for (const k of dtCombos(col)) if (!own.has(k)) overclaim.push(`${c.id}: ${k}`);
   }
@@ -403,25 +405,35 @@ export async function run({ report }) {
 
   // ── the panel as a palette ──
   // A row the panel may run names its command on the dt; the runtime adds
-  // whether this view has a run function. Only a command whose row is its
-  // own: a doc row names nothing, and a row that lists several commands
-  // (Shift-C F A L) or the panel's own row would run the wrong thing.
+  // whether this view has a run function. Every command but ? has a row of
+  // its own and runs from it; a doc row names nothing. The runnable rows
+  // come first, section by section, and every other row after them under
+  // the reference's line, so the arrows, which walk the runnable rows, never
+  // pass over one they cannot select.
   for (const view of CMD.VIEWS) {
     const panel = render(view, true, true);
     const named = [...panel.matchAll(/<dt [^>]*data-cmd="([a-z0-9-]+)">/g)].map((m) => m[1]);
     const byId = new Map(CMD.COMMANDS.map((c) => [c.id, c]));
-    // Every row says which entry it is, so the palette can split a row that
-    // lists several commands back into one line each.
     const rowIds = [...panel.matchAll(/<dt([^>]*)>/g)].map((m) => (m[1].match(/data-row="([a-z0-9-]+)"/) || [])[1]);
-    ok(rowIds.length > 20 && rowIds.every((id) => byId.has(id) && !byId.get(id).row),
-      `every row of the ${view} panel names the entry it is`, rowIds.filter((id) => !byId.has(id)).join(', '));
-    const wrong = named.filter((id) => !byId.has(id) || !byId.get(id).keys || byId.get(id).row
-      || id === 'help' || CMD.COMMANDS.some((m) => m.row === id));
+    ok(rowIds.length > 20 && rowIds.every((id) => byId.has(id)) && new Set(rowIds).size === rowIds.length,
+      `every row of the ${view} panel names the entry it is, once`, rowIds.filter((id) => !byId.has(id)).join(', '));
+    const wrong = named.filter((id) => !byId.has(id) || !byId.get(id).keys || id === 'help');
     ok(named.length > 20 && wrong.length === 0,
-      `the ${view} panel names a command on every row it may run, and on no doc row or shared row`,
+      `the ${view} panel names a command on every row it may run, and on no doc row`,
       `${named.length} named; wrong: ${wrong.join(', ')}`);
-    ok(named.includes('blank') && !named.includes('collapse-back') && !named.includes('sideways'),
-      `in the ${view} panel B runs, Shift-C F A L and the → ← doc row do not`);
+    ok(['blank', 'collapse-back', 'font-back', 'zoom-out', 'prev-column'].every((id) => named.includes(id))
+      && !named.includes('sideways') && !named.includes('help'),
+      `in the ${view} panel B and each of Shift-C F A L run, the → ← doc row and ? do not`);
+    const secs = helpSections(panel);
+    const firstRef = secs.findIndex((x) => x.ref);
+    const order = secs.map((x) => x.ref);
+    ok(firstRef > 0 && order.slice(firstRef).every(Boolean) && order.slice(0, firstRef).every((r) => !r),
+      `the ${view} panel's runnable sections all stand before its reference sections`, order.join(','));
+    ok(secs.every((x) => x.rows.every((id) => (id !== null) === !x.ref)),
+      `in the ${view} panel a runnable section holds only runnable rows, a reference section none`);
+    const partAt = panel.indexOf('class="help-part"');
+    ok(partAt > panel.lastIndexOf('data-cmd=') && partAt < panel.indexOf('<section class="help-ref">'),
+      `the ${view} panel's reference line stands between the two runs`);
     ok(helpSections(panel).some((sec) => sec.combos.includes('mod+k')),
       `the ${view} panel has a row for Ctrl/Cmd-K`);
   }

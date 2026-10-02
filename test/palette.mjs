@@ -7,13 +7,17 @@
  * Cmd-K and Ctrl-K open the panel with the field focused; a word and Enter
  * run the row it selects, exactly as the key would (B blanks); a doc row
  * runs nothing; Esc unwinds the panel first, as before; the panel's box is
- * the same before and after typing, and a filter lays its hits out as one
- * list across the box. The start menu stands on slide 1 of a fresh page
+ * the same before and after typing, and the rows are one column, filtered
+ * or not: the runnable ones first, so ↓ always lands on the nearest runnable
+ * row below and never passes over one it cannot select. The start menu
+ * stands on slide 1 of a fresh page
  * load, folds on the first move from either window, on W and on its chevron,
  * remembers the chevron across a reload, answers a tap, and is in no other
  * view and in no frame of --frames. Built alone (--audience-only into an
  * empty folder), it offers no entry for a view that is not beside it, and S,
- * P and the palette say so instead of opening a window. Folded, it leaves a chevron beside the ?
+ * P and the palette say so instead of opening a window - and so do they
+ * when the build saw print.html and it was deleted later, opened from
+ * file://, where the page probes for it. Folded, it leaves a chevron beside the ?
  * circle that opens it again on any slide and forgets the stored choice. What the commands gate
  * already holds without a browser - which rows name a command, that Cmd-K is
  * answered before the chord guard, what the menu is made of - is not
@@ -61,7 +65,7 @@ function build(dir, ...flags) {
     { cwd: ROOT, encoding: 'utf8' });
 }
 
-export async function run({ page, report }) {
+export async function run({ page, report, errors: pageErrors }) {
   const { ok } = report;
   const dir = tmpDir('psi-palette-');
   fs.writeFileSync(path.join(dir, 'source.md'), DECK);
@@ -151,9 +155,94 @@ export async function run({ page, report }) {
       await press('Escape');
       const unf = await page.evaluate(() => {
         const g = document.querySelector('#psiINT-help-overlay .help-grid');
-        return new Set([...g.querySelectorAll('dt')].map((d) => Math.round(d.getBoundingClientRect().left))).size;
+        const dts = [...g.querySelectorAll('dt')].filter((d) => d.getClientRects().length);
+        return { n: dts.length, lefts: new Set(dts.map((d) => Math.round(d.getBoundingClientRect().left))).size,
+          descs: new Set(dts.map((d) => Math.round(d.nextElementSibling.getBoundingClientRect().left))).size };
       });
-      ok(unf > 1, `${v}: an empty field brings the reference's columns back`, String(unf));
+      ok(unf.n > 40 && unf.lefts === 1 && unf.descs === 1,
+        `${v}: an empty field shows the reference as one column too - one left edge for the keys, one for the words`, JSON.stringify(unf));
+
+      // The arrows: from nothing to the first runnable row, then from each
+      // to the nearest runnable row below it, every one scrolled into view,
+      // and no row they cannot select standing between two they can.
+      const walk = async (what) => {
+        const order = await page.evaluate(() => {
+          const g = document.querySelector('#psiINT-help-overlay .help-grid');
+          const root = g.hasAttribute('data-filtered') ? g.querySelector('.help-results') : g;
+          return [...root.querySelectorAll('dt')].filter((d) => d.getClientRects().length)
+            .map((d) => (d.classList.contains('help-run') ? 'run' : 'ref'));
+        });
+        const firstRef = order.indexOf('ref');
+        ok(order.includes('run') && (firstRef < 0 || order.slice(firstRef).every((k) => k === 'ref')),
+          `${v} ${what}: every runnable row stands before every row the arrows cannot select`,
+          order.map((k) => k[1]).join(''));
+        const list = await page.evaluate(() => {
+          const g = document.querySelector('#psiINT-help-overlay .help-grid');
+          const root = g.hasAttribute('data-filtered') ? g.querySelector('.help-results') : g;
+          return [...root.querySelectorAll('dt.help-run')].filter((d) => d.getClientRects().length)
+            .map((d) => d.dataset.cmd);
+        });
+        const steps = list.length;
+        const bad = [];
+        for (let i = 0; i <= steps; i++) {
+          if (i > 0 || !(await panel()).sel) await page.keyboard.press('ArrowDown');
+          const at = await page.evaluate(() => {
+            const g = document.querySelector('#psiINT-help-overlay .help-grid');
+            const sel = g.querySelector('dt.help-sel');
+            if (!sel) return null;
+            const r = sel.getBoundingClientRect();
+            const gr = g.getBoundingClientRect();
+            return { cmd: sel.dataset.cmd, inView: r.top >= gr.top - 1 && r.bottom <= gr.bottom + 1 };
+          });
+          const want = list[Math.min(i, steps - 1)];
+          if (!at) { bad.push(`${i}: nothing selected`); break; }
+          if (at.cmd !== want) bad.push(`${i}: ${at.cmd}, not ${want}`);
+          if (!at.inView) bad.push(`${at.cmd} out of view`);
+        }
+        ok(bad.length === 0, `${v} ${what}: ↓ walks every runnable row in order, in view, and stops at the last`, bad.join('; '));
+        return steps;
+      };
+      await press('Escape', 200);
+      await press('Meta+k', 250);
+      // The geometric half: ↓ from each runnable row lands on the row whose
+      // top is the next one down among the runnable rows.
+      const geo = async (what) => {
+        const res = await page.evaluate(async () => {
+          const g = document.querySelector('#psiINT-help-overlay .help-grid');
+          const root = g.hasAttribute('data-filtered') ? g.querySelector('.help-results') : g;
+          const runs = [...root.querySelectorAll('dt.help-run')].filter((d) => d.getClientRects().length);
+          const abs = (d) => d.getBoundingClientRect().top + g.scrollTop;
+          const bad = [];
+          for (let i = 0; i < runs.length - 1; i++) {
+            const here = abs(runs[i]);
+            const below = runs.filter((d) => abs(d) > here + 1).sort((a, b) => abs(a) - abs(b))[0];
+            if (below !== runs[i + 1]) bad.push(runs[i].dataset.cmd + ' -> ' + (below ? below.dataset.cmd : 'none'));
+          }
+          return { n: runs.length, bad };
+        });
+        ok(res.n > 3 && res.bad.length === 0, `${v} ${what}: the next runnable row in the arrows' order is the nearest one below`, res.bad.join(', ') || String(res.n));
+      };
+      await geo('unfiltered');
+      const n0 = await walk('unfiltered');
+      ok(n0 > 20, `${v}: the unfiltered panel has more than twenty runnable rows`, String(n0));
+      await press('PageUp');
+      const pgUp = (await panel()).sel;
+      await press('PageDown');
+      const pgDn = (await panel()).sel;
+      ok(pgUp && pgDn && pgUp !== pgDn, `${v}: PageUp and PageDown move the selection by a panel`, [pgUp, pgDn].join(' → '));
+      await press('Escape', 200);
+      await press('Meta+k', 250);
+      await type('the');
+      await geo('filtered');
+      await walk('filtered by "the"');
+      await press('Escape');
+
+      // The tracking of the panel's small capitals: a little, not spaced out.
+      const track = await page.evaluate(() => [
+        '#psiINT-help-inner h2', '.help-grid h3',
+      ].map((q) => { const el = document.querySelector(q); const cs = getComputedStyle(el);
+        return parseFloat(cs.letterSpacing) / parseFloat(cs.fontSize); }));
+      ok(track.every((t) => t > 0 && t <= 0.1), `${v}: the panel's title and section headings are tracked at most 0.1em`, track.map((t) => t.toFixed(3)).join(' '));
 
       // Best match first: the command a word names before the rows that
       // mention it, and a row of four commands is four lines, each runnable.
@@ -236,6 +325,10 @@ export async function run({ page, report }) {
     ok(await chev() === 'hidden', 'and the chevron that brings it back does not');
     const labels = await page.$$eval('#psiINT-start-menu button[data-cmd]', (bs) => bs.map((x) => x.textContent.trim()));
     ok(labels.join(' | ') === 'Fullscreen W | Speaker cockpit S | Print view P', 'with the three names and keys from the table', labels.join(' | '));
+    const mTrack = await page.$eval('#psiINT-start-menu button[data-cmd]', (x) => {
+      const cs = getComputedStyle(x); return parseFloat(cs.letterSpacing) / parseFloat(cs.fontSize);
+    });
+    ok(mTrack > 0 && mTrack <= 0.1, 'its small capitals are tracked at most 0.1em, like the panel\'s', mTrack.toFixed(3));
     await press('ArrowRight', 300);
     ok(await menu() === 'hidden', 'the first forward press - a beat on slide 1 - ends it');
     ok(await chev() === 'shown', 'and leaves the chevron beside the ? circle');
@@ -384,6 +477,66 @@ export async function run({ page, report }) {
       } finally {
         ls.server.close();
         fs.rmSync(lone, { recursive: true, force: true });
+      }
+    }
+
+    // Handed on without its print view: a full build, so the build saw
+    // print.html, and the file deleted after it, opened from file:// as a
+    // mailed audience.html is. The page's own probe finds it missing: the
+    // menu drops the entry, P and the palette row say so, and nothing opens
+    // or navigates; the cockpit, which is there, still opens. And nothing a
+    // probe loads runs or reaches the console as an exception.
+    {
+      const cut = tmpDir('psi-palette-file-');
+      fs.writeFileSync(path.join(cut, 'source.md'), DECK);
+      const cb = build(cut);
+      ok(cb.status === 0 && fs.existsSync(path.join(cut, 'print.html')), 'a full build writes print.html beside audience.html', (cb.stdout || '') + (cb.stderr || ''));
+      fs.rmSync(path.join(cut, 'print.html'));
+      const errors = [];
+      const onErr = (err) => errors.push(err.message);
+      page.on('pageerror', onErr);
+      const fileUrl = 'file://' + path.join(cut, 'audience.html');
+      const logged = pageErrors.length;
+      try {
+        await page.goto(fileUrl, { waitUntil: 'load' });
+        await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* private window */ } });
+        await page.reload({ waitUntil: 'load' });
+        await page.waitForTimeout(700);
+        const entries = await page.$$eval('#psiINT-start-menu button[data-cmd]', (bs) => bs.filter((x) => !x.hidden).map((x) => x.textContent.trim()));
+        ok(entries.join(' | ') === 'Fullscreen W | Speaker cockpit S', 'file://: the menu leaves out the print view that is not there', entries.join(' | '));
+        const opened = [];
+        const onPage = (pg) => opened.push(pg);
+        page.context().on('page', onPage);
+        const badge = () => page.evaluate(() => {
+          const m = document.getElementById('psiINT-mode-badge');
+          return m.classList.contains('visible') ? m.textContent : '';
+        });
+        await press('p', 400);
+        ok(/print\.html is not beside this file/.test(await badge()), 'file://: P says the print view is not there', await badge());
+        await page.waitForTimeout(1900);
+        await press('Meta+k', 250);
+        await type('print view');
+        await press('Enter', 400);
+        ok(/print\.html is not beside this file/.test(await badge()), 'file://: and so does the palette row', await badge());
+        await page.waitForTimeout(300);
+        ok(opened.length === 0 && page.url() === fileUrl, 'file://: and no window opens and the page stays', opened.map((x) => x.url()).join(' ') + ' ' + page.url());
+        page.context().off('page', onPage);
+        const [spk2] = await Promise.all([page.context().waitForEvent('page', { timeout: 5000 }), press('s', 300)]);
+        await spk2.waitForLoadState();
+        ok(/speaker\.html/.test(spk2.url()), 'file://: S still opens the cockpit, which is there', spk2.url());
+        await spk2.close();
+        ok(errors.length === 0, 'file://: no probe left an exception behind', errors.join(' | '));
+        // A probe of the missing file puts the browser's own "not found"
+        // line on the console - the one case where it is news. The runner
+        // counts console errors as page errors, so these, and only these,
+        // are taken back off its list.
+        const added = pageErrors.splice(logged);
+        const other = added.filter((m) => !/ERR_FILE_NOT_FOUND/.test(m));
+        ok(added.length > 0 && other.length === 0, 'file://: the console has the missing file\'s "not found" lines and nothing else', added.join(' | '));
+        pageErrors.push(...other);
+      } finally {
+        page.off('pageerror', onErr);
+        fs.rmSync(cut, { recursive: true, force: true });
       }
     }
 

@@ -13851,12 +13851,18 @@ function renderHelpOverlay(view, withEditor, withSouffleuse, S = STRINGS.en) {
   // never user content, so they go through verbatim. A row the panel can run
   // as a palette names its command on the dt (runsFromPanel in commands.mjs);
   // whether this view has a run function for it is the runtime's question.
-  const sections = groups.map(([title, rows]) => `    <section>
+  // helpGroups hands the sections over in two runs, the runnable rows first
+  // and the reference after them, and the reference opens with a line that
+  // says what it is.
+  const section = ([title, rows, ref]) => `    <section${ref ? ' class="help-ref"' : ''}>
       <h3>${title}</h3>
       <dl>
 ${rows.map(([k, v, id, row]) => `        <dt data-row="${row}"${id ? ` data-cmd="${id}"` : ''}>${k}</dt><dd>${v}</dd>`).join('\n')}
       </dl>
-    </section>`).join('\n');
+    </section>`;
+  const firstRef = groups.findIndex((g) => g[2]);
+  const sections = groups.map((g, i) => (i === firstRef
+    ? '    <p class="help-part">For reference – the mouse, and keys that answer in one place</p>\n' : '') + section(g)).join('\n');
 
   const find = escapeHtml(S['help-search'] || STRINGS.en['help-search']);
   return `<div id="psiINT-help-overlay" class="hidden" role="dialog" aria-label="Keyboard and mouse reference" aria-modal="false">
@@ -18459,7 +18465,7 @@ body[data-view=speaker].blanked #psiINT-demo-badge { bottom: 5.3rem; }
   color: var(--ink-soft);
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   font-size: 0.7rem;
   padding: 0.3rem 0.7rem;
   cursor: pointer;
@@ -18501,8 +18507,9 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
   box-shadow: 0 18px 60px oklch(0 0 0 / 0.35);
   /* Explicit width, not max-width: as a centred grid item the panel would
      otherwise shrink to its content and squeeze the description column to
-     one word per line. */
-  width: min(1180px, 95vw);
+     one word per line. One column of rows, so a measure a line of prose
+     reads at rather than the whole screen. */
+  width: min(880px, 95vw);
   height: min(860px, 95vh);
   display: flex;
   flex-direction: column;
@@ -18520,15 +18527,19 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
   padding-bottom: 0.55rem;
   margin-bottom: 1rem;
 }
+/* The chrome's small capitals take a little tracking, 0.06em - the start
+   menu, the fullscreen line and the panel alike; capitals spaced wider than
+   that read as a word spelled out. */
 #psiINT-help-inner h2 {
   margin: 0;
   font-size: 0.95rem;
   font-variant-caps: all-small-caps;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.06em;
   color: var(--ink);
   font-weight: 600;
+  white-space: nowrap;
 }
-#psiINT-help-inner .help-dismiss { font-size: 0.7rem; color: var(--ink-soft); letter-spacing: 0.06em; }
+#psiINT-help-inner .help-dismiss { font-size: 0.72rem; color: var(--ink-soft); white-space: nowrap; }
 /* The search field: a line to type on, in the panel's own small type, and
    nothing else - the panel is a reference, and the field is how to get to a
    row in it, not a second thing to look at. It takes the room between the
@@ -18551,65 +18562,83 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
 #psiINT-help-search:focus { border-bottom-color: var(--ink-soft); }
 #psiINT-help-inner .help-none { flex: none; margin: 0 0 0.6rem; font-size: 0.78rem; color: var(--ink-soft); }
 #psiINT-help-inner [hidden] { display: none; }
-/* auto-fill, not auto-fit: auto-fit collapses the tracks a filter empties, and
-   the one section left standing then stretched across the whole panel. The
-   min() lets a phone's one column be narrower than 330px. */
+/* One column, filtered or not: the rows are a list the arrows walk, and a
+   list that wraps into two columns puts the next row below the one beside
+   it. Every key column is the same width, in every section and in the
+   filtered list, so the descriptions stand on one left edge down the whole
+   panel. */
 .help-grid {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
-  gap: 0.9rem 2.4rem;
-  align-items: start;
-  align-content: start;
+  display: block;
   padding-bottom: 1.7rem;
+  --help-key-w: 9.5em;
 }
+.help-grid section { margin: 0 0 0.35rem; }
 .help-grid h3 {
-  margin: 0 0 0.4rem;
-  font-size: 0.7rem;
+  margin: 0 0 0.35rem;
+  font-size: 0.74rem;
   font-variant-caps: all-small-caps;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.06em;
   color: var(--emph);
   font-weight: 600;
 }
-/* Two-column definition list: the trigger (key or gesture) sits left at a
-   capped measure, the effect wraps in the remaining space. The cap matters –
-   max-content lets a phrase like "drag the bar above the notes" eat the
-   whole row and reduce the description to one word per line. */
+/* The trigger (key or gesture) sits left at a fixed measure, the effect
+   wraps in the remaining space. A fixed measure and not max-content, which
+   let a phrase like "drag the bar above the notes" eat the row. */
 .help-grid dl {
   margin: 0 0 0.9rem;
   display: grid;
-  grid-template-columns: 9.5em 1fr;
-  gap: 0.3rem 0.9rem;
-  font-size: 0.78rem;
-  line-height: 1.38;
+  grid-template-columns: var(--help-key-w) minmax(0, 1fr);
+  gap: 0.28rem 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 .help-grid dt { color: var(--ink); text-wrap: balance; }
 .help-grid dd { margin: 0; color: var(--ink-soft); }
+/* The reference: what the panel cannot run - a mouse gesture, a key that
+   answers only in one place (the overview board, the search field, a
+   focused figure, the editor), and ? itself. After every runnable row,
+   under a line of its own, and quieter: no row here takes the selection,
+   so none is drawn as if it could. */
+.help-grid .help-part {
+  margin: 1.1rem 0 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+.help-grid .help-ref h3 { color: var(--ink-soft); }
+.help-grid .help-ref dt { color: var(--ink-soft); }
+.help-grid .help-ref kbd { opacity: 0.75; }
 /* While the field has text, the panel is a palette: the reference's
-   sections step aside and the hits stand in one list across the panel's
-   whole width, best match first - one command a line, so a row that lists
-   four commands in the reference is four lines here, each one runnable. A
-   key column as wide as its keys up to a cap, the words on the rest, and
-   the section a hit comes from as a quiet tag at the end of its line. The
-   box keeps its size. */
-.help-grid[data-filtered] { display: block; }
-.help-grid[data-filtered] > section { display: none; }
+   sections step aside and the hits stand in one list, best match first -
+   the runnable ones, then under the reference's line the rest, so the
+   arrows never pass over a row. The key column is the reference's, the
+   words take the rest, and the section a hit comes from is a quiet tag at
+   the end of its line. The box keeps its size. */
+.help-grid[data-filtered] > section,
+.help-grid[data-filtered] > .help-part { display: none; }
 .help-grid .help-results { display: none; }
 .help-grid[data-filtered] > .help-results:not([hidden]) {
   display: grid;
-  grid-template-columns: fit-content(16em) minmax(0, 1fr) max-content;
-  gap: 0.3rem 0.9rem;
+  grid-template-columns: var(--help-key-w) minmax(0, 1fr) fit-content(8em);
+  gap: 0.28rem 0.9rem;
   margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.38;
+  font-size: 0.82rem;
+  line-height: 1.4;
   align-items: baseline;
 }
+.help-results .help-part { grid-column: 1 / -1; margin: 0.6rem 0 0.2rem; }
+.help-results .help-ref { color: var(--ink-soft); }
+.help-results .help-ref kbd { opacity: 0.75; }
 .help-results dd.help-where {
+  font-size: 0.86em;
+  line-height: 1.25;
   font-variant-caps: all-small-caps;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.04em;
   text-align: right;
   opacity: 0.75;
 }
@@ -18625,7 +18654,7 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
 }
 .help-grid dd.help-sel { color: var(--ink); }
 /* A phone: the title, the field and the dismiss line take a line each, and a
-   row puts its description under its key rather than beside a 9.5em column
+   row puts its description under its key rather than beside a key column
    that left the description three words a line. */
 @media (max-width: 560px) {
   #psiINT-help-inner { padding: 1rem 1rem 0; }
@@ -18704,7 +18733,7 @@ body[data-view=speaker] #psiINT-help-button { display: none; }
   color: var(--ink-soft);
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   font-size: 13px;
   line-height: 1;
   padding: 0 0.6em;
@@ -22537,57 +22566,52 @@ function helpRows() {
   }
   return helpIndex;
 }
-// The palette's lines: the reference's rows again, with a row that lists
-// several commands (Shift-C F A L, + - 0, Shift-→ Shift-←) split into one
-// line per command, keyed and labelled from the table, so each can be
-// picked and run on its own. Built once, into the list at the grid's foot,
-// in the reference's order - which is the tie-break of the ranking.
+// The palette's lines: the reference's rows again, one line each, keyed
+// and labelled as in the panel, with the section a line comes from as a tag
+// at its end. Built once, into the list at the grid's foot, in the panel's
+// order - which is the tie-break of the ranking - and with the panel's
+// line between the runnable lines and the rest.
 const helpResults = helpOverlay ? helpOverlay.querySelector('.help-results') : null;
 let paletteIndex = null;
+let paletteRefLine = null;
 function helpWords(str) { return helpFold(str).split(/[^a-z0-9]+/).filter(Boolean); }
 function paletteRows() {
   if (paletteIndex) return paletteIndex;
   paletteIndex = [];
   if (!helpResults) return paletteIndex;
+  const part = helpOverlay.querySelector('.help-grid > .help-part');
+  paletteRefLine = document.createElement('div');
+  paletteRefLine.className = 'help-part';
+  paletteRefLine.textContent = part ? part.textContent : '';
+  paletteRefLine.hidden = true;
+  helpResults.append(paletteRefLine);
   const table = PSI_COMMANDS.COMMANDS;
-  const add = (keysHtml, textHtml, textPlain, title, cmd, label) => {
-    const dt = document.createElement('dt');
-    const dd = document.createElement('dd');
-    const where = document.createElement('dd');
-    dt.innerHTML = keysHtml;
-    if (textHtml !== null) dd.innerHTML = textHtml; else dd.textContent = textPlain;
-    where.className = 'help-where';
-    where.textContent = title;
-    if (cmd) { dt.dataset.cmd = cmd; for (const el of [dt, dd, where]) el.classList.add('help-run'); }
-    for (const el of [dt, dd, where]) el.hidden = true;
-    helpResults.append(dt, dd, where);
-    const keys = [...dt.querySelectorAll('kbd')].map((k) => helpFold(k.textContent.trim()));
-    const range = keysHtml.match(/<kbd>(\\d)<\\/kbd>–<kbd>(\\d)<\\/kbd>/);
-    if (range) for (let d = +range[1] + 1; d < +range[2]; d++) keys.push(String(d));
-    paletteIndex.push({
-      dt, dd, where, cmd, keys, order: paletteIndex.length,
-      keyWords: helpFold(keys.map((k) => HELP_KEY_WORDS[k] || '').join(' ')),
-      label: helpWords(label || ''), labelText: helpFold(label || ''),
-      words: helpWords(dd.textContent),
-      text: helpFold(dt.textContent + ' ' + dd.textContent),
-      title: helpFold(title),
-    });
-  };
   for (const { sec, rows } of helpRows()) {
     const h = sec.querySelector('h3');
     const title = h ? h.textContent : '';
+    const ref = sec.classList.contains('help-ref');
     for (const r of rows) {
-      const id = r.dt.dataset.row;
-      const members = id ? table.filter((m) => m.keys && (m.id === id || m.row === id)) : [];
-      if (members.length > 1) {
-        for (const m of members) {
-          const run = COMMAND_RUN[m.id] && m.id !== 'help' ? m.id : null;
-          add(m.keys.map(PSI_COMMANDS.keyText).join(' · '), null, m.label, title, run, m.label);
-        }
-      } else {
-        const c = id ? table.find((m) => m.id === id) : null;
-        add(r.dt.innerHTML, r.dd ? r.dd.innerHTML : '', '', title, r.cmd, c && c.label);
-      }
+      const dt = document.createElement('dt');
+      const dd = document.createElement('dd');
+      const where = document.createElement('dd');
+      dt.innerHTML = r.dt.innerHTML;
+      dd.innerHTML = r.dd ? r.dd.innerHTML : '';
+      where.className = 'help-where';
+      where.textContent = title;
+      if (r.cmd) { dt.dataset.cmd = r.cmd; for (const el of [dt, dd, where]) el.classList.add('help-run'); }
+      if (ref) for (const el of [dt, dd, where]) el.classList.add('help-ref');
+      for (const el of [dt, dd, where]) el.hidden = true;
+      helpResults.append(dt, dd, where);
+      const c = table.find((m) => m.id === r.dt.dataset.row);
+      const label = c && c.label ? c.label : '';
+      paletteIndex.push({
+        dt, dd, where, cmd: r.cmd, ref, keys: r.keys, order: paletteIndex.length,
+        keyWords: helpFold(r.keys.map((k) => HELP_KEY_WORDS[k] || '').join(' ')),
+        label: helpWords(label), labelText: helpFold(label),
+        words: helpWords(dd.textContent),
+        text: helpFold(dt.textContent + ' ' + dd.textContent),
+        title: helpFold(title),
+      });
     }
   }
   return paletteIndex;
@@ -22615,7 +22639,7 @@ function paletteScore(e, terms) {
     if (!s) return 0;
     total += s;
   }
-  return total + (e.cmd ? 3 : 0);
+  return total;
 }
 let paletteShown = [];
 function filterHelp() {
@@ -22632,9 +22656,18 @@ function filterHelp() {
       for (const el of [e.dt, e.dd, e.where]) el.hidden = !score;
       if (score) scored.push([score, e]);
     }
-    scored.sort((x, y) => y[0] - x[0] || x[1].order - y[1].order);
+    // Best match first within each half; the runnable half before the
+    // reference, as in the unfiltered panel, so a line the arrows cannot
+    // take never stands between two they can.
+    const runs = (e) => (e.cmd ? 0 : 1);
+    scored.sort((x, y) => runs(x[1]) - runs(y[1]) || y[0] - x[0] || x[1].order - y[1].order);
     paletteShown = scored.map((x) => x[1]);
-    for (const e of paletteShown) helpResults.append(e.dt, e.dd, e.where);
+    const firstRef = paletteShown.findIndex((e) => !e.cmd);
+    paletteRefLine.hidden = firstRef < 0;
+    paletteShown.forEach((e, i) => {
+      if (i === firstRef) helpResults.append(paletteRefLine);
+      helpResults.append(e.dt, e.dd, e.where);
+    });
   }
   if (helpNone) helpNone.hidden = !terms.length || paletteShown.length > 0;
   // A query selects its best runnable line, so typing a word and Enter runs
@@ -22651,8 +22684,13 @@ function filterHelp() {
 // Enter or a click runs one. Running closes the panel first and then calls
 // COMMAND_RUN for the command with an event shaped like its first key, so
 // the row does what the key does and nothing is implemented twice: in the
-// cockpit, W from a row arms the projection as the cockpit's W does. A doc
-// row - a gesture, a key answered by a guard - is not selectable.
+// cockpit, W from a row arms the projection as the cockpit's W does. A
+// reference row - a gesture, a key answered by a guard, ? itself - is not
+// selectable, and the panel lists every one of them after the last row that
+// is (helpGroups in commands.mjs, and the sort in filterHelp), so the
+// arrows move from a row to the one right under it, always. They stop at
+// either end rather than wrap; PageDown and PageUp move by what the panel
+// shows at once.
 let helpSel = null;
 function helpRunnable() {
   const out = [];
@@ -22665,12 +22703,20 @@ function helpRunnable() {
 }
 const helpCells = (row) => [row.dt, row.dd, row.where].filter(Boolean);
 // The pointer selects too, without scrolling: the row is already under it.
+// The arrows scroll the row into view, and the first row of a section with
+// its heading, which would otherwise stay just above the fold.
 function setHelpSel(row, scroll = true) {
   if (helpSel) for (const el of helpCells(helpSel)) el.classList.remove('help-sel');
   helpSel = row;
   if (!row) return;
   for (const el of helpCells(row)) el.classList.add('help-sel');
-  if (scroll && row.dd && row.dd.scrollIntoView) row.dd.scrollIntoView({ block: 'nearest' });
+  if (!scroll || !row.dt.scrollIntoView) return;
+  const sec = row.dt.parentElement && row.dt.parentElement.parentElement;
+  if (sec && sec.tagName === 'SECTION' && row.dt.parentElement.firstElementChild === row.dt) {
+    const h = sec.querySelector('h3');
+    if (h) h.scrollIntoView({ block: 'nearest' });
+  }
+  row.dt.scrollIntoView({ block: 'nearest' });
 }
 function helpRowOf(cell) {
   for (const e of paletteIndex || []) if (e.dt === cell || e.dd === cell || e.where === cell) return e;
@@ -22682,6 +22728,23 @@ function moveHelpSel(step) {
   if (!list.length) return;
   const at = list.indexOf(helpSel);
   const next = at < 0 ? (step > 0 ? 0 : list.length - 1) : Math.max(0, Math.min(list.length - 1, at + step));
+  setHelpSel(list[next]);
+}
+// PageDown / PageUp: the farthest runnable row less than a panel's height
+// away, and at least the next one.
+function pageHelpSel(dir) {
+  const list = helpRunnable();
+  const grid = helpOverlay.querySelector('.help-grid');
+  if (!list.length || !grid) return;
+  const at = list.indexOf(helpSel);
+  if (at < 0) { setHelpSel(list[dir > 0 ? 0 : list.length - 1]); return; }
+  const from = list[at].dt.getBoundingClientRect().top;
+  const reach = grid.clientHeight * 0.85;
+  let next = Math.max(0, Math.min(list.length - 1, at + dir));
+  for (let i = next; i >= 0 && i < list.length; i += dir) {
+    if (Math.abs(list[i].dt.getBoundingClientRect().top - from) > reach) break;
+    next = i;
+  }
   setHelpSel(list[next]);
 }
 // A command run from anywhere but its key: the panel, the start menu.
@@ -22759,6 +22822,16 @@ let startMenuEnded = false;
 function setStartMenu(open) {
   startMenu.hidden = !open;
   if (startMenuShow) startMenuShow.hidden = open;
+  if (open) probeStartMenu();
+}
+// An entry whose view the build put beside this file and the page cannot
+// find now (probeView) steps out of the menu, as one the build found
+// missing was never rendered into it.
+function probeStartMenu() {
+  for (const b of startMenu.querySelectorAll('button[data-cmd]')) {
+    const c = PSI_COMMANDS.COMMANDS.find((x) => x.id === b.dataset.cmd);
+    if (c && c.opens) probeView(c.opens, (there) => { b.hidden = !there; });
+  }
 }
 function endStartMenu() {
   if (startMenuOff) return;
@@ -23405,14 +23478,70 @@ function flashMode(text) {
   }
   showModeBadge(text);
 }
-// A view the build did not put beside this file (window.PSI_ABSENT_VIEWS,
-// written by the build only when one is missing): the S or P press says so
-// in the mode badge and opens nothing. The start menu has no entry for it.
-function viewAbsent(name) {
+// A view that is not beside this file: the S or P press says so in the
+// mode badge and opens nothing, and the start menu leaves its entry out.
+// Two answers, the build's and the page's own:
+//
+// - window.PSI_ABSENT_VIEWS, written by the build only when a view was
+//   missing when it ran - certain, and known before anything is pressed.
+// - A probe at run time, for the view that was there when the build ran and
+//   is not now: audience.html mailed on alone, or copied out of its folder.
+//   Under http(s) it is a HEAD request. From file:// no request can read a
+//   file, but a script element can try to load one, and the load and error
+//   events tell the two apart - measured in Chrome 154, Firefox 156 and
+//   Safari 26.6: load for a view that is there, error for one that is not,
+//   in every one. Nothing in the file runs: a view starts with its doctype,
+//   which is a syntax error before the first statement, and that error is
+//   taken off the console while the probe stands (a missing file does put
+//   its "not found" line there, which is the one case it is news). The
+//   probe runs on a press of S or P and when the start menu is shown, never
+//   on a page load the menu does not stand on.
+//
+// The answer is kept, so the next press can open its window inside the
+// gesture rather than after the probe; a press re-asks in the background,
+// so a view that appears later, or goes, is found by the next one.
+const viewThere = Object.create(null);
+function buildSaysAbsent(name) {
   const absent = window.PSI_ABSENT_VIEWS;
-  if (!absent || absent.indexOf(name) < 0) return false;
-  flashMode(name + '.html is not beside this file');
-  return true;
+  return !!(absent && absent.indexOf(name) >= 0);
+}
+function probeView(name, done) {
+  const file = name + '.html';
+  const settle = (there) => { viewThere[name] = there; if (done) done(there); };
+  if (buildSaysAbsent(name)) { settle(false); return; }
+  if (location.protocol === 'http:' || location.protocol === 'https:') {
+    fetch(file, { method: 'HEAD', cache: 'no-store' })
+      .then((r) => settle(r.status !== 404 && r.status !== 410), () => settle(true));
+    return;
+  }
+  if (location.protocol !== 'file:') { settle(true); return; }
+  const want = new URL(file, location.href).href;
+  const quiet = (ev) => {
+    if (ev.filename === want || (!ev.filename && /^Script error/.test(ev.message || ''))) ev.preventDefault();
+  };
+  const s = document.createElement('script');
+  let over = false;
+  const end = (there) => {
+    if (over) return;
+    over = true;
+    s.remove();
+    window.removeEventListener('error', quiet, true);
+    settle(there);
+  };
+  window.addEventListener('error', quiet, true);
+  s.onload = () => end(true);
+  s.onerror = () => end(false);
+  s.src = file;
+  document.head.appendChild(s);
+  // No answer at all is not an answer that the file is missing.
+  setTimeout(() => end(true), 3000);
+}
+// Opens the view through open() when it is there, says so when it is not.
+function withView(name, open) {
+  const absent = () => flashMode(name + '.html is not beside this file');
+  if (buildSaysAbsent(name)) { absent(); return; }
+  if (viewThere[name] === true) { open(); probeView(name); return; }
+  probeView(name, (there) => (there ? open() : absent()));
 }
 
 // ── fullscreen (W) ───────────────────────────────────────────────────
@@ -23705,8 +23834,7 @@ const COMMAND_RUN = {
   // says so rather than opening a window onto a missing file.
   'print': (e) => {
     e.preventDefault();
-    if (viewAbsent('print')) return;
-    window.open('print.html', '_blank', 'noopener');
+    withView('print', () => window.open('print.html', '_blank', 'noopener'));
   },
   // Live demo: a window or a screen of this machine on the projection.
   // Pressed in the cockpit, the picker opens on the laptop and the room
@@ -23730,21 +23858,23 @@ const COMMAND_RUN = {
   'cockpit': (e) => {
     e.preventDefault();
     if (hasLivePeer()) { try { peer.focus(); } catch (err) {} return; }
-    if (viewAbsent('speaker')) return;
-    const w = window.open('', 'psi-slides-speaker', 'width=1400,height=900');
-    if (!w) return;
-    // Readable means same origin: a blank window, or under --serve a page
-    // that may be another deck's cockpit - either way, unless it already is
-    // this deck's cockpit, it is sent there.
-    const want = new URL('speaker.html', location.href).href;
-    let here = null;
-    try { here = String(w.location.href).split(/[?#]/)[0]; } catch (err) { here = null; }
-    if (here !== null && here !== want) w.location.href = want;
-    setPeer(w);
-    try { w.focus(); } catch (err) {}
+    withView('speaker', openCockpit);
   },
   'help': (e) => { toggleHelp(); e.preventDefault(); },
 };
+function openCockpit() {
+  const w = window.open('', 'psi-slides-speaker', 'width=1400,height=900');
+  if (!w) return;
+  // Readable means same origin: a blank window, or under --serve a page
+  // that may be another deck's cockpit - either way, unless it already is
+  // this deck's cockpit, it is sent there.
+  const want = new URL('speaker.html', location.href).href;
+  let here = null;
+  try { here = String(w.location.href).split(/[?#]/)[0]; } catch (err) { here = null; }
+  if (here !== null && here !== want) w.location.href = want;
+  setPeer(w);
+  try { w.focus(); } catch (err) {}
+}
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('.annot-textarea')) return;
   // Cmd-K / Ctrl-K: the ? panel as a command palette. Ahead of the guard
@@ -23769,6 +23899,9 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       moveHelpSel(e.key === 'ArrowDown' ? 1 : -1);
+      e.preventDefault();
+    } else if (e.key === 'PageDown' || e.key === 'PageUp') {
+      pageHelpSel(e.key === 'PageDown' ? 1 : -1);
       e.preventDefault();
     } else if (e.key === 'Enter') {
       if (helpSel) runHelpRow(helpSel);
