@@ -39,6 +39,9 @@
  *   label     a verb phrase, sentence case, for a menu or a palette row
  *   short     a name of one or two words, where the click is the verb: the
  *             projection's start menu (START_MENU) reads it
+ *   opens     the view a command opens in a window of its own ('speaker',
+ *             'print'): the start menu leaves the entry out when the build
+ *             put no such file beside audience.html, and the key says so
  *   hint      the panel's second column (HTML), or { audience, speaker }
  *   show      the panel's key column (HTML) where keyText(keys) would spell
  *             it differently; mouse is the same for a row with no key
@@ -377,10 +380,10 @@ export const COMMANDS = [
 
   // ── the other windows ──
   { id: 'cockpit', group: 'windows', views: AUD, keys: ['s'],
-    label: 'Open the speaker cockpit', short: 'Speaker cockpit', reach: 'local',
+    label: 'Open the speaker cockpit', short: 'Speaker cockpit', opens: 'speaker', reach: 'local',
     hint: 'open the speaker cockpit – both windows then stay in sync' },
   { id: 'print', group: 'windows', views: BOTH, keys: ['p'],
-    label: 'Open the print view', short: 'Print view', reach: 'local',
+    label: 'Open the print view', short: 'Print view', opens: 'print', reach: 'local',
     hint: 'open the print view in a new tab' },
   { id: 'help', group: 'windows', views: BOTH, keys: ['?'],
     label: 'Show the keyboard and mouse reference', reach: 'local',

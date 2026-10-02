@@ -13889,18 +13889,47 @@ ${sections}
 // the touch rail's glyph; its mirror image, a button of its own beside the ?
 // circle, is the way back once the menu is folded, and stands wherever the
 // circle does.
-function renderStartMenu() {
-  const items = START_MENU.map((id) => {
-    const c = COMMANDS.find((x) => x.id === id);
+//
+// An entry whose view is not beside audience.html is left out
+// (`absentViews`, decided once in buildOnce - see siblingViewsAbsent), so a
+// projection built alone or handed on as one file offers no button that
+// opens a broken window. Its key stays bound and says so instead.
+function renderStartMenu(absentViews = []) {
+  const items = START_MENU.map((id) => COMMANDS.find((x) => x.id === id))
+    .filter((c) => !c.opens || !absentViews.includes(c.opens)).map((c) => {
     const key = keyText(c.keys[0]);
     const plain = key.replace(/<[^>]+>/g, '');
-    return `  <button type="button" data-cmd="${id}" title="${escapeHtml(c.label)} (${escapeHtml(plain)})">${escapeHtml(c.short)} ${key}</button>`;
+    return `  <button type="button" data-cmd="${c.id}" title="${escapeHtml(c.label)} (${escapeHtml(plain)})">${escapeHtml(c.short)} ${key}</button>`;
   }).join('\n');
   return `<nav id="psiINT-start-menu" aria-label="Before the talk" hidden>
 ${items}
   <button type="button" id="psiINT-start-menu-hide" aria-label="Put this menu away" title="Put this menu away – the ? panel has the same keys">&#x2039;</button>
 </nav>
 <button type="button" id="psiINT-start-menu-show" aria-label="Show the start menu" title="Show the start menu again" hidden>&#x203A;</button>`;
+}
+
+// Which of the views the projection opens are NOT beside audience.html after
+// this build: a view counts as there when this build writes it or when it is
+// already in the output folder - a partial build next to an earlier full one,
+// or --audience-only rebuilding one window against an older peer, where the
+// stale file is exactly what the key should open. The one place this is
+// decided; renderAudience gets the answer as data. A full build has every
+// view, so it emits nothing and its audience.html is unchanged by this. The
+// views asked about are the `opens` of the start menu's commands
+// (commands.mjs).
+function siblingViewsAbsent(outDir, targetNames) {
+  const opened = START_MENU.map((id) => COMMANDS.find((x) => x.id === id).opens).filter(Boolean);
+  return opened.filter((name) =>
+    !targetNames.includes(name) && !fs.existsSync(path.join(outDir, `${name}.html`)));
+}
+
+// The same answer for the runtime: the S and P keys (and the palette rows,
+// which run the same functions) read it and show a notice instead of opening
+// a window onto a missing file. Emitted only when something is missing, so a
+// deck with all its views carries not a byte of it.
+function absentViewsScript(absentViews) {
+  if (!absentViews || !absentViews.length) return '';
+  return `<script>window.PSI_ABSENT_VIEWS = ${jsonForScript(absentViews)};</script>\n`;
 }
 
 function renderTocNav(columns, S) {
@@ -13995,7 +14024,7 @@ ${columnsHtml}
 <div id="psiINT-figure-overlay" aria-hidden="true"></div>
 ${TOUCH_CONTROLS_HTML}
 ${renderHelpOverlay('audience', !!editorPayload(frontmatter, columnsHtml, 'audience'), false, S)}
-${renderStartMenu()}
+${renderStartMenu(opts.absentViews)}
 <div id="psiINT-mode-badge"></div>
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
@@ -14006,7 +14035,7 @@ ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
 ${DEMO_OVERLAY_HTML}
 ${renderTocNav(columns, S)}
-<script>
+${absentViewsScript(opts.absentViews)}<script>
 ${qrLibJs()}
 </script>
 <script>
@@ -23376,6 +23405,15 @@ function flashMode(text) {
   }
   showModeBadge(text);
 }
+// A view the build did not put beside this file (window.PSI_ABSENT_VIEWS,
+// written by the build only when one is missing): the S or P press says so
+// in the mode badge and opens nothing. The start menu has no entry for it.
+function viewAbsent(name) {
+  const absent = window.PSI_ABSENT_VIEWS;
+  if (!absent || absent.indexOf(name) < 0) return false;
+  flashMode(name + '.html is not beside this file');
+  return true;
+}
 
 // ── fullscreen (W) ───────────────────────────────────────────────────
 //
@@ -23663,9 +23701,12 @@ const COMMAND_RUN = {
   // the projection is this window, so Shift-W, which has no entry of its
   // own there, reaches this one and does the same.
   'fullscreen': (e) => { toggleProjectionFullscreen(); e.preventDefault(); },
+  // A view this build left without its sibling (see siblingViewsAbsent)
+  // says so rather than opening a window onto a missing file.
   'print': (e) => {
-    window.open('print.html', '_blank', 'noopener');
     e.preventDefault();
+    if (viewAbsent('print')) return;
+    window.open('print.html', '_blank', 'noopener');
   },
   // Live demo: a window or a screen of this machine on the projection.
   // Pressed in the cockpit, the picker opens on the laptop and the room
@@ -23689,6 +23730,7 @@ const COMMAND_RUN = {
   'cockpit': (e) => {
     e.preventDefault();
     if (hasLivePeer()) { try { peer.focus(); } catch (err) {} return; }
+    if (viewAbsent('speaker')) return;
     const w = window.open('', 'psi-slides-speaker', 'width=1400,height=900');
     if (!w) return;
     // Readable means same origin: a blank window, or under --serve a page
@@ -30585,6 +30627,7 @@ function buildOnce(absIn, only, opts = {}) {
     ['audience',    renderAudience],
     ['speaker',     renderSpeaker],
   ].filter(([name]) => !only || only === `--${name}-only`);
+  renderOpts.absentViews = siblingViewsAbsent(outDir, targets.map(([name]) => name));
 
   // Render every view first, write afterwards. The pre-flights above catch
   // what can be seen before a renderer runs, but a defect that only one

@@ -10221,6 +10221,9 @@ window.PSI_COMMANDS = (function () {
  *   label     a verb phrase, sentence case, for a menu or a palette row
  *   short     a name of one or two words, where the click is the verb: the
  *             projection's start menu (START_MENU) reads it
+ *   opens     the view a command opens in a window of its own ('speaker',
+ *             'print'): the start menu leaves the entry out when the build
+ *             put no such file beside audience.html, and the key says so
  *   hint      the panel's second column (HTML), or { audience, speaker }
  *   show      the panel's key column (HTML) where keyText(keys) would spell
  *             it differently; mouse is the same for a row with no key
@@ -10559,10 +10562,10 @@ const COMMANDS = [
 
   // ── the other windows ──
   { id: 'cockpit', group: 'windows', views: AUD, keys: ['s'],
-    label: 'Open the speaker cockpit', short: 'Speaker cockpit', reach: 'local',
+    label: 'Open the speaker cockpit', short: 'Speaker cockpit', opens: 'speaker', reach: 'local',
     hint: 'open the speaker cockpit – both windows then stay in sync' },
   { id: 'print', group: 'windows', views: BOTH, keys: ['p'],
-    label: 'Open the print view', short: 'Print view', reach: 'local',
+    label: 'Open the print view', short: 'Print view', opens: 'print', reach: 'local',
     hint: 'open the print view in a new tab' },
   { id: 'help', group: 'windows', views: BOTH, keys: ['?'],
     label: 'Show the keyboard and mouse reference', reach: 'local',
@@ -15244,6 +15247,15 @@ function flashMode(text) {
   }
   showModeBadge(text);
 }
+// A view the build did not put beside this file (window.PSI_ABSENT_VIEWS,
+// written by the build only when one is missing): the S or P press says so
+// in the mode badge and opens nothing. The start menu has no entry for it.
+function viewAbsent(name) {
+  const absent = window.PSI_ABSENT_VIEWS;
+  if (!absent || absent.indexOf(name) < 0) return false;
+  flashMode(name + '.html is not beside this file');
+  return true;
+}
 
 // ── fullscreen (W) ───────────────────────────────────────────────────
 //
@@ -15531,9 +15543,12 @@ const COMMAND_RUN = {
   // the projection is this window, so Shift-W, which has no entry of its
   // own there, reaches this one and does the same.
   'fullscreen': (e) => { toggleProjectionFullscreen(); e.preventDefault(); },
+  // A view this build left without its sibling (see siblingViewsAbsent)
+  // says so rather than opening a window onto a missing file.
   'print': (e) => {
-    window.open('print.html', '_blank', 'noopener');
     e.preventDefault();
+    if (viewAbsent('print')) return;
+    window.open('print.html', '_blank', 'noopener');
   },
   // Live demo: a window or a screen of this machine on the projection.
   // Pressed in the cockpit, the picker opens on the laptop and the room
@@ -15557,6 +15572,7 @@ const COMMAND_RUN = {
   'cockpit': (e) => {
     e.preventDefault();
     if (hasLivePeer()) { try { peer.focus(); } catch (err) {} return; }
+    if (viewAbsent('speaker')) return;
     const w = window.open('', 'psi-slides-speaker', 'width=1400,height=900');
     if (!w) return;
     // Readable means same origin: a blank window, or under --serve a page

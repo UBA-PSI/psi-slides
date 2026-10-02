@@ -11,7 +11,9 @@
  * list across the box. The start menu stands on slide 1 of a fresh page
  * load, folds on the first move from either window, on W and on its chevron,
  * remembers the chevron across a reload, answers a tap, and is in no other
- * view and in no frame of --frames. Folded, it leaves a chevron beside the ?
+ * view and in no frame of --frames. Built alone (--audience-only into an
+ * empty folder), it offers no entry for a view that is not beside it, and S,
+ * P and the palette say so instead of opening a window. Folded, it leaves a chevron beside the ?
  * circle that opens it again on any slide and forgets the stored choice. What the commands gate
  * already holds without a browser - which rows name a command, that Cmd-K is
  * answered before the chord guard, what the menu is made of - is not
@@ -327,6 +329,63 @@ export async function run({ page, report }) {
     await tp.waitForTimeout(200);
     ok(await menu(tp) === 'shown', 'which a tap answers');
     await touch.close();
+
+    // A projection built alone: no entry for a view that is not beside it,
+    // and its key says so rather than opening a window onto a missing file.
+    {
+      const lone = tmpDir('psi-palette-lone-');
+      fs.writeFileSync(path.join(lone, 'source.md'), DECK);
+      const lb = build(lone, '--audience-only');
+      ok(lb.status === 0 && !fs.existsSync(path.join(lone, 'speaker.html')) && !fs.existsSync(path.join(lone, 'print.html')),
+        '--audience-only into an empty folder writes audience.html alone', (lb.stdout || '') + (lb.stderr || ''));
+      const ls = await serve(lone);
+      try {
+        await page.goto(`http://127.0.0.1:${ls.port}/audience.html`, { waitUntil: 'load' });
+        await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* private window */ } });
+        await page.reload({ waitUntil: 'load' });
+        await page.waitForTimeout(600);
+        const lonely = await page.$$eval('#psiINT-start-menu button[data-cmd]', (bs) => bs.map((x) => x.textContent.trim()));
+        ok(lonely.join(' | ') === 'Fullscreen W', 'its start menu offers Fullscreen alone', lonely.join(' | '));
+        const opened = [];
+        const onPage = (pg) => opened.push(pg.url());
+        page.context().on('page', onPage);
+        const badge = () => page.evaluate(() => {
+          const m = document.getElementById('psiINT-mode-badge');
+          return m.classList.contains('visible') ? m.textContent : '';
+        });
+        await press('p', 300);
+        ok(/print\.html is not beside this file/.test(await badge()), 'P says the print view is not there', await badge());
+        await page.waitForTimeout(1900);
+        await press('s', 300);
+        ok(/speaker\.html is not beside this file/.test(await badge()), 'S says the cockpit is not there', await badge());
+        await page.waitForTimeout(1900);
+        await press('Meta+k', 250);
+        await type('print view');
+        await press('Enter', 300);
+        ok(/print\.html is not beside this file/.test(await badge()), 'and so does the palette row', await badge());
+        await page.waitForTimeout(500);
+        page.context().off('page', onPage);
+        ok(opened.length === 0, 'and no window opens', opened.join(' '));
+        ok(await menu() === 'shown', 'a refused press does not fold the menu');
+
+        // A later full build beside it: every entry is back. And a partial
+        // build next to that full one keeps them, because the views on disk
+        // count - the stale cockpit is the one the key should open.
+        ok(build(lone).status === 0, 'a full build in the same folder succeeds');
+        const full = fs.readFileSync(path.join(lone, 'audience.html'), 'utf8');
+        ok(!full.includes('window.PSI_ABSENT_VIEWS = '), 'and its audience.html carries no list of missing views');
+        await page.reload({ waitUntil: 'load' });
+        await page.waitForTimeout(500);
+        const all = await page.$$eval('#psiINT-start-menu button[data-cmd]', (bs) => bs.map((x) => x.textContent.trim()));
+        ok(all.join(' | ') === 'Fullscreen W | Speaker cockpit S | Print view P', 'offers all three entries', all.join(' | '));
+        ok(build(lone, '--audience-only').status === 0
+          && fs.readFileSync(path.join(lone, 'audience.html'), 'utf8') === full,
+          '--audience-only beside a full build writes the same audience.html');
+      } finally {
+        ls.server.close();
+        fs.rmSync(lone, { recursive: true, force: true });
+      }
+    }
 
     // --frames: the first frame is the room's first slide, not a set-up.
     const shots = path.join(dir, 'frames');

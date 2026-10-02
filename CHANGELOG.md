@@ -303,7 +303,10 @@ tag:
   page is opened again. The `‹` beside it puts it away for good on this
   browser. Whenever it is gone – by a move or by `‹` – a small `›` beside the
   `?` button brings it back on any slide and forgets the `‹`. It is never in the cockpit, the two
-  documents, a PDF or the `--frames` pictures.
+  documents, a PDF or the `--frames` pictures. A projection built without
+  `speaker.html` or `print.html` beside it (`--audience-only` into an empty
+  folder) offers no entry for the missing view, and `S` or `P` then says the
+  file is not there instead of opening a broken window.
 - **The `?` panel in both live views has a search field.** It has the focus
   when the panel opens, and typing filters the rows by key and by what the key
   does: every word has to match, case and accents are ignored, and a single

@@ -79,23 +79,35 @@ const note = (line) => console.log('    ' + line);
   fs.writeFileSync(path.join(dir, 'assets', 'fig-a.svg'), SVG(10));
   fs.writeFileSync(path.join(dir, 'assets', 'fig-b.svg'), SVG(200));
 
-  const build = (...flags) => {
-    for (const f of fs.readdirSync(dir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(dir, f));
+  // `clean` empties the folder of views first. The partial build below does
+  // NOT: audience.html depends on which views stand beside it (the start
+  // menu leaves out an entry whose file is missing - see siblingViewsAbsent
+  // in build.js), so --audience-only into an empty folder is a different
+  // input, not the same source under another flag. The case this check
+  // exists for is the one release.yml meets - a tracked view rebuilt with a
+  // partial flag beside the full set already on disk - and there the menu's
+  // input is the same both times, so any difference left is a dependency on
+  // the flag set. Only audience.html is removed, so the file compared is the
+  // one this build wrote.
+  const build = (clean, ...flags) => {
+    for (const f of fs.readdirSync(dir)) {
+      if (f.endsWith('.html') && (clean || f === 'audience.html')) fs.unlinkSync(path.join(dir, f));
+    }
     const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), ...flags],
       { cwd: ROOT, encoding: 'utf8' });
     if (r.status !== 0) throw new Error('build failed: ' + (r.stdout || '') + (r.stderr || ''));
     return fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
   };
 
-  const full = build();
+  const full = build(true);
   // The fixture has to contain the thing under test, or every assertion
   // below passes by vacuity. This one line is why the check can go red.
   const n = (full.match(/\bid="psiINT-fig-\d+-root"/g) || []).length;
   ok(n === 2, 'the fixture inlined both of its SVGs', `${n} inlined`);
 
-  ok(full === build(), 'a full build is reproducible: two runs, same bytes');
+  ok(full === build(true), 'a full build is reproducible: two runs, same bytes');
 
-  const partial = build('--audience-only');
+  const partial = build(false, '--audience-only');
   const same = full === partial;
   if (!same) {
     const a = full.split('\n'), b = partial.split('\n');
