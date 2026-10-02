@@ -2833,9 +2833,10 @@ function renderBackdrop(bd, where) {
 // parsing it back. So the block's lines are captured and this renders them.
 //
 // The count is taken from the *source* lines rather than the rendered
-// markup: a list item is one `- ` line, which is a rule the author can see,
-// and it needs no HTML walking. Nested items are excluded, because they are
-// the detail rather than the headline and folding them away is the default.
+// markup: a list item is its `- ` line and the lines that continue it, which
+// is a rule the author can see, and it needs no HTML walking. Nested items
+// are excluded, every line of them, because they are the detail rather than
+// the headline and folding them away is the default.
 const CARDS_LARGE_MAX = 3;    // words in the longest item
 const CARDS_MEDIUM_MAX = 12;
 
@@ -2894,15 +2895,32 @@ function renderCardsBlock(b) {
   // A compiled figure arrives as html - a <figure> line and the svg's own
   // lines under it, blank-padded - and is a card, not words: counted, its
   // markup landed on the last claim and forced the whole row small.
-  let inHtml = false;
+  //
+  // A nested item is the detail, and so is every line of it: its own
+  // wrapped continuation used to read as the card's, because only the
+  // marker line was skipped - one detail bullet broken over two source
+  // lines put its second half on the head and dropped the row a size. A
+  // line belongs to the open nested item while no blank line has come
+  // between (a lazy continuation, whatever its indent) or while it is
+  // indented to the item's text (a second paragraph of it); after a blank,
+  // a line indented less is the card's own again. `subCol` is that text
+  // column, null when no nested item is open; ordered sub-items count, as
+  // they do for `detail` below.
+  let inHtml = false, subCol = null, blank = false;
   for (const raw of b.lines) {
     if (isBeatMark(raw)) continue;
     if (inHtml) { if (!raw.trim()) inHtml = false; continue; }
     if (/^\s*<(figure|div|svg)\b/.test(raw)) { inHtml = true; continue; }
-    if (/^[-*+]\s+/.test(raw)) { top.push(raw); continue; }
+    if (/^[-*+]\s+/.test(raw)) { top.push(raw); subCol = null; blank = false; continue; }
     if (!top.length) continue;
-    if (/^\s+[-*+]\s+/.test(raw)) continue;   // a nested item is the detail
-    if (!raw.trim()) continue;
+    const sub = /^(\s+(?:[-*+]|\d+[.)])\s+)/.exec(raw);
+    if (sub) { subCol = sub[1].length; blank = false; continue; }
+    if (!raw.trim()) { blank = true; continue; }
+    if (subCol !== null) {
+      if (!blank || /^\s*/.exec(raw)[0].length >= subCol) { blank = false; continue; }
+      subCol = null;
+    }
+    blank = false;
     top[top.length - 1] += ' ' + raw;
   }
   const wordsOf = (l) => l.replace(/^[-*+]\s+/, '').replace(/[*_`~\\]/g, '')

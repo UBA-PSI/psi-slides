@@ -15,6 +15,14 @@ from building the same way is a major version.
   run on pinned images (`ubuntu-24.04`, `macos-26`, `windows-2025-vs2026`)
   instead of `-latest`.
 
+### Fixed
+
+- A card row's automatic size no longer counts a nested bullet's wrapped
+  second line as words of the card's head: `- **Playwright**` over a detail
+  bullet broken across two source lines came out a size smaller than the
+  same bullet on one line. Every line of a nested item is the detail now,
+  numbered sub-items included.
+
 ## [2.0.0]
 
 ### Breaking

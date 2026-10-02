@@ -625,6 +625,23 @@ console.log('\nlayout generations');
      'a row with a second level stays left even when its heads are two words');
   ok(/\[data-collapse=topic-bold\] \.cards\.cd-fold li ul/.test(nested),
      'and the second level is folded away on the projection, not in the markup');
+  // A detail bullet wrapped over two source lines is still the detail: its
+  // second line used to be added to the head's count, and one wrapped
+  // bullet dropped the row a size. The size must not depend on where the
+  // author broke the line - whether the sub-item is a bullet or numbered.
+  const DETAIL = 'drives a real browser over the wire protocol and waits for the page to settle';
+  const sizeOf = (html) => (html.match(/class="cards [^"]*\b(cs-\w+)/) || [])[1];
+  for (const mark of ['-', '1.']) {
+    const oneLine = sizeOf(mk(`::: cards 2\n- **Playwright**\n  ${mark} ${DETAIL}\n- **Selenium**\n  ${mark} a browser\n:::\n`));
+    const wrapped = sizeOf(mk(`::: cards 2\n- **Playwright**\n  ${mark} drives a real browser over the wire\n    protocol and waits for the page to settle\n- **Selenium**\n  ${mark} a browser\n:::\n`));
+    const lazy = sizeOf(mk(`::: cards 2\n- **Playwright**\n  ${mark} drives a real browser over the wire\nprotocol and waits for the page to settle\n- **Selenium**\n  ${mark} a browser\n:::\n`));
+    ok(oneLine === 'cs-large' && wrapped === oneLine && lazy === oneLine,
+       `a wrapped ${mark} detail line is not counted toward its card's head`,
+       `${oneLine} / ${wrapped} / ${lazy}`);
+  }
+  // After a blank line, a line at the card's own indent is the card's again.
+  const after = sizeOf(mk('::: cards 2\n- **Playwright**\n  - detail\n\n  and a paragraph of the card itself that runs on for a good many words\n- **Selenium**\n:::\n'));
+  ok(after === 'cs-small', 'a paragraph of the card after its detail list still counts', after);
   // A nested level so `.show` has something to act on - it is refused
   // otherwise, the same way a groundless scrim is. The written classes map to
   // the markup regardless of content, which is what this checks.
