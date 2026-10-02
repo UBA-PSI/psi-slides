@@ -21069,6 +21069,9 @@ function selectOverviewCol(dir) {
 //                         own selectedIdx/anchor land right afterwards.
 function setOverviewMode(on, opts = {}) {
   if (!!on === overview) return;
+  // The board opens on the live slide and lands against it, so a slide
+  // change still in its dip is finished first.
+  settleFade();
   if (on) {
     overview = true;
     document.body.classList.add('overview-mode');
@@ -21123,6 +21126,7 @@ function markTocActive() {
   });
 }
 function jumpToColumn(colIdx) {
+  settleFade();
   const idx = flatChunks.findIndex(c => c.colIdx === colIdx);
   if (idx >= 0) jumpTo(idx, idx < state.activeIdx ? 'back' : 'forward');
 }
@@ -21304,6 +21308,7 @@ function gotoCommit() {
   const idx = gotoTyped ? gotoMap().get(parseInt(gotoTyped, 10)) : undefined;
   if (idx === undefined) { gotoRefuse(); return; }
   endGoto();
+  settleFade();
   // The same landing a click in the contents or a committed search hit uses,
   // so the broadcast, the cue-card cursor, auto-fit and the stored position
   // all see an ordinary jump and nothing here has to know about any of them.
@@ -21401,6 +21406,7 @@ function commitSearchHit() {
   const hit = searchHits[searchCursor];
   endSearch();
   if (!hit) return;
+  settleFade();
   if (overview) {
     setSelectedIdx(hit.idx, { recenter: true });
     exitOverview(true);
@@ -21471,6 +21477,10 @@ function chunkIdxFromHash() {
   return flatChunks.findIndex(c => c.id === id);
 }
 window.addEventListener('hashchange', () => {
+  // Every caller below that compares a target with state.activeIdx lands a
+  // pending fade first: a target equal to the slide being left read as
+  // "already here" and the fade then went on to the other one.
+  settleFade();
   const idx = chunkIdxFromHash();
   if (idx < 0 || idx === state.activeIdx) return;
   jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
@@ -21682,10 +21692,12 @@ function markColumnEdges() {
 }
 
 function nextChunk() {
+  settleFade();
   if (state.activeIdx + 1 >= flatChunks.length) return;
   jumpTo(state.activeIdx + 1, 'forward');
 }
 function prevChunk() {
+  settleFade();
   if (state.activeIdx <= 0) return;
   jumpTo(state.activeIdx - 1, 'back');
 }
@@ -21697,13 +21709,19 @@ function prevChunk() {
 // what the marks at the edge were drawn from. Shift reaches it from every
 // slide in the last column, so the fallback would now be one keystroke from
 // the end of the lecture, in front of a room.
+//
+// Both read state.activeIdx to find the target, so a pending fade is landed
+// first (settleFade): two quick presses otherwise both counted from the
+// column being left and moved one column between them.
 function nextCol() {
+  settleFade();
   const cur = flatChunks[state.activeIdx];
   for (let i = state.activeIdx + 1; i < flatChunks.length; i++) {
     if (flatChunks[i].colIdx > cur.colIdx) return jumpTo(i, 'forward');
   }
 }
 function prevCol() {
+  settleFade();
   const cur = flatChunks[state.activeIdx];
   const target = cur.colIdx;
   // jump to the first chunk of the previous column (or first chunk of current
@@ -21732,6 +21750,9 @@ function closeAnyExpansion() {
   openExp = null;
 }
 function toggleExp(chunkIdx, expIdx) {
+  // It makes chunkIdx the live chunk without jumpTo, so a fade still on its
+  // way to another slide must land first or it would land over this.
+  settleFade();
   const entry = flatChunks[chunkIdx];
   if (!entry) return;
   const chev = entry.el.querySelector(\`.exp-chev[data-exp="\${expIdx}"]\`);
@@ -21873,6 +21894,7 @@ function startAnnotate(chunkId) {
   if (!entry) return;
   const ta = entry.el.querySelector('.annot-textarea');
   if (!ta) return;
+  settleFade();
   entry.el.classList.add('annot-visible', 'has-annot');
   state.activeIdx = flatChunks.indexOf(entry);
   applyState();
@@ -21956,6 +21978,7 @@ function wireClicks() {
         if (shouldBroadcast()) sendToPeer({ type: 'figure-unpan' });
         return;
       }
+      settleFade();
       if (idx !== state.activeIdx) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
     });
   });
@@ -26389,6 +26412,7 @@ scrubberEl.addEventListener('click', (e) => {
     const ci = parseInt(dot.dataset.colIdx, 10);
     const xi = parseInt(dot.dataset.chunkIdx, 10);
     const idx = colChunkIdx[ci]?.[xi];
+    settleFade();
     if (idx !== undefined) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
     return;
   }
@@ -26396,6 +26420,7 @@ scrubberEl.addEventListener('click', (e) => {
   if (btn) {
     const ci = parseInt(btn.closest('.col-entry').dataset.colIdx, 10);
     const idx = colChunkIdx[ci]?.[0];
+    settleFade();
     if (idx !== undefined) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
   }
 });
@@ -26537,6 +26562,7 @@ previewStrip.addEventListener('pointerup', (e) => {
   previewStrip.classList.remove('dragging');
   if (moved || !slot) return;
   const idx = parseInt(slot.dataset.idx, 10);
+  settleFade();
   if (!Number.isFinite(idx) || idx === state.activeIdx) return;
   jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
 });
