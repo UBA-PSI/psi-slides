@@ -13969,16 +13969,18 @@ ${sections}
 // circle, is the way back once the menu is folded, and stands wherever the
 // circle does.
 //
-// An entry whose view is not beside audience.html is left out
+// An entry whose view is not beside audience.html is rendered hidden
 // (`absentViews`, decided once in buildOnce - see siblingViewsAbsent), so a
 // projection built alone or handed on as one file offers no button that
-// opens a broken window. Its key stays bound and says so instead.
+// opens a broken window. Its key stays bound and says so instead. Hidden
+// rather than left out, because the page asks again when the menu is shown
+// (probeStartMenu) and a later partial build may have put the view there.
 function renderStartMenu(absentViews = []) {
-  const items = START_MENU.map((id) => COMMANDS.find((x) => x.id === id))
-    .filter((c) => !c.opens || !absentViews.includes(c.opens)).map((c) => {
+  const items = START_MENU.map((id) => COMMANDS.find((x) => x.id === id)).map((c) => {
     const key = keyText(c.keys[0]);
     const plain = key.replace(/<[^>]+>/g, '');
-    return `  <button type="button" data-cmd="${c.id}" title="${escapeHtml(c.label)} (${escapeHtml(plain)})">${escapeHtml(c.short)} ${key}</button>`;
+    const hidden = c.opens && absentViews.includes(c.opens) ? ' hidden' : '';
+    return `  <button type="button" data-cmd="${c.id}"${hidden} title="${escapeHtml(c.label)} (${escapeHtml(plain)})">${escapeHtml(c.short)} ${key}</button>`;
   }).join('\n');
   return `<nav id="psiINT-start-menu" aria-label="Before the talk" hidden>
 ${items}
@@ -19876,6 +19878,20 @@ let isApplyingRemote = false;
 // "null" for both sides, which is why location.origin ("file://") is the
 // wrong thing to compare against.
 const SELF_ORIGIN = (typeof window.origin === 'string') ? window.origin : location.origin;
+// Which deck this window belongs to: the folder it was loaded from, hashed,
+// because the two views of one deck are always side by side and two decks
+// never share a folder. Every message carries it and a message from another
+// deck is dropped, which the opener relationship alone cannot do - a tab
+// that went from one deck's projection to another's is still the opener of
+// the first deck's cockpit, and that cockpit and the new projection used to
+// drive each other. The folder rather than the title, which two decks can
+// share; hashed, so the path on disk is not what travels.
+const DECK_ID = (() => {
+  const s = new URL('.', location.href).href;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(36);
+})();
 function setPeer(w) {
   if (w && w !== window && !w.closed) peer = w;
 }
@@ -19899,7 +19915,7 @@ function isPeerWindow(w) {
 }
 function sendToPeer(msg) {
   if (!peer || peer.closed) { peer = null; return; }
-  try { peer.postMessage(msg, '*'); } catch (e) { peer = null; }
+  try { peer.postMessage(Object.assign({ deck: DECK_ID }, msg), '*'); } catch (e) { peer = null; }
 }
 // Is the other window actually there? Drives the two decisions that differ
 // between "running alone" and "driving a projector": where a mode toast
@@ -20174,11 +20190,32 @@ window.addEventListener('message', (ev) => {
   // Both live views are the same origin as each other by construction
   // (two file:// pages, or two pages off the same --serve).
   if (ev.origin !== SELF_ORIGIN) return;
+  const m = ev.data;
+  if (!m || typeof m !== 'object') return;
+  // The cockpit handshake (openCockpit): a projection that found a window
+  // called psi-slides-speaker it cannot read asks which deck it shows. Ahead
+  // of the peer check, because the asker is not yet anyone's peer; answered
+  // only to a top-level window, never to a frame, and it gives away nothing
+  // but the hash.
+  if (m.type === 'whois') {
+    let top = false;
+    try { top = !!ev.source && ev.source.top === ev.source; } catch (e) {}
+    if (VIEW === 'speaker' && (top || isPeerWindow(ev.source))) {
+      try { ev.source.postMessage({ type: 'iam', source: VIEW, deck: DECK_ID }, '*'); } catch (e) {}
+    }
+    return;
+  }
+  if (m.type === 'iam') {
+    if (cockpitAsk && ev.source === cockpitAsk.w) cockpitAsk.settle(m.deck === DECK_ID);
+    return;
+  }
   // And the origin is not enough: a sandboxed frame is "null" too. See
   // isPeerWindow.
   if (!isPeerWindow(ev.source)) return;
-  const m = ev.data;
-  if (!m || typeof m !== 'object') return;
+  // Another deck's window - see DECK_ID. A message without the field is
+  // from a build before it and is taken, so --audience-only beside an older
+  // cockpit still pairs.
+  if (m.deck !== undefined && m.deck !== DECK_ID) return;
   if (m.source === VIEW) return; // ignore our own postings (shouldn't happen, defensive)
   // Adopt sender as peer. Handles two cases: audience reload while
   // speaker is alive (speaker's next push reconnects us); audience
@@ -20323,6 +20360,8 @@ window.addEventListener('message', (ev) => {
   }
   if (VIEW === 'audience') {
     if (m.type === 'figure-focus') {
+      // A slide change still in its dip would close the card when it lands.
+      settleFade();
       const chunk = flatChunks[m.chunkIdx];
       if (chunk) {
         const el = chunk.el.querySelectorAll(FOCUSABLE_SEL)[m.figureIdx];
@@ -20338,6 +20377,7 @@ window.addEventListener('message', (ev) => {
     // aside is on the projection: the lecturer clicks it in the cockpit and
     // the room is what has to move.
     if (m.type === 'figure-pan') {
+      settleFade();
       const chunk = flatChunks[m.chunkIdx];
       if (chunk) {
         const el = chunk.el.querySelectorAll(FOCUSABLE_SEL)[m.figureIdx];
@@ -21042,7 +21082,16 @@ function fadeSwap(land) {
 // slide reached by a key here, by a snapshot from the other window, or by
 // leaving the overview - it used to start from jumpTo alone, so a figure the
 // cockpit drove onto never played.
+//
+// The slide being left loses its clock here, at the start, and not when the
+// new one starts its own at the end: under fade the two are a dip apart, and
+// a tick of the old figure inside the dip advanced the slide being left and
+// broadcast it. On the projection, landing a cockpit's move, that snapshot
+// put the old slide back in the cockpit, and the landing that followed runs
+// under isApplyingRemote and sends nothing - the two windows stayed on two
+// different slides until the next press.
 function landSlide(land) {
+  stopAutoplay();
   const arrive = () => { land(); restartAutoplay(); };
   if (SLIDE_TRANSITION === 'fade') fadeSwap(arrive);
   else arrive();
@@ -21136,6 +21185,9 @@ function selectOverviewCol(dir) {
 //                         own selectedIdx/anchor land right afterwards.
 function setOverviewMode(on, opts = {}) {
   if (!!on === overview) return;
+  // The board opens on the live slide and lands against it, so a slide
+  // change still in its dip is finished first.
+  settleFade();
   if (on) {
     overview = true;
     document.body.classList.add('overview-mode');
@@ -21190,6 +21242,7 @@ function markTocActive() {
   });
 }
 function jumpToColumn(colIdx) {
+  settleFade();
   const idx = flatChunks.findIndex(c => c.colIdx === colIdx);
   if (idx >= 0) jumpTo(idx, idx < state.activeIdx ? 'back' : 'forward');
 }
@@ -21371,6 +21424,7 @@ function gotoCommit() {
   const idx = gotoTyped ? gotoMap().get(parseInt(gotoTyped, 10)) : undefined;
   if (idx === undefined) { gotoRefuse(); return; }
   endGoto();
+  settleFade();
   // The same landing a click in the contents or a committed search hit uses,
   // so the broadcast, the cue-card cursor, auto-fit and the stored position
   // all see an ordinary jump and nothing here has to know about any of them.
@@ -21468,6 +21522,7 @@ function commitSearchHit() {
   const hit = searchHits[searchCursor];
   endSearch();
   if (!hit) return;
+  settleFade();
   if (overview) {
     setSelectedIdx(hit.idx, { recenter: true });
     exitOverview(true);
@@ -21538,6 +21593,10 @@ function chunkIdxFromHash() {
   return flatChunks.findIndex(c => c.id === id);
 }
 window.addEventListener('hashchange', () => {
+  // Every caller below that compares a target with state.activeIdx lands a
+  // pending fade first: a target equal to the slide being left read as
+  // "already here" and the fade then went on to the other one.
+  settleFade();
   const idx = chunkIdxFromHash();
   if (idx < 0 || idx === state.activeIdx) return;
   jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
@@ -21749,10 +21808,12 @@ function markColumnEdges() {
 }
 
 function nextChunk() {
+  settleFade();
   if (state.activeIdx + 1 >= flatChunks.length) return;
   jumpTo(state.activeIdx + 1, 'forward');
 }
 function prevChunk() {
+  settleFade();
   if (state.activeIdx <= 0) return;
   jumpTo(state.activeIdx - 1, 'back');
 }
@@ -21764,13 +21825,19 @@ function prevChunk() {
 // what the marks at the edge were drawn from. Shift reaches it from every
 // slide in the last column, so the fallback would now be one keystroke from
 // the end of the lecture, in front of a room.
+//
+// Both read state.activeIdx to find the target, so a pending fade is landed
+// first (settleFade): two quick presses otherwise both counted from the
+// column being left and moved one column between them.
 function nextCol() {
+  settleFade();
   const cur = flatChunks[state.activeIdx];
   for (let i = state.activeIdx + 1; i < flatChunks.length; i++) {
     if (flatChunks[i].colIdx > cur.colIdx) return jumpTo(i, 'forward');
   }
 }
 function prevCol() {
+  settleFade();
   const cur = flatChunks[state.activeIdx];
   const target = cur.colIdx;
   // jump to the first chunk of the previous column (or first chunk of current
@@ -21799,6 +21866,9 @@ function closeAnyExpansion() {
   openExp = null;
 }
 function toggleExp(chunkIdx, expIdx) {
+  // It makes chunkIdx the live chunk without jumpTo, so a fade still on its
+  // way to another slide must land first or it would land over this.
+  settleFade();
   const entry = flatChunks[chunkIdx];
   if (!entry) return;
   const chev = entry.el.querySelector(\`.exp-chev[data-exp="\${expIdx}"]\`);
@@ -21940,6 +22010,7 @@ function startAnnotate(chunkId) {
   if (!entry) return;
   const ta = entry.el.querySelector('.annot-textarea');
   if (!ta) return;
+  settleFade();
   entry.el.classList.add('annot-visible', 'has-annot');
   state.activeIdx = flatChunks.indexOf(entry);
   applyState();
@@ -22023,6 +22094,7 @@ function wireClicks() {
         if (shouldBroadcast()) sendToPeer({ type: 'figure-unpan' });
         return;
       }
+      settleFade();
       if (idx !== state.activeIdx) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
     });
   });
@@ -22900,9 +22972,10 @@ function setStartMenu(open) {
   if (startMenuShow) startMenuShow.hidden = open;
   if (open) probeStartMenu();
 }
-// An entry whose view the build put beside this file and the page cannot
-// find now (probeView) steps out of the menu, as one the build found
-// missing was never rendered into it.
+// An entry steps out of the menu when the page cannot find its view now
+// (probeView), and back in when it can - one the build found missing is
+// rendered hidden rather than left out, so a view a later partial build put
+// beside this file is offered the next time the menu is shown.
 function probeStartMenu() {
   for (const b of startMenu.querySelectorAll('button[data-cmd]')) {
     const c = PSI_COMMANDS.COMMANDS.find((x) => x.id === b.dataset.cmd);
@@ -23556,12 +23629,19 @@ function flashMode(text) {
 }
 // A view that is not beside this file: the S or P press says so in the
 // mode badge and opens nothing, and the start menu leaves its entry out.
-// Two answers, the build's and the page's own:
+// Two answers, the build's and the page's own, and the page's wins:
 //
 // - window.PSI_ABSENT_VIEWS, written by the build only when a view was
-//   missing when it ran - certain, and known before anything is pressed.
+//   missing when it ran. A hint and not a verdict: it is known before
+//   anything is pressed, which is why the start menu is drawn without the
+//   entry, but a later partial build can write the view beside this file
+//   without rewriting this file - --audience-only, then --speaker-only, then
+//   --print-only into an empty folder left an audience.html that said both
+//   were missing and never looked. It decides only where the page cannot
+//   ask (no file: or http(s): address, or a probe that never answers).
 // - A probe at run time, for the view that was there when the build ran and
-//   is not now: audience.html mailed on alone, or copied out of its folder.
+//   is not now - audience.html mailed on alone, or copied out of its folder -
+//   and for the one that was not there and is now.
 //   Under http(s) it is a HEAD request. From file:// no request can read a
 //   file, but a script element can try to load one, and the load and error
 //   events tell the two apart - measured in Chrome 154, Firefox 156 and
@@ -23584,13 +23664,12 @@ function buildSaysAbsent(name) {
 function probeView(name, done) {
   const file = name + '.html';
   const settle = (there) => { viewThere[name] = there; if (done) done(there); };
-  if (buildSaysAbsent(name)) { settle(false); return; }
   if (location.protocol === 'http:' || location.protocol === 'https:') {
     fetch(file, { method: 'HEAD', cache: 'no-store' })
-      .then((r) => settle(r.status !== 404 && r.status !== 410), () => settle(true));
+      .then((r) => settle(r.status !== 404 && r.status !== 410), () => settle(!buildSaysAbsent(name)));
     return;
   }
-  if (location.protocol !== 'file:') { settle(true); return; }
+  if (location.protocol !== 'file:') { settle(!buildSaysAbsent(name)); return; }
   const want = new URL(file, location.href).href;
   const quiet = (ev) => {
     if (ev.filename === want || (!ev.filename && /^Script error/.test(ev.message || ''))) ev.preventDefault();
@@ -23609,13 +23688,13 @@ function probeView(name, done) {
   s.onerror = () => end(false);
   s.src = file;
   document.head.appendChild(s);
-  // No answer at all is not an answer that the file is missing.
-  setTimeout(() => end(true), 3000);
+  // No answer at all is not an answer that the file is missing - unless the
+  // build said so.
+  setTimeout(() => end(!buildSaysAbsent(name)), 3000);
 }
 // Opens the view through open() when it is there, says so when it is not.
 function withView(name, open) {
   const absent = () => flashMode(name + '.html is not beside this file');
-  if (buildSaysAbsent(name)) { absent(); return; }
   if (viewThere[name] === true) { open(); probeView(name); return; }
   probeView(name, (there) => (there ? open() : absent()));
 }
@@ -23927,10 +24006,9 @@ const COMMAND_RUN = {
   // window.open with a URL re-navigates the named window, which reloaded the
   // cockpit and lost its freeze, its clock and its cue cursor. Opening with
   // an empty URL finds the named window without navigating it; only when
-  // that is not already this deck's cockpit is it sent to speaker.html. A
-  // cockpit page on file:// is another origin, so reading its address
-  // throws - which says it is the cockpit and not a blank window this call
-  // just made.
+  // that is not already this deck's cockpit is it sent to speaker.html.
+  // Whether it is this deck's is read off its address where the address can
+  // be read, and asked where it cannot (openCockpit).
   'cockpit': (e) => {
     e.preventDefault();
     if (hasLivePeer()) { try { peer.focus(); } catch (err) {} return; }
@@ -23938,18 +24016,44 @@ const COMMAND_RUN = {
   },
   'help': (e) => { toggleHelp(); e.preventDefault(); },
 };
+// How long a found cockpit has to say which deck it shows. It answers from
+// its message handler, so a few milliseconds when it is there at all;
+// silence means a page that is no cockpit of this build.
+const COCKPIT_ASK_MS = 250;
+let cockpitAsk = null;
 function openCockpit() {
   const w = window.open('', 'psi-slides-speaker', 'width=1400,height=900');
   if (!w) return;
+  try { w.focus(); } catch (err) {}
   // Readable means same origin: a blank window, or under --serve a page
   // that may be another deck's cockpit - either way, unless it already is
   // this deck's cockpit, it is sent there.
   const want = new URL('speaker.html', location.href).href;
   let here = null;
   try { here = String(w.location.href).split(/[?#]/)[0]; } catch (err) { here = null; }
-  if (here !== null && here !== want) w.location.href = want;
-  setPeer(w);
-  try { w.focus(); } catch (err) {}
+  if (here !== null) {
+    if (here !== want) w.location.href = want;
+    setPeer(w);
+    return;
+  }
+  // Unreadable: a page from another file:// address. That used to be taken
+  // for this deck's cockpit, and on a tab that had gone from one deck to
+  // another it was the first deck's, driven by the second. So it is asked,
+  // and only an answer naming this deck keeps it as it is; another deck, or
+  // no answer, and it is sent to this deck's speaker.html.
+  if (cockpitAsk) clearTimeout(cockpitAsk.timer);
+  const ask = { w, timer: 0 };
+  ask.settle = (ours) => {
+    if (cockpitAsk !== ask) return;
+    cockpitAsk = null;
+    clearTimeout(ask.timer);
+    if (w.closed) return;
+    if (!ours) { try { w.location.href = want; } catch (err) { return; } }
+    setPeer(w);
+  };
+  cockpitAsk = ask;
+  ask.timer = setTimeout(() => ask.settle(false), COCKPIT_ASK_MS);
+  try { w.postMessage({ type: 'whois', source: VIEW }, '*'); } catch (err) { ask.settle(false); }
 }
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('.annot-textarea')) return;
@@ -24221,6 +24325,9 @@ window.addEventListener('resize', () => {
 // far enough to put the whole aside inside the frame. See setAsidePan.
 const figureOverlay = document.getElementById('psiINT-figure-overlay');
 let focusedFigure = null;
+// The element on the slide the card is a clone of, so a thawing cockpit can
+// name it to the projection (figureFocusState).
+let focusedFigureSrc = null;
 // Per-focus zoom + pan: +/− keys (and wheel) scale; drag pans. Reset
 // every time a new figure gets focused so each one starts at 1x. Pan
 // is in CSS px on the focus-target's layout box. The transform is
@@ -24299,6 +24406,7 @@ function unfocusFigure() {
   if (!focusedFigure) return;
   focusedFigure.style.transform = '';
   focusedFigure = null;
+  focusedFigureSrc = null;
   figureOverlay.replaceChildren();
   document.body.classList.remove('figure-focused');
   resetFigureView();
@@ -24312,6 +24420,7 @@ function focusFigure(el) {
   figureOverlay.replaceChildren(clone);
   document.body.classList.add('figure-focused');
   focusedFigure = clone;
+  focusedFigureSrc = el;
   applyFigureTransform();
   // A stepped diagram opens on the beat the slide is on, not on beat 0: the
   // clone carries whatever the emitter wrote statically, which is the *last*
@@ -24534,6 +24643,25 @@ function clearAsidePan() {
   asidePan = null;
   document.body.classList.remove('aside-panned');
   return true;
+}
+// What is open over or beside the live slide, as the messages that would put
+// the other window in the same place: the focus card with its zoom, or the
+// brought-in aside - and the closing message for each that is not open. A
+// frozen cockpit sends none of these as they happen, and the snapshot a thaw
+// pushes carries neither, so a card closed while frozen stayed up on the
+// projection. Thawing sends this list after the snapshot (toggleFreeze).
+function figureFocusState() {
+  const entry = flatChunks[state.activeIdx];
+  const idxIn = (el) => (entry && el ? Array.from(entry.el.querySelectorAll(FOCUSABLE_SEL)).indexOf(el) : -1);
+  const out = [];
+  const f = focusedFigure ? idxIn(focusedFigureSrc) : -1;
+  if (f >= 0) {
+    out.push({ type: 'figure-focus', chunkIdx: state.activeIdx, figureIdx: f });
+    out.push({ type: 'figure-view', scale: figureScale, panX: figurePan.x, panY: figurePan.y });
+  } else out.push({ type: 'figure-unfocus' });
+  const a = asidePan ? idxIn(asidePan.el) : -1;
+  out.push(a >= 0 ? { type: 'figure-pan', chunkIdx: state.activeIdx, figureIdx: a } : { type: 'figure-unpan' });
+  return out;
 }
 
 // ── where forward will take you ───────────────────────────────────
@@ -26123,6 +26251,11 @@ function toggleFreeze() {
   // land on would look like it did nothing at all.
   if (!frozen && !isApplyingRemote) {
     sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
+    // The snapshot moves the slide, not the focus card or a brought-in
+    // aside: those travel as their own messages, and a frozen window sent
+    // none, so the room's card has to be told explicitly - opened, closed or
+    // left as it is.
+    figureFocusState().forEach(sendToPeer);
     // The room is now on this window's slide, so this is the position a
     // reloaded projection should come back to.
     saveActive();
@@ -26456,6 +26589,7 @@ scrubberEl.addEventListener('click', (e) => {
     const ci = parseInt(dot.dataset.colIdx, 10);
     const xi = parseInt(dot.dataset.chunkIdx, 10);
     const idx = colChunkIdx[ci]?.[xi];
+    settleFade();
     if (idx !== undefined) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
     return;
   }
@@ -26463,6 +26597,7 @@ scrubberEl.addEventListener('click', (e) => {
   if (btn) {
     const ci = parseInt(btn.closest('.col-entry').dataset.colIdx, 10);
     const idx = colChunkIdx[ci]?.[0];
+    settleFade();
     if (idx !== undefined) jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
   }
 });
@@ -26604,6 +26739,7 @@ previewStrip.addEventListener('pointerup', (e) => {
   previewStrip.classList.remove('dragging');
   if (moved || !slot) return;
   const idx = parseInt(slot.dataset.idx, 10);
+  settleFade();
   if (!Number.isFinite(idx) || idx === state.activeIdx) return;
   jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
 });

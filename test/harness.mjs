@@ -117,7 +117,15 @@ export async function openDeck(port, view = 'audience', viewport = { width: 1440
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
-  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('console', m => {
+    if (m.type() !== 'error') return;
+    // The start menu asks the server whether the cockpit and the print view
+    // are beside the page, whatever the build said (probeView), and a deck
+    // a spec built with --audience-only answers 404 for both. That is the
+    // probe working, not the page failing; test/palette.mjs asserts it.
+    if (/status of 404/.test(m.text()) && /\/(speaker|print)\.html$/.test((m.location() || {}).url || '')) return;
+    errors.push(m.text());
+  });
   await page.goto(`http://127.0.0.1:${port}/${view}.html`, { waitUntil: 'load' });
   await page.waitForTimeout(700);
   // `close` shuts this spec's context; the browser itself lives until
