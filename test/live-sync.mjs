@@ -3,8 +3,12 @@
  * between them: what a frozen cockpit takes from the projection, where a
  * reloaded projection boots, what a second S does, where autoplay starts,
  * what a press during a fade acts on, how the overview is left, what a
- * diagram inside a `from N` card does before the card arrives, and whether
- * a figure focused in the cockpit stays focused on the projection.
+ * diagram inside a `from N` card does before the card arrives, whether
+ * a figure focused in the cockpit stays focused on the projection, what a
+ * thaw does with a card opened or closed while frozen, whether an autoplay
+ * figure's clock outlives a cockpit's move under fade, what two column
+ * presses inside one fade do, and which cockpit S finds from file:// on a
+ * tab that went from one deck to another.
  *
  * It builds two decks of its own for the reason test/README.md gives: the
  * shapes it needs - an autoplay figure behind a plain slide, a stepped figure
@@ -79,9 +83,47 @@ box g "G" right of f gap 1
 The last plain slide.
 `;
 
-function buildDeck(front) {
+// Columns, for the column keys under fade. Its own deck because a column
+// heading inserts a divider slide, which would move every press above.
+const COLS = `
+## title: {#title}
+
+# Part A
+
+## free: A one {#a1}
+
+Words.
+
+## free: A two {#a2}
+
+Words.
+
+# Part B
+
+## free: B one {#b1}
+
+Words.
+
+## free: B two {#b2}
+
+Words.
+
+# Part C
+
+## free: C one {#c1}
+
+Words.
+
+# Part D
+
+## free: D one {#d1}
+
+Words.
+`;
+
+function buildDeck(front, body = BODY) {
   const dir = tmpDir('psi-live-sync-');
-  fs.writeFileSync(path.join(dir, 'source.md'), `---\ntitle: Sync\ncollapse: none\n${front}---\n${BODY}`);
+  fs.writeFileSync(path.join(dir, 'source.md'), `---\ntitle: Sync\ncollapse: none\n${front}---\n${body}`);
   const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
     { cwd: ROOT, encoding: 'utf8' });
   return { dir, status: r.status, out: (r.stdout || '') + (r.stderr || '') };
@@ -126,7 +168,9 @@ export async function run({ page, report }) {
   ok(pan.status === 0, 'the fixture deck builds', pan.out);
   const fade = buildDeck('transition: fade\n');
   ok(fade.status === 0, 'the fading fixture deck builds', fade.out);
-  if (pan.status !== 0 || fade.status !== 0) return;
+  const cols = buildDeck('transition: fade\n', COLS);
+  ok(cols.status === 0, 'the fading deck with columns builds', cols.out);
+  if (pan.status !== 0 || fade.status !== 0 || cols.status !== 0) return;
 
   const { server, port } = await serve(pan.dir);
   const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } });
@@ -241,6 +285,39 @@ export async function run({ page, report }) {
     await key(spk, 'Escape', 300);
     ok(!(await aud.evaluate(() => !!focusedFigure)), 'Esc in the cockpit closes it on both');
 
+    // ── 10. a thaw reconciles the focus card ──
+    // A frozen cockpit sends no figure message, and the thaw's snapshot is
+    // on the same slide, so the card has to be named on its own.
+    const card8 = spk.locator('#psiINT-stage #focus figure.figure-diagram');
+    const focusedIn = async () => ({ aud: await aud.evaluate(() => !!focusedFigure), spk: await spk.evaluate(() => !!focusedFigure) });
+    await spk.bringToFront();
+    await card8.click();
+    await wait(spk, 300);
+    await key(spk, 'v', 200);
+    await key(spk, 'Escape', 200);
+    ok(await aud.evaluate(() => !!focusedFigure), 'closed in a frozen cockpit, the card stays on the projection');
+    await key(spk, 'v', 500);
+    let fc = await focusedIn();
+    ok(!fc.aud && !fc.spk, 'V, Esc, V: the thaw closes the card on the projection', JSON.stringify(fc));
+    await card8.click();
+    await wait(spk, 300);
+    await key(spk, 'v', 200);
+    await goTo(spk, 'four');
+    await goTo(spk, 'focus');
+    ok(await aud.evaluate(() => !!focusedFigure), 'frozen, away and back: the projection still shows the card');
+    await key(spk, 'v', 500);
+    fc = await focusedIn();
+    ok(!fc.aud && !fc.spk, 'and the thaw on the same slide closes it', JSON.stringify(fc));
+    await key(spk, 'v', 200);
+    await card8.click();
+    await wait(spk, 300);
+    await key(spk, '+', 200);
+    ok(!(await aud.evaluate(() => !!focusedFigure)), 'a card opened in a frozen cockpit stays off the projection');
+    await key(spk, 'v', 500);
+    const zs = { aud: await aud.evaluate(() => focusedFigure ? figureScale : 0), spk: await spk.evaluate(() => figureScale) };
+    ok(zs.aud > 1 && zs.aud === zs.spk, 'and the thaw opens it there, at the cockpit\'s zoom', JSON.stringify(zs));
+    await key(spk, 'Escape', 300);
+
     // ── 6. leaving the overview onto a slide goes through the landing path ──
     await goTo(spk, 'one');
     await aud.evaluate(() => { window.__landed = []; const o = restartAutoplay; restartAutoplay = function () { window.__landed.push(flatChunks[state.activeIdx].id); return o.apply(this, arguments); }; });
@@ -280,7 +357,126 @@ export async function run({ page, report }) {
       ok(back.id === 'three', 'forward then back inside one fade acts on the slide being arrived at',
         JSON.stringify(back));
       await fa.close();
+
+      // ── 11. a cockpit's move off an autoplay figure, under fade ──
+      // The projection lands the move at the bottom of its dip, and the
+      // figure's clock used to tick inside it: the tick advanced the slide
+      // being left and broadcast it, and the cockpit went back there while
+      // the projection went on - with no broadcast from the landing, which
+      // runs as a remote apply.
+      const p2 = await openPair(ctx, f2.port, errors);
+      await goTo(p2.spk, 'auto');
+      ok(await idOf(p2.aud) === 'auto', 'fade: the cockpit drives the projection onto the autoplay figure', await idOf(p2.aud));
+      // End to end, timed so the old clock's next tick falls in the dip: the
+      // press comes as the last beat lands, and the cockpit's dip plus the
+      // projection's are about one autoplay delay long.
+      const segs = await p2.aud.evaluate(() => countSegments(flatChunks[state.activeIdx].el));
+      await p2.aud.waitForFunction((n) => revealed.auto === n, segs, { timeout: 4000, polling: 5 }).catch(() => {});
+      await p2.spk.waitForFunction((n) => revealed.auto === n, segs, { timeout: 1000, polling: 5 }).catch(() => {});
+      await p2.spk.bringToFront();
+      await p2.spk.keyboard.press('ArrowDown');
+      await wait(p2.spk, 900);
+      const both = { aud: await idOf(p2.aud), spk: await idOf(p2.spk) };
+      ok(both.aud === 'held' && both.spk === 'held', 'fade: ↓ on the last beat moves both windows off the figure', JSON.stringify(both));
+      // And directly: inside the projection's dip the slide being left has no
+      // clock. The figure is made new again in both windows so it plays.
+      await goTo(p2.spk, 'three');
+      await p2.aud.evaluate(() => { delete revealed.auto; autoplayStoppedOn = null; });
+      await p2.spk.evaluate(() => { delete revealed.auto; autoplayStoppedOn = null; });
+      await goTo(p2.spk, 'auto');
+      await p2.aud.waitForFunction(() => autoplayTimer !== 0, null, { timeout: 2000 }).catch(() => {});
+      await p2.spk.evaluate(() => { location.hash = '#held'; });
+      const dip = await p2.aud.waitForFunction(() => fadePending ? { timer: autoplayTimer } : null, null, { timeout: 2000, polling: 5 })
+        .then((h) => h.jsonValue()).catch(() => null);
+      ok(dip && dip.timer === 0, 'fade: inside the dip the figure being left has stopped its clock', JSON.stringify(dip));
+      await p2.spk.close();
+      await p2.aud.close();
     } finally { f2.server.close(); }
+
+    // ── 12. under fade, two quick column presses move two columns ──
+    // nextCol and prevCol read the live slide to find the target, so a press
+    // inside the first one's dip counted from the column being left.
+    const f3 = await serve(cols.dir);
+    try {
+      const fc3 = await ctx.newPage();
+      fc3.on('pageerror', e => errors.push('cols: ' + e));
+      await fc3.goto(`http://127.0.0.1:${f3.port}/audience.html#a1`, { waitUntil: 'load' });
+      await wait(fc3, 700);
+      const colOf = () => fc3.evaluate(() => flatChunks[state.activeIdx].colIdx);
+      const c0 = await colOf();
+      await fc3.keyboard.press('Shift+ArrowRight');
+      await wait(fc3, 40);
+      await fc3.keyboard.press('Shift+ArrowRight');
+      await wait(fc3, 800);
+      ok(await colOf() === c0 + 2, 'fade: two Shift-→ inside one fade move two columns', `${c0} -> ${await colOf()}`);
+      await fc3.keyboard.press('Shift+ArrowLeft');
+      await wait(fc3, 40);
+      await fc3.keyboard.press('Shift+ArrowLeft');
+      await wait(fc3, 800);
+      // On a column's head, Shift-← leaves for the head of the one before.
+      ok(await colOf() === c0, 'fade: and two Shift-← inside one fade move two columns back',
+        `${c0 + 2} -> ${await colOf()}`);
+      // The hash route (G, the contents, a search hit all compare with the
+      // live slide the same way): back to the slide being left inside a dip.
+      // The address has to change to fire, so it names #b1 and the keys walk
+      // on to #b2 before the press whose dip it lands in.
+      await fc3.evaluate(() => { location.hash = '#b1'; });
+      await wait(fc3, 700);
+      await fc3.keyboard.press('ArrowDown');
+      await wait(fc3, 700);
+      ok(await idOf(fc3) === 'b2', 'fade: ↓ walks on to #b2', await idOf(fc3));
+      await fc3.keyboard.press('ArrowDown');
+      await wait(fc3, 30);
+      await fc3.evaluate(() => { location.hash = '#b2'; });
+      await wait(fc3, 800);
+      ok(await idOf(fc3) === 'b2', 'fade: an address pointing back at the slide being left lands there', await idOf(fc3));
+      await fc3.close();
+    } finally { f3.server.close(); }
+
+    // ── 13. S from file:// finds only this deck's cockpit ──
+    // A file:// page cannot read another file's address, and the window
+    // named psi-slides-speaker that S finds used to be taken for this deck's
+    // cockpit on that ground alone. A tab that went from one deck to another
+    // then drove the first deck's cockpit. Two decks, two folders.
+    {
+      const ctx2 = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } });
+      try {
+        const urlA = 'file://' + path.join(pan.dir, 'audience.html');
+        const urlB = 'file://' + path.join(fade.dir, 'audience.html');
+        const tab = await ctx2.newPage();
+        tab.on('pageerror', e => errors.push('fileA: ' + e));
+        await tab.goto(urlA, { waitUntil: 'load' });
+        await wait(tab, 500);
+        const [cA] = await Promise.all([ctx2.waitForEvent('page'), tab.keyboard.press('s')]);
+        await cA.waitForLoadState();
+        await wait(cA, 700);
+        ok(cA.url().startsWith('file://' + pan.dir), 'file://: S opens deck A\'s cockpit', cA.url());
+        await tab.goto(urlB, { waitUntil: 'load' });
+        await wait(tab, 600);
+        // Deck A's cockpit still holds this tab as its opener: what it sends
+        // is another deck's and is dropped.
+        const bBefore = await idOf(tab);
+        await key(cA, 'ArrowDown', 500);
+        ok(await idOf(tab) === bBefore, 'file://: deck A\'s cockpit does not move deck B\'s projection', `${bBefore} -> ${await idOf(tab)}`);
+        await tab.bringToFront();
+        await tab.keyboard.press('s');
+        await wait(tab, 1200);
+        ok(cA.url().startsWith('file://' + fade.dir) && /speaker\.html$/.test(cA.url()),
+          'file://: S on deck B sends the found window to deck B\'s cockpit', cA.url());
+        ok(ctx2.pages().length === 2, 'and opens no second window', String(ctx2.pages().length));
+        await key(tab, 'ArrowDown', 600);
+        const ids = { aud: await idOf(tab), spk: await idOf(cA) };
+        ok(ids.aud === ids.spk && ids.aud !== bBefore, 'deck B\'s projection and its cockpit move together', JSON.stringify(ids));
+        // This deck's own cockpit, found again after the projection reloads,
+        // is asked, answers, and is left alone.
+        await cA.evaluate(() => { window.__marker = 'kept'; });
+        await tab.reload({ waitUntil: 'load' });
+        await wait(tab, 600);
+        await key(tab, 's', 800);
+        ok(await cA.evaluate(() => window.__marker || null) === 'kept', 'file://: S finds this deck\'s own cockpit and does not reload it');
+        ok(await tab.evaluate(() => hasLivePeer()) && ctx2.pages().length === 2, 'and takes it as its peer again');
+      } finally { await ctx2.close(); }
+    }
   } finally {
     await ctx.close();
     server.close();

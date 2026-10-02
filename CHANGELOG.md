@@ -316,6 +316,8 @@ tag:
   broken window – whether the build found it missing (`--audience-only` into
   an empty folder) or the page does when it is opened: an `audience.html`
   sent on alone, opened from disk in Chrome, Firefox or Safari, or served.
+  The page's answer wins over the build's: a view a later partial build put
+  beside it (`--speaker-only`, `--print-only`) is found and offered.
 - **The `?` panel in both live views has a search field.** It has the focus
   when the panel opens, and typing filters the rows by key and by what the key
   does: every word has to match, case and accents are ignored, and a single
@@ -3457,10 +3459,20 @@ tag:
   expansion and autoplay; it now goes through the same jump as an arrow key.
   Under `transition: fade` a second press within the dip read the slide being
   left, so two forward presses moved one slide and forward then back moved
-  two back; a press now acts on the slide being arrived at.
+  two back; a press now acts on the slide being arrived at – and so do
+  `Shift`-arrows, a click in the contents, the scrubber or the preview
+  strip, a search hit, `G` and an address. An `autoplay` figure kept its
+  clock through the dip, and a tick there, on a slide the cockpit had just
+  left, put the cockpit back on it while the projection went on; the clock
+  now stops as the slide change starts.
 - **A second `S` on the projection brings the cockpit forward instead of
   reloading it.** `window.open` with the address re-navigated the open
-  cockpit, which lost its freeze, its clock and its cue cursor.
+  cockpit, which lost its freeze, its clock and its cue cursor. From
+  `file://`, where one page cannot read another's address, the window it
+  finds is asked which deck it shows, and only this deck's cockpit is kept;
+  a tab that had gone from one deck's projection to another's used to drive
+  the first deck's cockpit. Messages between the two windows now carry the
+  deck, and a window of another deck is not listened to.
 - **A frozen cockpit stays where the lecturer took it.** Every snapshot from
   the projection used to be applied in full, so an `autoplay` tick there, or
   `B` pressed on its keyboard, dragged the look-ahead back to the room's
@@ -3469,7 +3481,9 @@ tag:
   projection's drag-pan, and sends no laser pointer. A projection reloaded
   under a freeze booted onto the cockpit's look-ahead, because both windows
   share the stored position; the cockpit no longer writes it while frozen,
-  and thawing does.
+  and thawing does. Thawing also hands over the focus card and a brought-in
+  aside – open, closed, and at the cockpit's zoom – which a frozen cockpit
+  did not send: a card closed while frozen stayed on the projection.
 - **The linter reports what the build refuses in the frontmatter.** A
   byte-order mark before the opening `---` and a closing `--- ` with a
   trailing blank hid the whole block from it; a value on the line under its
