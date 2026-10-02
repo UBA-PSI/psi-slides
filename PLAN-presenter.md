@@ -268,6 +268,8 @@ It would be the first privileged surface ever exposed to a page built from a
 contract that is a key binding, and the day `S` means something else the app
 breaks in silence.
 
+*Under review:* question 11's proposed resolution amends “the page cannot call the app” to two refused `window.open` names.
+
 ### 5. Keys go to the cockpit, whichever window has focus
 
 A presenter remote is a keyboard, and its keys go to the focused window. The
@@ -299,6 +301,8 @@ documentation varies; measure the two or three remotes the maintainer owns]**.
   presentation. Ending is `Cmd-.` / `Ctrl-.` and the menu item. A remote's
   slideshow button that sends `Escape` then unwinds a figure, which is
   harmless; one that ended the talk would not be.
+
+*Under review:* question 11's proposed resolution replaces the key forwarding above with a press relay in the page.
 
 ### 6. The presenter windows fetch nothing from outside the machine
 
@@ -778,6 +782,222 @@ through `npm run dist:signed` as `CONTRIBUTING.md` describes.
     builder's preload; the fallback fullscreen has no path that tells the
     cockpit its state; and nothing tests that a `w` typed into the notes
     leaves the projection alone.
+
+### Proposed resolution of question 11 (for the maintainer to accept or change)
+
+Prepared after the review, not decided. Line numbers are those of the working
+tree at `343929e`; the function names are the anchors when they move.
+
+**The rule it rests on: a command crosses a window boundary, a key does
+not.** The places where a press is text are already one list – the guards at
+the head of the keydown listener (build.js:24075–24159: the annotation
+textarea, the `?` panel's field, the search field, any other input or
+textarea, the link mark, any Cmd/Ctrl/Alt chord, the go-to prompt, the
+overview arrows) plus the editor's capture listener (editor.mjs:8577–8585)
+**[read]**. A command whose run function is called has passed all of them.
+So the app hears about a *command* after the page ran it, and about no key
+before the page saw it. One mechanism then settles W, the remote's keys and
+the typed `w`.
+
+#### What main can learn from a page without a bridge
+
+Evaluated against Electron 44's type definitions
+(`desktop/node_modules/electron/electron.d.ts`):
+
+| mechanism | verdict |
+| --- | --- |
+| `before-input-event` on the cockpit, gated on the page's typing state | **Rejected.** The handler has to call `preventDefault` synchronously (d.ts:16100–16105); its `Input` carries `type`, `key`, `code`, `isAutoRepeat`, `isComposing` and the modifiers, nothing about the focused element (d.ts:22125ff) **[read]**. `executeJavaScript` returns a promise (d.ts:18107), so it cannot gate the decision. The one synchronous read, `getTitle()` (d.ts:15537), would need the page to write its typing state into the window title in each of the states above – a hand-kept second copy of the guard list, the build.js/lint.js duplication in miniature, and a `w` that fills the wall the day a new field is left off it. |
+| `context-menu` params, `isEditable` (d.ts:21230) | Not a signal: a right-click only **[read]**. |
+| `webContents` `focus` / `blur` (d.ts:17170, 16149) | Not a signal: window focus, not element focus **[read]**. |
+| `console-message` (d.ts:16207) | **Rejected.** Asynchronous, and a deck's script and the runtime's own warnings write there too – log lines parsed as commands. |
+| `page-title-updated` as a request channel (d.ts:17341) | **Rejected.** Visible in the window title, which is the lecture's own `<title>`. |
+| `executeJavaScriptInIsolatedWorld` (d.ts:18114) | Gains nothing: it keeps main's code out of the deck's reach, but the key map runs in the main world, so anything it can read a deck's script can write **[inferred]**. |
+| **A refused `window.open`**: `window.open('about:blank', 'psi-host:fullscreen-on')` | **Chosen.** `setWindowOpenHandler` is per `webContents`, so the sender is known by construction, and `HandlerDetails` carries `url` and `frameName` (d.ts:18621, 21996–22010) **[read]**. Main already runs that handler on both presenter windows (Decision 8, step 4) and answers `deny`. It needs no preload and no change to `contextIsolation` or `sandbox` **[inferred]**. Whether the call reaches the handler with the frame name intact, with and without a gesture, and whether a `deny` leaves no window and no console error behind **[to measure in spike 0.4]**. |
+| **Nothing at all** | The cheapest outcome, and probably not available. Electron lists `fullscreen` among the permissions `setPermissionRequestHandler` answers (d.ts:13415) **[read]**. If the projection's `requestFullscreenHere()`, called from the `fullscreen enter` handler (build.js:20326–20342), succeeds in Electron once the partition grants it, the browser protocol already works in the app – the handler asks before it arms – and entering needs no branch. The refusal is most likely Blink's transient-activation check, which runs ahead of any permission request **[inferred; one line of spike 0.2]**. |
+
+Whichever row wins, the presenter partition's permission handler has to grant
+`fullscreen` (and `display-capture` for Decision 9), unlike `pdf.js`'s, which
+refuses everything (desktop/main/pdf.js:202) **[read]**; otherwise Decision
+3's HTML variant may fail even with a gesture **[to measure in spike 0.2]**.
+
+**What it costs, plainly.** Decision 4's “The page cannot call the app” stops
+being true. It becomes: *the page can ask the app for two things by name – the
+projection's fullscreen on and off – through a `window.open` the app refuses.*
+No function object in the page, no reply, no data beyond the name. Main acts
+only on an exact name from its list, only when the opener is the cockpit or
+the projection of the running presentation, and only when the request differs
+from the window's current state. A deck's script can send it as well and gets
+what pressing `W` gets, which in the app is fullscreen without a click; a
+script could flicker the projection in and out, as a held key could, so main
+ignores a request within 500 ms of the last transition **[inferred]**. It is
+not a preload and not a `contextBridge`, and `SECURITY.md` has to carry that
+sentence (Slice C).
+
+#### The W path
+
+- **What says “inside the app”.** `psiPresent.host(name)`, a new member that
+  main calls with `'app'` on `did-finish-load` of both presenter windows, and
+  again after a `render-process-gone` reload. It sets a runtime `presentHost`;
+  `state()` reports it as `host`. The bit is forgeable – a deck's script can
+  call the hook too, and in a browser its `W` then opens an `about:blank`
+  popup, harming its own deck only. No mechanism without a preload gives an
+  unforgeable bit **[inferred]**, and none is needed, because main trusts the
+  request no further than a `W`.
+- **The branch sits at the head of `toggleProjectionFullscreen()`**
+  (build.js:23804), so the key (`COMMAND_RUN.fullscreen`, :24004), the touch
+  palette (:24776), a `?` row and the start menu (`runCommand`, :22916), B2's
+  footer button and the menu's `psiPresent.run('fullscreen')` all take it:
+
+  ```js
+  function toggleProjectionFullscreen() {
+    if (presentHost) {
+      if (VIEW !== 'speaker') endStartMenu();
+      const want = VIEW === 'speaker' ? !peerFullscreen : !fullscreenOn();
+      window.open('about:blank', 'psi-host:fullscreen-' + (want ? 'on' : 'off'));
+      return;
+    }
+    // … the browser path, unchanged
+  }
+  ```
+
+  It is in `AUDIENCE_JS`, so string concatenation rather than a template
+  string. `Shift`-`W` (`fullscreen-window`, the cockpit's own window) stays the
+  page's, as Decision 3 says; whether it opens a Space on the laptop is
+  **[to measure in spike 0.2]**.
+- **Main's answer.** In the handler, a `frameName` starting `psi-host:` is
+  dispatched and answered `deny`. HTML variant:
+  `projection.webContents.executeJavaScript('psiPresent.fullscreen(true)',
+  true)`. Window variant (`setSimpleFullScreen` or a frameless window at the
+  display's bounds): main changes the window, then calls
+  `psiPresent.framed(true)`. While rehearsing the projection is hidden, so main
+  answers with `psiPresent.toast` in the cockpit and changes nothing.
+- **The state path back to the cockpit.** HTML variant: nothing new –
+  `fullscreenchange` → `announceFullscreen` → `fullscreen state` →
+  `peerFullscreen` (build.js:23815–23825, 20326–20329) **[read]**. Window
+  variant: no `fullscreenchange` fires **[inferred]**, so `psiPresent.framed(on)`
+  sets a runtime `hostFramed`, `fullscreenOn()` (build.js:23760) returns
+  `hostFramed || document.fullscreenElement || …`, and `framed` runs the
+  listener's body – disarm, `endStartMenu`, `announceFullscreen`. The cockpit
+  learns it through the message it already reads, a reloaded cockpit through
+  the `hello` reply (build.js:20254), and the menu's checkmark through
+  `state().fullscreen`. `Escape` leaves HTML fullscreen by itself but not a
+  simple-fullscreen window; there the projection's own `W` goes through the
+  branch to main and is the way out. Whether `resize` fires on the window
+  variant, which `slide-ref` depends on (build.js:19623), is **[to measure in
+  spike 0.2]**.
+- **Channel names.** The W path uses no IPC channel and leaves the builder's
+  preload alone. Slice A3's builder channels become `startPresentation`,
+  `startRehearsal` and `endPresentation`, and the page-side names live under
+  `psi-host:`, so the bare word `present` names nothing on the wire.
+
+#### The remote's keys – replaces Decision 5's forwarding
+
+- **Main forwards no key.** A presenter window gets a `before-input-event`
+  handler for keys that produce no character, and in the first version for
+  `F5` alone, which it swallows. The packaged menu has no reload role
+  (desktop/main/menu.js:58–66) **[read]**, so the swallow may be a belt with no
+  braces under it **[inferred]**.
+- **Main still focuses the cockpit after every layout change**, as Decision 5
+  says. `focusable: false` on the projection is dropped: it would also stop an
+  annotation typed there, and the relay below makes it unneeded.
+- **The press relay, in the page.** The cockpit announces `{type:
+  'press-relay', action: 'state', on}`, `on` being “cue cards on and not
+  frozen”, on each change of either and in reply to `hello`, the way
+  `announceFullscreen` reports fullscreen. The projection sets its own
+  `viewHooks.consumeForward` / `consumeBack` (defaults at build.js:19513) to
+  send `{type: 'press-relay', action: 'press', dir}` and return `true` while
+  the cockpit says `on` and the peer is live. The cockpit runs `goForward()` /
+  `goBack()` on receipt (build.js:21794), where its own `consumeForward`
+  (build.js:27094) spends the press on a card or lets it through to the
+  counter, which then reaches the room as any cockpit press does. `goForward`
+  is reached only past the key map's guards, so a Space or a `w` typed into the
+  projection's annotation textarea, `?` field or search does not travel. It
+  keeps CLAUDE.md's rule that the two consume hooks are the only way a press is
+  spent before the reveal counter.
+- **A race and an older peer.** A press reaching a cockpit that has just frozen
+  goes back as `{…, bounced: true}` and the projection runs it locally, which
+  is what a projection press does today while the cockpit is frozen
+  **[inferred]**. An older peer neither announces nor answers, and the
+  projection handles its keys as it does today. Outside the snapshot, it is a
+  seventh family past the freeze gate in speaker.md §2.
+- **What it leaves alone.** A key with `reach: 'local'` (`1`–`9`, `Esc`) still
+  acts on whichever window has focus (commands.mjs, `reach`) **[read]**; with
+  the cockpit focused after each layout change, that is the cockpit.
+
+#### Tests, per slice
+
+- **Spike 0.** 0.2 adds the “nothing at all” row (does `requestFullscreenHere()`
+  from the `fullscreen enter` handler succeed in Electron with `fullscreen`
+  granted) and, for the window variant, whether `resize` fires and
+  `document.fullscreenElement` stays null. 0.4 trades the `sendInputEvent`
+  question for: does `window.open('about:blank', 'psi-host:x')` from a
+  sandboxed, preload-free `file://` page reach `setWindowOpenHandler` with the
+  frame name intact, with and without a gesture, and does a `deny` leave no
+  window and no console error. What the remotes send stays in 0.4.
+- **A1 (engine).** `test/present-hook.mjs` on its fixture deck, with
+  `window.open` recorded by an init script:
+  - Without `host()`: the cockpit's `W` sends `fullscreen enter` and opens no
+    `psi-host:` window. `test/nav-fullscreen.mjs` stays as it is and holds the
+    browser path.
+  - With `host('app')` in both windows: the cockpit's `W`, the touch palette's
+    fullscreen button and the `?` panel's `W` row each open one
+    `psi-host:fullscreen-on`, send no `fullscreen enter` and put no hint on the
+    projection.
+  - **The typed `w`.** With `host('app')`, focus in turn the cockpit's
+    `#psiINT-notes-content`, an `N` annotation's `.annot-textarea`,
+    `#psiINT-help-search` and `#psiINT-search-input`, and press `w`: no
+    `psi-host:` open, the field's value ends in `w`, and the projection's
+    `state().fullscreen` is unchanged. The same with the go-to prompt open
+    (`G`, then `w`), and with `w` typed into the projection's own annotation
+    textarea.
+  - `framed(true)`: `state().fullscreen` is `true`, the start menu is gone and
+    the cockpit's next `W` asks for `off`; `framed(false)` the reverse.
+  - `test/press-relay.mjs`, a fixture deck with three cards on one beat: with
+    cards on, Space on the projection moves the cockpit's cue cursor and not
+    the room's beat; with cards off, Space advances as today; with the cockpit
+    frozen, the projection advances and the look-ahead stays; Space and `w`
+    typed into the projection's annotation textarea send no relay.
+- **A3 (desktop).** The smoke test's rehearsal run, with `PSI_PRESENT_PROBE`
+  counting `psi-host:` requests: `psiPresent.run('fullscreen')` in the cockpit
+  with a gesture counts one and shows the rehearsal toast. With the notes
+  textarea focused, `sendInputEvent` `keyDown` / `char` / `keyUp` for `w` into
+  the cockpit counts none and the textarea ends in `w` – the one test of the
+  typed `w` through Electron's own input pipeline; with the body focused it
+  counts one. An unknown `psi-host:` name, or one from the builder window, is
+  counted as refused and does nothing. `PageDown` sent into the projection
+  window with cards on moves the cockpit's cue cursor – the test A3 already
+  lists, now through the relay rather than main.
+- **B2 (engine).** The footer's fullscreen button under `host('app')` opens
+  one `psi-host:` window and sends no `fullscreen` message.
+- **A6 (desktop).** The menu's fullscreen item in a rehearsal counts one
+  request at the probe, through `psiPresent.run`.
+
+#### Decisions left for the maintainer
+
+1. **Accept the refused-`window.open` channel and the amended sentence in
+   Decision 4?** The two alternatives: no page-to-app path at all, so the
+   cockpit's `W` in the app arms the projection as in a browser and the app
+   enters fullscreen only on *Present*, from its menu and accelerator – which
+   puts the hint on the wall in front of the room, the thing Decision 3 is
+   there to stop; or `before-input-event` with a typing marker in the title,
+   rejected above. *Recommended:* accept, with exactly two names, and the
+   `SECURITY.md` sentence.
+2. **HTML fullscreen or the window variant**, once spike 0.2 has measured
+   “Displays have separate Spaces” both ways. *Recommended:* HTML where it
+   measures acceptable, because `Escape` and the page's own state then stay
+   the browser's; the state path above serves either, so the choice does not
+   block A1.
+3. **The press relay in the browser too, or in the app only?** It is page-only
+   and would behave the same in Chrome, where a remote whose window is the
+   projection skips cards today. *Recommended:* both, since it only acts while
+   cue cards are on, and one behaviour is one fewer to keep in two forms. Cost:
+   a protocol change in speaker.md §2 and a changed behaviour for browser decks
+   that use cue cards.
+4. **Drop main's key forwarding and `focusable: false` entirely**, as proposed,
+   or keep forwarding as a second layer for the projection's non-text state?
+   *Recommended:* drop. A second layer needs exactly the typing signal the
+   first table could not find, and the relay covers the one case – cue cards –
+   where the two windows disagree about a press.
 
 ## Risks
 
