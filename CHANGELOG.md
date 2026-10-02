@@ -3551,7 +3551,7 @@ tag:
   bytes, so an unchanged picture is still encoded once a session.
 
 - **The diagram editor's structured edits do what they say, and only when
-  they did it.** Seven defects from the review before 2.0.0, each reproduced
+  they did it.** The defects from the reviews before 2.0.0, each reproduced
   by driving `editor.mjs` against the compiler and now held by a gate of its
   own (`node test/gates/run.mjs editor`):
 
@@ -3560,14 +3560,18 @@ tag:
     `emph c-b-0`, rename a step called `a` along with it, and turn the width
     keyword in `w 2` into `c 2`, so an element called `w`, `at` or `left`
     could not be renamed at all. A generated name now follows only the
-    statement that generated it, a step's name is never an element's, and a
-    word that spells the name is checked against the parser before it is
-    rewritten.
+    statement that generated it, a step's name is never an element's, a
+    port (`a.left`) is never the name, and a word that spells the name is
+    checked against the parser, in source order, before it is rewritten – so
+    an actor or a chart called `at` is renamed in the message or the `series
+    of` that names it. Where no rewrite can be shown safe the rename is
+    refused; it no longer falls back to rewriting the keyword too.
   - *Resizing* a box written `same w as a` (or `same h as a`) was always
     refused: the span table took the `w` of `same w as` for the width keyword
     and handed the drag the token `as` to overwrite. The drag now drops the
     relation for the axis it moves and writes the number, the way it already
-    did for `same as`.
+    did for `same as` – and a `w` after an element called `same` is still the
+    width.
   - *Paste in place* of a copy holding the figure's first element pasted an
     element with no placement and was refused; it now gets the `at` it was
     drawn at.
@@ -3575,16 +3579,26 @@ tag:
     "written" after the edit had been refused and rolled back.
   - *Deleting* an element with a chain of dependents – `b right of a`,
     `c right of b` – was always refused, because only direct dependents went
-    with it. Whatever goes is now asked in turn what names it.
+    with it. Whatever goes is now asked in turn what names it, coordinate
+    endpoints, waypoints, a step's `move … to` and generated tags such as
+    `@t-row-1` included. A member list (`over a,b,d`, `align`, a step's
+    `show a, b`) loses the member and keeps its line unless too few are
+    left; an actor goes with its messages; and the messages after a deleted
+    one, named by their place, are renumbered in every line that names
+    them rather than handing `s-1` to the next message along. The
+    confirmation says what goes, what only loses a member and what moves.
   - *A `table` or a `sequence`* was handled by its first line: deleting a
     table was refused, duplicating one dropped its rows, and a sequence could
     be neither duplicated nor pasted. The compiler records where such a
     statement ends (`endLine`), and delete, duplicate, copy and paste take the
-    whole statement – a sequence's actors renamed with it.
+    whole statement – a sequence's actors renamed with it. Duplicating a
+    table cell, a lane or a lifeline duplicates the statement that drew it,
+    and an actor, a message or a note is copied into the run after itself.
   - *Pasting into another figure* could write one name twice: a clipboard
     holding `a` and `a2`, pasted where `a` exists, renamed `a` to `a2`. A
     fresh name is now fresh from the other pasted names too, and a generated
-    name on the clipboard (`t-0-0`) follows its renamed maker (`t2-0-0`).
+    name on the clipboard (`t-0-0`, a message's `s-1`) follows its renamed
+    maker (`t2-0-0`, `s2-1`).
 
 - **A reader's kept figure edits are filed per lecture.** The editor kept them
   in `localStorage` under the chunk id alone, and Chrome gives every page

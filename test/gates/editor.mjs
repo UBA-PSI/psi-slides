@@ -224,6 +224,115 @@ export async function run({ report }) {
   ok(compiles() && /\nbox a3 "A" at [\d.-]+,[\d.-]+\nbox a2 "A2" right of a3$/.test(src()),
     'pasting `a` and `a2` where `a` exists renames `a` past `a2`', JSON.stringify(src()));
 
+  // ── an element called `same` (R1) ─────────────────────────────────
+  ed.open('box same "S" at 0,0\nbox b "B" right of same w 2');
+  ok(resize('b', 'e') && src() === 'box same "S" at 0,0\nbox b "B" right of same w 2.5',
+    'a `w` after a reference to an element called `same` is the width keyword', JSON.stringify(src()));
+
+  // ── a message's positional id follows its sequence on paste (R2) ──
+  ed.open('sequence s\n  actor u "U"\n  actor v "V"\n  u -> v "hi"\n  v -> u "ho"\nbrace b over s-1 side right "x"');
+  sel(['b']); ed.run('dgeCopy()'); ed.run('dgePaste(false)');
+  ok(compiles() && /\nbrace b2 over s2-1 side right "x"$/.test(src()),
+    'a pasted brace over `s-1` points at the pasted sequence\'s `s2-1`', JSON.stringify(src()) + ' · ' + note());
+
+  // ── a delete sees every reference (R3) ────────────────────────────
+  {
+    let asked = '';
+    ed.ctx.confirm = (m) => { asked = m; return true; };
+    const body = fs.readFileSync(path.join(ROOT, 'lectures/diagrams/source.md'), 'utf8');
+    const at = body.indexOf('{.full #table}');
+    const open = body.indexOf('\n', body.indexOf('::: draw', at)) + 1;
+    ed.open(body.slice(open, body.indexOf('\n:::', open)));
+    sel(['t']); ed.run('dgeDelete()');
+    const code = src().split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
+    ok(compiles() && !/\bt[-.]|@t-/.test(code) && /^step link-layer$/m.test(code),
+      'deleting the table of #table takes the rule drawn between its coordinates and every '
+      + '`style @t-row-N` – and keeps the steps', JSON.stringify(src()) + ' · ' + note());
+    ed.open('box a "A"\nbox c "C" right of a gap 2\nbox t "T" below a\nedge e a -> c via t.right,a.cy\n'
+      + 'step s\n  move c to right of t');
+    sel(['t']); ed.run('dgeDelete()');
+    ok(compiles() && src() === 'box a "A"\nbox c "C" right of a gap 2\nstep s',
+      'a waypoint on it and a step moving something against it go with it', JSON.stringify(src()));
+
+    // ── a member list loses a member (R4) ───────────────────────────
+    ed.open('box a "A"\nbox b "B" right of a\nbox d "D" right of b gap 2\n'
+      + 'brace br over a,b,d side bottom "x"\nbox z "Z" below br\nstep s\n  show a, b');
+    sel(['b']); ed.run('dgeDelete()');
+    ok(compiles() && src() === 'box a "A"\nbrace br over a side bottom "x"\nbox z "Z" below br\nstep s\n  show a',
+    'deleting b takes d, which stands on it, and keeps the brace and the step with a alone in them',
+    JSON.stringify(src()));
+    ok(/stay, with what goes taken out of their list:\nline 4: brace br holds b – a,b,d becomes a/.test(asked)
+      && /line 3: box d is placed against b/.test(asked),
+    'the confirmation says which lines go and which only lose a member', JSON.stringify(asked));
+    ed.open('box a "A"\nbox b "B" right of a gap 2\nbox q "Q" below a\nbrace br over b side bottom "x"\n'
+      + 'box z "Z" below br');
+    sel(['b']); ed.run('dgeDelete()');
+    ok(compiles() && src() === 'box a "A"\nbox q "Q" below a',
+      'a brace left holding nothing goes, and what stood on it', JSON.stringify(src()));
+    ed.open('box a "A"\nbox b "B" right of a gap 2\nbox c "C" below a\nalign y middle a, b, c');
+    sel(['c']); ed.run('dgeDelete()');
+    ok(compiles() && src() === 'box a "A"\nbox b "B" right of a gap 2\nalign y middle a, b',
+      'an align keeps the two it still has', JSON.stringify(src()));
+
+    // ── an actor goes with its messages (R7) ────────────────────────
+    ed.open('sequence s\n  actor u "U"\n  actor v "V"\n  actor w "W"\n  u -> v "hi"\n  v -> w "ho"\n'
+      + '  note w "n"\nbrace b over s-1 side right "x"');
+    sel(['u']); ed.run('dgeDelete()');
+    ok(compiles() && src() === 'sequence s\n  actor v "V"\n  actor w "W"\n  v -> w "ho"\n  note w "n"\n'
+      + 'brace b over s-0 side right "x"',
+    'deleting an actor takes its messages, and the brace follows the message that moved up',
+    JSON.stringify(src()) + ' · ' + note());
+    ok(/line 5: message s-0 \(u -> v\) runs from or to u/.test(asked), 'the confirmation lists the message',
+      JSON.stringify(asked));
+
+    // ── a delete that renumbers rewrites (R8) ───────────────────────
+    ed.open('sequence s\n  actor u "U"\n  actor v "V"\n  u -> v "hi"\n  v -> u "ho"\n  u -> v "x"\n'
+      + 'brace b over s-1 side right "x"\nstep k\n  emph @s-msg-2');
+    sel(['s-0']); ed.run('dgeDelete()');
+    ok(compiles() && /\nbrace b over s-0 side right "x"\nstep k\n {2}emph @s-msg-1$/.test(src()),
+      'deleting the first message moves every reference to a later one with it', JSON.stringify(src()));
+    ed.ctx.confirm = () => true;
+  }
+
+  // ── duplicating what a statement generated (R5) ───────────────────
+  ed.open('table t "A | B" at 0,0\n  "x | y"');
+  sel(['t-0-1']); ed.run('dgeDuplicate()');
+  ok(compiles() && src() === 'table t "A | B" at 0,0\n  "x | y"\ntable t2 "A | B" at 0,0\n  "x | y"'
+    && ed.DGE.selection.join() === 't2', 'duplicating a cell duplicates its table', JSON.stringify(src()));
+  ed.open('sequence s\n  actor u "U"\n  actor v "V"\n  u -> v "hi"');
+  sel(['u']); ed.run('dgeDuplicate()');
+  ok(compiles() && src() === 'sequence s\n  actor u "U"\n  actor u2 "U"\n  actor v "V"\n  u -> v "hi"'
+    && ed.DGE.selection.join() === 'u2', 'duplicating an actor adds one to the run', JSON.stringify(src()));
+  ed.open('sequence s\n  actor u "U"\n  actor v "V"\n  u -> v "hi"\n  v -> u "ho"\nbrace b over s-1 side right "x"');
+  sel(['s-0']); ed.run('dgeDuplicate()');
+  ok(compiles() && src() === 'sequence s\n  actor u "U"\n  actor v "V"\n  u -> v "hi"\n  u -> v "hi"\n'
+    + '  v -> u "ho"\nbrace b over s-2 side right "x"' && ed.DGE.selection.join() === 's-1',
+  'duplicating a message renumbers the later ones and what names them', JSON.stringify(src()));
+  ed.open('box a "A"');
+  {
+    const real = ed.ctx.dgeSetSource;
+    ed.ctx.dgeSetSource = () => false;
+    sel(['a']); ed.run('dgeDuplicate()');
+    ok(ed.DGE.selection.join() === 'a', 'a refused duplicate leaves the selection alone', JSON.stringify(ed.DGE.selection));
+    ed.ctx.dgeSetSource = real;
+  }
+
+  // ── a name that is also a word (R6) ───────────────────────────────
+  for (const [word, body, want] of [
+    ['left', 'box left "L"\nbox a "A" right of left\nedge e a.left -- left.right',
+      'box c "L"\nbox a "A" right of c\nedge e a.left -- c.right'],
+    ['at', 'sequence s at 0,0\n  actor at "U"\n  actor v "V"\n  at -> v "hi"',
+      'sequence s at 0,0\n  actor c "U"\n  actor v "V"\n  c -> v "hi"'],
+    ['at', 'bars at "1,2" at 0,0\nbars b "3,4" series of at', 'bars c "1,2" at 0,0\nbars b "3,4" series of c'],
+    ['at', 'plot at "x" "y" at 0,0\nplot p2 "x" "y" below at same as at',
+      'plot c "x" "y" at 0,0\nplot p2 "x" "y" below c same as c'],
+  ]) {
+    ed.open(body);
+    ed.run(`dgeRename(${JSON.stringify(word)}, "c")`);
+    ok(compiles() && src() === want, `\`${word}\` renamed where a port or a checked reference names it`,
+      JSON.stringify(src()) + ' · ' + note());
+  }
+
   // ── the reader's shelf is per lecture (S2.3) ──────────────────────
   {
     const store = (() => {

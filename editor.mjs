@@ -4518,7 +4518,9 @@ function dgeAppendLine(line) {
   // Only say "written" when it stuck – dgeSetSource reverts a line the
   // compiler refuses and has already named the problem in the status bar,
   // and overwriting that with a success message was a lie on top of it.
-  if (dgeSetSource(lines.join('\n'))) dgeStatus(line, 'written');
+  if (!dgeSetSource(lines.join('\n'))) return false;
+  dgeStatus(line, 'written');
+  return true;
 }
 
 function dgeStartEdge(ev, pt0) {
@@ -4595,41 +4597,48 @@ function dgeSpread(axis) {
 }
 
 // Deleting lists what else refers to the element rather than leaving a block
-// that will not compile.
+// that will not compile – and says what each listed line has to do with it,
+// in three groups: the lines that go with it, the member lists that only lose
+// it, and the generated names that move because a message or a note is named
+// by its place in the run.
 function dgeDelete() {
   if (!DGE.selection.length) return;
   const plan = dgeDeletePlan(DGE.selection);
-  // Lines that name something being deleted, *excluding* the statements of
-  // the other elements in the same selection – deleting a and b together
-  // should not report b's own line as a reason not to delete a.
-  const refs = plan.refs;
-  const seenLines = plan.own;
   const what = DGE.selection.join(', ');
-  if (refs.length && !window.confirm(
-    `Delete ${what}?\n\n${refs.length} other line(s) name ${DGE.selection.length > 1 ? 'them' : 'it'}:\n`
-    + refs.slice(0, 8).join('\n')
-    + (refs.length > 8 ? `\n… and ${refs.length - 8} more` : '')
-    + '\n\nDeleting only these lines leaves the block unable to compile; the lines above have to go too.\n\n'
-    + 'OK deletes the element and every line that names it.')) return;
-  // Delete the statements themselves and every line that names them, which
-  // is what keeps the block compiling.
-  const doomed = plan.lines;
-  const lines = DGE.source.split('\n').filter((_, i) => !doomed.has(i + 1));
-  const alsoGone = Math.max(0, doomed.size - seenLines.size);
   const many = DGE.selection.length > 1;
+  const them = many ? 'them' : 'it';
+  const rows = (list) => list.slice(0, 8).map((r) => `line ${r.line}: ${r.why}`).join('\n')
+    + (list.length > 8 ? `\n… and ${list.length - 8} more` : '');
+  const parts = [];
+  if (plan.goes.length) {
+    parts.push(`${plan.goes.length} other line(s) go too, because each needs something that goes:\n`
+      + rows(plan.goes));
+  }
+  if (plan.trims.length) {
+    parts.push(`${plan.trims.length} line(s) stay, with what goes taken out of their list:\n` + rows(plan.trims));
+  }
+  if (plan.renumbered.length) {
+    parts.push('A message or a note is named by its place in the run, so the later ones move up, '
+      + 'and the lines that name them follow:\n' + plan.renumbered.slice(0, 8).join('\n')
+      + (plan.renumbered.length > 8 ? `\n… and ${plan.renumbered.length - 8} more` : ''));
+  }
+  if (parts.length && !window.confirm(`Delete ${what}?\n\n${parts.join('\n\n')}\n\n`
+    + `OK deletes ${them} and makes these changes, which is what keeps the block compiling.`)) return;
   // Only a delete that stuck is reported as one. dgeSetSource has already put
   // the refusal in the status bar, and "deleted a" over an `a` still on the
   // canvas was a second sentence contradicting the first.
-  if (!dgeSetSource(lines.join('\n'))) return;
+  if (!dgeSetSource(plan.text)) return;
   dgeSelect([]);
-  dgeStatus('', alsoGone
-    ? `deleted ${what} and ${alsoGone} line(s) that named ${many ? 'them' : 'it'}`
-    : `deleted ${what}`);
+  const also = [];
+  if (plan.goes.length) also.push(`${plan.goes.length} line(s) that needed ${them}`);
+  if (plan.trims.length) also.push(`${them} out of ${plan.trims.length} list(s)`);
+  if (plan.renumbered.length) also.push(`${plan.renumbered.length} name(s) renumbered`);
+  dgeStatus('', `deleted ${what}` + (also.length ? ' – and ' + also.join(', ') : ''));
 }
 
-// What deleting a selection takes with it, as 1-based line numbers. Three
-// things the first version missed, each of which left a block that would not
-// compile and so a delete that was always refused:
+// What deleting a selection does to the source. Each of these left a block
+// that would not compile, so a delete that was always refused, or – worse – one
+// that compiled and meant something else:
 //
 // - **A statement can be longer than its line.** A `table`'s rows and a
 //   `sequence`'s run sit under the head line, and `endLine` is where they end.
@@ -4637,17 +4646,33 @@ function dgeDelete() {
 //   deleting `a` takes `b`'s line, and `c` then names nothing. So whatever goes
 //   is asked in turn what names it, until nothing new turns up.
 // - **A statement owns the names it generates.** `emph t-0-1` in a step names
-//   a cell of the table being deleted, not the table.
+//   a cell of the table being deleted, not the table; `style @t-row-1` names
+//   it through a generated tag.
+// - **A member list loses a member; it does not go.** Deleting `b` out of
+//   `brace br over a,b,d` writes `over a,d` and keeps the brace and everything
+//   placed against it. Only a list left shorter than its statement needs – a
+//   brace with nothing to hold, an `align` with one element – takes its line,
+//   and then its dependents. A `@tag` member is gone with the last element
+//   carrying it. Decided after everything else, because whether a list is
+//   left empty depends on all of what goes.
+// - **A message is named by its place.** `s-1` is the second message of `s`,
+//   so deleting the first makes the second `s-0`. Every reference to a later
+//   message – its name, its number `s-n-1`, its second line, `@s-msg-1` – is
+//   rewritten to the name it has now, or a `brace over s-1` would quietly
+//   move to the next message along. Notes, `s-note-N`, the same.
 //
-// `own` is the selection's own lines, so the confirmation lists only what
-// else goes; `refs` is that list.
-function dgeDeletePlan(ids, model, spans) {
+// Returns the new source and the three lists the confirmation shows: `goes`
+// (lines that go, with why), `trims` (lists that lose a member) and
+// `renumbered` (generated names that move, where a line names one).
+function dgeDeletePlan(ids, model, spans, source) {
   const m = model || DGE.model;
   const table = spans || DGE.spans;
+  const src = source === undefined ? DGE.source : source;
   const lines = new Set();
   const own = new Set();
-  const refs = [];
+  const goes = [];
   const gone = new Set();
+  const lists = new Map();
   const all = [...m.nodes, ...m.edges, ...m.containers, ...m.braces, ...(m.statements || [])];
   const take = (el, into) => {
     if (!el || !el.line) return;
@@ -4667,24 +4692,157 @@ function dgeDeletePlan(ids, model, spans) {
     for (const g of all) {
       if (g.synth === id && g.id !== id) drop(g.id, fromSelection);
     }
+    // A message's number and second line are generated from its place rather
+    // than from its name; the positional tag is what they share with it.
+    const at = dgeMsgIndex(el);
+    if (at >= 0) {
+      for (const c of m.tags.get(window.PSI_DG.dgMsgTag(el.synth, at)) || []) drop(c, fromSelection);
+    }
+  };
+  const dead = (w) => (w.startsWith('@')
+    ? (m.tags.get(w.slice(1)) || []).every((c) => gone.has(c))
+    : gone.has(w));
+  const settle = () => {
+    while (queue.length) {
+      const id = queue.shift();
+      for (const r of table.referencesTo(id)) {
+        if (r.from && gone.has(r.from)) continue;
+        if (r.list) { if (!lists.has(r.line)) lists.set(r.line, r); continue; }
+        if (!lines.has(r.line)) goes.push({ line: r.line, why: r.what });
+        lines.add(r.line);
+        if (r.from) drop(r.from, false);
+      }
+    }
   };
   for (const id of ids) drop(id, true);
-  while (queue.length) {
-    const id = queue.shift();
-    for (const r of table.referencesTo(id)) {
-      if (r.from && gone.has(r.from)) continue;
-      if (!lines.has(r.line)) refs.push(`line ${r.line}: ${r.what}`);
-      lines.add(r.line);
+  for (let more = true; more;) {
+    settle();
+    more = false;
+    for (const [line, r] of lists) {
+      if (lines.has(line)) continue;
+      const left = r.list.members.filter((w) => !dead(w));
+      if (left.length >= r.list.min) continue;
+      goes.push({ line, why: left.length
+        ? `${r.what}, and ${left.join(', ')} alone is too few for it`
+        : `${r.what}, and nothing else in its list is left` });
+      lines.add(line);
+      more = true;
       if (r.from) drop(r.from, false);
     }
   }
-  return { lines, own, refs };
+  // The lists that only lose members. Edits inside a line never add or take
+  // a newline, so they are applied before the lines are dropped and the line
+  // numbers still hold.
+  const edits = [];
+  const trims = [];
+  for (const [line, r] of lists) {
+    if (lines.has(line)) continue;
+    const left = r.list.members.filter((w) => !dead(w));
+    if (left.length === r.list.members.length) continue;
+    const was = src.slice(r.list.start, r.list.end);
+    const next = left.join(/\s/.test(was) ? ', ' : ',');
+    edits.push({ start: r.list.start, end: r.list.end, text: next });
+    trims.push({ line, why: `${r.what} – ${was} becomes ${next}` });
+  }
+  let text = src;
+  edits.sort((a, b) => b.start - a.start);
+  for (const e of edits) text = text.slice(0, e.start) + e.text + text.slice(e.end);
+  text = text.split('\n').filter((_, i) => !lines.has(i + 1)).join('\n');
+  // Renumbering, per sequence that keeps standing and lost an entry.
+  const seqs = new Set();
+  for (const id of gone) {
+    const el = dgeFind(id, m);
+    if (el && (el.entry === 'message' || el.entry === 'note') && !gone.has(el.synth)) seqs.add(el.synth);
+  }
+  const renumbered = [];
+  for (const seq of seqs) {
+    const goneAt = (kind) => dgeSeqEntries(seq, kind, m).filter((x) => gone.has(x.el.id)).map((x) => x.i);
+    const shift = { message: goneAt('message'), note: goneAt('note') };
+    const map = dgeSeqRenumber(seq, m, (kind, i, el) => (gone.has(el.id) ? null
+      : i - shift[kind].filter((k) => k < i).length));
+    renumbered.push(...dgeNamedIn(text, map));
+    text = dgeRenameIn(text, map.ids, map.tags);
+  }
+  goes.sort((a, b) => a.line - b.line);
+  trims.sort((a, b) => a.line - b.line);
+  return { text, lines, own, goes, trims, renumbered };
 }
 
+// A sequence message's place in its run, read off the positional tag the
+// compiler gives it (`@s-msg-2` is the third message), or -1 for anything
+// that is not a message. The tag and not the id: a named message has no
+// positional id, but its number and its tag are still positional.
+function dgeMsgIndex(el) {
+  if (!el || el.entry !== 'message' || !el.synth) return -1;
+  const pre = window.PSI_DG.dgMsgTag(el.synth, '');
+  const t = (el.tags || []).find((x) => x.startsWith(pre) && /^\d+$/.test(x.slice(pre.length)));
+  return t ? Number(t.slice(pre.length)) : -1;
+}
+
+// A sequence's messages or notes with their places, in order.
+function dgeSeqEntries(seq, kind, model) {
+  const m = model || DGE.model;
+  const pre = window.PSI_DG.dgNoteName(seq, '');
+  const out = [];
+  for (const el of kind === 'message' ? m.edges : m.nodes) {
+    if (el.synth !== seq || el.entry !== kind) continue;
+    const i = kind === 'message' ? dgeMsgIndex(el)
+      : (el.id.startsWith(pre) && /^\d+$/.test(el.id.slice(pre.length)) ? Number(el.id.slice(pre.length)) : -1);
+    if (i >= 0) out.push({ el, i });
+  }
+  return out.sort((a, b) => a.i - b.i);
+}
+
+// The generated names that move when a sequence's entries move, as the two
+// maps dgeRenameIn takes. `place(kind, i, el)` answers an entry's new place,
+// or null for one that is gone. A message the author named keeps its name and
+// moves only its number, its second line and its tag; an unnamed one is
+// `s-<i>` and moves that too.
+function dgeSeqRenumber(seq, model, place) {
+  const P = window.PSI_DG;
+  const ids = new Map();
+  const tags = new Map();
+  for (const { el, i } of dgeSeqEntries(seq, 'message', model)) {
+    const j = place('message', i, el);
+    if (j == null || j === i) continue;
+    if (el.named === false) ids.set(P.dgMsgName(seq, i), P.dgMsgName(seq, j));
+    ids.set(P.dgMsgNumName(seq, i), P.dgMsgNumName(seq, j));
+    ids.set(P.dgMsgSubName(seq, i), P.dgMsgSubName(seq, j));
+    tags.set(P.dgMsgTag(seq, i), P.dgMsgTag(seq, j));
+  }
+  for (const { el, i } of dgeSeqEntries(seq, 'note', model)) {
+    const j = place('note', i, el);
+    if (j == null || j === i) continue;
+    ids.set(P.dgNoteName(seq, i), P.dgNoteName(seq, j));
+  }
+  return { ids, tags };
+}
+
+// Which of a renumbering's names a text actually uses, as "old is new now"
+// lines for a confirmation. A shifted name nobody wrote down is not news.
+function dgeNamedIn(text, map) {
+  const esc = (n) => n.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
+  const out = [];
+  for (const [a, b] of map.ids) {
+    if (new RegExp('(^|[^\\w@-])' + esc(a) + '(?![\\w-])').test(text)) out.push(`${a} is ${b} now`);
+  }
+  for (const [a, b] of map.tags) {
+    if (new RegExp('@' + esc(a) + '(?![\\w-])').test(text)) out.push(`@${a} is @${b} now`);
+  }
+  return out;
+}
+
+// Duplicate the one selected element. An element a statement generated – a
+// table cell, a lane, a chart column, a lifeline – has no line of its own to
+// copy, so the statement that drew it is duplicated, which is what dgeCopy
+// takes too. A sequence's own entries are lines inside its run, and a copy of
+// one goes into the run right after the original (dgeDuplicateEntry).
 function dgeDuplicate() {
   if (DGE.selection.length !== 1) return;
-  const el = dgeFind(DGE.selection[0]);
+  let el = dgeFind(DGE.selection[0]);
+  if (el && el.synth && el.synth !== el.id && !el.entry) el = dgeFind(el.synth);
   if (!el || !el.span) return;
+  if (el.entry) { dgeDuplicateEntry(el); return; }
   const [line, ...rest] = dgeWholeStatement(el).split('\n');
   const name = dgeFreshName(el.id);
   // Rename only the element's own name token – the second word of the
@@ -4709,8 +4867,46 @@ function dgeDuplicate() {
     for (const n of owned) { const f = dgeFreshName(n, taken); taken.add(f); map.set(n, f); }
     tail = dgeRenameIn(tail, map);
   }
-  dgeAppendLine(tail ? placed + '\n' + tail : placed);
-  dgeSelect([name]);
+  // Selected only once it stuck: a refused copy has no name to select.
+  if (dgeAppendLine(tail ? placed + '\n' + tail : placed)) dgeSelect([name]);
+}
+
+// An actor, a message or a note, copied into its sequence's run on the line
+// after the original. An actor and a named message get a fresh name; an
+// unnamed message or a note is named by its place, so the copy takes the next
+// place and every later entry of its kind moves down one, with the lines that
+// name them rewritten – the renumbering a delete does, the other way round.
+function dgeDuplicateEntry(el) {
+  const P = window.PSI_DG;
+  const seq = el.synth;
+  const raw = DGE.source.split('\n')[el.line - 1] || '';
+  const indent = raw.match(/^\s*/)[0];
+  const line = DGE.source.slice(el.span[0], el.span[1]);
+  let copy = line;
+  let pick = null;
+  const toks = P.dgTokenize(line, 0).filter((x) => !x.q && !x.attr);
+  if (el.entry === 'actor' || (el.entry === 'message' && el.named !== false)) {
+    // The name is an actor's second token and a named message's first.
+    const tk = el.entry === 'actor' ? toks[1] : toks[0];
+    if (!tk) return;
+    pick = dgeFreshName(el.id);
+    copy = line.slice(0, tk.s) + pick + line.slice(tk.e);
+  }
+  let text = DGE.source;
+  if (el.entry !== 'actor') {
+    const kind = el.entry;
+    const at = kind === 'message' ? dgeMsgIndex(el)
+      : Number(el.id.slice(P.dgNoteName(seq, '').length));
+    if (!(at >= 0)) return;
+    const map = dgeSeqRenumber(seq, DGE.model, (k, i) => (k === kind && i > at ? i + 1 : i));
+    text = dgeRenameIn(text, map.ids, map.tags);
+    if (!pick) pick = kind === 'message' ? P.dgMsgName(seq, at + 1) : P.dgNoteName(seq, at + 1);
+  }
+  const lines = text.split('\n');
+  lines.splice(el.line, 0, indent + copy);
+  if (!dgeSetSource(lines.join('\n'))) return;
+  dgeSelect([pick]);
+  dgeStatus(copy, `a copy of ${el.id}, in the run of ${seq} after it`);
 }
 
 // A statement's whole text: its own line, trimmed as `span` has it, and the
@@ -6091,7 +6287,21 @@ function dgeRename(id, raw) {
   }
   const map = dgeRenameMap(id, next);
   const also = map.ids.size - 1 + map.tags.size;
-  if (dgeSetSource(dgeRenameIn(DGE.source, map.ids, map.tags, dgeParseOf))) {
+  // dgeRenameIn rewrites only the words it could show to be the name, so a
+  // result that does not compile means a line uses the name somewhere the
+  // parser cannot tell it from a keyword. The fallback that used to follow
+  // rewrote the keywords too – `sequence s at 0,0` became `sequence s c 0,0`
+  // – so this refuses instead, in words about the rename rather than the
+  // compiler's sentence about a line the author never touched.
+  const out = dgeRenameIn(DGE.source, map.ids, map.tags, dgeParseOf);
+  const res = dgeParseOf(out);
+  if (!res || !res.model || res.errors.length) {
+    const why = res && res.errors.length ? ` (${res.errors[0].msg.replace(/\.$/, '')})` : '';
+    return say(`${id} cannot be renamed to ${next}: a line names it where the word can also be read `
+      + `as a keyword, and only the words that are certainly the name are rewritten, which would leave `
+      + `the block unable to compile${why}. Nothing was changed.`);
+  }
+  if (dgeSetSource(out)) {
     dgeSelect([next]);
     dgeStatus('', `${id} is ${next}, in every line that named it`
       + (also ? ` – and ${also} name(s) the statement generates from it` : ''));
@@ -7679,7 +7889,16 @@ function dgeCopy() {
   // those lines generate, each with its maker – so a paste that renames `t`
   // to `t2` sends `edge … t-0-0.bottom` to `t2-0-0` rather than to a fresh
   // `t-0-02` that nothing generates.
-  const generatedHere = (n) => { const e = dgeFind(n); return !!(e && e.synth && e.synth !== e.id && !e.entry); };
+  // Authored is what dgeOwnedNames calls authored: a sequence's actors and
+  // the messages someone named. A message's positional `s-1`, a note's
+  // `s-note-0` and a lifeline are generated like a table's cells, so they
+  // follow their maker – taken for authored, `s-1` was renamed on its own and
+  // the paste then refused its own messages.
+  const generatedHere = (n) => {
+    const e = dgeFind(n);
+    return !!(e && e.synth && e.synth !== e.id
+      && (!e.entry || e.entry === 'note' || e.named === false));
+  };
   const authored = [...want].filter((n) => !generatedHere(n));
   const generated = [];
   for (const n of want) {
@@ -7703,8 +7922,10 @@ function dgeCopy() {
 // `box mix "the mix of a and b"` into a figure that already has `mix` turned
 // the caption into "the mix2 of a2 and b". So this tokenizes each line and
 // rewrites only the tokens that can hold a *name*, and a quoted token is never
-// one of them. Two callers: a paste, which renames to dodge a collision, and
-// the name field, which renames because that is what it is for.
+// one of them. The callers: a paste, which renames to dodge a collision; the
+// name field, which renames because that is what it is for; and a delete or a
+// duplicate inside a sequence's run, which moves the names a message or a
+// note has by its place.
 //
 // **A tag is not an element name**, and `tags` is a second map rather than the
 // same one because the two live in different namespaces. `style @mix` is a
@@ -7722,20 +7943,34 @@ function dgeCopy() {
 // called what an element is. Rewriting every such word turned `w 2` into
 // `c 2` and `step a` into `step c`: the first is refused, so an element
 // called `w` could never be renamed; the second compiles and silently renames
-// a beat. Two rules close that. A step's own name, the word after `step`, is
-// never an element's. And a whole-token occurrence is swapped, alone, for a
-// probe name and the block parsed: if the probe turns up in the model as an
-// element or a reference, the word was the name; if it vanishes into a
-// refusal, it was a keyword. A match inside a longer token – `a.cx+0.2`,
-// `a,b` – has no keyword reading and is not asked.
+// a beat. Three rules close that. A step's own name, the word after `step`, is
+// never an element's. A match right after a dot is never one either: it is a
+// port or a coordinate, `a.left` or `a.cx`, and with an element called `left`
+// in the block, renaming it wrote `a.c`. And a whole-token occurrence is
+// swapped for a probe name and the block parsed: if the probe turns up in the
+// model as an element or a reference, the word was the name; if it vanishes
+// into a refusal, it was a keyword. Any other match inside a longer token –
+// `a,b`, `a.cx+0.2` – is a name and is not asked.
 //
-// The probe has one blind spot: a reference the parser checks on the spot,
-// like a sequence message's actor, drops the whole statement with the probe
-// in it. So the careful answer is kept only when it compiles; otherwise the
-// rewrite of every occurrence is tried, and whichever compiles is returned –
-// the careful one when neither does, since dgeSetSource will refuse it and
-// say why. `compile` parses a body the way the caller's figure does and
-// answers `{model, errors}` or null; without it every occurrence is swapped.
+// **The occurrences are asked in source order, each on top of the ones
+// already answered.** Some references are checked on the spot against a
+// declaration above them – a message's actors, `series of`, a plot's
+// `same as` – and a name there that is not declared drops the whole
+// statement. Asked one at a time against the untouched block, `at -> v` lost
+// its statement the moment the probe stood where `at` was, still declared as
+// `actor at`, and so read as a keyword. With the declaration already answered
+// a name, the probe is declared, and the message keeps it. Each name gets a
+// probe of its own, so a paste renaming two names at once cannot make one
+// probe collide with the other.
+//
+// **Nothing is rewritten that was not answered a name.** When the careful
+// rewrite does not compile it is returned as it is, for the caller to refuse:
+// the earlier fallback rewrote every occurrence instead, keywords included,
+// and renaming an actor called `at` wrote `sequence s c 0,0`. `compile`
+// parses a body the way the caller's figure does and answers `{model,
+// errors}` or null; without it every occurrence but a port is swapped, which
+// is right for the callers that pass none – generated names, which no keyword
+// spells, and a run of sequence entries, which has no keyword to spell.
 function dgeRenameIn(text, rename, tags, compile) {
   const tagMap = tags || new Map();
   const alt = [...rename.keys(), ...tagMap.keys()]
@@ -7746,55 +7981,85 @@ function dgeRenameIn(text, rename, tags, compile) {
   // A name is bounded by anything that cannot be part of one. Element names
   // are letters, digits, _ and -, which is what makes this exact.
   const re = new RegExp('(^|[^\\w-])(' + alt + ')(?![\\w-])', 'g');
-  let probe = 'dgeProbe';
-  while (text.includes(probe)) probe += 'x';
-  const isName = (at, len) => {
-    const res = compile(text.slice(0, at) + probe + text.slice(at + len));
-    if (!res || !res.model) return true;
+  // Every occurrence, in source order: where it is, what replaces it, and
+  // whether it is a whole bare token and so has to be asked.
+  const occ = [];
+  let lineStart = 0;
+  for (const line of text.split('\n')) {
+    const toks = window.PSI_DG.dgTokenize(line, 0);
+    const bare = toks.filter((t) => !t.q && !t.attr);
+    for (const t of toks) {
+      // A comment runs to the end of the line, and dgTokenize does not strip
+      // one – it hands `#` back as a bare token and every word after it as
+      // another. Measured: a rename of an element called `a` rewrote the word
+      // "a" inside the German prose comments of `lectures/network-security`,
+      // which compiles perfectly and is nonsense. A name is a name only before
+      // the hash.
+      if (!t.q && !t.attr && t.v.startsWith('#')) break;
+      if (t.q) continue;                       // a label is not a name
+      if (t.attr) continue;                    // classes, removals and tags
+      if (bare[0] && bare[0].v === 'step' && t === bare[1]) continue;   // a beat's own name
+      for (const mt of t.v.matchAll(re)) {
+        const [whole, pre, name] = mt;
+        const at = lineStart + t.s + mt.index + pre.length;
+        if (pre === '@') {
+          if (tagMap.has(name)) occ.push({ at, len: name.length, to: tagMap.get(name), tag: true });
+          continue;
+        }
+        if (pre === '.') continue;             // a port or a coordinate
+        if (!rename.has(name)) continue;
+        occ.push({ at, len: name.length, name, to: rename.get(name), ask: whole === t.v });
+      }
+    }
+    lineStart += line.length + 1;
+  }
+  const build = (list, as) => {
+    let out = '';
+    let k = 0;
+    for (const o of [...list].sort((a, b) => a.at - b.at)) { out += text.slice(k, o.at) + as(o); k = o.at + o.len; }
+    return out + text.slice(k);
+  };
+  if (!compile) return build(occ, (o) => o.to);
+  let stem = 'dgeProbe';
+  while (text.includes(stem)) stem += 'x';
+  const names = [...rename.keys()];
+  const probeOf = (name) => `${stem}_${names.indexOf(name)}_`;
+  const probed = (o) => (o.tag ? o.to : probeOf(o.name));
+  // How often each name's probe shows up in the model – an element, a
+  // reference, a member – or null when the block does not parse at all.
+  const counts = (body) => {
+    let res = null;
+    try { res = compile(body); } catch (e) { res = null; }
+    if (!res || !res.model) return null;
     const m = res.model;
     const seen = JSON.stringify({ ...m, steps: (m.steps || []).map((s) => s.ops) },
       (k, v) => (v instanceof Map || v instanceof Set ? [...v] : v));
-    return seen.includes(probe);
+    return new Map(names.map((n) => [n, seen.split(probeOf(n)).length - 1]));
   };
-  const rewrite = (careful) => {
-    let lineStart = 0;
-    return text.split('\n').map((line) => {
-      const toks = window.PSI_DG.dgTokenize(line, 0);
-      const edits = [];
-      const bare = toks.filter((t) => !t.q && !t.attr);
-      for (const t of toks) {
-        // A comment runs to the end of the line, and dgTokenize does not strip
-        // one – it hands `#` back as a bare token and every word after it as
-        // another. Measured: a rename of an element called `a` rewrote the word
-        // "a" inside the German prose comments of `lectures/network-security`,
-        // which compiles perfectly and is nonsense. A name is a name only before
-        // the hash.
-        if (!t.q && !t.attr && t.v.startsWith('#')) break;
-        if (t.q) continue;                       // a label is not a name
-        if (t.attr) continue;                    // classes, removals and tags
-        if (bare[0] && bare[0].v === 'step' && t === bare[1]) continue;   // a beat's own name
-        const next = t.v.replace(re, (m, pre, name) => {
-          if (pre === '@') return pre + (tagMap.get(name) || name);
-          const to = rename.get(name);
-          if (!to) return m;
-          if (careful && m === t.v && !isName(lineStart + t.s, t.e - t.s)) return m;
-          return pre + to;
-        });
-        if (next !== t.v) edits.push({ start: t.s, end: t.e, text: next });
-      }
-      lineStart += line.length + 1;
-      edits.sort((a, b) => b.start - a.start);
-      let out = line;
-      for (const e of edits) out = out.slice(0, e.start) + e.text + out.slice(e.end);
-      return out;
-    }).join('\n');
+  // Whether swapping `o` in, on top of `with`, makes its name's probe show up
+  // more often – which is what being read as the name means.
+  const gains = (o, with_, known) => {
+    const before = known || counts(build(with_, probed));
+    const after = counts(build([...with_, o], probed));
+    return !!after && (!before || after.get(o.name) > before.get(o.name));
   };
-  if (!compile) return rewrite(false);
-  const compiles = (t) => { const r = compile(t); return !!(r && r.model && !r.errors.length); };
-  const careful = rewrite(true);
-  if (compiles(careful)) return careful;
-  const blunt = rewrite(false);
-  return compiles(blunt) ? blunt : careful;
+  // Asked twice when the first answer is no. First as the line stands: that
+  // tells `right of w w 2` apart, the reference from the width. Then with the
+  // rest of its line already swapped, for a line that names the element twice
+  // and drops whole while either is undeclared: in `plot p2 below at same as
+  // at` the `below at` is not seen until `same as at` is answered too.
+  const kept = occ.filter((o) => !o.ask);
+  const lineOf = (o) => text.lastIndexOf('\n', o.at - 1);
+  let base = counts(build(kept, probed));
+  for (const o of occ) {
+    if (!o.ask) continue;
+    const rest = occ.filter((x) => x.ask && x.at > o.at && lineOf(x) === lineOf(o));
+    if (gains(o, kept, base) || (rest.length && gains(o, [...kept, ...rest]))) {
+      kept.push(o);
+      base = counts(build(kept, probed));
+    }
+  }
+  return build(kept.sort((a, b) => a.at - b.at), (o) => o.to);
 }
 
 // The parse dgeRenameIn asks its questions with: this figure's compiler and
