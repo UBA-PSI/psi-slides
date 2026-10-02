@@ -25,6 +25,12 @@ name: Desktop
 
 on:
   push:
+    # Branches only. GitHub does not evaluate `paths` for a tag push, so
+    # without this every `v*` tag started this matrix on its own, beside the
+    # run release.yml makes of it through workflow_call - the three-platform
+    # build twice for one release. A `branches` filter with no `tags` filter
+    # leaves tag pushes out.
+    branches: ['**']
     paths:
       - 'desktop/**'
       - 'build.js'
