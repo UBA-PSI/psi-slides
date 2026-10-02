@@ -765,6 +765,19 @@ through `npm run dist:signed` as `CONTRIBUTING.md` describes.
 10. **Which cockpit commands earn a footer button.** Proposed: blank,
     fullscreen, demo, go to, plus the `view ⋯` panel. Anything more is a
     toolbar.
+11. **The W path contradicts Decisions 4 and 5, and has to be settled before
+    A1.** Found by the review before 2.0.0. The W paragraph has the cockpit
+    ask main “through the preload's `present` channel”, but Decision 4 gives
+    presenter windows no preload; Decision 5 still forwards raw keys from the
+    projection, the interception the W paragraph rejects, which would also
+    swallow typing on the projection (`N`, `G`, the `?` search). Smaller gaps
+    in the same place: the app/browser branch belongs in
+    `toggleProjectionFullscreen()`, because the touch palette calls it
+    directly; `psiPresent` has no member that says it runs inside the app;
+    the `present` channel name already means “start presenting” in the
+    builder's preload; the fallback fullscreen has no path that tells the
+    cockpit its state; and nothing tests that a `w` typed into the notes
+    leaves the projection alone.
 
 ## Risks
 

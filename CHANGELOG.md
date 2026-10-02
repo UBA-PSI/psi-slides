@@ -7,6 +7,8 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+## [2.0.0]
+
 ### Breaking
 
 A `source.md` that built under 1.0.0 may stop building, or build
@@ -4537,5 +4539,6 @@ Read [When *not* to use this](README.md#when-not-to-use-this) and
 [the comparison](docs/comparison.md) before committing a semester to it.
 There is no test suite, one author, and the format is still moving.
 
-[Unreleased]: https://github.com/UBA-PSI/psi-slides/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/UBA-PSI/psi-slides/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/UBA-PSI/psi-slides/releases/tag/v2.0.0
 [1.0.0]: https://github.com/UBA-PSI/psi-slides/releases/tag/v1.0.0
