@@ -25,6 +25,8 @@ holds the full entry.
 - Directives nested in combinations that used to render wrong with exit 0
   (`::: expand` inside `::: cols`, `::: cols` inside `::: overlay`, a
   directive inside `::: cards` …) are refused. ([Added](#added))
+- A directive before the first heading is refused; 1.0.0 dropped it without
+  a word. ([Added](#added))
 - A code fence is what CommonMark says it is, in the build, the reveal split
   and the linter. ([Changed](#changed))
 - A code fence still open at the end of the file is refused.
@@ -32,6 +34,9 @@ holds the full entry.
 - A `::: cols`, `::: side`, `::: slide`, `::: script`, `::: marginalia` or
   `::: embed` left open is refused. ([Changed](#changed))
 - A trailing `---` is a beat whether or not a blank line follows it.
+  ([Changed](#changed))
+- A directive line the build cannot read (`::: cols 4`, `::: backdrop
+  {.blur}` with no picture) is refused; 1.0.0 printed it on the slide.
   ([Changed](#changed))
 - Every Markdown spelling of a picture is weighed against the 2 MB cap.
   ([Changed](#changed))
@@ -297,9 +302,10 @@ tag:
   of their own – so `↓` always moves to the row right under the selection,
   `PageUp` and `PageDown` move by a panel, and the selection stops at either
   end. The panel is one column, filtered or not, and keeps one size while you
-  type; the rows scroll inside it. While the field has text, the matches are
-  one list, best match first – a key, then a command's own name, then a
-  description – with the section each comes from at the end of its line.
+  type; the rows scroll inside it. While the field has text, the matches keep
+  that split – the runnable rows first, then the rows for reference – best
+  match first within each half (a key, then a command's own name, then a
+  description), with the section each comes from at the end of its line.
   `Shift-C F A L` and `+ - 0` are one line per command, so each can be
   picked and run.
 - **A start menu on the projection, before the talk starts.** Beside the `?`
