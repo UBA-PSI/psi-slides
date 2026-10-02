@@ -415,6 +415,16 @@ export async function run({ report }) {
     const f = fenceTracker(); f.step('x', 1); f.step('~~~~', 7);
     ok(f.inside && f.openedAt === 7 && f.marker === '~~~~', 'an open fence says where it opened and what closes it');
     ok(fenceOpener('``') === null && fenceOpener('~~~') !== null, 'two characters are not a run');
+    // A multi-line HTML comment (CommonMark HTML block type 2) holds no fence:
+    // marked renders a ~~~ there as the comment's text, and the tracker read
+    // it as an opener that swallowed every slide below.
+    ok(walk(['<!-- draft:', '~~~python', 'print(1)', '-->', '```', 'x', '```']) === '....DID',
+       'a fence-looking line inside a multi-line comment is the comment\'s text');
+    ok(walk(['<!-- one line -->', '~~~', 'x', '~~~']) === '.DID', 'a comment closed on its own line holds nothing after it');
+    ok(walk(['```', '<!--', '```', '~~~', 'x', '~~~']) === 'DIDDID', 'a comment opener inside a fence is code, and opens nothing');
+    ok(walk(['    <!--', '~~~', '~~~']) === '.DD', 'four spaces of indent are not an HTML block');
+    ok(walk(['<!-- left open', '## free: B {#b}', '~~~', 'x', '~~~']) === '..DID',
+       'a comment left open ends at the next slide heading, where marked\'s body ends too');
 
     // Every reader goes through it: no hand-written fence regex is left in
     // either file's code. Comments are blanked first; a regex in a comment

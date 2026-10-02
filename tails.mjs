@@ -433,21 +433,46 @@ export function fenceCloses(open, line) {
   return !!m && m[1][0] === open.ch && m[1].length >= open.len;
 }
 
+// A multi-line HTML comment is CommonMark's HTML block of type 2: a line that
+// starts with `<!--` after at most three spaces opens it, and it ends at the
+// first line containing `-->`, which may be the opening line itself. marked
+// renders what is inside as the comment's text, so a `~~~` there is no
+// fence – read as one, it swallowed every slide below it and the build
+// refused a deck that had built for a year (a draft commented out, code and
+// all). Only the fence is suspended: the comment's lines are not code, and
+// a `---` or a `:::` in one keeps the meaning it had before.
+export function htmlCommentOpens(line) {
+  const s = String(line ?? '');
+  if (!/^ {0,3}<!--/.test(s)) return false;
+  return !s.slice(s.indexOf('<!--') + 2).includes('-->');
+}
+
 // A reader walks its lines through one of these. `step(line)` answers true
 // when the line is a fence delimiter (opening or closing); `inside` is then
 // true from the opening line up to, not including, the closing one – the
 // shape every reader had with its boolean toggle. `openedAt` is the value
 // passed as the second argument when the open fence started, for a reader
-// that has to name an unclosed fence at the end of the file.
+// that has to name an unclosed fence at the end of the file. `inComment` is
+// true on the lines of an HTML comment after its first, where no fence opens.
 export function fenceTracker() {
   let open = null;
   let at = null;
+  let comment = false;
   return {
     step(line, where) {
       if (open) {
         if (fenceCloses(open, line)) { open = null; at = null; return true; }
         return false;
       }
+      if (comment) {
+        const t = String(line ?? '');
+        // A `#` or `##` heading opens a column or a slide whatever stands
+        // round it, and each body goes to marked on its own, so a comment
+        // left open ends there: marked never sees past it either.
+        if (/^#{1,2}\s/.test(t)) comment = false;
+        else { if (t.includes('-->')) comment = false; return false; }
+      }
+      if (htmlCommentOpens(line)) { comment = true; return false; }
       const o = fenceOpener(line);
       if (!o) return false;
       open = o;
@@ -455,6 +480,7 @@ export function fenceTracker() {
       return true;
     },
     get inside() { return open !== null; },
+    get inComment() { return comment; },
     get openedAt() { return at; },
     get marker() { return open ? open.ch.repeat(open.len) : null; },
   };

@@ -1738,7 +1738,9 @@ tag:
   readers knew `~~~` and any indent. One rule now lives in `tails.mjs`
   (`fenceTracker`) and build.js and lint.js both read through it. A deck that
   wrote a `---` inside such a block has one beat fewer, and its code block is
-  whole again.
+  whole again. A fence-looking line inside a multi-line HTML comment is the
+  comment's text, as marked reads it, so a draft commented out together with
+  its code no longer opens a fence that swallows the slides below it.
 - **Breaking: a code fence still open at the end of the file is refused.**
   Every slide after the opener was read as one listing and the build
   exited 0, while the linter said only `orphan-column`. The build names the

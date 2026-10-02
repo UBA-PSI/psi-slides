@@ -3901,6 +3901,17 @@ console.log('\nlayout generations');
        'a fence never closed is refused, naming its line, without a stack trace', op.out.split('\n')[0]);
     ok(errs(lintOf(open)).includes('unclosed-fence'), 'and lint reports unclosed-fence');
 
+    // A fence-looking line inside a multi-line HTML comment is the comment's
+    // text, as marked reads it (CommonMark HTML block type 2). Read as a
+    // fence, a draft commented out with its code swallowed every slide below.
+    const commented = T + '## free: A {#a}\n\nText.\n\n<!-- draft:\n~~~python\nprint(1)\n-->\n\n'
+      + '## free: B {#b}\n\nStill here.\n';
+    const cm = raw(commented, ['--audience-only']);
+    ok(cm.code === 0 && /data-chunk-id="b"/.test(cm.html || ''),
+       'a ~~~ inside a multi-line HTML comment opens no fence, and the slide below it ships',
+       cm.out.split('\n')[0]);
+    ok(!errs(lintOf(commented)).length, 'and lints clean', lintOf(commented));
+
     // Layout wrappers: refused by the build where lint already erred.
     for (const kind of ['cols 2', 'slide', 'script', 'side', 'marginalia']) {
       const src = T + `## free: A {#a}\n\n::: ${kind}\nOne.\n\n## free: B {#b}\n\nTwo.\n`;
