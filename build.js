@@ -13896,16 +13896,18 @@ ${sections}
 // circle, is the way back once the menu is folded, and stands wherever the
 // circle does.
 //
-// An entry whose view is not beside audience.html is left out
+// An entry whose view is not beside audience.html is rendered hidden
 // (`absentViews`, decided once in buildOnce - see siblingViewsAbsent), so a
 // projection built alone or handed on as one file offers no button that
-// opens a broken window. Its key stays bound and says so instead.
+// opens a broken window. Its key stays bound and says so instead. Hidden
+// rather than left out, because the page asks again when the menu is shown
+// (probeStartMenu) and a later partial build may have put the view there.
 function renderStartMenu(absentViews = []) {
-  const items = START_MENU.map((id) => COMMANDS.find((x) => x.id === id))
-    .filter((c) => !c.opens || !absentViews.includes(c.opens)).map((c) => {
+  const items = START_MENU.map((id) => COMMANDS.find((x) => x.id === id)).map((c) => {
     const key = keyText(c.keys[0]);
     const plain = key.replace(/<[^>]+>/g, '');
-    return `  <button type="button" data-cmd="${c.id}" title="${escapeHtml(c.label)} (${escapeHtml(plain)})">${escapeHtml(c.short)} ${key}</button>`;
+    const hidden = c.opens && absentViews.includes(c.opens) ? ' hidden' : '';
+    return `  <button type="button" data-cmd="${c.id}"${hidden} title="${escapeHtml(c.label)} (${escapeHtml(plain)})">${escapeHtml(c.short)} ${key}</button>`;
   }).join('\n');
   return `<nav id="psiINT-start-menu" aria-label="Before the talk" hidden>
 ${items}
@@ -22894,9 +22896,10 @@ function setStartMenu(open) {
   if (startMenuShow) startMenuShow.hidden = open;
   if (open) probeStartMenu();
 }
-// An entry whose view the build put beside this file and the page cannot
-// find now (probeView) steps out of the menu, as one the build found
-// missing was never rendered into it.
+// An entry steps out of the menu when the page cannot find its view now
+// (probeView), and back in when it can - one the build found missing is
+// rendered hidden rather than left out, so a view a later partial build put
+// beside this file is offered the next time the menu is shown.
 function probeStartMenu() {
   for (const b of startMenu.querySelectorAll('button[data-cmd]')) {
     const c = PSI_COMMANDS.COMMANDS.find((x) => x.id === b.dataset.cmd);
@@ -23550,12 +23553,19 @@ function flashMode(text) {
 }
 // A view that is not beside this file: the S or P press says so in the
 // mode badge and opens nothing, and the start menu leaves its entry out.
-// Two answers, the build's and the page's own:
+// Two answers, the build's and the page's own, and the page's wins:
 //
 // - window.PSI_ABSENT_VIEWS, written by the build only when a view was
-//   missing when it ran - certain, and known before anything is pressed.
+//   missing when it ran. A hint and not a verdict: it is known before
+//   anything is pressed, which is why the start menu is drawn without the
+//   entry, but a later partial build can write the view beside this file
+//   without rewriting this file - --audience-only, then --speaker-only, then
+//   --print-only into an empty folder left an audience.html that said both
+//   were missing and never looked. It decides only where the page cannot
+//   ask (no file: or http(s): address, or a probe that never answers).
 // - A probe at run time, for the view that was there when the build ran and
-//   is not now: audience.html mailed on alone, or copied out of its folder.
+//   is not now - audience.html mailed on alone, or copied out of its folder -
+//   and for the one that was not there and is now.
 //   Under http(s) it is a HEAD request. From file:// no request can read a
 //   file, but a script element can try to load one, and the load and error
 //   events tell the two apart - measured in Chrome 154, Firefox 156 and
@@ -23578,13 +23588,12 @@ function buildSaysAbsent(name) {
 function probeView(name, done) {
   const file = name + '.html';
   const settle = (there) => { viewThere[name] = there; if (done) done(there); };
-  if (buildSaysAbsent(name)) { settle(false); return; }
   if (location.protocol === 'http:' || location.protocol === 'https:') {
     fetch(file, { method: 'HEAD', cache: 'no-store' })
-      .then((r) => settle(r.status !== 404 && r.status !== 410), () => settle(true));
+      .then((r) => settle(r.status !== 404 && r.status !== 410), () => settle(!buildSaysAbsent(name)));
     return;
   }
-  if (location.protocol !== 'file:') { settle(true); return; }
+  if (location.protocol !== 'file:') { settle(!buildSaysAbsent(name)); return; }
   const want = new URL(file, location.href).href;
   const quiet = (ev) => {
     if (ev.filename === want || (!ev.filename && /^Script error/.test(ev.message || ''))) ev.preventDefault();
@@ -23603,13 +23612,13 @@ function probeView(name, done) {
   s.onerror = () => end(false);
   s.src = file;
   document.head.appendChild(s);
-  // No answer at all is not an answer that the file is missing.
-  setTimeout(() => end(true), 3000);
+  // No answer at all is not an answer that the file is missing - unless the
+  // build said so.
+  setTimeout(() => end(!buildSaysAbsent(name)), 3000);
 }
 // Opens the view through open() when it is there, says so when it is not.
 function withView(name, open) {
   const absent = () => flashMode(name + '.html is not beside this file');
-  if (buildSaysAbsent(name)) { absent(); return; }
   if (viewThere[name] === true) { open(); probeView(name); return; }
   probeView(name, (there) => (there ? open() : absent()));
 }

@@ -459,12 +459,18 @@ export async function run({ report }) {
   ok((buildJs.match(/\$\{renderStartMenu\(opts\.absentViews\)\}/g) || []).length === 1
     && buildJs.indexOf('${renderStartMenu(opts.absentViews)}') < buildJs.indexOf('function renderSpeaker('),
   'it is spliced into one view, and that view is the audience');
-  // A view the build did not put beside audience.html has no entry; the
-  // key stays bound and answers with a notice (test/palette.mjs).
+  // A view the build did not put beside audience.html has its entry drawn
+  // hidden - the page asks again when the menu is shown, and a later partial
+  // build may have put the view there; the key stays bound and answers with
+  // a notice (test/palette.mjs).
   const lone = new Function('COMMANDS', 'START_MENU', 'keyText', 'escapeHtml', smSrc + '\nreturn renderStartMenu;')(
     CMD.COMMANDS, CMD.START_MENU, CMD.keyText, (x = '') => String(x))(['speaker', 'print']);
-  const loneIds = [...lone.matchAll(/data-cmd="([a-z0-9-]+)"/g)].map((m) => m[1]);
-  ok(loneIds.join() === 'fullscreen', 'with neither the cockpit nor the print view beside it, the menu is fullscreen alone', loneIds.join());
+  const loneIds = [...lone.matchAll(/data-cmd="([a-z0-9-]+)"(?! hidden)/g)].map((m) => m[1]);
+  const loneHidden = [...lone.matchAll(/data-cmd="([a-z0-9-]+)" hidden/g)].map((m) => m[1]);
+  ok(loneIds.join() === 'fullscreen', 'with neither the cockpit nor the print view beside it, the menu shows fullscreen alone', loneIds.join());
+  ok(loneHidden.join() === 'cockpit,print', 'and draws the other two hidden, for the page to ask about again', loneHidden.join());
+  ok(!/ hidden/.test(startMenu.replace(/id="psiINT-start-menu"[^>]*>/, '').replace(/id="psiINT-start-menu-show"[^>]*>/, '')),
+    'with every view there, no entry is drawn hidden');
   ok(CMD.START_MENU.filter((id) => CMD.COMMANDS.find((c) => c.id === id).opens).join() === 'cockpit,print',
     'the commands that open a view of their own say which, so the build can ask whether it is there');
 }

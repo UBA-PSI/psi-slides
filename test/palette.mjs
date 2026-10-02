@@ -17,7 +17,9 @@
  * empty folder), it offers no entry for a view that is not beside it, and S,
  * P and the palette say so instead of opening a window - and so do they
  * when the build saw print.html and it was deleted later, opened from
- * file://, where the page probes for it. Folded, it leaves a chevron beside the ?
+ * file://, where the page probes for it. The other way round too: a view a
+ * later partial build put beside it is found and offered, whatever the
+ * first build wrote. Folded, it leaves a chevron beside the ?
  * circle that opens it again on any slide and forgets the stored choice. What the commands gate
  * already holds without a browser - which rows name a command, that Cmd-K is
  * answered before the chord guard, what the menu is made of - is not
@@ -437,7 +439,7 @@ export async function run({ page, report, errors: pageErrors }) {
         await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* private window */ } });
         await page.reload({ waitUntil: 'load' });
         await page.waitForTimeout(600);
-        const lonely = await page.$$eval('#psiINT-start-menu button[data-cmd]', (bs) => bs.map((x) => x.textContent.trim()));
+        const lonely = await page.$$eval('#psiINT-start-menu button[data-cmd]', (bs) => bs.filter((x) => !x.hidden).map((x) => x.textContent.trim()));
         ok(lonely.join(' | ') === 'Fullscreen W', 'its start menu offers Fullscreen alone', lonely.join(' | '));
         const opened = [];
         const onPage = (pg) => opened.push(pg.url());
@@ -460,6 +462,9 @@ export async function run({ page, report, errors: pageErrors }) {
         page.context().off('page', onPage);
         ok(opened.length === 0, 'and no window opens', opened.join(' '));
         ok(await menu() === 'shown', 'a refused press does not fold the menu');
+        // The build's list is a hint, so the page asks the server anyway and
+        // each answer for a view that is not there is a 404 on the console;
+        // the harness leaves those two names' 404s off the page errors.
 
         // A later full build beside it: every entry is back. And a partial
         // build next to that full one keeps them, because the views on disk
@@ -477,6 +482,38 @@ export async function run({ page, report, errors: pageErrors }) {
       } finally {
         ls.server.close();
         fs.rmSync(lone, { recursive: true, force: true });
+      }
+    }
+
+    // Three partial builds into one empty folder, one view each. The
+    // audience.html the first wrote still says both of the others are
+    // missing - no later build rewrote it - and they are beside it now. The
+    // build's list is a hint: the page asks, and what it finds wins, in the
+    // menu and on the keys.
+    {
+      const part = tmpDir('psi-palette-partial-');
+      fs.writeFileSync(path.join(part, 'source.md'), DECK);
+      const pb = ['--audience-only', '--speaker-only', '--print-only'].map((f) => build(part, f).status);
+      ok(pb.every((x) => x === 0), 'three partial builds, one view each, into an empty folder', pb.join());
+      const html = fs.readFileSync(path.join(part, 'audience.html'), 'utf8');
+      ok(/window\.PSI_ABSENT_VIEWS = \["speaker","print"\]/.test(html), 'the first one\'s audience.html says the other two are missing');
+      const ctxP = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } });
+      try {
+        const pp = await ctxP.newPage();
+        await pp.goto('file://' + path.join(part, 'audience.html'), { waitUntil: 'load' });
+        await pp.waitForTimeout(800);
+        const shown = await pp.$$eval('#psiINT-start-menu button[data-cmd]', (bs) => bs.filter((x) => !x.hidden).map((x) => x.dataset.cmd));
+        ok(shown.join() === 'fullscreen,cockpit,print', 'the menu shows the two views it finds beside it', shown.join());
+        const [sp] = await Promise.all([ctxP.waitForEvent('page', { timeout: 5000 }), pp.keyboard.press('s')]);
+        await sp.waitForURL(/speaker\.html$/, { timeout: 5000 }).catch(() => {});
+        ok(/speaker\.html$/.test(sp.url()), 'S opens the cockpit the build said was missing', sp.url());
+        await pp.bringToFront();
+        const [pr] = await Promise.all([ctxP.waitForEvent('page', { timeout: 5000 }), pp.keyboard.press('p')]);
+        await pr.waitForURL(/print\.html$/, { timeout: 5000 }).catch(() => {});
+        ok(/print\.html$/.test(pr.url()), 'and P the print view', pr.url());
+      } finally {
+        await ctxP.close();
+        fs.rmSync(part, { recursive: true, force: true });
       }
     }
 
