@@ -3984,6 +3984,26 @@ console.log('\nlayout generations');
          'and each staged file is the clip its slide names');
     }
 
+    // The editor's kept figure edits are filed under the reader's key - the
+    // folder's name and a hash of the one above - and not the name alone,
+    // which two week1 folders of two courses shared.
+    {
+      const drawDeck = T + '## free: F {#f}\n\n::: draw 8x3\nbox a "Alpha" at 1,1\n:::\n';
+      const root = tmpDir('psi-dg-key-');
+      const keys = ['a', 'b'].map((x) => {
+        const d = path.join(root, 'course-' + x, 'week1');
+        fs.mkdirSync(d, { recursive: true });
+        fs.writeFileSync(path.join(d, 'source.md'), drawDeck);
+        spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(d, 'source.md'), '--audience-only'],
+          { cwd: ROOT, encoding: 'utf8' });
+        let html = '';
+        try { html = fs.readFileSync(path.join(d, 'audience.html'), 'utf8'); } catch { /* not built */ }
+        return (html.match(/window\.PSI_DG_LECTURE = "([^"]*)"/) || [])[1] || null;
+      });
+      ok(keys[0] && keys[1] && keys[0] !== keys[1] && keys.every(k => /^week1@[0-9a-f]{8}$/.test(k)),
+         'two week1 lectures file their kept figure edits under two keys, the reader\'s', keys.join(' / '));
+    }
+
     // Clips count against the auto-inline budget. Each used to be inlined up
     // to its own 12 MB cap with no total, so three 8 MB clips wrote ~32 MB
     // into every view. Without a flag the clips are fitted into the 10 MB in

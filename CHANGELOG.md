@@ -3433,9 +3433,11 @@ tag:
   document does not name it. Highlights made before are carried across the
   first time a document is opened, each lecture taking those on its own
   slides; it took the whole old store, so two `week1/` lectures each
-  listed the other's highlights as not found. A lecture moved under another folder
-  starts its readers with no highlights there; the export carries them
-  across.
+  listed the other's highlights as not found. A lecture moved under
+  another folder starts its readers with no highlights there; the export
+  carries them across. The figure edits a reader keeps in the diagram
+  editor are filed under the same key, which they shared the same way;
+  edits kept before are not carried across, as they never were.
 - **A highlights file someone sent can no longer stop the reader for good.**
   An entry whose type was `constructor`, or whose block kind was
   `__proto__`, was stored on import and then failed on every later load of

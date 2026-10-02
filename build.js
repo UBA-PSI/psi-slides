@@ -8992,8 +8992,10 @@ function stripDarkTokenColors(html) {
 // path: the key is the same on any machine that builds the same tree, so the
 // tracked views do not depend on where the checkout is. A lecture moved under
 // another folder files under a new key and its readers start empty there;
-// the page copies the old name-only store across once (PRINT_HIGHLIGHTS_JS,
-// LEGACY), and that is the one migration there is.
+// the page copies its own entries of the old name-only store across once
+// (PRINT_HIGHLIGHTS_JS, LEGACY), and that is the one migration there is. The
+// live views' editor files a reader's kept figure edits under the same key
+// (editorPayload), with no migration, as before.
 function readerStoreKey(dir) {
   const name = path.basename(dir);
   const above = path.basename(path.dirname(dir));
@@ -14028,9 +14030,12 @@ function renderTocNav(columns, S) {
 // a diagram at all – the same rule the KaTeX stylesheet follows, which is
 // emitted only into views that contain a formula – and the author has to not
 // have declined it.
-// `lectureKey` is the source folder's name, the key the reader's highlights
-// are filed under: a reader's kept figure edits are filed under it too, since
-// every lecture opened from file:// shares one store in Chrome.
+// `lectureKey` is the key the reader's highlights are filed under
+// (readerStoreKey: the source folder's name and a hash of the one above): a
+// reader's kept figure edits are filed under it too, since every lecture
+// opened from file:// shares one store in Chrome. It was the folder's name
+// alone, so two week1 folders of two courses shared their kept edits. Edits
+// kept under the old key are not carried across, as they never were.
 function editorPayload(frontmatter, columnsHtml, view, lectureKey) {
   const want = viewDefaults(frontmatter).editor || 'both';
   if (want === 'none') return '';
@@ -14125,7 +14130,7 @@ const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
 ${DIAGRAM_JS}
 ${AUDIENCE_JS}
 </script>
-${editorPayload(frontmatter, columnsHtml, 'audience', opts.lectureKey)}
+${editorPayload(frontmatter, columnsHtml, 'audience', opts.readerKey || opts.lectureKey)}
 </body>
 </html>
 `;
@@ -24979,7 +24984,7 @@ ${DIAGRAM_JS}
 ${AUDIENCE_JS}
 ${SPEAKER_JS}${souffleuseRuntime}
 </script>
-${editorPayload(frontmatter, columnsHtml, 'speaker', opts.lectureKey)}
+${editorPayload(frontmatter, columnsHtml, 'speaker', opts.readerKey || opts.lectureKey)}
 </body>
 </html>
 `;
@@ -30842,9 +30847,11 @@ function buildOnce(absIn, only, opts = {}) {
   }
   lastQrStats = { count: 0, bytes: 0 };
   stagedVideos.clear();
-  // The documents file a reader's highlights under the source folder's name
-  // (see renderDocument), and the live views' editor a reader's kept figure
-  // edits (see editorPayload).
+  // The documents file a reader's highlights under readerKey (the source
+  // folder's name and a hash of the one above, see readerStoreKey), and the
+  // live views' editor a reader's kept figure edits under the same key (see
+  // editorPayload). lectureKey, the name alone, is what the documents
+  // migrate from.
   const renderOpts = {
     ...opts, fontEmbed, strings, codeSizing,
     lectureKey: path.basename(outDir), readerKey: readerStoreKey(outDir),
