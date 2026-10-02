@@ -742,17 +742,26 @@ finish in $\max(1, 1, 1) = 1$ second.
 
 ## free: Why Playwright | the modern web is rendered, not served {.wide #why-playwright}
 
-::: cols 2
+**A lot of the web is rendered by JavaScript in the browser.**
 
-**A lot of the web is rendered by JavaScript in the browser.** **`requests` and plain `urllib` see only the HTML shell** – often just `<div id="app"></div>` plus a pile of script tags. The text, the links and the title are not in it.
-
-**Playwright drives a real browser** – Chromium, Firefox, or WebKit – over a debugging protocol. The page renders, scripts execute, the DOM settles, and then you query it. You see what a human sees.
-
-**For a link scanner this matters a lot.** Navigation on many real sites is built client-side: menus, footers, and even the main content are injected after load. A scanner that speaks HTTP and nothing else does not see that navigation.
-
-**The cost is weight.** A browser is a hundred megabytes of binaries and a few hundred of RAM per instance. For a lecture scanner that is fine; for a production crawler you would measure first.
-
+::: cards 2
+- **`requests` and plain `urllib` see only the HTML shell**
+  - often just `<div id="app"></div>` plus a pile of script tags
+  - the text, the links and the title are not in it
+- **Playwright drives a real browser**
+  - Chromium, Firefox, or WebKit, over a debugging protocol
+  - the page renders, scripts execute, the DOM settles, and then you query it
+  - you see what a human sees
 :::
+
+**For a link scanner this matters a lot.** Navigation on many real sites is
+built client-side: menus, footers, and even the main content are injected
+after load. A scanner that speaks HTTP and nothing else does not see that
+navigation.
+
+**The cost is weight.** A browser is a hundred megabytes of binaries and a few
+hundred of RAM per instance. For a lecture scanner that is fine; for a
+production crawler you would measure first.
 
 ::: footnote
 `requests` is still the right tool for an API that answers in JSON. The

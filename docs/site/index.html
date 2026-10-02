@@ -48,7 +48,7 @@
     <div class="stage-pair">
       <figure class="shot">
         <div class="bar"><b>what the room sees</b></div>
-        <img src="img/collapsed.webp" alt="The slide as projected: heading, sub-heading, the first sentence of each paragraph and the phrases marked bold, in one column.">
+        <img src="img/collapsed.webp" alt="The slide as projected: heading, sub-heading, one sentence, two cards side by side showing only their heads, and the first sentence of each of the two paragraphs under them.">
       </figure>
       <figure class="shot">
         <div class="bar">
@@ -57,19 +57,19 @@
             <span class="swap-label" aria-hidden="true">show:</span>
             <button type="button" aria-pressed="true"
                     data-src="img/full.webp"
-                    data-alt="The same slide with the shortening switched off: all four paragraphs in full, laid out in two columns.">on screen</button>
+                    data-alt="The same slide with the shortening switched off: the indented lines back under each card&rsquo;s head, and the two paragraphs under the cards in full.">on screen</button>
             <button type="button" aria-pressed="false"
                     data-src="img/printed.webp"
-                    data-alt="The same text in the handout: a document in a serif face, justified and hyphenated, with the margin note set as an aside.">in print</button>
+                    data-alt="The same text in the handout: a document in a serif face, the two cards side by side with all their lines, the paragraphs justified and hyphenated, and the margin note set as an aside.">in print</button>
           </span>
         </div>
-        <img src="img/full.webp" alt="The same slide with the shortening switched off: all four paragraphs in full, laid out in two columns.">
+        <img src="img/full.webp" alt="The same slide with the shortening switched off: the indented lines back under each card&rsquo;s head, and the two paragraphs under the cards in full.">
       </figure>
     </div>
    </div>
    <div class="said">
     <p class="cue">One slide of a real lecture, twice. Once as the room sees it,
-    and once with the same four paragraphs in full. <strong>One keypress
+    and once with the same text in full. <strong>One keypress
     separates them.</strong></p>
     <p class="cue">Flip the switch in the second picture&rsquo;s title bar and
     the full text becomes the printed handout &ndash; a different file, built
@@ -268,8 +268,8 @@
 
 <section class="band">
  <div class="wrap">
-  <h2>This is the whole source of that slide</h2>
-  <p class="lede">Nine paragraphs of Markdown, no editor and no template. A
+  <h2>This listing is the slide&rsquo;s entire source</h2>
+  <p class="lede">Thirty-one lines of Markdown, no editor and no template. A
   <strong>chunk</strong> is one heading with the text under it, and a chunk
   becomes one slide. The lecture the slide comes from is real: an introduction
   to Python in 39 chunks.</p>
@@ -279,35 +279,36 @@
     <div class="stage">
       <figure class="shot">
         <div class="bar"><b>what the room sees</b></div>
-        <img src="img/collapsed.webp" alt="The slide this listing produces, as projected: heading, sub-heading, the first sentence of each paragraph and the phrases marked bold, in one column.">
+        <img src="img/collapsed.webp" alt="The slide this listing produces, as projected: heading, sub-heading, one sentence, two cards side by side showing only their heads, and the first sentence of each of the two paragraphs under them.">
       </figure>
     </div>
     <p class="cue">Read the bold. Those are the phrases the projection keeps;
     the prose around them is what the handout keeps. The
     <code>&gt; note:</code> at the foot stays on your own screen.</p>
     <p class="cue">The two paragraphs ending in &ldquo;&hellip;&rdquo; are cut
-    short on this web page only, so that the listing fits. <code>::: cols 2</code>
-    sets the paragraphs in two columns; the projection shows them in one while
-    the text is shortened, and the handout keeps both columns.</p>
+    short on this web page only, so that the listing fits. <code>::: cards 2</code>
+    sets the two items under it as two cards side by side, on the projection
+    and in the handout. On the projection each card carries its bold head
+    only; the indented lines under it are in the handout, and <kbd>C</kbd>
+    brings them onto the projection.</p>
    </div>
 <pre><code><span class="t-head">## free: Why Playwright | the modern web is rendered, not served</span> <span class="t-punct">{.wide #why-playwright}</span>
 
-<span class="t-dir">::: cols 2</span>
-
 <span class="t-punct">**</span><span class="t-strong">A lot of the web is rendered by JavaScript in the browser.</span><span class="t-punct">**</span>
-<span class="t-punct">**</span><span class="t-strong"><span class="t-code">`requests`</span> and plain <span class="t-code">`urllib`</span> see only the HTML shell</span><span class="t-punct">**</span> &ndash; often just
-<span class="t-code">`&lt;div id="app"&gt;&lt;/div&gt;`</span> plus a pile of script tags. Useful text, links, and
-titles never arrive.
 
-<span class="t-punct">**</span><span class="t-strong">Playwright drives a real browser</span><span class="t-punct">**</span> &ndash; Chromium, Firefox, or WebKit &ndash; over a
-debugging protocol. The page renders, scripts execute, the DOM settles, and
-then you query it. You see what a human sees.
-
-<span class="t-punct">**</span><span class="t-strong">For a link scanner this matters a lot.</span><span class="t-punct">**</span> …
-
-<span class="t-punct">**</span><span class="t-strong">The cost is weight.</span><span class="t-punct">**</span> …
-
+<span class="t-dir">::: cards 2</span>
+<span class="t-punct">- **</span><span class="t-strong"><span class="t-code">`requests`</span> and plain <span class="t-code">`urllib`</span> see only the HTML shell</span><span class="t-punct">**</span>
+  <span class="t-punct">-</span> often just <span class="t-code">`&lt;div id="app"&gt;&lt;/div&gt;`</span> plus a pile of script tags
+  <span class="t-punct">-</span> the text, the links and the title are not in it
+<span class="t-punct">- **</span><span class="t-strong">Playwright drives a real browser</span><span class="t-punct">**</span>
+  <span class="t-punct">-</span> Chromium, Firefox, or WebKit, over a debugging protocol
+  <span class="t-punct">-</span> the page renders, scripts execute, the DOM settles, and then you query it
+  <span class="t-punct">-</span> you see what a human sees
 <span class="t-dir">:::</span>
+
+<span class="t-punct">**</span><span class="t-strong">For a link scanner this matters a lot.</span><span class="t-punct">**</span> Navigation on many real sites is …
+
+<span class="t-punct">**</span><span class="t-strong">The cost is weight.</span><span class="t-punct">**</span> A browser is a hundred megabytes of …
 
 <span class="t-dir">::: footnote</span>
 <span class="t-code">`requests`</span> is still the right tool for an API that answers in JSON. The
@@ -315,7 +316,8 @@ browser is for pages meant to be looked at.
 <span class="t-dir">:::</span>
 
 <span class="t-note">&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
-&gt; curl it, and let them find the missing text themselves.</span></code></pre>
+&gt; curl it, and let them find the missing text themselves. Ninety seconds, and
+&gt; nobody asks again why a scanner needs a browser.</span></code></pre>
   </div>
  </div>
 </section>
@@ -469,14 +471,14 @@ browser is for pages meant to be looked at.
            <button type="button" aria-pressed="true"
                    data-src="img/handout-plain.webp"
                    data-name="print.html"
-                   data-alt="The handout for the students, open in a browser: the same chunk set as flowing justified prose with hyphenation, the margin note as an aside, and the Contents button in the lower left corner.">for the students</button>
+                   data-alt="The handout for the students, open in a browser: the same chunk with the two cards side by side and the paragraphs under them set as justified prose with hyphenation, the margin note as an aside, and the Contents button in the lower left corner.">for the students</button>
            <button type="button" aria-pressed="false"
                    data-src="img/handout.webp"
                    data-name="print-notes.html"
                    data-alt="The same document with the speaker note folded in under the chunk, in a tinted block.">with your notes</button>
          </span>
        </div>
-       <img src="img/handout-plain.webp" alt="The handout for the students, open in a browser: the same chunk set as flowing justified prose with hyphenation, the margin note as an aside, and the Contents button in the lower left corner.">
+       <img src="img/handout-plain.webp" alt="The handout for the students, open in a browser: the same chunk with the two cards side by side and the paragraphs under them set as justified prose with hyphenation, the margin note as an aside, and the Contents button in the lower left corner.">
      </figure>
    </div>
   </div>
