@@ -37,8 +37,8 @@ jobs:
         with:
           node-version: '22'
 
-      # The same invocation the Pages job uses, so a branch cannot go green
-      # here and red there.
+      # The same invocation pages.yml and release.yml use, so a branch cannot
+      # go green here and red there.
       - name: Lint the lectures
         run: node lint.js lectures/ docs/site/example/source.md docs/artifact/figure-rules/source.md
 

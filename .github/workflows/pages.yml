@@ -40,8 +40,10 @@ jobs:
 
       - run: npm ci
 
+      # The same set gates.yml and release.yml lint, so a source cannot pass
+      # one of the three and fail another.
       - name: Lint the lectures
-        run: node lint.js lectures/ docs/artifact/figure-rules/source.md
+        run: node lint.js lectures/ docs/site/example/source.md docs/artifact/figure-rules/source.md
 
       # Seconds, and they fail on things neither the linter nor the build can
       # see on its own: a linter that has drifted from the compiler it mirrors,
