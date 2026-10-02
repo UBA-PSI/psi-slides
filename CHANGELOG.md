@@ -1770,7 +1770,9 @@ tag:
   linter reports `unknown-font-role`.
 - **Breaking: an `{#id}` may not be the key a chunk without an id gets by
   position** (`c<column>-<chunk>`). The two articles shared one reveal slot
-  and one sync target; the build refuses the pair as a duplicate id.
+  and one sync target; the build refuses the pair as a duplicate id, and the
+  linter reports it as `duplicate-id` on the chunk without one, under
+  `--allow-missing-ids` too.
 - **Breaking: building needs Node 22 or newer.** Node 20 reached its end of
   life in April 2026; `engines` in `package.json` now says `>=22`, and every
   workflow in `.github/workflows/` runs on 22, which the desktop app's jobs

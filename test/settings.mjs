@@ -3993,6 +3993,22 @@ console.log('\nlayout generations');
     const beside = '---\ntitle: T\ncover: beside\n---\n\n## title: T {#t}\n\n## free: A {#a}\n\nText.\n';
     ok(raw(beside, ['--audience-only']).code !== 0 && errs(lintOf(beside)).includes('cover-needs-body'),
        'cover: beside with neither a body nor a cover-image is refused by both');
+    // A chunk with no id is given c<column>-<chunk> by its position, and the
+    // build refuses a deck where an author id already names that place. The
+    // linter said only missing-id, which --allow-missing-ids then hid.
+    {
+      const posSrc = T + '## free: A {#a}\n\nOne.\n\n## free: B\n\nTwo.\n\n## statement: C {#c0-2}\n\nThree.\n';
+      const pr = raw(posSrc, ['--audience-only']);
+      ok(pr.code !== 0 && /id 'c0-2' is used twice/.test(pr.out),
+         'an author id that names an id-less chunk\'s position is refused by the build', pr.out.split('\n')[0]);
+      const d = tmpDir('psi-pos-');
+      fs.writeFileSync(path.join(d, 'source.md'), posSrc);
+      const lr = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(d, 'source.md'), '--allow-missing-ids'],
+        { cwd: ROOT, encoding: 'utf8' });
+      ok(lr.status !== 0 && /error\s+duplicate-id\s+.*'c0-2' by its position/.test(lr.stdout),
+         'and lint reports it as duplicate-id, under --allow-missing-ids too', (lr.stdout || '').split('\n')[0]);
+    }
+
     // The title chunk's body is what the parser leaves in it: a speaker note
     // with its continuation lines, a ::: footnote and a ::: expand with their
     // bodies are all lifted off it. The linter skipped only the opening lines

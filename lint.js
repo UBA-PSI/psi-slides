@@ -4869,6 +4869,22 @@ function lintFile(filePath) {
     }
   }
 
+  // A chunk with no id is given one by its position, c<column>-<chunk>, in
+  // the namespace every author id lives in (build.js assertDistinctIds), and
+  // the build refuses a deck in which an author id already names that place.
+  // Unmirrored, `--allow-missing-ids` hid the one finding that pointed at it
+  // and the deck linted clean.
+  columns.forEach((c, ci) => c.chunks.forEach((k, xi) => {
+    if (k.id) return;
+    const pos = `c${ci}-${xi}`;
+    if (ids.has(pos)) {
+      add(k.line, 'error', 'duplicate-id',
+          `'## ${k.tag ? k.tag + ': ' : ''}${k.heading || ''}' has no {#id}, so it is given `
+          + `'${pos}' by its position, and line ${ids.get(pos)} already uses that id – give `
+          + 'this chunk an id of its own, or rename the other');
+    }
+  }));
+
   const allChunks = columns.flatMap(c => c.chunks);
   const titleChunks = allChunks.filter(c => c.tag === 'title');
   if (titleChunks.length === 0) {
