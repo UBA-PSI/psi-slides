@@ -1,8 +1,9 @@
 # The browser suite, on demand.
 #
-# It is not on push. It needs the dependency tree, a Chromium and about five
-# minutes, which is the wrong trade on every branch and the reason `gates.yml`
-# leaves it out and says so. Where it does run automatically is a tag, in
+# It is not on push. It needs the dependency tree, a Chromium and about
+# seventeen minutes on a runner (measured on the 2.0.0 runs), which is the
+# wrong trade on every branch and the reason `gates.yml` leaves it out and
+# says so. Where it does run automatically is a tag, in
 # `release.yml`. This file is the same run started by hand, so a branch can be
 # put through it before it is tagged - after a change to AUDIENCE_JS, the key
 # map, editor.mjs, createSpanTable, or anything that moves a label or an
@@ -25,7 +26,9 @@ concurrency:
 jobs:
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # The last runs took 16 to 17.5 minutes, so 25 was a flaky runner away
+    # from a timeout that says nothing about the tree.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 

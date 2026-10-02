@@ -64,6 +64,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The checks below run `node`; named, so they do not run on whatever
+      # version the runner image happens to ship.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       # A tag that disagrees with package.json ships an archive whose own
       # metadata contradicts the release it came from, and a tag that
       # disagrees with desktop/package.json ships an app whose About line
@@ -150,6 +156,9 @@ jobs:
     name: Engine checks and archives
     needs: check
     runs-on: ubuntu-latest
+    # The browser suite alone takes about seventeen minutes; this is the
+    # bound on a hung browser, not on a slow one.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
@@ -226,12 +235,12 @@ jobs:
       # the navigation model, the editor's gestures, and the geometry of an
       # emitted figure. It is deliberately absent from `gates.yml`, which
       # needs neither `npm ci` nor a browser and answers in seconds; here the
-      # five minutes are worth paying, because a tag is the last moment a
+      # seventeen minutes or so are worth paying, because a tag is the last moment a
       # regression is cheaper to find than to explain. `browser.yml` is the
       # same run on demand, for proving a branch before it is tagged.
       #
       # Last of the checks, because it is the only one that costs minutes:
-      # a stale tracked output should fail in two, not in seven.
+      # a stale tracked output should fail in two minutes, not in twenty.
       #
       # `findChrome()` takes $PSI_CHROME, then a Playwright cache, then a
       # browser the host installed - on a GitHub ubuntu runner that is
