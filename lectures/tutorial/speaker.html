@@ -17260,7 +17260,9 @@ const COMMAND_RUN = {
   // own there, reaches this one and does the same.
   'fullscreen': (e) => { toggleProjectionFullscreen(); e.preventDefault(); },
   // A view this build left without its sibling (see siblingViewsAbsent)
-  // says so rather than opening a window onto a missing file.
+  // says so rather than opening a window onto a missing file. The cockpit
+  // runs this same function for its P and its palette row - SPEAKER_JS
+  // must not assign a print of its own that skips withView.
   'print': (e) => {
     e.preventDefault();
     withView('print', () => window.open('print.html', '_blank', 'noopener'));

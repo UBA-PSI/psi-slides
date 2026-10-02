@@ -17,7 +17,8 @@
  * empty folder), it offers no entry for a view that is not beside it, and S,
  * P and the palette say so instead of opening a window - and so do they
  * when the build saw print.html and it was deleted later, opened from
- * file://, where the page probes for it. The other way round too: a view a
+ * file://, where the page probes for it, in the projection and in the
+ * cockpit alike. The other way round too: a view a
  * later partial build put beside it is found and offered, whatever the
  * first build wrote. Folded, it leaves a chevron beside the ?
  * circle that opens it again on any slide and forgets the stored choice. What the commands gate
@@ -462,6 +463,11 @@ export async function run({ page, report, errors: pageErrors }) {
         page.context().off('page', onPage);
         ok(opened.length === 0, 'and no window opens', opened.join(' '));
         ok(await menu() === 'shown', 'a refused press does not fold the menu');
+        // A cockpit built alone beside it carries the build's list too, for
+        // the page that cannot ask; a full build's carries none.
+        ok(build(lone, '--speaker-only').status === 0
+          && /window\.PSI_ABSENT_VIEWS = \["print"\]/.test(fs.readFileSync(path.join(lone, 'speaker.html'), 'utf8')),
+          'a cockpit built without print.html beside it says so in its list of missing views');
         // The build's list is a hint, so the page asks the server anyway and
         // each answer for a view that is not there is a 404 on the console;
         // the harness leaves those two names' 404s off the page errors.
@@ -471,7 +477,9 @@ export async function run({ page, report, errors: pageErrors }) {
         // count - the stale cockpit is the one the key should open.
         ok(build(lone).status === 0, 'a full build in the same folder succeeds');
         const full = fs.readFileSync(path.join(lone, 'audience.html'), 'utf8');
-        ok(!full.includes('window.PSI_ABSENT_VIEWS = '), 'and its audience.html carries no list of missing views');
+        ok(!full.includes('window.PSI_ABSENT_VIEWS = ')
+          && !fs.readFileSync(path.join(lone, 'speaker.html'), 'utf8').includes('window.PSI_ABSENT_VIEWS = '),
+          'and neither its audience.html nor its speaker.html carries a list of missing views');
         await page.reload({ waitUntil: 'load' });
         await page.waitForTimeout(500);
         const all = await page.$$eval('#psiINT-start-menu button[data-cmd]', (bs) => bs.map((x) => x.textContent.trim()));
@@ -561,6 +569,30 @@ export async function run({ page, report, errors: pageErrors }) {
         const [spk2] = await Promise.all([page.context().waitForEvent('page', { timeout: 5000 }), press('s', 300)]);
         await spk2.waitForLoadState();
         ok(/speaker\.html/.test(spk2.url()), 'file://: S still opens the cockpit, which is there', spk2.url());
+        // The cockpit's P is the projection's run function, so it asks the
+        // same way: its own mode badge says so, and nothing opens.
+        await spk2.waitForTimeout(600);
+        const spkBadge = () => spk2.evaluate(() => {
+          const m = document.getElementById('psiINT-mode-badge');
+          return m.classList.contains('visible') ? m.textContent : '';
+        });
+        const fromCockpit = [];
+        const onCockpitPage = (pg) => fromCockpit.push(pg.url());
+        page.context().on('page', onCockpitPage);
+        await spk2.keyboard.press('p');
+        await spk2.waitForTimeout(400);
+        ok(/print\.html is not beside this file/.test(await spkBadge()), 'file://: the cockpit\'s P says the print view is not there', await spkBadge());
+        await spk2.waitForTimeout(1900);
+        await spk2.keyboard.press('Meta+k');
+        await spk2.waitForTimeout(250);
+        await spk2.keyboard.type('print view');
+        await spk2.keyboard.press('Enter');
+        await spk2.waitForTimeout(400);
+        ok(/print\.html is not beside this file/.test(await spkBadge()), 'file://: and so does the cockpit\'s palette row', await spkBadge());
+        ok(!/print\.html is not beside/.test(await badge()), 'file://: on the cockpit, not on the projection', await badge());
+        await spk2.waitForTimeout(300);
+        page.context().off('page', onCockpitPage);
+        ok(fromCockpit.length === 0, 'file://: and the cockpit opens no window', fromCockpit.join(' '));
         await spk2.close();
         ok(errors.length === 0, 'file://: no probe left an exception behind', errors.join(' | '));
         // A probe of the missing file puts the browser's own "not found"

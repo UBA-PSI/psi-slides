@@ -22,6 +22,12 @@ from building the same way is a major version.
   bullet broken across two source lines came out a size smaller than the
   same bullet on one line. Every line of a nested item is the detail now,
   numbered sub-items included.
+- The cockpit's `P` and its palette row are covered by the check the
+  projection makes before opening `print.html`: with the file gone they show
+  the notice in the cockpit and open nothing. The cockpit always ran the
+  projection's command; what it lacked was the build's list of missing
+  views, which a `speaker.html` built without `print.html` beside it now
+  carries too, for a page that cannot ask.
 
 ## [2.0.0]
 

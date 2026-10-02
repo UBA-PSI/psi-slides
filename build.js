@@ -14025,7 +14025,10 @@ function siblingViewsAbsent(outDir, targetNames) {
 // The same answer for the runtime: the S and P keys (and the palette rows,
 // which run the same functions) read it and show a notice instead of opening
 // a window onto a missing file. Emitted only when something is missing, so a
-// deck with all its views carries not a byte of it.
+// deck with all its views carries not a byte of it. Into the cockpit too:
+// its P is the projection's run function and asks the same way, and without
+// the list a cockpit that could not ask (no file: or http(s): address, a
+// probe with no answer) opened print.html however the build had found it.
 function absentViewsScript(absentViews) {
   if (!absentViews || !absentViews.length) return '';
   return `<script>window.PSI_ABSENT_VIEWS = ${jsonForScript(absentViews)};</script>\n`;
@@ -24004,7 +24007,9 @@ const COMMAND_RUN = {
   // own there, reaches this one and does the same.
   'fullscreen': (e) => { toggleProjectionFullscreen(); e.preventDefault(); },
   // A view this build left without its sibling (see siblingViewsAbsent)
-  // says so rather than opening a window onto a missing file.
+  // says so rather than opening a window onto a missing file. The cockpit
+  // runs this same function for its P and its palette row - SPEAKER_JS
+  // must not assign a print of its own that skips withView.
   'print': (e) => {
     e.preventDefault();
     withView('print', () => window.open('print.html', '_blank', 'noopener'));
@@ -25127,7 +25132,7 @@ ${FULLSCREEN_HINT_HTML}
 ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
 ${renderTocNav(columns, S)}
-<script>
+${absentViewsScript(opts.absentViews)}<script>
 ${qrLibJs()}
 </script>
 <script>
