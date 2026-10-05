@@ -18241,6 +18241,34 @@ if (document.fonts && document.fonts.ready) {
     focusCamera(true);
   });
 }
+// A picture that loads after the camera has framed. An image is emitted with
+// loading="lazy" and without dimensions, so until the browser fetches it - and
+// it fetches it when the camera gets near, inlined or not - its box has no
+// height. jumpTo therefore solved the zoom and the camera for a slide that was
+// still missing its picture, the picture arrived a tenth of a second later,
+// and nothing solved either again: measured on a lecture at 1600x900, a slide
+// of 791 px was centred as the 341 px it was without its photograph and stood
+// 170 px off the bottom of a frame it fits. Which slide it happens to depends
+// on how far the camera travels and how long the lecturer stayed on the slide
+// before, so it read as a fault of the chunk in front.
+//
+// So a late picture is content arriving on the stage, like a reveal and like
+// the fonts above, and gets the same answer. The fit is solved again only
+// where the picture is on the live slide; the camera always, because a
+// picture higher up the column moves the live slide down with it. load does
+// not bubble, hence the capture. Under pan the correction glides - it usually
+// lands inside the glide that is bringing the slide in and simply retargets
+// it - and under cut and fade it lands, like the slide did.
+stage.addEventListener('load', (e) => {
+  const img = e.target;
+  if (!img || img.tagName !== 'IMG') return;
+  const entry = flatChunks[state.activeIdx];
+  if (entry && entry.el.contains(img)) {
+    autoFitNow();
+    clampZoomToWidth();
+  }
+  focusCamera(SLIDE_TRANSITION !== 'pan');
+}, true);
 
 
 const notesContent = document.getElementById('psiINT-notes-content');
