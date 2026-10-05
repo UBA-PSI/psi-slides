@@ -678,7 +678,10 @@ that sits on top of it; `editor.md` §15 is the build log.
 
 **A figure is drawn on a fixed canvas.** Every `::: draw` in a chunk's own body
 gets one by default – the chunk's column wide (36 base labels on `.wide` at
-1600x900) and 16 label-heights tall – so the drawing's own extent stops
+1600x900) and 16 label-heights tall, or 22 on a picture slide, a chunk with
+its heading off the slide and one `::: draw` as its whole on-screen body (see
+`isPictureSlide`; its figure may take 79 % of the slide height where every
+other takes 62 %, `FIG_CAP`) – so the drawing's own extent stops
 deciding how big its slide is, which is what made a deck of twenty figures look
 like twenty decks. A `title:` or `closing:` chunk is the exception among
 chunks, because its body is placed by the cover composition and not by a

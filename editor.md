@@ -3075,6 +3075,11 @@ column wide, sixteen label-heights tall – so the editor has to reserve the sam
 box or a drag would redraw the figure at a size the next build undoes. Three
 small changes and no new mechanism:
 
+(Later: a picture slide's canvas is twenty-two label-heights and its height
+cap 79 % of the slide instead of 62 %. The canvas arrives in the payload as
+before; the measure note reads the cap from `--fig-cap` on the figure's chunk,
+so its "height-capped" clause names the tier's own share.)
+
 - **The payload carries `canvas`**, beside `width` and `opener`, and
   `dgeCompile` hands it to `renderDiagram`. The editor has no chunk to measure
   and no stylesheet to read, so the box has to arrive as the two numbers the

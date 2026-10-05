@@ -627,6 +627,16 @@ one em, so 36 across is four or five boxes in a row with their gaps. The build
 prints both numbers, and the miss in labels and in px, when a drawing misses
 the box in either direction.
 
+**A figure that is alone on its slide gets 22 down instead of 16.** That is a
+chunk whose heading is off the slide (`.bare`, or none written), with no
+footnote and no dock, and one `::: draw` as the only thing on the screen;
+`::: script` narration beside it does not count. The sixteen leaves room for a
+heading, prose and a footnote, and such a slide has none of them. The width is
+the same, so a label is the same size on either slide: the taller canvas is
+six more rows, or room round a drawing that would otherwise stand edge to
+edge. A slide loses it the moment something joins the figure on the screen, and
+a drawing that used the extra rows then overflows.
+
 Two failures, and each has its own fix:
 
 - **Wider or taller than the canvas.** The drawing is scaled down to fit the
