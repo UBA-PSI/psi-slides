@@ -2105,7 +2105,10 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
      cockpit window's and the same figure was capped at a different height in
      the two windows. Print defines no --slide-h and falls back to the number
      this rule has always had; it overrides the cap anyway (PRINT_CSS). */
-  max-height: calc(var(--slide-h, 100vh) * 0.62);
+  /* --fig-cap is the tier's share of the slide height (FIG_CAP in build.js):
+     unset on an ordinary chunk, 0.79 on a picture slide, 0.72 on a stacked
+     divider. The fallback is the ordinary chunk's. */
+  max-height: calc(var(--slide-h, 100vh) * var(--fig-cap, 0.62));
   height: auto;
 }
 @media print {

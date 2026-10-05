@@ -1047,7 +1047,7 @@ figure.figure-img svg {
 }
 .chunk .psi-diagram {
   --dg-box-w: min(calc(var(--dg-fit-w) * 1em * var(--figure-type, 1)),
-                  calc(var(--slide-h, 100vh) * 0.62 * var(--dg-fit-ar)));
+                  calc(var(--slide-h, 100vh) * var(--fig-cap, 0.62) * var(--dg-fit-ar)));
   width: var(--dg-box-w);
   /* The box hugs the drawing now instead of spanning the measure, so it has
      somewhere to sit. Centre by default, matching figure.figure-img above;
@@ -1056,6 +1056,15 @@ figure.figure-img svg {
      ink-edge correction: see the comment there for what --dg-ink-x buys. */
   margin-inline: auto;
 }
+/* The height cap's two other tiers, mirroring FIG_CAP. A picture slide - a
+   chunk with its heading off the slide and one drawing as its whole on-screen
+   body - has no furniture to leave room for, so its figure may take 0.79 of
+   the frame and its canvas is 22 label-heights instead of 16. A stacked
+   divider is a .chunk too, so without its own value its --dg-box-w was
+   width-capped at 0.62 while its max-height and its 20-label canvas both said
+   0.72: the canvas came out narrower than the .full column it is meant to be. */
+.chunk[data-canvas-tier=picture] { --fig-cap: 0.79; }
+.chunk-section[data-section-layout=stack] { --fig-cap: 0.72; }
 body[data-blocks=left] .chunk .psi-diagram,
 .chunk[data-blocks=left] .psi-diagram {
   margin-inline: calc(-1 * var(--dg-fit-ink-x) * var(--dg-box-w)) auto;
@@ -3476,7 +3485,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   /* The heading is one line above it now, so the picture may take almost the
      whole frame - the beside layout's own ceiling, which was measured against
      a heading standing beside it rather than over it. */
-  max-height: calc(var(--slide-h) * 0.72);
+  max-height: calc(var(--slide-h) * var(--fig-cap, 0.72));
 }
 /* {.bare} on the # heading: the heading comes off the slide and stays
    everywhere else - the contents page, a section: outline agenda, the
@@ -5377,7 +5386,10 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
      cockpit window's and the same figure was capped at a different height in
      the two windows. Print defines no --slide-h and falls back to the number
      this rule has always had; it overrides the cap anyway (PRINT_CSS). */
-  max-height: calc(var(--slide-h, 100vh) * 0.62);
+  /* --fig-cap is the tier's share of the slide height (FIG_CAP in build.js):
+     unset on an ordinary chunk, 0.79 on a picture slide, 0.72 on a stacked
+     divider. The fallback is the ordinary chunk's. */
+  max-height: calc(var(--slide-h, 100vh) * var(--fig-cap, 0.62));
   height: auto;
 }
 @media print {
@@ -28257,11 +28269,19 @@ function dgeFrameMetrics() {
   const width = DGE.fig ? DGE.fig.width : 'standard';
   const em = DGE_FRAME_EM[DGE.frame][width] || 36;
   const px = em * dgeEmPx();
-  // .psi-diagram is capped at 62% of the slide height in the live views and
-  // at nothing in print. A figure that hits the cap is the case where its
+  // .psi-diagram is capped at a share of the slide height in the live views
+  // and at nothing in print. A figure that hits the cap is the case where its
   // width is decided by the frame rather than by its type, and that is
-  // invisible until you look at the built page.
-  const capPx = DGE.frame === 'print' ? Infinity : window.innerHeight * 0.62;
+  // invisible until you look at the built page. The share is the figure's
+  // own tier - --fig-cap, set on its chunk: 0.62 on an ordinary slide (the
+  // fallback, where nothing sets it), 0.79 on a picture slide, 0.72 on a
+  // stacked divider. See FIG_CAP in build.js.
+  let cap = 0.62;
+  if (DGE.fig && DGE.fig.svg && DGE.fig.svg.isConnected) {
+    const own = parseFloat(getComputedStyle(DGE.fig.svg).getPropertyValue('--fig-cap'));
+    if (own > 0) cap = own;
+  }
+  const capPx = DGE.frame === 'print' ? Infinity : window.innerHeight * cap;
   return { em, px, capPx, width };
 }
 
