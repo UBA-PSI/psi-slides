@@ -26059,9 +26059,10 @@ body[data-view=speaker] .dg-hint {
 }
 body[data-view=speaker] .chunk:not(.active) .dg-hint { visibility: hidden; }
 /* On a .bleed chunk the drawing is the frame, and a line under it made the
-   mirror 900 px plus a caption: the cockpit's fit read the slide as too tall
-   and showed it a step smaller than the projection does. So there the hint
-   lies over the figure's bottom edge, on a chip of the page's own ground. */
+   mirror's chunk a frame plus a caption - measured, 932 px in a 900 px stage,
+   the one slide of the deck taller than what the projection shows. The zoom
+   did not move for it; the box did. So there the hint lies over the figure's
+   bottom edge, on a chip of the page's own ground. */
 body[data-view=speaker] .chunk[data-canvas-tier=bleed] .figure-diagram { position: relative; }
 body[data-view=speaker] .chunk[data-canvas-tier=bleed] .dg-hint {
   position: absolute;

@@ -197,8 +197,8 @@ so a bare `requestFullscreen` there is granted and measures nothing.
 `annotation` (the note typed with `N` fills the frame, sized from its text, with
 a QR code for an address, and in the cockpit fills the stage rather than the
 window), `touch-rail`, `math-focus`, `block-align`, `auto-fit`, `camera-fit`,
-`side-anchor`, `cards`, `dock`, `beats-nested`, `beats-footnote`, `squint`,
-`text-select` (what a pointer gesture means while Alt is held).
+`side-anchor`, `cards`, `dock`, `bleed`, `beats-nested`, `beats-footnote`,
+`squint`, `text-select` (what a pointer gesture means while Alt is held).
 
 **The editor** – the `editor-*` specs: its gestures, its panel, and the
 neighbour-alignment guides, which are what a gesture snaps to.
@@ -336,7 +336,15 @@ beside a slide-high column) and `beats-footnote` (no lecture writes a
 whose first segment holds a stepped figure: the footnote rides the *segment*,
 which a rule written against beat numbers gets wrong only there) and
 `auto-fit` (a slide deliberately taller than any frame beside one deliberately
-shorter, which is not a lecture).
+shorter, which is not a lecture) and `bleed` (a `.bleed` chunk's figure is the
+slide frame, and the claims are sizes at the reference viewport: the svg is
+1600 × 900 with no margin or gap added to it, auto-fit leaves the zoom at 1.35
+although the chunk is one frame tall, a base label is the body em, the same
+drawing at `.full` has labels of the same size, an overlay held to a beat
+stands in the gutter, the cockpit lays the next step's name over the figure,
+and the document still hugs the drawing – which needs one figure drawn exactly
+to its canvas, one well inside it and one with a caption riding it, and a
+lecture that had all three would stop having them at the next edited label).
 
 **Because the thing is only legible as a pair** – `block-align` shows the same
 content centred and left, `cards` two cards differing in one character,
