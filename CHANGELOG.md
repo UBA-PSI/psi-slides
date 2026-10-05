@@ -37,6 +37,13 @@ from building the same way is a major version.
   existing slide changes – none carries the word. Not in it: a deck-wide
   switch, a divider or a cover that bleeds, a gutter option.
 
+- `figure-type` goes up to 2.0, and with it four more per-chunk steps:
+  `.figure-type-170`, `-180`, `-190` and `-200`. The top was 1.6 while a
+  figure had at most a `.full` column and 62 % of the slide height; on a
+  picture slide or a `.bleed` chunk a drawing of a few words has room for
+  labels at twice the body type. Nothing changes for a deck that does not
+  write them.
+
 ### Changed
 
 - A figure that is alone on its slide may stand taller. A chunk whose heading

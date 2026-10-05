@@ -370,16 +370,19 @@ the same column and fewer rows in the same reserve. `{.figure-type-160}` on a
 drawing. That is the whole trade the key offers, and it is the same trade it
 always offered, said in a unit an author can count.
 
-Bounded 0.6–1.6 because outside that the figure either is the defect or caps
-every drawing at the column. A deck that sets nothing emits no `--figure-type`
+Bounded 0.6–2.0. Under it the figure is the defect. The top was 1.6 while a
+figure had at most a `.full` column and 62 % of the slide; a picture slide and
+a `.bleed` chunk have room for a drawing of a few words at twice the body
+type, which is what the steps past 1.6 are for. On an ordinary chunk they cap
+all but the smallest drawing at the column. A deck that sets nothing emits no `--figure-type`
 at all and builds byte-identical HTML.
 
 **And one chunk can answer it for itself: `{.figure-type-70}`.** The key is
 deck-wide and a drawing is not – one keynote has a figure 55 labels wide and
 another 21, and pulling the first down with the key takes the second with it.
-Eleven steps, the key's own 0.6–1.6 in tenths, spelled as **per cent** so the
+Fifteen steps, the key's own 0.6–2.0 in tenths, spelled as **per cent** so the
 class reads as a proportion and carries no dot: `.figure-type-60` …
-`.figure-type-160`, generated into `CHUNK_STYLE_CLASSES` from
+`.figure-type-200`, generated into `CHUNK_STYLE_CLASSES` from
 `FIGURE_TYPE_STEPS` in `tails.mjs`. The chunk carries `data-figure-type="70"`
 and a rule per step sets `--figure-type`; the steps are generated into
 `AUDIENCE_CSS` from the same table, so a step cannot exist in one place and not

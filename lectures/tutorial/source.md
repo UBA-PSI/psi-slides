@@ -532,7 +532,7 @@ speaker view and `print-notes.html` show it, the projection never does.
 
 ## principle: Two decisions make a layout | a width class on the heading, and `:::` blocks in the body {.standard #layout-axes}
 
-**A layout is two independent decisions: how wide the chunk is, and how its body is arranged inside that width.** The heading picks one of four widths – `{.narrow}`, `{.standard}`, `{.wide}`, `{.full}` – and `:::` blocks in the body do the rest.
+**A layout is two independent decisions: how wide the chunk is, and how its body is arranged inside that width.** The heading picks one of four widths – `{.narrow}`, `{.standard}`, `{.wide}`, `{.full}` – and `:::` blocks in the body do the rest. A fifth word, `{.bleed}`, is not a width for text: it gives the whole frame to one drawing, and the decoration lecture shows it.
 
 **A `.wide` chunk with a `::: side` body is the usual shape for a figure with commentary beside it.** The width is the decision about the slide, and the blocks work inside it.
 

@@ -7971,7 +7971,7 @@ const STYLE_SPEC = {
   // defect. What it cannot do is make a figure legible that has more grid
   // units than the column has room for - that is a drawing to redraw, and
   // the build names it.
-  'figure-type':   { kind: 'num', min: 0.6, max: 1.6, dflt: 1 },
+  'figure-type':   { kind: 'num', min: 0.6, max: 2, dflt: 1 },
   // The display face's own size, and the one place taste gets a say over a
   // measurement. The roster's size-adjust numbers normalise ADVANCE WIDTH,
   // because line count is the failure that breaks a slide - a headline that
@@ -15549,7 +15549,7 @@ body[data-blocks=left] .chunk .psi-diagram,
    room reads that chunk's heading at 25 px and the next one's at 44. Pulling
    it back with the key takes every other figure in the deck with it, which is
    why a keynote with one dense figure and one sparse one could fix neither.
-   Eleven steps, the key's own 0.6-1.6 in tenths, generated from the same
+   Fifteen steps, the key's own 0.6-2.0 in tenths, generated from the same
    table the tail parser reads so a step cannot exist in one place and not the
    other. The attribute carries per cent because a selector matches a string.
    Live-only, like the key: a document sizes a figure with --dg-fig-size. */

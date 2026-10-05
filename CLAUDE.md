@@ -619,8 +619,8 @@ An attribute tail may also carry the non-width classes: `.bare`, `.center`
 and the pair `.middle` / `.top` (audience-only), `.wrap-none` / `.wrap-balance` /
 `.blocks-left` /
 `.blocks-center` (`CHUNK_STYLE_CLASSES`, a `style:` key answered for one chunk,
-and these four reach print), and `.figure-type-60` … `.figure-type-160`, the
-same idea for a key whose value is a number – eleven steps spelled as per cent,
+and these four reach print), and `.figure-type-60` … `.figure-type-200`, the
+same idea for a key whose value is a number – fifteen steps spelled as per cent,
 generated from `FIGURE_TYPE_STEPS`, live-only because the key is. The whole tail
 vocabulary is `CHUNK_SLOTS` in
 `tails.mjs`, a slot table like the five directives': width is a slot of four,

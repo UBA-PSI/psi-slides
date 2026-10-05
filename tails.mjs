@@ -53,7 +53,7 @@ export const CHUNK_STYLE_CLASSES = {
 // pulling it back up with the key takes every other figure in the deck with
 // it - so a keynote with one dense figure and one sparse one cannot fix
 // either. Per chunk it is a bounded set of steps rather than a free number,
-// because a class is a word: eleven of them, the key's own 0.6-1.6 range in
+// because a class is a word: fifteen of them, the key's own 0.6-2.0 range in
 // steps of 0.1, spelled as PER CENT so the class reads as a proportion and
 // carries no dot (`.figure-type-70` is `figure-type: 0.7`). Ten per cent is
 // the smallest step worth a slide - under it nothing in the room moves.
@@ -61,7 +61,7 @@ export const CHUNK_STYLE_CLASSES = {
 // Unlike the four above it, this one does not reach print: neither does the
 // key. A document sizes a figure with --dg-fig-size, which is a decision
 // about apparatus inside a column of prose and not about a room.
-export const FIGURE_TYPE_STEPS = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160];
+export const FIGURE_TYPE_STEPS = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200];
 for (const n of FIGURE_TYPE_STEPS) CHUNK_STYLE_CLASSES['figure-type-' + n] = ['figure-type', String(n)];
 
 export const CHUNK_SLOTS = {

@@ -105,7 +105,7 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   figure and a display formula sit across the measure) and `.wrap-none` /
   `.wrap-balance` (whether this chunk's headings are balanced and its prose
   gets a protected last line). Eleven more answer `style: {figure-type}` for
-  this one chunk, `.figure-type-60` … `.figure-type-160` in steps of ten, on
+  this one chunk, `.figure-type-60` … `.figure-type-200` in steps of ten, on
   the projection only. Any other class is an `unknown class` error in both the
   build and `lint.js` – it is not silently ignored. Do not invent classes.
 - **One sigil rule for every `{…}` tail in the format**, on a heading, on a
@@ -2003,7 +2003,7 @@ warning go away unread.
 ## Gotchas
 
 - Only the eleven types and five widths exist. Eight non-width classes exist,
-  plus the eleven `.figure-type-60` … `.figure-type-160` steps, and no others:
+  plus the fifteen `.figure-type-60` … `.figure-type-200` steps, and no others:
   `.bare`, `.center`, `.middle`, `.top`, `.blocks-left`, `.blocks-center`,
   `.wrap-none`, `.wrap-balance`; anything else is an `unknown class` error.
   `.bare`, `.center`, `.middle` and `.top` are not legal on a `title` or `closing`

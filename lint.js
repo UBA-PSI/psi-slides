@@ -245,7 +245,7 @@ const STYLE_NUM_SPEC = {
   // times its viewBox measured in labels, so a large value caps the drawing
   // at the column and takes the slide's own type down with it. See the note
   // at its STYLE_SPEC entry.
-  'figure-type': [0.6, 1.6],
+  'figure-type': [0.6, 2],
   // Multiplies the display face's measured size-adjust. See the note at its
   // STYLE_SPEC entry for why the roster normalises width and this key exists.
   'display-scale': [0.6, 1.8],
