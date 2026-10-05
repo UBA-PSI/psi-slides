@@ -23,6 +23,15 @@ from building the same way is a major version.
 
 ### Changed
 
+- A figure that is alone on its slide may stand taller. A chunk whose heading
+  is off the slide (`.bare`, or none) and whose on-screen body is one
+  `::: draw` gets a canvas of 22 label-heights instead of 16, and its figure
+  may take 79 % of the slide height instead of 62 %. Every other figure slide
+  is as it was, and a figure that fitted the old canvas renders unchanged; the
+  width, and with it the size of a label, is the chunk's column as before. A
+  stacked divider's figure is no longer width-capped at 62 % while its canvas
+  says 72 %.
+
 - CI only: the workflows use the current major of each GitHub action
   (checkout and setup-node v7, upload-artifact v7, download-artifact v8,
   upload-pages-artifact and deploy-pages v5), which run on Node.js 24, and

@@ -75,6 +75,31 @@ can be, and it fits; eighteen label-heights did not. The ceiling is 17.7, and
 it is arithmetic rather than taste – past 62 % of the slide the height cap
 takes over and the figure comes out narrower than its own column.
 
+**A picture slide gets a taller canvas: twenty-two label-heights, and 79 % of
+the slide instead of 62 %.** The sixteen is what is left beside a heading
+pair, prose and a footnote; a chunk with none of that stood with a third of
+the frame empty above and below its figure. A chunk is a picture slide when
+its heading is off the slide (`.bare`, or none written), it is not a `title:`
+or `closing:`, it carries no dock and no footnote, and its on-screen
+body is one `::: draw` and nothing else. That is close to the shape that
+opens `.middle` by default, with one difference: here the on-screen half is
+what is judged, so `::: script` narration beside the drawing does not count
+while the deck opens collapsed, and a `::: slide` block is read in place of
+the body. A second `::: draw` anywhere in the chunk keeps both at the
+ordinary tier. The numbers are measured like the
+sixteen: at 1600x900 auto-fit leaves such a slide's figure 718 px before it
+steps the type down, twenty-two label-heights is 695 px, and the cap of 0.79
+(711 px) sits between the two. The width is the chunk's column in every tier,
+so a figure that fits its canvas settles at the same type on either; the
+picture tier only offers more rows. The tier is decided when the chunk closes
+(`isPictureSlide` in build.js), rides on the chunk as `data-canvas-tier`, and
+the stylesheet reads it as `--fig-cap`; `FIG_CAP` holds the three shares
+(chunk, picture, stacked divider) and the `canvas` gate holds them against the
+stylesheet. `figure-underfills-canvas` judges a picture slide against the
+ordinary sixteen-label box, so a flat figure is not called empty for room it
+was offered and did not need; `--check-fit` prints the share of the canvas
+actually reserved.
+
 **The height does not come down by the prose under the drawing**, and that was
 measured rather than assumed (`docs/history/PLAN-figure-defaults.md` §6 item 7). A shorter
 canvas cannot shrink a drawing – the box is the union – so on a slide whose
