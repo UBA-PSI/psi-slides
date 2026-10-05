@@ -4,7 +4,8 @@
  *
  * `figureCanvas` in build.js reserves a fixed box for every `::: draw` in a
  * chunk body: the chunk's column wide, FIG_CANVAS_H_LABELS label-heights
- * tall. Three of its inputs are measurements of a stylesheet rather than
+ * tall (FIG_CANVAS_H_LABELS_PICTURE on a picture slide, ..._STACK on a
+ * stacked divider, each under its own height cap in FIG_CAP). Three of its inputs are measurements of a stylesheet rather than
  * facts about a drawing, and a stylesheet cannot be imported from here – so
  * they are mirrored by hand, and this gate is what keeps the mirror honest.
  *
@@ -96,19 +97,60 @@ export async function run({ report }) {
        `FIG_REF_ZOOM ${refZoom[1]}, state.zoom ${stateZoom[1]}`);
   }
 
-  // ── the canvas height stays under the height cap ──────────────────
-  // --dg-box-w caps a figure at --slide-h * 0.62 * --dg-ar, so a canvas
-  // taller than 62% of the slide is height-capped and comes out narrower
-  // than its own column - which is the uniformity it exists to produce, lost.
-  const hLab = /const FIG_CANVAS_H_LABELS = ([\d.]+);/.exec(src);
+  // ── each tier's canvas height stays under that tier's height cap ──
+  // --dg-box-w caps a figure at --slide-h * --fig-cap * --dg-ar, so a canvas
+  // taller than its tier's share of the slide is height-capped and comes out
+  // narrower than its own column - which is the uniformity it exists to
+  // produce, lost. Three tiers, one table (FIG_CAP), three label counts.
   const rem = /const FIG_REF_REM_PX = ([\d.]+);/.exec(src);
-  ok(!!hLab && !!rem, 'the canvas height and the reference rem are findable');
-  if (hLab && rem && refZoom) {
+  const capSrc = /const FIG_CAP = \{([^}]*)\}/.exec(src);
+  ok(!!capSrc && !!rem, 'FIG_CAP and the reference rem are findable');
+  const caps = new Map();
+  if (capSrc) {
+    for (const part of capSrc[1].split(',')) {
+      const p = /([a-z]+)\s*:\s*([\d.]+)/.exec(part);
+      if (p) caps.set(p[1], Number(p[2]));
+    }
+  }
+  const tiers = [
+    ['chunk', 'FIG_CANVAS_H_LABELS'],
+    ['picture', 'FIG_CANVAS_H_LABELS_PICTURE'],
+    ['stack', 'FIG_CANVAS_H_LABELS_STACK'],
+  ];
+  ok(caps.size === tiers.length, 'FIG_CAP names exactly the three tiers',
+     [...caps.entries()].map(([k, v]) => `${k}=${v}`).join(', '));
+  for (const [tier, constName] of tiers) {
+    const hLab = new RegExp(`const ${constName} = ([\\d.]+);`).exec(src);
+    const cap = caps.get(tier);
+    ok(!!hLab && cap > 0, `the ${tier} tier has a label count and a cap`);
+    if (!(hLab && cap > 0 && rem && refZoom)) continue;
     const px = Number(hLab[1]) * Number(rem[1]) * Number(refZoom[1]);
-    note(`the canvas reserves ${px.toFixed(0)} px of a 900 px slide (${(px / 9).toFixed(0)}%)`);
-    ok(px <= 900 * 0.62,
-       'and it is under the 62% a figure may be tall, or the column stops being the box',
-       `${px.toFixed(0)} px against ${(900 * 0.62).toFixed(0)}`);
+    note(`the ${tier} canvas reserves ${px.toFixed(0)} px of a 900 px slide (${(px / 9).toFixed(0)}%)`);
+    ok(px <= 900 * cap,
+       `the ${tier} canvas is under the ${Math.round(cap * 100)}% its figure may be tall, or the column stops being the box`,
+       `${px.toFixed(0)} px against ${(900 * cap).toFixed(0)}`);
+  }
+  // ...and the stylesheet says the same three numbers. The base cap is the
+  // fallback of every `var(--fig-cap, N)`; the other two are rules of their own.
+  const fallbacks = [...src.matchAll(/var\(--fig-cap, ([\d.]+)\)/g)].map(m => Number(m[1]));
+  ok(fallbacks.length >= 2 && fallbacks.filter(n => n === caps.get('chunk')).length >= 2,
+     'the max-height rule and --dg-box-w both fall back to the chunk cap', fallbacks.join(', '));
+  const picCss = /\.chunk\[data-canvas-tier=picture\] \{ --fig-cap: ([\d.]+); \}/.exec(src);
+  ok(!!picCss && Number(picCss[1]) === caps.get('picture'),
+     'the picture slide rule sets the picture cap', String(picCss && picCss[1]));
+  const stackCss = /\.chunk-section\[data-section-layout=stack\] \{ --fig-cap: ([\d.]+); \}/.exec(src);
+  ok(!!stackCss && Number(stackCss[1]) === caps.get('stack'),
+     'the stacked divider rule sets the stack cap', String(stackCss && stackCss[1]));
+  // The picture cap is also bounded from above, by auto-fit: FULL_FIT_FILL
+  // of the frame less the chunk's padding (2 x 44 px) and the figure's own
+  // margins (2 x 20 px) is what the svg may take before the type steps down.
+  const fill = /const FULL_FIT_FILL = ([\d.]+);/.exec(src);
+  ok(!!fill, 'FULL_FIT_FILL is findable');
+  if (fill && caps.get('picture')) {
+    const room = 900 * Number(fill[1]) - 88 - 40;
+    ok(900 * caps.get('picture') <= room,
+       'and the picture cap is under what auto-fit leaves a bare figure',
+       `${(900 * caps.get('picture')).toFixed(0)} px against ${room.toFixed(0)}`);
   }
 
   // ── one spelling of a frame, in two zero-dependency files ─────────

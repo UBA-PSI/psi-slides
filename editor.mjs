@@ -713,11 +713,19 @@ function dgeFrameMetrics() {
   const width = DGE.fig ? DGE.fig.width : 'standard';
   const em = DGE_FRAME_EM[DGE.frame][width] || 36;
   const px = em * dgeEmPx();
-  // .psi-diagram is capped at 62% of the slide height in the live views and
-  // at nothing in print. A figure that hits the cap is the case where its
+  // .psi-diagram is capped at a share of the slide height in the live views
+  // and at nothing in print. A figure that hits the cap is the case where its
   // width is decided by the frame rather than by its type, and that is
-  // invisible until you look at the built page.
-  const capPx = DGE.frame === 'print' ? Infinity : window.innerHeight * 0.62;
+  // invisible until you look at the built page. The share is the figure's
+  // own tier - --fig-cap, set on its chunk: 0.62 on an ordinary slide (the
+  // fallback, where nothing sets it), 0.79 on a picture slide, 0.72 on a
+  // stacked divider. See FIG_CAP in build.js.
+  let cap = 0.62;
+  if (DGE.fig && DGE.fig.svg && DGE.fig.svg.isConnected) {
+    const own = parseFloat(getComputedStyle(DGE.fig.svg).getPropertyValue('--fig-cap'));
+    if (own > 0) cap = own;
+  }
+  const capPx = DGE.frame === 'print' ? Infinity : window.innerHeight * cap;
   return { em, px, capPx, width };
 }
 

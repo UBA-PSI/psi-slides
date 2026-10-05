@@ -72,7 +72,11 @@ export async function run({ page, report, press }) {
           // The widest this drawing could be here whatever the type did: the
           // column, or the height budget turned into a width.
           w: Math.round(svg.clientWidth),
-          room: Math.round(Math.min(colPx, slideH * 0.62 * ar)),
+          // The height cap is the chunk's tier: --fig-cap, unset (0.62) on
+          // an ordinary slide, 0.79 on a picture slide, 0.72 on a stacked
+          // divider.
+          room: Math.round(Math.min(colPx,
+            slideH * (parseFloat(cs.getPropertyValue('--fig-cap')) || 0.62) * ar)),
         });
       }
       return {

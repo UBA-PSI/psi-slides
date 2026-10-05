@@ -3787,7 +3787,18 @@ function figureRefEm(tag) {
   return FIG_REF_REM_PX * FIG_REF_ZOOM * (FIG_BODY_REM[tag] || 1);
 }
 const FIG_REF_BODY_PX = FIG_REF_REM_PX * FIG_REF_ZOOM;   // 31.59, the ordinary chunk's em
-const FIG_REF_HEIGHT_PX = 900 * 0.62;              // the height cap at the same viewport
+// **How much of the slide's height a live figure may take, per tier.** One
+// table, mirrored by three stylesheet rules that set `--fig-cap` (the base
+// value written as the fallback in DIAGRAM_CSS and in `--dg-box-w`, plus
+// `.chunk[data-canvas-tier=picture]` and the stacked divider's) and held
+// against them by `node test/gates/run.mjs canvas`. The reasoning for each
+// number is beside the label count it belongs to, under FIG_CANVAS_H_LABELS.
+const FIG_CAP = { chunk: 0.62, picture: 0.79, stack: 0.72 };
+const FIG_REF_SLIDE_H_PX = 900;                    // the reference viewport's height
+// The height cap of one tier at that viewport, in px.
+function figureCapPx(tier) {
+  return FIG_REF_SLIDE_H_PX * (FIG_CAP[tier] || FIG_CAP.chunk);
+}
 const FIG_TYPE_FLOOR_PX = 18;                      // under this, the back row is guessing
 // ...and under this share of the deck's own median settled body type, the
 // slide is out of step with its neighbours whatever its absolute size. 0.85
@@ -3818,6 +3829,30 @@ const FIG_TYPE_EVEN_TOL = 0.85;
 // which is the uniformity this exists to produce, lost. `frame WxH` may ask
 // for more and will be told by the same cap.
 const FIG_CANVAS_H_LABELS = 16;
+// **Twenty-two label-heights on a picture slide, and the measurement is a
+// slide with nothing on it but the drawing.** The sixteen above is what is
+// left beside a heading pair, two lines of prose and a footnote. A chunk
+// whose heading is off the slide (`.bare`, or none written) and whose
+// on-screen body is one `::: draw` has none of that furniture, and at sixteen
+// it stood with a third of the frame empty above and below the figure.
+// Measured on such a slide at 1600x900: the chunk pads 44 px top and bottom
+// and the figure carries 20 px of margin top and bottom, so the svg may
+// physically take 900 - 2 * (44 + 20) = 772 px. Auto-fit is the tighter
+// bound: it holds the flow height, the 88 px of chunk padding included,
+// under FULL_FIT_FILL = 0.94 of the frame = 846 px, which leaves the svg
+// 846 - 88 - 40 = 718 px before the type is stepped down. Twenty-two
+// label-heights is 695 px and fits that; twenty-three is 727 px and does not.
+//
+// Its cap follows from the same rule the sixteen obeys: the canvas has to
+// stay under the height cap or `--dg-box-w` narrows it below its own column.
+// 695 / 900 = 0.772, so the picture tier's cap is 0.79 (711 px) - above the
+// canvas, below the 718 px auto-fit allows.
+//
+// **The invariant the canvas exists for is untouched: the WIDTH is still the
+// chunk's column in every tier.** A figure that fits its canvas therefore
+// settles at the body em whichever tier it is on; a picture canvas only
+// offers more rows before `figure-overflows-canvas`, never smaller type.
+const FIG_CANVAS_H_LABELS_PICTURE = 22;
 // Under this share of the canvas's area the slide reads empty. Half, because
 // a drawing filling half a box is the point at which the eye stops reading
 // the box as full and starts reading it as a box - and because a flatter
@@ -3840,6 +3875,19 @@ const FIG_UNDERFILL = 0.5;
 // chunk's 16, measured as floor(900 * 0.72 / 31.59). Sized to the box it is
 // drawn in, so the overflow and underfill numbers describe that box.
 const FIG_CANVAS_H_LABELS_STACK = 20;
+// The label count of each tier, keyed like FIG_CAP.
+const FIG_TIER_H_LABELS = {
+  chunk: FIG_CANVAS_H_LABELS,
+  picture: FIG_CANVAS_H_LABELS_PICTURE,
+  stack: FIG_CANVAS_H_LABELS_STACK,
+};
+// The height of the ordinary sixteen-label canvas in viewBox units, for a
+// figure of this chunk type and multiplier. `figure-underfills-canvas` judges
+// a picture slide against it: see reportFigureTypeStatic.
+function figureRefCanvasH(tag, ft) {
+  const mult = ft > 0 ? ft : 1;
+  return (FIG_CANVAS_H_LABELS * FIG_REF_BODY_PX / (figureRefEm(tag) * mult)) * DG_FONT;
+}
 function figureCanvas({ width, ft, tag, frame, unit, align, hLabels = FIG_CANVAS_H_LABELS }) {
   if (frame === 'none') return null;
   const mult = ft > 0 ? ft : 1;
@@ -3872,10 +3920,12 @@ function figureCanvas({ width, ft, tag, frame, unit, align, hLabels = FIG_CANVAS
 // canvas's own width in labels, so `body` comes out at exactly the chunk's
 // own em for every figure that fits its canvas - which is the uniformity,
 // arrived at rather than asserted.
-function figureSettle(typeW, ar, width, ft, tag) {
+function figureSettle(typeW, ar, width, ft, tag, tier) {
   const col = FIG_COLUMN_PX[width || 'standard'];
   if (!col || !(typeW > 0)) return null;
-  const byHeight = ar > 0 ? FIG_REF_HEIGHT_PX * ar : Infinity;
+  // The height budget is the tier's own: a picture slide's figure may stand
+  // taller than a chunk's, a stacked divider's too.
+  const byHeight = ar > 0 ? figureCapPx(tier) * ar : Infinity;
   const box = Math.min(col, byHeight);
   const mult = ft > 0 ? ft : 1;
   const em = figureRefEm(tag);
@@ -3908,7 +3958,7 @@ function chunkBlocks(chunk, deckBlocks) {
   return w || deckBlocks || 'center';
 }
 
-function recordFigureType(sized, width, where, ft, unit, tag) {
+function recordFigureType(sized, width, where, ft, unit, tag, tier = 'chunk') {
   const { typeW, vbW, vbH, canvas, contentW, contentH } = sized;
   // The box the room is shown, which is the canvas where there is one. typeW
   // comes off the print viewBox, so a figure smaller than its canvas would
@@ -3916,10 +3966,10 @@ function recordFigureType(sized, width, where, ft, unit, tag) {
   const liveW = canvas ? Math.max(canvas.w, contentW) : vbW;
   const liveH = canvas ? Math.max(canvas.h, contentH) : vbH;
   const ar = liveH ? liveW / liveH : 0;
-  const st = figureSettle(liveW / DG_FONT, ar, width, ft, tag);
+  const st = figureSettle(liveW / DG_FONT, ar, width, ft, tag, tier);
   if (!st) return;
   figureTypeSeen.push({ typeW: liveW / DG_FONT, ar, width, where, ft: ft > 0 ? ft : 1,
-                        canvas, contentW, contentH, unit, ...st });
+                        canvas, contentW, contentH, unit, tier, tag, ...st });
 }
 
 // The three complaints, and the canvas is what makes the first two sayable.
@@ -3987,11 +4037,25 @@ function reportFigureTypeStatic() {
             : ''));
         continue;
       }
-      const fill = (f.contentW * f.contentH) / (f.canvas.w * f.canvas.h);
+      // **A picture canvas is room to grow, not a claim that the slide must
+      // be two thirds drawing.** The tall tier exists so a figure that needs
+      // twenty rows has them; a flat figure that filled the ordinary canvas
+      // well reads no emptier for the six label-heights it was offered and
+      // did not take. So on a picture slide the fill is judged against the
+      // canvas's width times the smaller of its height and the ordinary
+      // sixteen-label height - the box every other slide is judged against -
+      // and the message says which box it means.
+      const judgeH = f.tier === 'picture'
+        ? Math.min(f.canvas.h, figureRefCanvasH(f.tag, f.ft)) : f.canvas.h;
+      const fill = (f.contentW * f.contentH) / (f.canvas.w * judgeH);
       if (fill < FIG_UNDERFILL) {
+        const box = judgeH < f.canvas.h - 0.5
+          ? `${lab(f.canvas.w)} x ${lab(judgeH)} - the ordinary ${FIG_CANVAS_H_LABELS}-label box; this`
+            + ` picture slide's own canvas runs to ${lab(f.canvas.h)} and is room to grow, not the measure`
+          : `${lab(f.canvas.w)} x ${lab(f.canvas.h)}`;
         dgWarn(`figure-underfills-canvas in ${f.where}: the drawing fills ${Math.round(fill * 100)}%`
-          + ` of its canvas (${lab(f.contentW)} x ${lab(f.contentH)} labels in ${lab(f.canvas.w)} x`
-          + ` ${lab(f.canvas.h)}), so the slide reads empty. More in the drawing, a narrower column`
+          + ` of its canvas (${lab(f.contentW)} x ${lab(f.contentH)} labels in ${box}),`
+          + ` so the slide reads empty. More in the drawing, a narrower column`
           + ` (.standard holds ${(FIG_COLUMN_PX.standard / (f.em * f.ft)).toFixed(0)}`
           + ` labels against .wide's ${(FIG_COLUMN_PX.wide / (f.em * f.ft)).toFixed(0)}),`
           + ` a larger {.figure-type-N}, or  ${wants}  to reserve only what it needs.`);
@@ -4003,7 +4067,7 @@ function reportFigureTypeStatic() {
     if (f.byHeight < f.col) {
       dgWarn(`figure-type-small in ${f.where}: the figure is ${f.typeW.toFixed(0)} labels wide, and at`
         + ` body-size labels it would stand ${Math.round(f.typeW * f.em / f.ar)} px tall against`
-        + ` the ${Math.round(FIG_REF_HEIGHT_PX)} px a slide allows - so it is scaled to that and its`
+        + ` the ${Math.round(figureCapPx(f.tier))} px a slide allows - so it is scaled to that and its`
         + ` labels land at about ${f.label.toFixed(0)} px at 1600x900, under the ${FIG_TYPE_FLOOR_PX} px a`
         + ` back row can read. Here it is the height cap and not the column that decides the width:`
         + ` less in the drawing, or a flatter arrangement of the same thing.`);
@@ -4057,7 +4121,10 @@ const DIAGRAM_CSS = `
      cockpit window's and the same figure was capped at a different height in
      the two windows. Print defines no --slide-h and falls back to the number
      this rule has always had; it overrides the cap anyway (PRINT_CSS). */
-  max-height: calc(var(--slide-h, 100vh) * 0.62);
+  /* --fig-cap is the tier's share of the slide height (FIG_CAP in build.js):
+     unset on an ordinary chunk, 0.79 on a picture slide, 0.72 on a stacked
+     divider. The fallback is the ordinary chunk's. */
+  max-height: calc(var(--slide-h, 100vh) * var(--fig-cap, 0.62));
   height: auto;
 }
 @media print {
@@ -4887,6 +4954,45 @@ function isPictureBody(body) {
   return pictures === 1 && other === 0;
 }
 
+// **Is this chunk a picture slide** - a frame with one drawing on it and no
+// furniture, which is what earns the tall canvas tier (FIG_CAP.picture)?
+// Asked in flushChunk over the raw body lines, before the reveal split, so
+// three things isPictureBody is never shown have to be taken out by hand:
+//
+//   - `---` lines. They are beats, not content, and the finished body has
+//     lost them by the time chunkOpensCentred reads it.
+//   - the half of the chunk that is not on the screen. A `::: script` block
+//     is narration and is hidden while collapsed; a `::: slide` block says
+//     that it alone is the screen. `explicit` holds their line ranges, and
+//     the rule is lint.js's own for the word budget: the `::: slide` block if
+//     there is one, else everything outside `::: script`. Only while the deck
+//     opens collapsed - under `collapse: none` both halves are on the slide.
+//   - what is lifted out of the body but still takes height in the frame: a
+//     `::: footnote` stands under the figure, and a dock at the top or the
+//     bottom takes a band of the slide. (An `::: expand` is off the
+//     projection, marginalia is beside the column, an overlay lies over it.)
+//
+// The heading has to be off the slide too: `.bare`, or none written.
+function isPictureSlide(chunk, lines, explicit, collapsed, isMark) {
+  if (!(chunk.bare || !chunk.heading)) return false;
+  if (chunk.tag === 'title' || chunk.tag === 'closing') return false;
+  if ((chunk.expansions || []).some(e => e.kind === 'margin')) return false;
+  if (chunk.dock) return false;
+  let keep = lines.map(() => true);
+  if (collapsed && explicit.length) {
+    const slides = explicit.filter(r => r.kind === 'slide');
+    if (slides.length) {
+      keep = lines.map(() => false);
+      // Each wrapper is pushed as three lines either end: '', the tag, ''.
+      for (const r of slides) for (let i = r.from + 3; i < r.to - 3; i++) keep[i] = true;
+    } else {
+      for (const r of explicit) for (let i = r.from; i < r.to; i++) keep[i] = false;
+    }
+  }
+  const screen = lines.filter((line, i) => keep[i] && !isMark(line));
+  return isPictureBody(screen.join('\n'));
+}
+
 // The answer to `.middle` / `.top` for a chunk that wrote neither. Two shapes
 // open framed on what the beat paints: a slide that is a picture, and a
 // `statement:`, where the heading and every paragraph are one size and arrive
@@ -5125,6 +5231,24 @@ function parseLecture(src) {
   let currentColumn = null;
   let currentChunk = null;
   let bodyLines = [];
+  // **A figure in a chunk's own flow is compiled when the chunk closes, not
+  // when its `::: draw` does.** Which canvas it is laid out on depends on
+  // whether anything follows it on the slide, and that is only known at the
+  // next heading. So the closing `:::` leaves a one-line placeholder in
+  // bodyLines - one element, exactly where the compiled figure would have
+  // gone, so every index into bodyLines (speakerNoteAt, an aside's `at`)
+  // stays what it was - and `pendingDraw` holds what the compile needs.
+  // settlePendingDraw swaps the placeholder for the figure, in place.
+  //
+  // At most one is ever pending: the compiler numbers its figures in the
+  // order it is called (`psiINT-dg<N>-`), so a second `::: draw` anywhere in
+  // the same chunk settles the first at the ordinary tier before it compiles
+  // itself. Two drawings are not a picture slide in any case, and the ids
+  // come out in source order as they always have.
+  let pendingDraw = null;
+  // The `::: slide` / `::: script` blocks of the chunk being read, as line
+  // ranges into bodyLines: [{kind, from, to}]. Read by isPictureSlide.
+  let explicitRanges = [];
   let inFence = false;
   const fence = fenceTracker();  // inFence is fence.inside, read once per line
   let currentExpansion = null; // { label, lines } while inside a ::: expand block
@@ -5486,6 +5610,17 @@ function parseLecture(src) {
     if (currentColumn && colBody.length) currentColumn.body = colBody.join('\n').trim();
     colBody = [];
   };
+  // Compile the figure a chunk left pending, on the canvas of the tier its
+  // slide turned out to have, and put it where its placeholder stands.
+  // `tier` is 'picture' or 'chunk'; under a `frame WxH` the canvas is the
+  // author's either way and only the height cap follows the tier.
+  const settlePendingDraw = (tier) => {
+    const p = pendingDraw;
+    if (!p) return;
+    pendingDraw = null;
+    const at = bodyLines.indexOf(p.placeholder);
+    bodyLines[at] = p.render(tier);
+  };
   const flushChunk = () => {
     if (!currentChunk) return;
     flushNoteBlock();
@@ -5510,6 +5645,16 @@ function parseLecture(src) {
         '  dock on the left, or drop the aside.');
     }
     flushExpansion();
+    // The chunk's figure, on the canvas its slide earns. After the dock, the
+    // inheritance and the asides above, because all three are part of the
+    // answer; before the reveal split below, which reads the compiled body.
+    if (pendingDraw) {
+      const collapsed = frontmatter.collapse !== 'none';
+      const picture = isPictureSlide(currentChunk, bodyLines, explicitRanges, collapsed, revealMark);
+      if (picture) currentChunk.canvasTier = 'picture';
+      settlePendingDraw(picture ? 'picture' : 'chunk');
+    }
+    explicitRanges = [];
     // A layout wrapper still open when the slide ends. It used to be closed
     // here without a word, so the build shipped a slide whose columns, pane
     // or ::: slide block ran to the end of the chunk while lint.js reported
@@ -5689,58 +5834,81 @@ function parseLecture(src) {
           && layoutStack.length === 0;
         const dgFt = currentChunk ? chunkFigureType(currentChunk, deckFigureType)
           : (deckFigureType > 0 ? deckFigureType : 1);
-        const dgCanvas = dgInFlow || dgStacked
-          ? figureCanvas({
-              width: currentChunk ? currentChunk.width : 'full',
-              ft: dgFt,
-              tag: currentChunk ? currentChunk.tag : 'free',
-              // The figure's own `frame`, else the deck's, else the default.
-              frame: diagramBlock.frame != null ? diagramBlock.frame : deckDrawFrame,
-              unit: dgUnit,
-              align: currentChunk ? chunkBlocks(currentChunk, deckBlocks) : deckBlocks,
-              hLabels: currentChunk ? FIG_CANVAS_H_LABELS : FIG_CANVAS_H_LABELS_STACK,
-            })
-          : null;
-        // The compiler learns one thing from the opener, the grid, and takes
-        // it as the `unit=WxH` string it always has. The whole opener rides
-        // in the payload as one canonical line so the editor can write the
-        // block back verbatim without knowing the grammar.
-        target.push('', withAutoplay(diagramBlock.autoplay, diagramBlock.cycle, renderDiagram(dgBody, drawCompilerAttrs(diagramBlock), {
-          // The block body's byte range in source.md. Emitted with the
-          // diagram so the editor can patch exactly those bytes back.
-          range: [diagramBlock.bodyAt, diagramBlock.bodyAt + dgBody.length],
-          chunk: currentChunk ? currentChunk.id : null,
-          width: currentChunk ? currentChunk.width : null,
-          opener: formatDrawOpener(diagramBlock),
-          where: dgWhere,
-          canvas: dgCanvas,
-          // How the drawing sits in its box and how small its labels land in
-          // a room, which only this side knows: the compiler has the viewBox
-          // and the caller has the chunk's width class. A divider figure is
-          // not held to it - it has no width class and its frame is the
-          // slide, not a text column.
-          onSized: currentChunk
-            ? (sized) => recordFigureType(sized, currentChunk.width, dgWhere, dgFt, dgUnit, currentChunk.tag)
-            : dgStacked
-              ? (sized) => recordFigureType(sized, 'full', dgWhere, dgFt, dgUnit, 'free')
-              : null,
-          alt: currentChunk ? currentChunk.heading : '',
-          base: diagramBase,
-          onCompile: (model) => {
-            for (const tag of model.tags.keys()) dgLectureTags.add(tag);
-            // A clock with nothing to walk. `autoplay N` advances the
-            // figure's steps; a figure with none was a number the drawing
-            // ignored, and this format refuses those rather than drops them.
-            if (diagramBlock.autoplay != null && !model.steps.length) {
-              const err = new Error(
-                `::: draw autoplay ${diagramBlock.autoplay} on a figure with no step block.\n` +
-                '  autoplay walks the steps, one delay each; write a  step  block, or drop\n' +
-                '  the autoplay.');
-              err.userFacing = true;
-              throw err;
-            }
-          },
-        })), '');
+        // The tier decides the canvas's height and the height cap that goes
+        // with it: 'stack' for a stacked divider, and for a chunk 'chunk' or
+        // 'picture' - which is not known yet, so the compile is a function of
+        // it. Everything else it needs is captured here, at the closing `:::`,
+        // because the parser has moved on by the time it runs: the block, the
+        // chunk and the place are the ones this figure was written in.
+        const dgBlock = diagramBlock;
+        const dgChunk = currentChunk;
+        const dgRender = (tier) => {
+          const dgCanvas = dgInFlow || dgStacked
+            ? figureCanvas({
+                width: dgChunk ? dgChunk.width : 'full',
+                ft: dgFt,
+                tag: dgChunk ? dgChunk.tag : 'free',
+                // The figure's own `frame`, else the deck's, else the default.
+                frame: dgBlock.frame != null ? dgBlock.frame : deckDrawFrame,
+                unit: dgUnit,
+                align: dgChunk ? chunkBlocks(dgChunk, deckBlocks) : deckBlocks,
+                hLabels: FIG_TIER_H_LABELS[tier],
+              })
+            : null;
+          // The compiler learns one thing from the opener, the grid, and takes
+          // it as the `unit=WxH` string it always has. The whole opener rides
+          // in the payload as one canonical line so the editor can write the
+          // block back verbatim without knowing the grammar.
+          return withAutoplay(dgBlock.autoplay, dgBlock.cycle, renderDiagram(dgBody, drawCompilerAttrs(dgBlock), {
+            // The block body's byte range in source.md. Emitted with the
+            // diagram so the editor can patch exactly those bytes back.
+            range: [dgBlock.bodyAt, dgBlock.bodyAt + dgBody.length],
+            chunk: dgChunk ? dgChunk.id : null,
+            width: dgChunk ? dgChunk.width : null,
+            opener: formatDrawOpener(dgBlock),
+            where: dgWhere,
+            canvas: dgCanvas,
+            // How the drawing sits in its box and how small its labels land in
+            // a room, which only this side knows: the compiler has the viewBox
+            // and the caller has the chunk's width class. A divider figure is
+            // not held to it - it has no width class and its frame is the
+            // slide, not a text column.
+            onSized: dgChunk
+              ? (sized) => recordFigureType(sized, dgChunk.width, dgWhere, dgFt, dgUnit, dgChunk.tag, tier)
+              : dgStacked
+                ? (sized) => recordFigureType(sized, 'full', dgWhere, dgFt, dgUnit, 'free', tier)
+                : null,
+            alt: dgChunk ? dgChunk.heading : '',
+            base: diagramBase,
+            onCompile: (model) => {
+              for (const tag of model.tags.keys()) dgLectureTags.add(tag);
+              // A clock with nothing to walk. `autoplay N` advances the
+              // figure's steps; a figure with none was a number the drawing
+              // ignored, and this format refuses those rather than drops them.
+              if (dgBlock.autoplay != null && !model.steps.length) {
+                const err = new Error(
+                  `::: draw autoplay ${dgBlock.autoplay} on a figure with no step block.\n` +
+                  '  autoplay walks the steps, one delay each; write a  step  block, or drop\n' +
+                  '  the autoplay.');
+                err.userFacing = true;
+                throw err;
+              }
+            },
+          }));
+        };
+        // A figure already waiting in this chunk is no longer alone on its
+        // slide, and the compiler numbers figures in call order: it goes
+        // first, at the ordinary tier.
+        if (pendingDraw) settlePendingDraw('chunk');
+        if (dgInFlow && target === bodyLines) {
+          // A string isPictureBody counts as a figure, on one line, that no
+          // author can have written: the range is this block's own.
+          const placeholder = `<figure class="figure-diagram" data-dg-pending="${dgBlock.bodyAt}"></figure>`;
+          target.push('', placeholder, '');
+          pendingDraw = { placeholder, render: dgRender };
+        } else {
+          target.push('', dgRender(dgChunk ? 'chunk' : 'stack'), '');
+        }
         diagramBlock = null;
       } else {
         diagramBlock.lines.push(line);
@@ -6586,13 +6754,15 @@ function parseLecture(src) {
             '  block first - a chunk may carry one of each, side by side.');
         }
         if (/^:::\s+slide\s*$/.test(line)) {
+          layoutStack.push({ close: '</div>', kind: 'slide', narrows: false,
+                             from: target === bodyLines ? bodyLines.length : -1 });
           target.push('', `<div class="slide-explicit">`, '');
-          layoutStack.push({ close: '</div>', kind: 'slide', narrows: false });
           continue;
         }
         if (/^:::\s+script\s*$/.test(line)) {
+          layoutStack.push({ close: '</div>', kind: 'script', narrows: false,
+                             from: target === bodyLines ? bodyLines.length : -1 });
           target.push('', `<div class="script-only">`, '');
-          layoutStack.push({ close: '</div>', kind: 'script', narrows: false });
           continue;
         }
         // :::  –  closes the innermost open layout, or the expansion.
@@ -6601,6 +6771,10 @@ function parseLecture(src) {
             const closed = layoutStack.pop();
             if (closed.cols) colsDepth -= 1;
             target.push('', closed.close, '');
+            // Which lines of the body were the block, for isPictureSlide.
+            if (closed.from >= 0 && target === bodyLines) {
+              explicitRanges.push({ kind: closed.kind, from: closed.from, to: bodyLines.length });
+            }
             continue;
           }
           if (currentDock) {
@@ -13557,6 +13731,11 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   // for the reason the other two are - a printed page has no frame to be
   // centred in.
   const middleAttr = chunk.middle ? ' data-middle=""' : '';
+  // The canvas tier of a picture slide (isPictureSlide): the stylesheet reads
+  // it to raise --fig-cap, so the taller canvas the parser laid the figure
+  // out on is not narrowed by the ordinary height cap. Audience-only like the
+  // rest - a document has no frame, and PRINT_CSS sizes a figure on its own.
+  const tierAttr = chunk.canvasTier ? ` data-canvas-tier="${chunk.canvasTier}"` : '';
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
 
   // No tag eyebrow on the projection. The word announced a taxonomy that is
@@ -13642,7 +13821,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdAttr = (bd.html ? ' data-has-backdrop=""' : '') + (overlaysHavePanel(chunk.overlays) ? ' data-has-panel=""' : '');
 
-  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${middleAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}${dockAttrs(chunk.dock)}>
+  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${middleAttr}${tierAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}${dockAttrs(chunk.dock)}>
   ${bd.html}
   <div class="chunk-content">
     ${tagLabel}
@@ -15201,7 +15380,7 @@ figure.figure-img svg {
 }
 .chunk .psi-diagram {
   --dg-box-w: min(calc(var(--dg-fit-w) * 1em * var(--figure-type, 1)),
-                  calc(var(--slide-h, 100vh) * 0.62 * var(--dg-fit-ar)));
+                  calc(var(--slide-h, 100vh) * var(--fig-cap, 0.62) * var(--dg-fit-ar)));
   width: var(--dg-box-w);
   /* The box hugs the drawing now instead of spanning the measure, so it has
      somewhere to sit. Centre by default, matching figure.figure-img above;
@@ -15210,6 +15389,15 @@ figure.figure-img svg {
      ink-edge correction: see the comment there for what --dg-ink-x buys. */
   margin-inline: auto;
 }
+/* The height cap's two other tiers, mirroring FIG_CAP. A picture slide - a
+   chunk with its heading off the slide and one drawing as its whole on-screen
+   body - has no furniture to leave room for, so its figure may take 0.79 of
+   the frame and its canvas is 22 label-heights instead of 16. A stacked
+   divider is a .chunk too, so without its own value its --dg-box-w was
+   width-capped at 0.62 while its max-height and its 20-label canvas both said
+   0.72: the canvas came out narrower than the .full column it is meant to be. */
+.chunk[data-canvas-tier=picture] { --fig-cap: 0.79; }
+.chunk-section[data-section-layout=stack] { --fig-cap: 0.72; }
 body[data-blocks=left] .chunk .psi-diagram,
 .chunk[data-blocks=left] .psi-diagram {
   margin-inline: calc(-1 * var(--dg-fit-ink-x) * var(--dg-box-w)) auto;
@@ -17620,7 +17808,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   /* The heading is one line above it now, so the picture may take almost the
      whole frame - the beside layout's own ceiling, which was measured against
      a heading standing beside it rather than over it. */
-  max-height: calc(var(--slide-h) * 0.72);
+  max-height: calc(var(--slide-h) * var(--fig-cap, 0.72));
 }
 /* {.bare} on the # heading: the heading comes off the slide and stays
    everywhere else - the contents page, a section: outline agenda, the
@@ -32065,6 +32253,10 @@ async function runCheckFit(absIn, viewport) {
       // base label on the way out, the way the static warnings say it.
       const canvas = cv.length === 4 && cv.every(n => n > 0)
         ? { w: cv[0], h: cv[1], cw: cv[2], ch: cv[3],
+            // The tier and the multiplier, for the report's "reads empty":
+            // a picture slide is judged against the ordinary canvas height.
+            tier: act.dataset.canvasTier || '',
+            ft: parseFloat(getComputedStyle(svg).getPropertyValue('--figure-type')) || 1,
             fill: Math.round(100 * (cv[2] * cv[3]) / (cv[0] * cv[1])),
             over: Math.max(0, cv[2] - cv[0]) > 0.5 || Math.max(0, cv[3] - cv[1]) > 0.5 }
         : null;
@@ -32244,7 +32436,17 @@ function reportFigureType(figType, bodySeen, where) {
   const onCanvas = rows.filter(f => f.canvas).sort((a, b) => a.canvas.fill - b.canvas.fill);
   if (onCanvas.length) {
     const scaled = onCanvas.filter(f => f.canvas.over);
-    const empty = onCanvas.filter(f => !f.canvas.over && f.canvas.fill < Math.round(FIG_UNDERFILL * 100));
+    // "Reads empty" is the static `figure-underfills-canvas` measured, so it
+    // is judged the same way: a picture slide's tall canvas is room to grow,
+    // and its drawing is held against the ordinary sixteen-label height. The
+    // percentage printed stays the share of the canvas actually reserved,
+    // which is why a picture slide reads lower in the range above.
+    const judged = (f) => {
+      if (f.canvas.tier !== 'picture') return f.canvas.fill;
+      const h = Math.min(f.canvas.h, figureRefCanvasH(f.tag, f.canvas.ft));
+      return Math.round(100 * (f.canvas.cw * f.canvas.ch) / (f.canvas.w * h));
+    };
+    const empty = onCanvas.filter(f => !f.canvas.over && judged(f) < Math.round(FIG_UNDERFILL * 100));
     console.log(`  ${onCanvas.length} of them are on a canvas and take`
       + ` ${onCanvas[0].canvas.fill}% to ${onCanvas[onCanvas.length - 1].canvas.fill}% of it`
       + `${scaled.length ? `; ${scaled.length} had to be scaled past it.` : ', and none had to be scaled past it.'}`);
