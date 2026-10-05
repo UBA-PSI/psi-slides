@@ -233,10 +233,19 @@ if it is not.
 Next week: certificates, and who you are actually trusting.
 ```
 
-Widths (four, exhaustive): `.narrow` (28em), `.standard` (36em, the default),
-`.wide` (52em), `.full` (72em). The slide's frame pads 14% either side, so on
+Widths (five, exhaustive): `.narrow` (28em), `.standard` (36em, the default),
+`.wide` (52em), `.full` (72em), and `.bleed`, which is not a text measure. The
+slide's frame pads 14% either side, so on
 the projection `.wide` stops at 1152 px at 1600×900; a `.full` chunk pads 6%
 and reaches 1408 px, which is the one reason to pick it over `.wide`.
+
+**`.bleed` is the slide frame, and it is for one drawing.** The chunk pads
+nothing and its `::: draw` is laid out on the whole 1600×900. It is legal only
+on a picture slide – `{.bare}` or no heading written, no `::: footnote`, no
+`::: dock`, and one `::: draw` as the whole on-screen body – and everything
+else is `bad-bleed`; so is a `frame` on that figure's opener. The
+`psi-slides-figures` skill has the canvas and what the word does and does not
+buy.
 
 **The type never sets the width.** They are independent axes: the type decides
 treatment and budget, the width decides how much stage the chunk takes. In
@@ -1993,7 +2002,7 @@ warning go away unread.
 
 ## Gotchas
 
-- Only the eleven types and four widths exist. Eight non-width classes exist,
+- Only the eleven types and five widths exist. Eight non-width classes exist,
   plus the eleven `.figure-type-60` … `.figure-type-160` steps, and no others:
   `.bare`, `.center`, `.middle`, `.top`, `.blocks-left`, `.blocks-center`,
   `.wrap-none`, `.wrap-balance`; anything else is an `unknown class` error.

@@ -414,6 +414,25 @@ body.text-selecting #psiINT-figure-overlay > .figure-focus-target { cursor: text
    content should do. FIG_COLUMN_PX in the figure-type warning carries the
    measured result; re-measure it if this number changes. */
 .chunk[data-width=full]:not(.chunk-title):not(.chunk-section) { --slide-pad-x: 6%; }
+/* .bleed is the frame: no padding, and a column as wide as the slide. Legal
+   only on a picture slide (the build refuses anything else as bad-bleed), so
+   the one child of the column is a drawing and the rules below are about
+   that drawing alone.
+
+   The padding is zeroed on the property and not through --slide-pad-x / -y,
+   because three things inside the chunk are measured off those variables and
+   must keep their place: an overlay card's inset, a dock's reserve and the
+   slide number's offset. A caption card on a bleed figure stands in the
+   frame's gutter like on a backdrop, not on its edge.
+
+   min-height is the frame, as on a backdrop chunk: the box is one slide
+   tall whatever the drawing's aspect, so the camera has nothing to centre
+   and a drawing flatter than 16:9 sits in the middle of it. The gap and the
+   figure's own margin go because there is nothing for them to separate; left
+   in, a canvas of exactly one frame stood 40 px taller than the frame. */
+.chunk[data-width=bleed] { padding: 0; --content-w: var(--slide-w); min-height: var(--slide-h); }
+.chunk[data-width=bleed] > .chunk-content { gap: 0; }
+.chunk[data-width=bleed] .chunk-content .figure-diagram { margin: 0; }
 /* The cover, the closing slide and a divider hardcode data-width="full" and
    compose against the 14% frame - a title flush against the edge is not
    what "full" was meant to buy - so the wider column is the author-written
@@ -1056,7 +1075,7 @@ figure.figure-img svg {
      ink-edge correction: see the comment there for what --dg-ink-x buys. */
   margin-inline: auto;
 }
-/* The height cap's two other tiers, mirroring FIG_CAP. A picture slide - a
+/* The height cap's three other tiers, mirroring FIG_CAP. A picture slide - a
    chunk with its heading off the slide and one drawing as its whole on-screen
    body - has no furniture to leave room for, so its figure may take 0.79 of
    the frame and its canvas is 22 label-heights instead of 16. A stacked
@@ -1064,6 +1083,8 @@ figure.figure-img svg {
    width-capped at 0.62 while its max-height and its 20-label canvas both said
    0.72: the canvas came out narrower than the .full column it is meant to be. */
 .chunk[data-canvas-tier=picture] { --fig-cap: 0.79; }
+/* A .bleed chunk's canvas is the frame, so its figure may take all of it. */
+.chunk[data-canvas-tier=bleed] { --fig-cap: 1; }
 .chunk-section[data-section-layout=stack] { --fig-cap: 0.72; }
 body[data-blocks=left] .chunk .psi-diagram,
 .chunk[data-blocks=left] .psi-diagram {
@@ -7321,6 +7342,36 @@ type above it, and each is still a row in the search index.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>4</i></div>
 </article>
+<article class="chunk chunk-figure" id="bleed" data-chunk-id="bleed" data-tag="figure" data-width="bleed" data-bare="" data-middle="" data-canvas-tier="bleed" data-chunk-num="45">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading has-sub"><span class="hd-main">A drawing that is the slide</span> <span class="hd-sub"><code>{.bare .bleed}</code> hands the whole frame to one figure</span></h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="psiINT-dg7-root" class="psi-diagram" viewBox="-421.50 -237.12 843.00 474.24" style="--dg-type-w:56.200;--dg-ar:1.7776;--dg-ink-x:0.01423;--dg-live-type-w:56.277;--dg-live-ar:1.7778;--dg-live-ink-x:0.01490" data-canvas="844.15 474.83 843.00 474.24" width="2000" height="1125" data-live-viewbox="-422.07 -237.42 844.15 474.83" data-live-ratio="0.562500" data-steps="3" role="img" aria-label="A drawing that is the slide" preserveAspectRatio="xMidYMid meet">
+<g id="psiINT-dg7-frame" data-base="dg-el dg-box" class="dg-el dg-box tone-1 dashed muted"><rect id="psiINT-dg7-frame--r" x="-409.50" y="-225.12" width="819.00" height="450.24" rx="4"/></g>
+<g id="psiINT-dg7-full" data-base="dg-el dg-box" class="dg-el dg-box tone-2 dashed muted"><rect id="psiINT-dg7-full--r" x="-360.00" y="-177.80" width="720.00" height="355.60" rx="4"/></g>
+<g id="psiINT-dg7-wide" data-base="dg-el dg-box" class="dg-el dg-box tone-3 dashed muted"><rect id="psiINT-dg7-wide--r" x="-294.75" y="-126.28" width="589.50" height="252.56" rx="4"/></g>
+<g id="psiINT-dg7-frame-cap" data-base="dg-el dg-text" class="dg-el dg-text small muted bottom"><g id="psiINT-dg7-frame-cap--lw0" data-lab="frame-cap--l" class="dg-lwrap" transform="translate(-391.02,197.10)"><g id="psiINT-dg7-frame-cap--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">the frame – 1600 × 900 – .bleed</tspan></text></g></g></g>
+<g id="psiINT-dg7-full-cap" data-base="dg-el dg-text" class="dg-el dg-text small muted bottom"><g id="psiINT-dg7-full-cap--lw0" data-lab="full-cap--l" class="dg-lwrap" transform="translate(-341.52,149.78)"><g id="psiINT-dg7-full-cap--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">alone on a .full slide – 1408 × 711</tspan></text></g></g></g>
+<g id="psiINT-dg7-wide-cap" data-base="dg-el dg-text" class="dg-el dg-text small muted bottom"><g id="psiINT-dg7-wide-cap--lw0" data-lab="wide-cap--l" class="dg-lwrap" transform="translate(-276.27,98.26)"><g id="psiINT-dg7-wide-cap--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">beside prose on a .wide slide – 1152 × 505</tspan></text></g></g></g>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="psiINT-dg7-root">{"p":"psiINT-dg7-","n":3,"kinds":{"frame--r":"rect","full--r":"rect","wide--r":"rect","frame-cap--l":"text","full-cap--l":"text","wide-cap--l":"text"},"names":["alone","prose"],"frames":[{"vis":{"frame-cap":1,"frame":1,"full-cap":0,"full":0,"wide-cap":0,"wide":0},"cls":{"frame-cap":"small muted bottom","frame":"tone-1 dashed muted","full-cap":"small muted bottom","full":"tone-2 dashed muted","wide-cap":"small muted bottom","wide":"tone-3 dashed muted"},"lab":{"frame-cap":0,"full-cap":0,"wide-cap":0},"geom":{"frame-cap--l":[-391.02,197.1,0],"frame--r":[-409.5,-225.12,819,450.24],"full-cap--l":[-341.52,149.78,0],"full--r":[-360,-177.8,720,355.6],"wide-cap--l":[-276.27,98.26,0],"wide--r":[-294.75,-126.28,589.5,252.56]}},{"vis":{"frame-cap":1,"frame":1,"full-cap":1,"full":1,"wide-cap":0,"wide":0},"cls":{"frame-cap":"small muted bottom","frame":"tone-1 dashed muted","full-cap":"small muted bottom","full":"tone-2 dashed muted","wide-cap":"small muted bottom","wide":"tone-3 dashed muted"},"lab":{"frame-cap":0,"full-cap":0,"wide-cap":0},"geom":{"frame-cap--l":[-391.02,197.1,0],"frame--r":[-409.5,-225.12,819,450.24],"full-cap--l":[-341.52,149.78,0],"full--r":[-360,-177.8,720,355.6],"wide-cap--l":[-276.27,98.26,0],"wide--r":[-294.75,-126.28,589.5,252.56]}},{"vis":{"frame-cap":1,"frame":1,"full-cap":1,"full":1,"wide-cap":1,"wide":1},"cls":{"frame-cap":"small muted bottom","frame":"tone-1 dashed muted","full-cap":"small muted bottom","full":"tone-2 dashed muted","wide-cap":"small muted bottom","wide":"tone-3 dashed muted"},"lab":{"frame-cap":0,"full-cap":0,"wide-cap":0},"geom":{"frame-cap--l":[-391.02,197.1,0],"frame--r":[-409.5,-225.12,819,450.24],"full-cap--l":[-341.52,149.78,0],"full--r":[-360,-177.8,720,355.6],"wide-cap--l":[-276.27,98.26,0],"wide--r":[-294.75,-126.28,589.5,252.56]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="psiINT-dg7-root">{"body":"zone frame at 0,0 w 5.46 h 8.04 \"the frame – 1600 × 900 – .bleed\" {.tone-1 .bottom}\nzone full  at 0,0 w 4.8 h 6.35 \"alone on a .full slide – 1408 × 711\" {.tone-2 .bottom}\nzone wide  at 0,0 w 3.93 h 4.51 \"beside prose on a .wide slide – 1152 × 505\" {.tone-3 .bottom}\n\nstep alone\n  show full\n\nstep prose\n  show wide","attrs":"unit=150x56","opener":"::: draw 150x56","range":[31479,31792],"chunk":"bleed","width":"bleed","canvas":{"w":844.1489922971405,"h":474.8338081671415,"align":"center"},"alt":"A drawing that is the slide"}</script></figure></div></div>
+    
+    <aside class="annot-box" data-annot-for="bleed">
+      <div class="annot-box-label">annotation · bleed</div>
+      <div class="annot-qr qr-card" aria-hidden="true"></div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+  </div>
+  <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
+  <div class="overlay-layer">
+<div class="overlay-card ov-bottom-right ov-paper ov-w-standard" data-from="1"><p><strong>The same labels in all three.</strong> <code class="nb">.bleed</code> buys room, not bigger type.</p>
+</div>
+</div>
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>5</i></div>
+</article>
 </section>
 <section class="column" data-col="9" id="type">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="outline" data-chunk-id="type-section">
@@ -7339,7 +7390,7 @@ settings in YAML rather than wearing them.</p>
   
   
 </article>
-<article class="chunk chunk-free" id="style-block" data-chunk-id="style-block" data-tag="free" data-width="wide" data-chunk-num="45">
+<article class="chunk chunk-free" id="style-block" data-chunk-id="style-block" data-tag="free" data-width="wide" data-chunk-num="46">
   
   <div class="chunk-content">
     
@@ -7375,9 +7426,9 @@ settings in YAML rather than wearing them.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i><i>5</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></div>
 </article>
-<article class="chunk chunk-free" id="style-keys" data-chunk-id="style-keys" data-tag="free" data-width="wide" data-chunk-num="46">
+<article class="chunk chunk-free" id="style-keys" data-chunk-id="style-keys" data-tag="free" data-width="wide" data-chunk-num="47">
   
   <div class="chunk-content">
     
@@ -7399,9 +7450,9 @@ settings in YAML rather than wearing them.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></div>
 </article>
-<article class="chunk chunk-free" id="inline-code" data-chunk-id="inline-code" data-tag="free" data-width="wide" data-chunk-num="47">
+<article class="chunk chunk-free" id="inline-code" data-chunk-id="inline-code" data-tag="free" data-width="wide" data-chunk-num="48">
   
   <div class="chunk-content">
     
@@ -7431,9 +7482,9 @@ settings in YAML rather than wearing them.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i><i>7</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></div>
 </article>
-<article class="chunk chunk-free" id="neutrals" data-chunk-id="neutrals" data-tag="free" data-width="wide" data-chunk-num="48">
+<article class="chunk chunk-free" id="neutrals" data-chunk-id="neutrals" data-tag="free" data-width="wide" data-chunk-num="49">
   
   <div class="chunk-content">
     
@@ -7463,9 +7514,9 @@ settings in YAML rather than wearing them.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></div>
 </article>
-<article class="chunk chunk-free" id="headline" data-chunk-id="headline" data-tag="free" data-width="wide" data-chunk-num="49">
+<article class="chunk chunk-free" id="headline" data-chunk-id="headline" data-tag="free" data-width="wide" data-chunk-num="50">
   
   <div class="chunk-content">
     
@@ -7490,9 +7541,9 @@ settings in YAML rather than wearing them.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></div>
 </article>
-<article class="chunk chunk-free" id="labels" data-chunk-id="labels" data-tag="free" data-width="wide" data-chunk-num="50">
+<article class="chunk chunk-free" id="labels" data-chunk-id="labels" data-tag="free" data-width="wide" data-chunk-num="51">
   
   <div class="chunk-content">
     
@@ -7524,9 +7575,9 @@ settings in YAML rather than wearing them.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></div>
 </article>
-<article class="chunk chunk-free" id="bundled-fonts" data-chunk-id="bundled-fonts" data-tag="free" data-width="wide" data-chunk-num="51">
+<article class="chunk chunk-free" id="bundled-fonts" data-chunk-id="bundled-fonts" data-tag="free" data-width="wide" data-chunk-num="52">
   
   <div class="chunk-content">
     
@@ -7553,9 +7604,9 @@ settings in YAML rather than wearing them.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>5</i><i>2</i></div>
 </article>
-<article class="chunk chunk-free" id="code-type" data-chunk-id="code-type" data-tag="free" data-width="wide" data-chunk-num="52">
+<article class="chunk chunk-free" id="code-type" data-chunk-id="code-type" data-tag="free" data-width="wide" data-chunk-num="53">
   
   <div class="chunk-content">
     
@@ -7575,9 +7626,9 @@ settings in YAML rather than wearing them.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>5</i><i>2</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></div>
 </article>
-<article class="chunk chunk-free" id="fonts" data-chunk-id="fonts" data-tag="free" data-width="wide" data-chunk-num="53">
+<article class="chunk chunk-free" id="fonts" data-chunk-id="fonts" data-tag="free" data-width="wide" data-chunk-num="54">
   
   <div class="chunk-content">
     
@@ -7603,9 +7654,9 @@ settings in YAML rather than wearing them.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>5</i><i>4</i></div>
 </article>
-<article class="chunk chunk-title" data-tag="closing" data-width="full" data-cover="quote" data-closing="" data-cover-align="middle" data-chunk-id="end" data-chunk-num="54" id="end">
+<article class="chunk chunk-title" data-tag="closing" data-width="full" data-cover="quote" data-closing="" data-cover-align="middle" data-chunk-id="end" data-chunk-num="55" id="end">
   
   <div class="chunk-content">
     <h1 class="title-main">A slide is a frame</h1>
@@ -7617,7 +7668,7 @@ settings in YAML rather than wearing them.</p>
     <div class="title-foot"><span class="title-contact">https://github.com/UBA-PSI/psi-slides</span><span class="title-notice">The four views are built from this one file.</span></div>
   </div>
   
-  <div class="chunk-num" aria-hidden="true"><i>5</i><i>4</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>5</i><i>5</i></div>
 </article>
 </section>
   </div>
@@ -13839,6 +13890,19 @@ let collapsedZoom = state.zoom;
 // for: a short chunk would jump to huge type on a keypress that the
 // lecturer pressed to see more text, not bigger text.
 const FULL_FIT_FILL = 0.94;   // leave a little air top and bottom
+// ...except on a .bleed chunk, whose drawing IS the frame. Its canvas is one
+// slide tall by construction, so a figure drawn to it measures exactly the
+// viewport's height and would be over 0.94 of it at every slide: the fit
+// stepped each one down a notch and the labels with it, which is the one
+// thing the canvas promises not to happen. The whole frame, then, and one
+// pixel on top of it - the svg's height is a width times an aspect ratio and
+// lands a fraction either side of the integer the viewport reports.
+function fitAvail(el) {
+  if (!viewport) return 0;
+  return el && el.dataset && el.dataset.canvasTier === 'bleed'
+    ? viewport.clientHeight + 1
+    : viewport.clientHeight * FULL_FIT_FILL;
+}
 
 // Height alone does not decide whether a chunk fits. A long code line does
 // not wrap, so a chunk can sit comfortably inside the available height and
@@ -14154,7 +14218,7 @@ function fitZoomToChunk(ceiling) {
   const el = entry && entry.el;
   if (!el || !viewport) return;
   const cap = ceiling === undefined ? collapsedZoom : ceiling;
-  const avail = viewport.clientHeight * FULL_FIT_FILL;
+  const avail = fitAvail(el);
   if (!(avail > 0)) return;
   const overflowsX = nowrapProbe(el);
   const heightOf = flowHeightProbe(el);
@@ -16572,7 +16636,7 @@ window.psiExport = {
   // back before returning; state.zoom is not touched. Read by the PDF
   // export's parity numbers and by nothing in the live views.
   fitMeasure: (el, zooms) => {
-    const limit = viewport ? viewport.clientHeight * FULL_FIT_FILL : 0;
+    const limit = fitAvail(el);
     if (!(limit > 0)) return null;
     const probe = flowHeightProbe(el);
     const root = document.documentElement.style;
@@ -28080,15 +28144,20 @@ const dgeNum = (n, places) => {
 // Switching between them changes nothing in the source.
 
 const DGE_FRAME_EM = {
-  // the chunk's own width class, from AUDIENCE_CSS
-  slide: { narrow: 28, standard: 36, wide: 52, full: 72 },
+  // the chunk's own width class, from AUDIENCE_CSS. `bleed` is the slide
+  // frame itself: 16:9 in the chunk's em (lint.js SLIDE_EM), and
+  // dgeFrameMetrics takes the window's own width for it rather than this
+  // number, so the preview frame is the slide at any aspect.
+  slide: { narrow: 28, standard: 36, wide: 52, full: 72, bleed: 68.4 },
   // one pane of a ::: side or a ::: cols 2 at that class – just under half
   // the chunk in every class, and the portrait case: a .full pane is 35em
   // against the slide's 72em, and at .standard it is 17em. This is the one
   // place a landscape figure quietly stops working.
-  column: { narrow: 13, standard: 17, wide: 25, full: 35 },
+  // (a .bleed chunk has no pane - the build refuses one - so its entry is
+  // the .full pane, the nearest thing the preview can show)
+  column: { narrow: 13, standard: 17, wide: 25, full: 35, bleed: 35 },
   // the document measure, where the 62vh cap does not apply at all
-  print: { narrow: 28, standard: 36, wide: 52, full: 72 },
+  print: { narrow: 28, standard: 36, wide: 52, full: 72, bleed: 72 },
 };
 
 // The em base is the chunk's own font size, measured from the live document
@@ -28103,7 +28172,7 @@ function dgeEmPx() {
 function dgeFrameMetrics() {
   const width = DGE.fig ? DGE.fig.width : 'standard';
   const em = DGE_FRAME_EM[DGE.frame][width] || 36;
-  const px = em * dgeEmPx();
+  const px = width === 'bleed' && DGE.frame === 'slide' ? window.innerWidth : em * dgeEmPx();
   // .psi-diagram is capped at a share of the slide height in the live views
   // and at nothing in print. A figure that hits the cap is the case where its
   // width is decided by the frame rather than by its type, and that is

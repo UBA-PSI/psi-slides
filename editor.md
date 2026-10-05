@@ -545,7 +545,7 @@ destination**, and the frames are computed, not chosen:
 
 | frame | what it is | measured |
 |---|---|---|
-| **slide** | the chunk's own width class in a 16:9 view | `narrow` 28em · `standard` 36em · `wide` 52em · `full` 72em |
+| **slide** | the chunk's own width class in a 16:9 view | `narrow` 28em · `standard` 36em · `wide` 52em · `full` 72em · `bleed` the window's own width |
 | **column** | one pane of a `::: side` or `::: cols 2` at that width class | 13 / 17 / 25 / 35em – just under half the chunk in every class |
 | **print** | the document measure, where the 62vh cap does not apply | `.psi-diagram { max-height: none }` in `@media print` |
 

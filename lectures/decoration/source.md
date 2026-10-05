@@ -827,6 +827,37 @@ step note
   show n
 :::
 
+## figure: A drawing that is the slide | `{.bare .bleed}` hands the whole frame to one figure {.bare .bleed #bleed}
+
+> note: `.bleed` is the fifth width, and the only one that is not a text
+> measure: the chunk pads nothing and its drawing is laid out on the frame
+> itself. It is allowed only where the frame is one drawing's – the heading
+> off the slide, no footnote, no dock, one `::: draw` and nothing else on the
+> screen – and the build refuses anything else as `bad-bleed`. This deck says
+> `frame none` for every figure; a `.bleed` chunk has answered that question
+> for itself, so the default does not reach it.
+>
+> The outer field is this figure's canvas, drawn to its edges. The two inside
+> it are the boxes the same drawing would have had at `.full` and at `.wide`.
+> A label is the same size in all three: the frame is more room, and a larger
+> `{.figure-type-N}` is how room becomes type.
+
+::: draw 150x56
+zone frame at 0,0 w 5.46 h 8.04 "the frame – 1600 × 900 – .bleed" {.tone-1 .bottom}
+zone full  at 0,0 w 4.8 h 6.35 "alone on a .full slide – 1408 × 711" {.tone-2 .bottom}
+zone wide  at 0,0 w 3.93 h 4.51 "beside prose on a .wide slide – 1152 × 505" {.tone-3 .bottom}
+
+step alone
+  show full
+
+step prose
+  show wide
+:::
+
+::: overlay {.bottom-right .paper} from 1
+**The same labels in all three.** `.bleed` buys room, not bigger type.
+:::
+
 # Type and colour {#type}
 
 The settings in this part are written once, in the frontmatter, and change

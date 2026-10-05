@@ -613,7 +613,7 @@ A chunk can opt out of that derivation with `::: slide` (this block is the scree
 
 ### Chunk grammar
 
-Chunk grammar: `## type: Heading | Sub-Heading {.width #id}` where `type` is one of `title`, `closing`, `outline`, `principle`, `statement`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow` (28em), `standard` (36em), `wide` (52em), `full` (72em). The `|` sub-heading and the `{...}` attribute tail are both optional; width defaults to `standard`.
+Chunk grammar: `## type: Heading | Sub-Heading {.width #id}` where `type` is one of `title`, `closing`, `outline`, `principle`, `statement`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow` (28em), `standard` (36em), `wide` (52em), `full` (72em), or `bleed` – not a text measure but the slide frame, legal only on a picture slide (one `::: draw` and nothing else on the screen, `bad-bleed` otherwise; the `psi-slides-figures` skill has it). The `|` sub-heading and the `{...}` attribute tail are both optional; width defaults to `standard`.
 
 An attribute tail may also carry the non-width classes: `.bare`, `.center`
 and the pair `.middle` / `.top` (audience-only), `.wrap-none` / `.wrap-balance` /

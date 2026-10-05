@@ -21,6 +21,22 @@ from building the same way is a major version.
   over the 1,024-character limit; all six are quoted and within it now, held
   by a new `skills` gate.
 
+- `.bleed`, a fifth chunk width: the slide frame as one drawing's canvas.
+  `## figure: … {.bare .bleed #id}` takes the chunk's padding away and lays
+  its `::: draw` out on the whole frame – 50.6 × 28.5 base labels, 1600 ×
+  900 px – where a `.full` picture slide has 44.6 × 22 and 1408 × 711 px. It
+  is legal only on a picture slide (heading off the slide, no footnote, no
+  dock, one `::: draw` as the whole on-screen body); anything else is refused
+  as `bad-bleed` by the build and the linter, and so is a `frame` on that
+  figure's opener. The deck's `draw-defaults: frame` does not reach such a
+  chunk. A backdrop behind the drawing, an overlay on it, steps and
+  `autoplay` go with it. What it buys is room: a figure that fitted its
+  `.full` canvas renders at the same size, centred in the frame, and a larger
+  `.figure-type-NNN` is how the room becomes type; only a figure that was
+  past its canvas grows directly, to the frame instead of the column. No
+  existing slide changes – none carries the word. Not in it: a deck-wide
+  switch, a divider or a cover that bleeds, a gutter option.
+
 ### Changed
 
 - A figure that is alone on its slide may stand taller. A chunk whose heading

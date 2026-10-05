@@ -637,6 +637,20 @@ six more rows, or room round a drawing that would otherwise stand edge to
 edge. A slide loses it the moment something joins the figure on the screen, and
 a drawing that used the extra rows then overflows.
 
+**And a drawing that is the whole slide can have the whole frame: `{.bare
+.bleed}` gives 50 across and 28 down.** `.bleed` is a width, the fifth, and it
+takes the chunk's padding away, so the canvas is the 1600 × 900 frame itself.
+It is allowed only on that same lone-figure slide, and it does not take a
+`frame` on the figure. Know what it buys before reaching for it: a figure that
+fitted its `.full` canvas renders at the same size, centred in the frame;
+raise `figure-type` to use the room. The canvas is still the column in labels,
+so a label is still one em – `.bleed` offers six more columns and six more
+rows, or the same drawing at `{.figure-type-110}` or `-120` where it was at
+100. Only a drawing that was *past* its canvas gets bigger at once, because it
+is now capped at the frame rather than at the column. Leave the air inside the
+drawing: it reaches the frame's edges, and the slide number stands in the top
+right corner of it.
+
 Two failures, and each has its own fix:
 
 - **Wider or taller than the canvas.** The drawing is scaled down to fit the

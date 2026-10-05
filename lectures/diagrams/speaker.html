@@ -414,6 +414,25 @@ body.text-selecting #psiINT-figure-overlay > .figure-focus-target { cursor: text
    content should do. FIG_COLUMN_PX in the figure-type warning carries the
    measured result; re-measure it if this number changes. */
 .chunk[data-width=full]:not(.chunk-title):not(.chunk-section) { --slide-pad-x: 6%; }
+/* .bleed is the frame: no padding, and a column as wide as the slide. Legal
+   only on a picture slide (the build refuses anything else as bad-bleed), so
+   the one child of the column is a drawing and the rules below are about
+   that drawing alone.
+
+   The padding is zeroed on the property and not through --slide-pad-x / -y,
+   because three things inside the chunk are measured off those variables and
+   must keep their place: an overlay card's inset, a dock's reserve and the
+   slide number's offset. A caption card on a bleed figure stands in the
+   frame's gutter like on a backdrop, not on its edge.
+
+   min-height is the frame, as on a backdrop chunk: the box is one slide
+   tall whatever the drawing's aspect, so the camera has nothing to centre
+   and a drawing flatter than 16:9 sits in the middle of it. The gap and the
+   figure's own margin go because there is nothing for them to separate; left
+   in, a canvas of exactly one frame stood 40 px taller than the frame. */
+.chunk[data-width=bleed] { padding: 0; --content-w: var(--slide-w); min-height: var(--slide-h); }
+.chunk[data-width=bleed] > .chunk-content { gap: 0; }
+.chunk[data-width=bleed] .chunk-content .figure-diagram { margin: 0; }
 /* The cover, the closing slide and a divider hardcode data-width="full" and
    compose against the 14% frame - a title flush against the edge is not
    what "full" was meant to buy - so the wider column is the author-written
@@ -1056,7 +1075,7 @@ figure.figure-img svg {
      ink-edge correction: see the comment there for what --dg-ink-x buys. */
   margin-inline: auto;
 }
-/* The height cap's two other tiers, mirroring FIG_CAP. A picture slide - a
+/* The height cap's three other tiers, mirroring FIG_CAP. A picture slide - a
    chunk with its heading off the slide and one drawing as its whole on-screen
    body - has no furniture to leave room for, so its figure may take 0.79 of
    the frame and its canvas is 22 label-heights instead of 16. A stacked
@@ -1064,6 +1083,8 @@ figure.figure-img svg {
    width-capped at 0.62 while its max-height and its 20-label canvas both said
    0.72: the canvas came out narrower than the .full column it is meant to be. */
 .chunk[data-canvas-tier=picture] { --fig-cap: 0.79; }
+/* A .bleed chunk's canvas is the frame, so its figure may take all of it. */
+.chunk[data-canvas-tier=bleed] { --fig-cap: 1; }
 .chunk-section[data-section-layout=stack] { --fig-cap: 0.72; }
 body[data-blocks=left] .chunk .psi-diagram,
 .chunk[data-blocks=left] .psi-diagram {
@@ -6272,6 +6293,22 @@ body[data-view=speaker] .dg-hint {
   margin-top: 0.35rem;
 }
 body[data-view=speaker] .chunk:not(.active) .dg-hint { visibility: hidden; }
+/* On a .bleed chunk the drawing is the frame, and a line under it made the
+   mirror's chunk a frame plus a caption - measured, 932 px in a 900 px stage,
+   the one slide of the deck taller than what the projection shows. The zoom
+   did not move for it; the box did. So there the hint lies over the figure's
+   bottom edge, on a chip of the page's own ground. */
+body[data-view=speaker] .chunk[data-canvas-tier=bleed] .figure-diagram { position: relative; }
+body[data-view=speaker] .chunk[data-canvas-tier=bleed] .dg-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 0.5rem;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.1rem 0.5rem;
+  background: var(--paper);
+  border-radius: 0.2rem;
+}
 body[data-view=speaker].overview-mode .dg-hint { display: none; }
 
 /* Cockpit chrome on a dark theme – same reasoning as the dark-chrome block
@@ -15405,6 +15442,19 @@ let collapsedZoom = state.zoom;
 // for: a short chunk would jump to huge type on a keypress that the
 // lecturer pressed to see more text, not bigger text.
 const FULL_FIT_FILL = 0.94;   // leave a little air top and bottom
+// ...except on a .bleed chunk, whose drawing IS the frame. Its canvas is one
+// slide tall by construction, so a figure drawn to it measures exactly the
+// viewport's height and would be over 0.94 of it at every slide: the fit
+// stepped each one down a notch and the labels with it, which is the one
+// thing the canvas promises not to happen. The whole frame, then, and one
+// pixel on top of it - the svg's height is a width times an aspect ratio and
+// lands a fraction either side of the integer the viewport reports.
+function fitAvail(el) {
+  if (!viewport) return 0;
+  return el && el.dataset && el.dataset.canvasTier === 'bleed'
+    ? viewport.clientHeight + 1
+    : viewport.clientHeight * FULL_FIT_FILL;
+}
 
 // Height alone does not decide whether a chunk fits. A long code line does
 // not wrap, so a chunk can sit comfortably inside the available height and
@@ -15720,7 +15770,7 @@ function fitZoomToChunk(ceiling) {
   const el = entry && entry.el;
   if (!el || !viewport) return;
   const cap = ceiling === undefined ? collapsedZoom : ceiling;
-  const avail = viewport.clientHeight * FULL_FIT_FILL;
+  const avail = fitAvail(el);
   if (!(avail > 0)) return;
   const overflowsX = nowrapProbe(el);
   const heightOf = flowHeightProbe(el);
@@ -18138,7 +18188,7 @@ window.psiExport = {
   // back before returning; state.zoom is not touched. Read by the PDF
   // export's parity numbers and by nothing in the live views.
   fitMeasure: (el, zooms) => {
-    const limit = viewport ? viewport.clientHeight * FULL_FIT_FILL : 0;
+    const limit = fitAvail(el);
     if (!(limit > 0)) return null;
     const probe = flowHeightProbe(el);
     const root = document.documentElement.style;
@@ -31020,15 +31070,20 @@ const dgeNum = (n, places) => {
 // Switching between them changes nothing in the source.
 
 const DGE_FRAME_EM = {
-  // the chunk's own width class, from AUDIENCE_CSS
-  slide: { narrow: 28, standard: 36, wide: 52, full: 72 },
+  // the chunk's own width class, from AUDIENCE_CSS. `bleed` is the slide
+  // frame itself: 16:9 in the chunk's em (lint.js SLIDE_EM), and
+  // dgeFrameMetrics takes the window's own width for it rather than this
+  // number, so the preview frame is the slide at any aspect.
+  slide: { narrow: 28, standard: 36, wide: 52, full: 72, bleed: 68.4 },
   // one pane of a ::: side or a ::: cols 2 at that class – just under half
   // the chunk in every class, and the portrait case: a .full pane is 35em
   // against the slide's 72em, and at .standard it is 17em. This is the one
   // place a landscape figure quietly stops working.
-  column: { narrow: 13, standard: 17, wide: 25, full: 35 },
+  // (a .bleed chunk has no pane - the build refuses one - so its entry is
+  // the .full pane, the nearest thing the preview can show)
+  column: { narrow: 13, standard: 17, wide: 25, full: 35, bleed: 35 },
   // the document measure, where the 62vh cap does not apply at all
-  print: { narrow: 28, standard: 36, wide: 52, full: 72 },
+  print: { narrow: 28, standard: 36, wide: 52, full: 72, bleed: 72 },
 };
 
 // The em base is the chunk's own font size, measured from the live document
@@ -31043,7 +31098,7 @@ function dgeEmPx() {
 function dgeFrameMetrics() {
   const width = DGE.fig ? DGE.fig.width : 'standard';
   const em = DGE_FRAME_EM[DGE.frame][width] || 36;
-  const px = em * dgeEmPx();
+  const px = width === 'bleed' && DGE.frame === 'slide' ? window.innerWidth : em * dgeEmPx();
   // .psi-diagram is capped at a share of the slide height in the live views
   // and at nothing in print. A figure that hits the cap is the case where its
   // width is decided by the frame rather than by its type, and that is

@@ -63,6 +63,7 @@ and every figure slide therefore settled at its own zoom.
 | `.standard` | 26.7 × 16 | 842 × 505 px |
 | `.wide` | 36.5 × 16 | 1152 × 505 px |
 | `.full` | 44.6 × 16 | 1408 × 505 px |
+| `.bleed` | 50.6 × 28.5 | 1600 × 900 px |
 
 The width is **the chunk's column measured in base labels**, which is exactly
 the width at which a base label lands at the size of the words beside it. So
@@ -93,12 +94,46 @@ steps the type down, twenty-two label-heights is 695 px, and the cap of 0.79
 so a figure that fits its canvas settles at the same type on either; the
 picture tier only offers more rows. The tier is decided when the chunk closes
 (`isPictureSlide` in build.js), rides on the chunk as `data-canvas-tier`, and
-the stylesheet reads it as `--fig-cap`; `FIG_CAP` holds the three shares
-(chunk, picture, stacked divider) and the `canvas` gate holds them against the
-stylesheet. `figure-underfills-canvas` judges a picture slide against the
+the stylesheet reads it as `--fig-cap`; `FIG_CAP` holds the four shares
+(chunk, picture, stacked divider, bleed) and the `canvas` gate holds them
+against the stylesheet. `figure-underfills-canvas` judges a picture slide against the
 ordinary sixteen-label box, so a flat figure is not called empty for room it
 was offered and did not need; `--check-fit` prints the share of the canvas
 actually reserved.
+
+**A `.bleed` chunk's canvas is the slide frame: 50.6 × 28.5 labels, 1600 ×
+900 px.** `.bleed` is the fifth width word, and it is the same rule as the
+other four read at its limit – the canvas is the chunk's column in labels, and
+this chunk pads nothing, so its column is the frame. It is legal only on a
+picture slide, by exactly the test above (heading off the slide, no footnote,
+no dock, one `::: draw` as the whole on-screen body); anything else is refused
+as `bad-bleed`, in the build and in `lint.js`, with what stands in the way
+named. A `frame` on the figure's own opener is refused with the same code,
+because both name the canvas, and the deck's `draw-defaults: frame …` does not
+reach a `.bleed` chunk: the chunk's word is the more specific answer, as a
+figure's own `frame` is against the deck's. A `::: backdrop` behind the
+drawing, a `::: overlay` on it (its inset is still the frame's gutter),
+`step` blocks, `autoplay`, `.figure-type-NNN`, a `> note:` and an
+`::: expand` all go with it. The height is derived rather than chosen –
+`FIG_REF_SLIDE_H_PX / FIG_REF_BODY_PX`, the fourth entry of
+`FIG_TIER_H_LABELS` – and its cap is 1, so `fitZoomToChunk` gives this one
+tier the whole viewport instead of 94 % of it (`fitAvail`): a canvas one frame
+tall is over 0.94 by construction, and without the branch every bleed slide
+was stepped down a notch.
+
+**What it buys is room, and by itself it makes nothing bigger.** A figure
+that fitted its `.full` canvas renders at the same size, centred in the
+frame; raise `figure-type` to use the room – `--check-fit`'s room line says
+how far. Only a figure *past* its canvas grows directly, because the box it
+is capped to is the frame instead of the column: 1408 → 1600 px across, 711
+→ 900 px down. `figure-underfills-canvas` judges a `.bleed` figure against
+the whole of its own canvas – the chunk said the drawing is the slide – and
+names `.full` as the way back. Three things it does not do: there is no
+deck-wide switch, a divider or a cover cannot bleed (a stacked divider keeps
+its 0.72 tier), and there is no gutter option – the drawing reaches the
+frame's edges, under the slide number and the `+ note` mark, so the author
+leaves the air inside the drawing. A *photograph* that fills the frame is
+`::: backdrop`, not this.
 
 **The height does not come down by the prose under the drawing**, and that was
 measured rather than assumed (`docs/history/PLAN-figure-defaults.md` §6 item 7). A shorter
