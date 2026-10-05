@@ -74,6 +74,13 @@ from building the same way is a major version.
   projection's command; what it lacked was the build's list of missing
   views, which a `speaker.html` built without `print.html` beside it now
   carries too, for a page that cannot ask.
+- A slide whose picture loads after the camera has framed it is framed
+  again. An image far down the column has no height until the browser
+  fetches it, so a slide reached by a long jump was centred without its
+  picture and then stood off the bottom of a frame it fits – 170 px on a
+  791 px slide at 1600x900, which `--check-fit` reported against a chunk
+  that had nothing wrong with it. Under auto-fit the type is solved again
+  as well.
 
 ## [2.0.0]
 

@@ -23,6 +23,7 @@
 import fs from 'node:fs';
 import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { spawnSync } from 'node:child_process';
 import { serve, ROOT } from './harness.mjs';
 
@@ -107,13 +108,44 @@ ${DRAW}
 ---
 
 And the second arrives on a press.
+
+## free: A photograph that arrives late {.wide #c11}
+
+![](photo)
+
+${para(2)}
 `;
+
+// A photograph for #c11, made here so the fixture needs no file in the
+// repository: a plain grey PNG, large enough that the slide is a different
+// height with it than without it.
+function greyPng(w, h) {
+  const chunk = (type, data) => {
+    const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+    const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+    const crc = Buffer.alloc(4); crc.writeUInt32BE(zlib.crc32(body) >>> 0);
+    return Buffer.concat([len, body, crc]);
+  };
+  const head = Buffer.alloc(13);
+  head.writeUInt32BE(w, 0); head.writeUInt32BE(h, 4);
+  head[8] = 8; head[9] = 2;   // 8 bits a channel, RGB
+  const rows = Buffer.alloc(h * (1 + w * 3), 0x99);
+  for (let y = 0; y < h; y++) rows[y * (1 + w * 3)] = 0;   // filter: none
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', head), chunk('IDAT', zlib.deflateSync(rows)), chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
 
 function buildDeck() {
   const dir = tmpDir('psi-camfit-');
   fs.writeFileSync(path.join(dir, 'source.md'), DECK);
+  fs.mkdirSync(path.join(dir, 'assets'));
+  fs.writeFileSync(path.join(dir, 'assets', 'photo.png'), greyPng(1200, 900));
+  // --no-optimize-images, as the harness builds: the picture stays the PNG
+  // written above whatever encoder this machine has.
   const r = spawnSync(process.execPath,
-    [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
+    [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only', '--no-optimize-images'],
     { cwd: ROOT, encoding: 'utf8' });
   return { dir, status: r.status, out: (r.stdout || '') + (r.stderr || '') };
 }
@@ -152,6 +184,50 @@ export async function run({ page, report }) {
         });
       }, 520));
     }, id);
+
+    // A picture that loads after the camera has framed its slide. An image is
+    // emitted with loading="lazy" and no dimensions, so far down the column
+    // it has no height until the browser fetches it - and the browser fetches
+    // it when the camera gets near, which is after focusCamera has centred a
+    // slide that was still missing its picture. Nothing solved the camera
+    // again: on a lecture, a slide of 791 px stood 170 px off the bottom of a
+    // 900 px frame, and --check-fit blamed it on the chunk before.
+    //
+    // First, before anything else has walked the deck: the picture must still
+    // be unloaded when the jump is made, or the case is not the one that broke.
+    const late = await page.evaluate(() => {
+      const i = flatChunks.findIndex((c) => c.id === 'c11');
+      if (i < 0) return null;
+      const el = flatChunks[i].el;
+      const img = el.querySelector('img');
+      const before = { complete: img.complete && img.naturalHeight > 0, h: img.offsetHeight };
+      jumpTo(i);
+      return new Promise((res) => setTimeout(() => {
+        const r = el.querySelector('.chunk-content').getBoundingClientRect();
+        const vp = document.getElementById('psiINT-stage-viewport').getBoundingClientRect();
+        res({
+          before, loaded: img.complete && img.naturalHeight > 0, imgH: img.offsetHeight,
+          h: Math.round(r.height), vpH: Math.round(vp.height),
+          top: Math.round(r.top - vp.top), bottom: Math.round(r.bottom - vp.top),
+        });
+      }, 1500));
+    });
+    if (!late) { ok(false, '#c11 is in the deck'); }
+    else {
+      note(`#c11: picture ${late.before.h} px before the jump and ${late.imgH} px after, `
+        + `content ${late.h} in ${late.vpH}, top ${late.top}, bottom ${late.bottom}`);
+      ok(!late.before.complete && late.before.h === 0,
+        'the picture of #c11 has not loaded, and has no height, when the camera leaves for it',
+        'it was loaded already, so the late arrival was not exercised');
+      ok(late.loaded && late.imgH > 100, 'and it has loaded once the slide is on screen',
+        `loaded ${late.loaded}, ${late.imgH} px`);
+      ok(late.h <= late.vpH, '#c11 fits the frame with its picture in it', `content ${late.h} in ${late.vpH}`);
+      ok(late.top >= -1 && late.bottom <= late.vpH + 1,
+        'a picture that loads after the camera framed its slide has the slide framed again',
+        `content ${late.h} in ${late.vpH}, top ${late.top}, bottom ${late.bottom}`);
+    }
+    await page.evaluate(() => jumpTo(0));
+    await page.waitForTimeout(520);
 
     let straddled = false;
     for (const id of ['c1', 'c2', 'c3', 'c4']) {
