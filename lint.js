@@ -648,7 +648,10 @@ const ORPHAN_MIN = 2;
 // about twenty characters a line: below that a paragraph is a ribbon. The
 // widest row in the corpus, five cards in a wide chunk, is 10.4em a card and
 // passes; six would not, and six cards in a row is a table.
-const WIDTH_EM = { narrow: 28, standard: 36, wide: 52, full: 72 };
+// `bleed` is the slide itself - SLIDE_EM below, the frame in the same em. A
+// bleed chunk holds one drawing and no wrapper (bad-bleed), so nothing is
+// ever measured against it; the entry is there so widthWord() names it.
+const WIDTH_EM = { narrow: 28, standard: 36, wide: 52, full: 72, bleed: 68.4 };
 // A side dock takes its column out of the slide, so the measure a chunk
 // beside it can have is what the slide leaves: the slide's width in em
 // (16:9 at font-size 0.026 x slide-h, the viewport --check-fit uses), less
@@ -3560,6 +3563,27 @@ function lintFile(filePath) {
   // and its body with it - so a chunk-level flag is the only way a later check
   // can know the chunk drew something. Same shape as chunkHasReveal.
   let chunkHasDrawing = false;
+  // **What a `.bleed` chunk is judged on: is it a picture slide.** Mirrors
+  // isPictureSlide / bleedObstacle in build.js, which read the half-rendered
+  // body; here the same facts are tallied as the lines go by, per bucket,
+  // because which bucket is the screen is only known when the chunk closes
+  // (the `::: slide` block if there is one, else everything outside
+  // `::: script`, and both under collapse: none).
+  //   figs   - a ::: draw in the chunk's own flow (not in a pane, a card, an
+  //            overlay, a dock or an expansion), with the frame on its opener
+  //   images - a paragraph that is one image and nothing else
+  //   other  - any other line the build leaves in the body: prose, a fence,
+  //            a layout wrapper's opener
+  const newPicture = () => ({
+    figs: { plain: [], slide: [], script: [] },
+    images: { plain: 0, slide: 0, script: 0 },
+    other: { plain: 0, slide: 0, script: 0 },
+    footnote: null,
+  });
+  let picture = newPicture();
+  const pictureBucket = () => layoutStack.some(l => l.kind === 'slide') ? 'slide'
+    : layoutStack.some(l => l.kind === 'script') ? 'script' : 'plain';
+  const collapsedDeck = (header.match(/^collapse:[ \t]*["']?([a-z-]+)/m) || [, 'topic-bold'])[1] !== 'none';
   let inFence = false;
   const fence = fenceTracker();  // the rule from tails.mjs; inFence mirrors fence.inside
   let activeDirective = null;
@@ -3685,6 +3709,43 @@ function lintFile(filePath) {
             `::: backdrop {.clear} with ${what.join(' and ')} standing on the unveiled picture – `
             + 'drop .clear (veil), write .invert, or put the words in a ::: overlay or a ::: dock'
             + (bare ? '' : '; {.bare} on the chunk takes the heading off the slide'));
+      }
+    }
+    // Mirrors build.js (flushChunk, bleedObstacle): `.bleed` makes the slide
+    // frame the figure's canvas, so it is legal only on a picture slide, and
+    // the reasons are named in the build's order.
+    if ((chunk.classes || []).includes('bleed') && chunk.tag !== 'title' && chunk.tag !== 'closing') {
+      // Which buckets are on the screen. Under collapse: none an explicit
+      // block's wrapper stands in the body with everything else, so a chunk
+      // that has one is not a lone drawing whatever is in it.
+      const explicit = !!(chunk.slideSeen || chunk.scriptSeen);
+      const on = !collapsedDeck ? ['plain', 'slide', 'script']
+        : chunk.slideSeen ? ['slide'] : ['plain'];
+      const sum = (o) => on.reduce((n, k) => n + (Array.isArray(o[k]) ? o[k].length : o[k]), 0);
+      const figs = on.flatMap(k => picture.figs[k]);
+      const pictures = figs.length + sum(picture.images);
+      const other = sum(picture.other) + (!collapsedDeck && explicit ? 1 : 0);
+      const bare = (chunk.classes || []).includes('bare');
+      const why = !bare && chunk.heading
+        ? 'its heading is on the slide – write {.bare} to keep the heading in the document and off the frame'
+        : picture.footnote ? `it carries a ::: footnote (line ${picture.footnote}), which stands under the figure`
+        : chunk.dock ? `it carries a ::: dock (${chunk.dock.inherited ? 'inherited from line ' : 'line '}${chunk.dock.line}), which takes a band of the frame`
+        : pictures > 1 ? `it shows ${pictures} figures, and the frame is one drawing's`
+        : other > 0 ? 'there is something on the screen beside the figure – prose, a second block or a layout wrapper; '
+          + 'words on a drawing that fills the frame go in a ::: overlay'
+          + (collapsedDeck ? ', narration in ::: script' : ', and under collapse: none a ::: script block is on the screen too')
+        : pictures === 0 ? 'there is no ::: draw on its screen'
+        : !figs.length ? 'its picture is not a ::: draw in the chunk\'s own flow – an image that fills the frame is ::: backdrop'
+        : null;
+      if (why) {
+        add(chunk.line, 'error', 'bad-bleed',
+            `.bleed on a chunk that is not one drawing and nothing else: ${why}. `
+            + '.bleed makes the slide frame the figure\'s canvas, so it is legal only on a picture slide – '
+            + 'the heading off the slide, no ::: footnote, no ::: dock, and one ::: draw as the whole on-screen body');
+      } else if (figs[0].frame != null) {
+        add(figs[0].ln, 'error', 'bad-bleed',
+            `::: draw … frame ${figs[0].frame} in a .bleed chunk – both name the figure's canvas: .bleed says it is `
+            + 'the slide frame, and frame says it is something else; drop the frame from the opener, or write .full for .bleed');
       }
     }
     // Mirrors build.js: the aside extends into the right margin, which a
@@ -3872,6 +3933,7 @@ function lintFile(filePath) {
     chunkOverlays = []; chunkRevealPins = [];
     exposedWords = 0;
     chunkHasDrawing = false;
+    picture = newPicture();
     noteSegs = []; notePins = []; curNote = null;
     rawSegHasText = []; rawSegPinned = []; rawSegFrom = []; rawSegLine = [];
     rawSegAside = []; rawSegNested = []; chunkDockFroms = []; rawSeg = 0;
@@ -3977,6 +4039,7 @@ function lintFile(filePath) {
     if (fence.step(line, ln)) {
       inFence = fence.inside;
       if (chunk) chunkBody.push(line);
+      if (chunk && !activeDirective) picture.other[pictureBucket()] += 1;
       segHasBody();
       continue;
     }
@@ -4003,6 +4066,13 @@ function lintFile(filePath) {
     // line is then handled as usual so the closers still balance and one
     // mistake is one report.
     if ((chunk || col) && /^:::\s+\S/.test(line) && !parseDrawOpener(line)) {
+      // For bad-bleed: an opener the build leaves in the body as a wrapper -
+      // everything but the asides it lifts out, the one-line backdrop and
+      // the two explicit blocks, which decide the bucket instead.
+      if (chunk && !activeDirective
+          && !/^:::\s+(?:expand|footnote|margin|pulse|overlay|dock|backdrop|slide|script)\b/.test(line)) {
+        picture.other[pictureBucket()] += 1;
+      }
       const host = stackHas(/^(cards|rows)\b/);
       if (host) {
         add(ln, 'error', 'directive-in-cards',
@@ -4047,6 +4117,13 @@ function lintFile(filePath) {
       }
       diagram = { open: ln, lines: [], autoplay: diagramOpen.autoplay != null };
       chunkHasDrawing = true;
+      // For bad-bleed: the chunk's own figure, which is what build.js holds
+      // back as pendingDraw (dgInFlow). One in a pane or a card row is in the
+      // body all the same, but its wrapper has been counted already; one in
+      // an overlay, a dock or an expansion is not on the body at all.
+      if (chunk && !activeDirective && layoutStack.every(l => l.kind === 'slide' || l.kind === 'script')) {
+        picture.figs[pictureBucket()].push({ ln, frame: diagramOpen.frame });
+      }
       // The compiled <svg> goes into the body, so the segment it stands in
       // is not an empty one - the whole of a figure slide can be one.
       segHasBody();
@@ -4231,6 +4308,7 @@ function lintFile(filePath) {
         continue;
       }
       if (chunk) rawSegAside[rawSeg] = true;
+      if (chunk && marginOpen && !picture.footnote) picture.footnote = ln;
       activeDirective = { kind: word, line: ln };
       continue;
     }
@@ -4813,6 +4891,16 @@ function lintFile(filePath) {
       else if (inKind('script')) scriptBody.push(line);
       else {
         chunkBody.push(line);
+      }
+      // For bad-bleed, in whichever bucket: mirrors pictureBodyCount in
+      // build.js - a paragraph that is one image is a picture, a comment says
+      // nothing to the room, and any other line is content beside the figure.
+      if (!activeDirective && line.trim() && !/^:::/.test(line.trim())) {
+        const t = line.trim();
+        if (/^!\[[^\]]*\]\([^)]*\)$/.test(t)) picture.images[pictureBucket()] += 1;
+        else if (!/^<!--[\s\S]*-->$/.test(t)) picture.other[pictureBucket()] += 1;
+      }
+      if (!inKind('slide') && !inKind('script')) {
         // Words that stand on the slide itself, outside an overlay or a
         // dock - what a .clear backdrop would leave on the bare picture.
         if (!activeDirective && !/^:::|^<div class="beat-mark"/.test(line.trim()) && line.trim()) exposedWords += line.trim().split(/\s+/).length;

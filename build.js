@@ -3756,7 +3756,12 @@ function dgWarn(msg) {
 // audience.html at 1600x900: .wide comes out at the frame's 1152 px rather
 // than its nominal 52em, and .full, which pads 6% instead of 14%, at 1408 px
 // rather than 72em. Re-measure them if --slide-pad-x or the em changes.
-const FIG_COLUMN_PX = { narrow: 655, standard: 842, wide: 1152, full: 1408 };
+//
+// **.bleed is the one column that is derived**, because there is nothing to
+// measure: the chunk pads nothing and its column is the frame, so the figure's
+// column is the reference viewport's own width.
+const FIG_REF_SLIDE_W_PX = 1600;                   // the reference viewport's width
+const FIG_COLUMN_PX = { narrow: 655, standard: 842, wide: 1152, full: 1408, bleed: FIG_REF_SLIDE_W_PX };
 // **And the em a figure stands in is not 1rem.** 1rem is
 // clamp(20px, --slide-h * 0.026, 38px) = 23.4 px at 1600x900, but a chunk
 // body is `1rem * --zoom * --body-scale` and --zoom's own default is 1.35, so
@@ -3788,12 +3793,13 @@ function figureRefEm(tag) {
 }
 const FIG_REF_BODY_PX = FIG_REF_REM_PX * FIG_REF_ZOOM;   // 31.59, the ordinary chunk's em
 // **How much of the slide's height a live figure may take, per tier.** One
-// table, mirrored by three stylesheet rules that set `--fig-cap` (the base
+// table, mirrored by four stylesheet rules that set `--fig-cap` (the base
 // value written as the fallback in DIAGRAM_CSS and in `--dg-box-w`, plus
-// `.chunk[data-canvas-tier=picture]` and the stacked divider's) and held
+// `.chunk[data-canvas-tier=picture]`, `.chunk[data-canvas-tier=bleed]` and
+// the stacked divider's) and held
 // against them by `node test/gates/run.mjs canvas`. The reasoning for each
 // number is beside the label count it belongs to, under FIG_CANVAS_H_LABELS.
-const FIG_CAP = { chunk: 0.62, picture: 0.79, stack: 0.72 };
+const FIG_CAP = { chunk: 0.62, picture: 0.79, stack: 0.72, bleed: 1 };
 const FIG_REF_SLIDE_H_PX = 900;                    // the reference viewport's height
 // The height cap of one tier at that viewport, in px.
 function figureCapPx(tier) {
@@ -3875,11 +3881,28 @@ const FIG_UNDERFILL = 0.5;
 // chunk's 16, measured as floor(900 * 0.72 / 31.59). Sized to the box it is
 // drawn in, so the overflow and underfill numbers describe that box.
 const FIG_CANVAS_H_LABELS_STACK = 20;
+// **A `.bleed` chunk's canvas is the frame, and its label count is derived
+// rather than chosen.** The other three tiers are a whole number picked under
+// a measured bound - what is left beside the furniture, under the padding,
+// under what auto-fit leaves. A bleed chunk has no furniture and no padding,
+// and fitZoomToChunk gives it the whole frame (fitFill), so there is no bound
+// to stay under: the canvas is as tall as the reference viewport, in labels at
+// the ordinary em - 900 / 31.59 = 28.49. Written as the division, because a
+// rounded 28 would leave 15 px of the frame outside the canvas and a typed
+// 28.49 would stop being the frame the day the em moves. Its cap is 1.
+//
+// The width rule is the same one every tier obeys: the canvas is the chunk's
+// column in labels, and this chunk's column is 1600 px (FIG_COLUMN_PX.bleed).
+// So a drawing that fits a bleed canvas settles at the body em like any
+// other; what the tier adds is room, 50.6 x 28.5 labels of it against a .full
+// picture slide's 44.6 x 22.
+const FIG_CANVAS_H_LABELS_BLEED = FIG_REF_SLIDE_H_PX / FIG_REF_BODY_PX;
 // The label count of each tier, keyed like FIG_CAP.
 const FIG_TIER_H_LABELS = {
   chunk: FIG_CANVAS_H_LABELS,
   picture: FIG_CANVAS_H_LABELS_PICTURE,
   stack: FIG_CANVAS_H_LABELS_STACK,
+  bleed: FIG_CANVAS_H_LABELS_BLEED,
 };
 // The height of the ordinary sixteen-label canvas in viewBox units, for a
 // figure of this chunk type and multiplier. `figure-underfills-canvas` judges
@@ -4023,12 +4046,12 @@ function reportFigureTypeStatic() {
         if (overH > 0.5) axes.push(over(overH, 'down'));
         dgWarn(`figure-overflows-canvas in ${f.where}: the drawing is ${lab(f.contentW)} x`
           + ` ${lab(f.contentH)} labels and its canvas is ${lab(f.canvas.w)} x ${lab(f.canvas.h)}`
-          + ` - over by ${axes.join(' and ')}. The canvas is the chunk's column at body type, so a`
+          + ` - over by ${axes.join(' and ')}. The canvas is ${f.tier === 'bleed' ? 'the slide frame' : "the chunk's column"} at body type, so a`
           + ` drawing past it takes its own slide's type down with it: about ${f.body.toFixed(0)} px`
           + ` against the ${f.em.toFixed(0)} px every figure slide that fits its canvas settles at,`
           + ` which a room reads as a heading that changes size from slide to slide.`
           + ` Shorter labels, a row moved onto a second line`
-          + (f.width === 'wide' || f.width === 'full' ? '' : ', a wider column')
+          + (f.width === 'wide' || f.width === 'full' || f.width === 'bleed' ? '' : ', a wider column')
           + `, or  ${wants}  on this figure to say the box is meant to be that big.`
           + (f.label < FIG_TYPE_FLOOR_PX
             ? ` Its own labels land at about ${f.label.toFixed(0)} px either way - that is the`
@@ -4055,10 +4078,18 @@ function reportFigureTypeStatic() {
           : `${lab(f.canvas.w)} x ${lab(f.canvas.h)}`;
         dgWarn(`figure-underfills-canvas in ${f.where}: the drawing fills ${Math.round(fill * 100)}%`
           + ` of its canvas (${lab(f.contentW)} x ${lab(f.contentH)} labels in ${box}),`
-          + ` so the slide reads empty. More in the drawing, a narrower column`
-          + ` (.standard holds ${(FIG_COLUMN_PX.standard / (f.em * f.ft)).toFixed(0)}`
-          + ` labels against .wide's ${(FIG_COLUMN_PX.wide / (f.em * f.ft)).toFixed(0)}),`
-          + ` a larger {.figure-type-N}, or  ${wants}  to reserve only what it needs.`);
+          + ` so the slide reads empty. `
+          + (f.tier === 'bleed'
+            // A bleed chunk asked for the frame and is judged against all of
+            // it. `frame` is refused there, so the answers are the drawing,
+            // the multiplier, or giving the frame back.
+            ? `More in the drawing, a larger {.figure-type-N}, or .full in place of .bleed`
+              + ` (${(FIG_COLUMN_PX.full / (f.em * f.ft)).toFixed(0)} labels across against the frame's`
+              + ` ${(FIG_COLUMN_PX.bleed / (f.em * f.ft)).toFixed(0)}) - a .bleed chunk says the drawing is the slide.`
+            : `More in the drawing, a narrower column`
+              + ` (.standard holds ${(FIG_COLUMN_PX.standard / (f.em * f.ft)).toFixed(0)}`
+              + ` labels against .wide's ${(FIG_COLUMN_PX.wide / (f.em * f.ft)).toFixed(0)}),`
+              + ` a larger {.figure-type-N}, or  ${wants}  to reserve only what it needs.`));
         continue;
       }
     }
@@ -4073,7 +4104,7 @@ function reportFigureTypeStatic() {
         + ` less in the drawing, or a flatter arrangement of the same thing.`);
       continue;
     }
-    const roomier = f.width === 'wide' || f.width === 'full'
+    const roomier = f.width === 'wide' || f.width === 'full' || f.width === 'bleed'
       ? 'it is already as wide as the frame allows, so the drawing itself has to give'
       : `.wide would give it ${(FIG_COLUMN_PX.wide / f.typeW).toFixed(0)} px`;
     dgWarn(`figure-type-small in ${f.where}: the figure is ${f.typeW.toFixed(0)} labels wide, so in a`
@@ -4934,6 +4965,12 @@ function parseAttributeTail(line, { column = false } = {}) {
 // second `</figure>`, which is what makes the lazy match safe - and every line
 // left over after it is taken out is content on the slide.
 function isPictureBody(body) {
+  const { pictures, other } = pictureBodyCount(body);
+  return pictures === 1 && other === 0;
+}
+// The two counts behind that answer, for the one caller that has to say WHY
+// a body is not a picture (bleedObstacle).
+function pictureBodyCount(body) {
   let pictures = 0;
   const rest = String(body).replace(
     /<figure\b[^>]*\bclass="figure-diagram"[^>]*>[\s\S]*?<\/figure>/g,
@@ -4951,7 +4988,7 @@ function isPictureBody(body) {
     if (/^<!--[\s\S]*-->$/.test(line)) continue;
     other++;
   }
-  return pictures === 1 && other === 0;
+  return { pictures, other };
 }
 
 // **Is this chunk a picture slide** - a frame with one drawing on it and no
@@ -4974,10 +5011,20 @@ function isPictureBody(body) {
 //
 // The heading has to be off the slide too: `.bare`, or none written.
 function isPictureSlide(chunk, lines, explicit, collapsed, isMark) {
-  if (!(chunk.bare || !chunk.heading)) return false;
-  if (chunk.tag === 'title' || chunk.tag === 'closing') return false;
-  if ((chunk.expansions || []).some(e => e.kind === 'margin')) return false;
-  if (chunk.dock) return false;
+  if (pictureFurniture(chunk)) return false;
+  return isPictureBody(pictureScreen(lines, explicit, collapsed, isMark));
+}
+// What stands in the frame beside the body, or null. The order is the order
+// a `bad-bleed` refusal names them in, and lint.js's is the same.
+function pictureFurniture(chunk) {
+  if (!(chunk.bare || !chunk.heading)) return 'heading';
+  if (chunk.tag === 'title' || chunk.tag === 'closing') return 'cover';
+  if ((chunk.expansions || []).some(e => e.kind === 'margin')) return 'footnote';
+  if (chunk.dock) return 'dock';
+  return null;
+}
+// The half of the raw body that is on the screen, as one string.
+function pictureScreen(lines, explicit, collapsed, isMark) {
   let keep = lines.map(() => true);
   if (collapsed && explicit.length) {
     const slides = explicit.filter(r => r.kind === 'slide');
@@ -4990,7 +5037,39 @@ function isPictureSlide(chunk, lines, explicit, collapsed, isMark) {
     }
   }
   const screen = lines.filter((line, i) => keep[i] && !isMark(line));
-  return isPictureBody(screen.join('\n'));
+  return screen.join('\n');
+}
+
+// **Why a `.bleed` chunk is not a picture slide, in the author's words, or
+// null when it is one.** `.bleed` takes the chunk's padding and column away
+// and hands the frame to one drawing, so it is legal exactly where the tall
+// canvas tier is earned - isPictureSlide, the same decision, and it must stay
+// the same decision: a second rule about what a picture slide is would be
+// two answers to one question. What this adds is only the sentence. lint.js
+// mirrors it as `bad-bleed`, in the same order.
+function bleedObstacle(chunk, lines, explicit, collapsed, isMark) {
+  const furniture = pictureFurniture(chunk);
+  if (furniture === 'heading') {
+    return 'its heading is on the slide - write {.bare} to keep the heading in the'
+      + ' document and off the frame';
+  }
+  if (furniture === 'cover') return `a ${chunk.tag} chunk is drawn by its cover composition`;
+  if (furniture === 'footnote') return 'it carries a ::: footnote, which stands under the figure';
+  if (furniture === 'dock') {
+    return `it carries a ::: dock${chunk.dock.inherited ? ' (inherited from its # heading)' : ''},`
+      + ' which takes a band of the frame';
+  }
+  const { pictures, other } = pictureBodyCount(pictureScreen(lines, explicit, collapsed, isMark));
+  if (pictures > 1) return `it shows ${pictures} figures, and the frame is one drawing's`;
+  if (other > 0) {
+    return 'there is something on the screen beside the figure - prose, a second block or a'
+      + ' layout wrapper. Words on a drawing that fills the frame go in a ::: overlay;'
+      + (collapsed
+        ? ' narration goes in ::: script'
+        : ' and under collapse: none a ::: script block is on the screen too');
+  }
+  if (pictures === 0) return 'there is no ::: draw on its screen';
+  return null;
 }
 
 // The answer to `.middle` / `.top` for a chunk that wrote neither. Two shapes
@@ -5648,7 +5727,41 @@ function parseLecture(src) {
     // The chunk's figure, on the canvas its slide earns. After the dock, the
     // inheritance and the asides above, because all three are part of the
     // answer; before the reveal split below, which reads the compiled body.
-    if (pendingDraw) {
+    //
+    // **`.bleed` is decided here too, and it is the same decision.** The word
+    // makes the frame the chunk's column, which is only an answer for a slide
+    // that is one drawing and nothing else - so anything isPictureSlide would
+    // not call a picture slide is refused, with the reason named, and the
+    // figure's own `frame` is refused beside it: both name the canvas, and
+    // two answers to one question is what this format does not accept.
+    // lint.js: bad-bleed.
+    if (currentChunk.width === 'bleed') {
+      const collapsed = frontmatter.collapse !== 'none';
+      // A figure in a pane, a card or an overlay is not the chunk's own; an
+      // image is a photograph, and a photograph that fills the frame is a
+      // backdrop.
+      const why = bleedObstacle(currentChunk, bodyLines, explicitRanges, collapsed, revealMark)
+        || (pendingDraw ? null
+          : 'its picture is not a ::: draw in the chunk\'s own flow - an image that fills'
+            + ' the frame is ::: backdrop');
+      if (why) {
+        refuse(
+          `.bleed on a chunk that is not one drawing and nothing else (${chunkRef()}): ${why}.\n` +
+          '  .bleed makes the slide frame the figure\'s canvas, so it is legal only on a\n' +
+          '  picture slide: the heading off the slide ({.bare}, or none written), no\n' +
+          '  ::: footnote, no ::: dock, and one ::: draw as the whole on-screen body.\n' +
+          '  A ::: backdrop behind it, a ::: overlay on it and a > note: are fine.');
+      }
+      if (pendingDraw.frame != null) {
+        refuse(
+          `::: draw … frame ${pendingDraw.frame} in a .bleed chunk (${chunkRef()}).\n` +
+          '  Both name the figure\'s canvas: .bleed says it is the slide frame, and\n' +
+          '  frame says it is something else. Drop one - the frame from the opener,\n' +
+          '  or .bleed from the chunk for .full.');
+      }
+      currentChunk.canvasTier = 'bleed';
+      settlePendingDraw('bleed');
+    } else if (pendingDraw) {
       const collapsed = frontmatter.collapse !== 'none';
       const picture = isPictureSlide(currentChunk, bodyLines, explicitRanges, collapsed, revealMark);
       if (picture) currentChunk.canvasTier = 'picture';
@@ -5849,7 +5962,12 @@ function parseLecture(src) {
                 ft: dgFt,
                 tag: dgChunk ? dgChunk.tag : 'free',
                 // The figure's own `frame`, else the deck's, else the default.
-                frame: dgBlock.frame != null ? dgBlock.frame : deckDrawFrame,
+                // A `.bleed` chunk has answered already: its own `frame` was
+                // refused in flushChunk, and the deck's does not reach it -
+                // the chunk's word is the more specific answer, exactly as a
+                // figure's own `frame` beats the deck's.
+                frame: tier === 'bleed' ? null
+                  : dgBlock.frame != null ? dgBlock.frame : deckDrawFrame,
                 unit: dgUnit,
                 align: dgChunk ? chunkBlocks(dgChunk, deckBlocks) : deckBlocks,
                 hLabels: FIG_TIER_H_LABELS[tier],
@@ -5905,7 +6023,7 @@ function parseLecture(src) {
           // author can have written: the range is this block's own.
           const placeholder = `<figure class="figure-diagram" data-dg-pending="${dgBlock.bodyAt}"></figure>`;
           target.push('', placeholder, '');
-          pendingDraw = { placeholder, render: dgRender };
+          pendingDraw = { placeholder, render: dgRender, frame: dgBlock.frame };
         } else {
           target.push('', dgRender(dgChunk ? 'chunk' : 'stack'), '');
         }
@@ -13731,9 +13849,10 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   // for the reason the other two are - a printed page has no frame to be
   // centred in.
   const middleAttr = chunk.middle ? ' data-middle=""' : '';
-  // The canvas tier of a picture slide (isPictureSlide): the stylesheet reads
-  // it to raise --fig-cap, so the taller canvas the parser laid the figure
-  // out on is not narrowed by the ordinary height cap. Audience-only like the
+  // The canvas tier of a picture slide (isPictureSlide) or of a `.bleed`
+  // chunk: the stylesheet reads it to raise --fig-cap, so the taller canvas
+  // the parser laid the figure out on is not narrowed by the ordinary height
+  // cap, and fitZoomToChunk reads it to give a bleed chunk the whole frame. Audience-only like the
   // rest - a document has no frame, and PRINT_CSS sizes a figure on its own.
   const tierAttr = chunk.canvasTier ? ` data-canvas-tier="${chunk.canvasTier}"` : '';
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
@@ -14749,6 +14868,25 @@ body.text-selecting #psiINT-figure-overlay > .figure-focus-target { cursor: text
    content should do. FIG_COLUMN_PX in the figure-type warning carries the
    measured result; re-measure it if this number changes. */
 .chunk[data-width=full]:not(.chunk-title):not(.chunk-section) { --slide-pad-x: 6%; }
+/* .bleed is the frame: no padding, and a column as wide as the slide. Legal
+   only on a picture slide (the build refuses anything else as bad-bleed), so
+   the one child of the column is a drawing and the rules below are about
+   that drawing alone.
+
+   The padding is zeroed on the property and not through --slide-pad-x / -y,
+   because three things inside the chunk are measured off those variables and
+   must keep their place: an overlay card's inset, a dock's reserve and the
+   slide number's offset. A caption card on a bleed figure stands in the
+   frame's gutter like on a backdrop, not on its edge.
+
+   min-height is the frame, as on a backdrop chunk: the box is one slide
+   tall whatever the drawing's aspect, so the camera has nothing to centre
+   and a drawing flatter than 16:9 sits in the middle of it. The gap and the
+   figure's own margin go because there is nothing for them to separate; left
+   in, a canvas of exactly one frame stood 40 px taller than the frame. */
+.chunk[data-width=bleed] { padding: 0; --content-w: var(--slide-w); min-height: var(--slide-h); }
+.chunk[data-width=bleed] > .chunk-content { gap: 0; }
+.chunk[data-width=bleed] .chunk-content .figure-diagram { margin: 0; }
 /* The cover, the closing slide and a divider hardcode data-width="full" and
    compose against the 14% frame - a title flush against the edge is not
    what "full" was meant to buy - so the wider column is the author-written
@@ -15389,7 +15527,7 @@ figure.figure-img svg {
      ink-edge correction: see the comment there for what --dg-ink-x buys. */
   margin-inline: auto;
 }
-/* The height cap's two other tiers, mirroring FIG_CAP. A picture slide - a
+/* The height cap's three other tiers, mirroring FIG_CAP. A picture slide - a
    chunk with its heading off the slide and one drawing as its whole on-screen
    body - has no furniture to leave room for, so its figure may take 0.79 of
    the frame and its canvas is 22 label-heights instead of 16. A stacked
@@ -15397,6 +15535,8 @@ figure.figure-img svg {
    width-capped at 0.62 while its max-height and its 20-label canvas both said
    0.72: the canvas came out narrower than the .full column it is meant to be. */
 .chunk[data-canvas-tier=picture] { --fig-cap: 0.79; }
+/* A .bleed chunk's canvas is the frame, so its figure may take all of it. */
+.chunk[data-canvas-tier=bleed] { --fig-cap: 1; }
 .chunk-section[data-section-layout=stack] { --fig-cap: 0.72; }
 body[data-blocks=left] .chunk .psi-diagram,
 .chunk[data-blocks=left] .psi-diagram {
@@ -22335,6 +22475,19 @@ let collapsedZoom = state.zoom;
 // for: a short chunk would jump to huge type on a keypress that the
 // lecturer pressed to see more text, not bigger text.
 const FULL_FIT_FILL = 0.94;   // leave a little air top and bottom
+// ...except on a .bleed chunk, whose drawing IS the frame. Its canvas is one
+// slide tall by construction, so a figure drawn to it measures exactly the
+// viewport's height and would be over 0.94 of it at every slide: the fit
+// stepped each one down a notch and the labels with it, which is the one
+// thing the canvas promises not to happen. The whole frame, then, and one
+// pixel on top of it - the svg's height is a width times an aspect ratio and
+// lands a fraction either side of the integer the viewport reports.
+function fitAvail(el) {
+  if (!viewport) return 0;
+  return el && el.dataset && el.dataset.canvasTier === 'bleed'
+    ? viewport.clientHeight + 1
+    : viewport.clientHeight * FULL_FIT_FILL;
+}
 
 // Height alone does not decide whether a chunk fits. A long code line does
 // not wrap, so a chunk can sit comfortably inside the available height and
@@ -22650,7 +22803,7 @@ function fitZoomToChunk(ceiling) {
   const el = entry && entry.el;
   if (!el || !viewport) return;
   const cap = ceiling === undefined ? collapsedZoom : ceiling;
-  const avail = viewport.clientHeight * FULL_FIT_FILL;
+  const avail = fitAvail(el);
   if (!(avail > 0)) return;
   const overflowsX = nowrapProbe(el);
   const heightOf = flowHeightProbe(el);
@@ -25068,7 +25221,7 @@ window.psiExport = {
   // back before returning; state.zoom is not touched. Read by the PDF
   // export's parity numbers and by nothing in the live views.
   fitMeasure: (el, zooms) => {
-    const limit = viewport ? viewport.clientHeight * FULL_FIT_FILL : 0;
+    const limit = fitAvail(el);
     if (!(limit > 0)) return null;
     const probe = flowHeightProbe(el);
     const root = document.documentElement.style;
@@ -25905,6 +26058,21 @@ body[data-view=speaker] .dg-hint {
   margin-top: 0.35rem;
 }
 body[data-view=speaker] .chunk:not(.active) .dg-hint { visibility: hidden; }
+/* On a .bleed chunk the drawing is the frame, and a line under it made the
+   mirror 900 px plus a caption: the cockpit's fit read the slide as too tall
+   and showed it a step smaller than the projection does. So there the hint
+   lies over the figure's bottom edge, on a chip of the page's own ground. */
+body[data-view=speaker] .chunk[data-canvas-tier=bleed] .figure-diagram { position: relative; }
+body[data-view=speaker] .chunk[data-canvas-tier=bleed] .dg-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 0.5rem;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.1rem 0.5rem;
+  background: var(--paper);
+  border-radius: 0.2rem;
+}
 body[data-view=speaker].overview-mode .dg-hint { display: none; }
 
 /* Cockpit chrome on a dark theme – same reasoning as the dark-chrome block

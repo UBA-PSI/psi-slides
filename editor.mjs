@@ -689,15 +689,20 @@ const dgeNum = (n, places) => {
 // Switching between them changes nothing in the source.
 
 const DGE_FRAME_EM = {
-  // the chunk's own width class, from AUDIENCE_CSS
-  slide: { narrow: 28, standard: 36, wide: 52, full: 72 },
+  // the chunk's own width class, from AUDIENCE_CSS. `bleed` is the slide
+  // frame itself: 16:9 in the chunk's em (lint.js SLIDE_EM), and
+  // dgeFrameMetrics takes the window's own width for it rather than this
+  // number, so the preview frame is the slide at any aspect.
+  slide: { narrow: 28, standard: 36, wide: 52, full: 72, bleed: 68.4 },
   // one pane of a ::: side or a ::: cols 2 at that class – just under half
   // the chunk in every class, and the portrait case: a .full pane is 35em
   // against the slide's 72em, and at .standard it is 17em. This is the one
   // place a landscape figure quietly stops working.
-  column: { narrow: 13, standard: 17, wide: 25, full: 35 },
+  // (a .bleed chunk has no pane - the build refuses one - so its entry is
+  // the .full pane, the nearest thing the preview can show)
+  column: { narrow: 13, standard: 17, wide: 25, full: 35, bleed: 35 },
   // the document measure, where the 62vh cap does not apply at all
-  print: { narrow: 28, standard: 36, wide: 52, full: 72 },
+  print: { narrow: 28, standard: 36, wide: 52, full: 72, bleed: 72 },
 };
 
 // The em base is the chunk's own font size, measured from the live document
@@ -712,7 +717,7 @@ function dgeEmPx() {
 function dgeFrameMetrics() {
   const width = DGE.fig ? DGE.fig.width : 'standard';
   const em = DGE_FRAME_EM[DGE.frame][width] || 36;
-  const px = em * dgeEmPx();
+  const px = width === 'bleed' && DGE.frame === 'slide' ? window.innerWidth : em * dgeEmPx();
   // .psi-diagram is capped at a share of the slide height in the live views
   // and at nothing in print. A figure that hits the cap is the case where its
   // width is decided by the frame rather than by its type, and that is

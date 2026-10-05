@@ -70,7 +70,13 @@ export const CHUNK_SLOTS = {
   // title/closing chunks refuse a width altogether. A table default of
   // `standard` would have reported an outline chunk as resolving to a width
   // it does not have.
-  width:  { default: null, words: ['narrow', 'standard', 'wide', 'full'] },
+  //
+  // `bleed` is the fifth word and the only one with a condition: the column
+  // is the slide frame itself, so it is legal only on a picture slide - a
+  // chunk whose heading is off the slide and whose on-screen body is one
+  // `::: draw`. The table cannot know that; build.js and lint.js refuse
+  // anything else as `bad-bleed` when the chunk closes.
+  width:  { default: null, words: ['narrow', 'standard', 'wide', 'full', 'bleed'] },
   wrap:   { default: null, words: ['wrap-balance', 'wrap-none'] },
   blocks: { default: null, words: ['blocks-left', 'blocks-center'] },
   'figure-type': { default: null, words: FIGURE_TYPE_STEPS.map(n => 'figure-type-' + n) },

@@ -721,9 +721,9 @@ console.log('\nlayout generations');
 //    half the value of a differential check.
 {
   const FMX = '---\ntitle: T\n---\n\n## title: {#title}\n\n## free: F {#f}\n\n';
-  const run = (body) => {
+  const run = (body, fm = FMX) => {
     const dir = tmpDir('psi-nest2-');
-    fs.writeFileSync(path.join(dir, 'source.md'), FMX + body);
+    fs.writeFileSync(path.join(dir, 'source.md'), fm + body);
     const b = spawnSync(process.execPath,
       [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
       { cwd: ROOT, encoding: 'utf8' });
@@ -887,6 +887,100 @@ console.log('\nlayout generations');
     }
     ok(r.failed && msg.test(r.out), `${name} is refused`, r.out.split('\n')[0]);
     ok(new RegExp('\\b' + code + '\\b').test(r.lint), `and the linter says ${code}`, r.lint.split('\n')[0]);
+  }
+  // ── `.bleed`, the width that is the slide frame ───────────────────
+  // The fifth width word makes the frame the figure's canvas, so it is
+  // legal only where the frame is one drawing's: a picture slide, in
+  // isPictureSlide's sense. Everything else is `bad-bleed` in both files,
+  // and the message names what stands in the way. The accepting rows are
+  // half the value again - a backdrop behind the drawing, an overlay on it
+  // and steps in it are what the construct is for.
+  {
+    const STEPS = '::: draw 140x52\nbox a "A" at 0,0\nbox b "B" right of a\n\nstep two\n  show b\n:::\n';
+    const NONE = '---\ntitle: T\ncollapse: none\n---\n\n## title: {#title}\n\n## free: F {#f}\n\nWords.\n\n';
+    const FRAMED = '---\ntitle: T\ndraw-defaults: |\n  frame none\n---\n\n## title: {#title}\n\n## free: F {#f}\n\nWords.\n\n';
+    const bleed = [
+      // [name, body, build message | 'accept', frontmatter]
+      ['a visible heading', '## figure: G {.bleed #g}\n\n' + DRAW, /\.bleed on a chunk[\s\S]*its heading is on the slide/],
+      ['prose beside the figure', '## figure: G {.bare .bleed #g}\n\n' + DRAW + '\nA line under it.\n',
+       /\.bleed on a chunk[\s\S]*something on the screen beside the figure/],
+      ['a footnote', '## figure: G {.bare .bleed #g}\n\n' + DRAW + '\n::: footnote\nSource.\n:::\n',
+       /\.bleed on a chunk[\s\S]*carries a ::: footnote/],
+      ['a dock', '## figure: G {.bare .bleed #g}\n\n' + DRAW + '\n::: dock\nWords.\n:::\n',
+       /\.bleed on a chunk[\s\S]*carries a ::: dock/],
+      ['two figures', '## figure: G {.bare .bleed #g}\n\n' + DRAW + '\n' + DRAW,
+       /\.bleed on a chunk[\s\S]*shows 2 figures/],
+      ['no figure at all', '## free: G {.bare .bleed #g}\n\nOnly words.\n',
+       /\.bleed on a chunk[\s\S]*something on the screen beside the figure/],
+      ['an empty chunk', '## free: G {.bare .bleed #g}\n\n## free: H {#h}\n\nWords.\n',
+       /\.bleed on a chunk[\s\S]*no ::: draw on its screen/],
+      ['a figure in a pane', '## free: G {.bare .bleed #g}\n\n::: side\n' + DRAW + '::: flip\nB.\n:::\n',
+       /\.bleed on a chunk[\s\S]*something on the screen beside the figure/],
+      ['a figure only in an overlay', '## free: G {.bare .bleed #g}\n\n::: overlay\n' + DRAW + ':::\n',
+       /\.bleed on a chunk[\s\S]*no ::: draw on its screen/],
+      ['frame WxH on the opener', '## figure: G {.bare .bleed #g}\n\n::: draw 140x52 frame 6x4\nbox a "A"\n:::\n',
+       /frame 6x4 in a \.bleed chunk/],
+      ['frame none on the opener', '## figure: G {.bare .bleed #g}\n\n::: draw 140x52 frame none\nbox a "A"\n:::\n',
+       /frame none in a \.bleed chunk/],
+      ['a ::: script paragraph under collapse: none',
+       '## figure: G {.bare .bleed #g}\n\n' + DRAW + '\n::: script\nNarration.\n:::\n',
+       /\.bleed on a chunk[\s\S]*under collapse: none a ::: script block is on the screen too/, NONE],
+      ['a lone figure', '## figure: G {.bare .bleed #g}\n\n' + DRAW, 'accept'],
+      ['a lone figure with no heading written', '## figure: {.bleed #g}\n\n' + DRAW, 'accept'],
+      ['with an overlay held to a beat',
+       '## figure: G {.bare .bleed #g}\n\n' + STEPS + '\n::: overlay {.bottom-right .paper} from 1\nA caption.\n:::\n', 'accept'],
+      ['with a backdrop', '## figure: G {.bare .bleed #g}\n\n::: backdrop https://example.invalid/x.jpg\n\n' + DRAW, 'accept'],
+      ['with steps and autoplay',
+       '## figure: G {.bare .bleed #g}\n\n' + STEPS.replace('draw 140x52', 'draw 140x52 autoplay 900'), 'accept'],
+      ['with a note, a comment and a figure-type', '## figure: G {.bare .bleed .figure-type-140 #g}\n\n> note: Say this.\n\n<!-- a comment -->\n\n' + DRAW, 'accept'],
+      ['with narration in ::: script while collapsed',
+       '## figure: G {.bare .bleed #g}\n\n' + DRAW + '\n::: script\nNarration.\n:::\n', 'accept'],
+      ['with an expansion', '## figure: G {.bare .bleed #g}\n\n' + DRAW + '\n::: expand more\nDetail.\n:::\n', 'accept'],
+      ['alone under collapse: none', '## figure: G {.bare .bleed #g}\n\n' + DRAW, 'accept', NONE],
+      ['under a deck that says frame none', '## figure: G {.bare .bleed #g}\n\n' + DRAW, 'accept', FRAMED],
+    ];
+    for (const [name, body, msg, fm] of bleed) {
+      const r = run(body, fm);
+      if (msg === 'accept') {
+        ok(!r.failed, `.bleed: ${name} builds`, r.out.split('\n')[0]);
+        ok(!/\s+error\s+\S/.test(r.lint), 'and lints clean', r.lint.split('\n')[0]);
+        continue;
+      }
+      ok(r.failed && msg.test(r.out), `.bleed: ${name} is refused`, r.out.split('\n').slice(0, 2).join(' / '));
+      ok(/\bbad-bleed\b/.test(r.lint), 'and the linter says bad-bleed', r.lint.split('\n')[0]);
+    }
+    // The width slot is closed, so the rest is free: a second width is
+    // same-slot, a cover refuses it with every other width, and a `#`
+    // heading has never taken one.
+    const free = [
+      ['with a second width', '## figure: G {.bare .bleed .wide #g}\n\n' + DRAW, /both answer "width"/, 'same-slot'],
+      ['on a closing chunk', '## closing: End {.bleed #c}\n', /A closing chunk carries \.bleed/, 'class-on-cover-chunk'],
+      ['on a # heading', '# Part {.bleed #p}\n\n' + DRAW + '\n## free: G {#g}\n\nB.\n', /bleed/, 'class-on-column'],
+    ];
+    for (const [name, body, msg, code] of free) {
+      const r = run(body);
+      ok(r.failed && msg.test(r.out), `.bleed ${name} is refused`, r.out.split('\n').slice(0, 2).join(' / '));
+      ok(new RegExp('\\b' + code + '\\b').test(r.lint), `and the linter says ${code}`, r.lint.split('\n')[0]);
+    }
+    // What an accepted one ships: the tier on the chunk, the frame as the
+    // svg's canvas, and the deck's own `frame none` not reaching it.
+    {
+      const dir = tmpDir('psi-bleed-');
+      fs.writeFileSync(path.join(dir, 'source.md'), FRAMED + '## free: G {.bare .bleed #g}\n\n' + DRAW
+        + '\n## free: H {.bare .full #h}\n\n' + DRAW);
+      const b = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
+        { cwd: ROOT, encoding: 'utf8' });
+      const html = b.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '';
+      const art = (id) => (new RegExp(`<article[^>]*data-chunk-id="${id}"[\\s\\S]*?</article>`).exec(html) || [''])[0];
+      ok(/data-width="bleed"/.test(art('g')) && /data-canvas-tier="bleed"/.test(art('g')),
+         'a .bleed chunk carries its width and its tier', art('g').slice(0, 200));
+      const cv = (/data-canvas="([\d.]+) ([\d.]+)/.exec(art('g')) || []).slice(1).map(Number);
+      // 1600 / 31.59 * 15 = 759.7 and 900 / 31.59 * 15 = 427.4 viewBox units.
+      ok(Math.abs(cv[0] - 759.7) < 0.2 && Math.abs(cv[1] - 427.4) < 0.2,
+         'its canvas is the 1600x900 frame in labels, under a deck that says frame none', cv.join(' x '));
+      ok(!/data-canvas=/.test(art('h')) && !/data-canvas-tier="bleed"/.test(art('h')),
+         'and the deck default still reaches the chunk beside it');
+    }
   }
   // Where a question lands: in the two documents, with the widget inlined and
   // the lecture's title as its page, and in neither live view - not the

@@ -80,6 +80,10 @@ export async function run({ report }) {
     ['heading', '.foo #a',          'unknown-class'],
     ['heading', '.wide .full #a',   'same-slot'],
     ['heading', '.wide .wide #a',   'same-slot'],
+    // `.bleed` is the fifth width, so it is one answer to the same question;
+    // what it is legal ON is the build's and the linter's to say (bad-bleed).
+    ['heading', '.bleed .wide #a',  'same-slot'],
+    ['heading', '.bare .bleed #a',  ''],
     ['heading', '.wrap-none .wrap-balance #a', 'same-slot'],
     ['heading', '#a #b',            'multiple-ids'],
     ['heading', '#psiINT-a',        'reserved-id'],

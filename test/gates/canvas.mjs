@@ -5,7 +5,8 @@
  * `figureCanvas` in build.js reserves a fixed box for every `::: draw` in a
  * chunk body: the chunk's column wide, FIG_CANVAS_H_LABELS label-heights
  * tall (FIG_CANVAS_H_LABELS_PICTURE on a picture slide, ..._STACK on a
- * stacked divider, each under its own height cap in FIG_CAP). Three of its inputs are measurements of a stylesheet rather than
+ * stacked divider, ..._BLEED on a `.bleed` chunk, whose column is the frame;
+ * each under its own height cap in FIG_CAP). Three of its inputs are measurements of a stylesheet rather than
  * facts about a drawing, and a stylesheet cannot be imported from here – so
  * they are mirrored by hand, and this gate is what keeps the mirror honest.
  *
@@ -101,7 +102,11 @@ export async function run({ report }) {
   // --dg-box-w caps a figure at --slide-h * --fig-cap * --dg-ar, so a canvas
   // taller than its tier's share of the slide is height-capped and comes out
   // narrower than its own column - which is the uniformity it exists to
-  // produce, lost. Three tiers, one table (FIG_CAP), three label counts.
+  // produce, lost. Four tiers, one table (FIG_CAP), four label counts - three
+  // of them a whole number picked under a measured bound, and the fourth, a
+  // `.bleed` chunk's, derived: the reference frame's height over the ordinary
+  // em, written in build.js as that division. So this reads either form, and
+  // holds the derived one to being exactly the frame and nothing typed.
   const rem = /const FIG_REF_REM_PX = ([\d.]+);/.exec(src);
   const capSrc = /const FIG_CAP = \{([^}]*)\}/.exec(src);
   ok(!!capSrc && !!rem, 'FIG_CAP and the reference rem are findable');
@@ -116,28 +121,61 @@ export async function run({ report }) {
     ['chunk', 'FIG_CANVAS_H_LABELS'],
     ['picture', 'FIG_CANVAS_H_LABELS_PICTURE'],
     ['stack', 'FIG_CANVAS_H_LABELS_STACK'],
+    ['bleed', 'FIG_CANVAS_H_LABELS_BLEED'],
   ];
-  ok(caps.size === tiers.length, 'FIG_CAP names exactly the three tiers',
+  const refH = /const FIG_REF_SLIDE_H_PX = ([\d.]+);/.exec(src);
+  const refW = /const FIG_REF_SLIDE_W_PX = ([\d.]+);/.exec(src);
+  ok(!!refH && Number(refH[1]) === 900 && !!refW && Number(refW[1]) === 1600,
+     'the reference viewport is 1600x900', `${refW && refW[1]} x ${refH && refH[1]}`);
+  const bodyPx = /const FIG_REF_BODY_PX = FIG_REF_REM_PX \* FIG_REF_ZOOM;/.test(src);
+  ok(bodyPx, 'FIG_REF_BODY_PX is the rem times the zoom');
+  const labelsOf = (constName) => {
+    const typed = new RegExp(`const ${constName} = ([\\d.]+);`).exec(src);
+    if (typed) return Number(typed[1]);
+    const derived = new RegExp(`const ${constName} = FIG_REF_SLIDE_H_PX / FIG_REF_BODY_PX;`).test(src);
+    return derived && refH && rem && refZoom && bodyPx
+      ? Number(refH[1]) / (Number(rem[1]) * Number(refZoom[1])) : null;
+  };
+  ok(caps.size === tiers.length, 'FIG_CAP names exactly the four tiers',
      [...caps.entries()].map(([k, v]) => `${k}=${v}`).join(', '));
   for (const [tier, constName] of tiers) {
-    const hLab = new RegExp(`const ${constName} = ([\\d.]+);`).exec(src);
+    const hLab = labelsOf(constName);
     const cap = caps.get(tier);
-    ok(!!hLab && cap > 0, `the ${tier} tier has a label count and a cap`);
-    if (!(hLab && cap > 0 && rem && refZoom)) continue;
-    const px = Number(hLab[1]) * Number(rem[1]) * Number(refZoom[1]);
+    ok(hLab > 0 && cap > 0, `the ${tier} tier has a label count and a cap`);
+    if (!(hLab > 0 && cap > 0 && rem && refZoom)) continue;
+    const px = hLab * Number(rem[1]) * Number(refZoom[1]);
     note(`the ${tier} canvas reserves ${px.toFixed(0)} px of a 900 px slide (${(px / 9).toFixed(0)}%)`);
-    ok(px <= 900 * cap,
+    // 1e-6 px of slack: the bleed canvas IS its cap, reached by a division
+    // and a multiplication that do not cancel exactly in binary.
+    ok(px <= 900 * cap + 1e-6,
        `the ${tier} canvas is under the ${Math.round(cap * 100)}% its figure may be tall, or the column stops being the box`,
        `${px.toFixed(0)} px against ${(900 * cap).toFixed(0)}`);
   }
-  // ...and the stylesheet says the same three numbers. The base cap is the
-  // fallback of every `var(--fig-cap, N)`; the other two are rules of their own.
+  // The bleed tier is the frame on both axes, and that is the whole of its
+  // definition: the label count is derived (above, not typed), the cap is 1,
+  // and the column is the reference width. A typed 28 or a cap of 0.99 would
+  // each leave a strip of the frame outside the canvas.
+  ok(!/const FIG_CANVAS_H_LABELS_BLEED = [\d.]+;/.test(src) && labelsOf('FIG_CANVAS_H_LABELS_BLEED') > 28,
+     'the bleed label count is derived from the frame, not typed',
+     String(labelsOf('FIG_CANVAS_H_LABELS_BLEED')));
+  ok(caps.get('bleed') === 1, 'the bleed cap is the whole frame', String(caps.get('bleed')));
+  ok(/const FIG_COLUMN_PX = \{[^}]*\bbleed: FIG_REF_SLIDE_W_PX\b[^}]*\}/.test(src),
+     'and the bleed column is the reference width');
+  // ...and the stylesheet says the same four numbers. The base cap is the
+  // fallback of every `var(--fig-cap, N)`; the other three are rules of their own.
   const fallbacks = [...src.matchAll(/var\(--fig-cap, ([\d.]+)\)/g)].map(m => Number(m[1]));
   ok(fallbacks.length >= 2 && fallbacks.filter(n => n === caps.get('chunk')).length >= 2,
      'the max-height rule and --dg-box-w both fall back to the chunk cap', fallbacks.join(', '));
   const picCss = /\.chunk\[data-canvas-tier=picture\] \{ --fig-cap: ([\d.]+); \}/.exec(src);
   ok(!!picCss && Number(picCss[1]) === caps.get('picture'),
      'the picture slide rule sets the picture cap', String(picCss && picCss[1]));
+  const bleedCss = /\.chunk\[data-canvas-tier=bleed\] \{ --fig-cap: ([\d.]+); \}/.exec(src);
+  ok(!!bleedCss && Number(bleedCss[1]) === caps.get('bleed'),
+     'the bleed chunk rule sets the bleed cap', String(bleedCss && bleedCss[1]));
+  // A bleed chunk's box has to be the frame for that cap to mean anything:
+  // no padding, a column as wide as the slide.
+  ok(/\.chunk\[data-width=bleed\] \{ padding: 0; --content-w: var\(--slide-w\); min-height: var\(--slide-h\); \}/.test(src),
+     'and a bleed chunk pads nothing and takes the slide as its column');
   const stackCss = /\.chunk-section\[data-section-layout=stack\] \{ --fig-cap: ([\d.]+); \}/.exec(src);
   ok(!!stackCss && Number(stackCss[1]) === caps.get('stack'),
      'the stacked divider rule sets the stack cap', String(stackCss && stackCss[1]));
@@ -151,6 +189,20 @@ export async function run({ report }) {
     ok(900 * caps.get('picture') <= room,
        'and the picture cap is under what auto-fit leaves a bare figure',
        `${(900 * caps.get('picture')).toFixed(0)} px against ${room.toFixed(0)}`);
+  }
+  // The bleed cap is bounded by auto-fit as well, and by a different number:
+  // a canvas one frame tall can never be under 0.94 of the frame, so
+  // fitZoomToChunk gives that tier the whole viewport (fitAvail) and the cap
+  // is held against fill 1.0. Without the branch every bleed slide is stepped
+  // down a notch, which is the label size the canvas promises.
+  const bleedFit = /el\.dataset\.canvasTier === 'bleed'\s*\?\s*viewport\.clientHeight \+ 1\s*:\s*viewport\.clientHeight \* FULL_FIT_FILL/.test(src);
+  ok(bleedFit, 'auto-fit gives a bleed chunk the whole frame instead of FULL_FIT_FILL of it');
+  ok(!/viewport\.clientHeight \* FULL_FIT_FILL/.test(src.replace(/function fitAvail[\s\S]*?\n}\n/, '')),
+     'and nothing reads FULL_FIT_FILL off the viewport beside fitAvail');
+  if (caps.get('bleed')) {
+    ok(900 * caps.get('bleed') <= 900 * 1.0,
+       'so the bleed cap is under what auto-fit leaves it',
+       `${(900 * caps.get('bleed')).toFixed(0)} px against 900`);
   }
 
   // ── one spelling of a frame, in two zero-dependency files ─────────
