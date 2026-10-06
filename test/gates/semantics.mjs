@@ -31,7 +31,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { frames, render, spans, ROOT } from './harness.mjs';
-import { DG_THEMES, dgSpans, dgMeasure, dgTokenize, DG_QUIET_SCALE,
+import { DG_THEMES, dgBarFillCss, dgSpans, dgMeasure, dgTokenize, DG_QUIET_SCALE,
   DG_LABEL_H, DG_GAP_JOINED, DG_HEAD, DG_FONT,
   DG_ELBOW_ARRIVE, DG_ELBOW_LEAVE } from '../../diagram-core.mjs';
 
@@ -198,6 +198,13 @@ export async function run({ report }) {
   // ── the linter's theme table is the stylesheet's ─────────────────
   // DG_THEMES says which theme loses a column; build.js says what the theme
   // is. Copied numbers, so a gate that reads both and compares.
+  //
+  // A dark theme names its paper as --paper-own and has --paper read it, so
+  // that pitchblack can take --paper to black and still mix a figure's quiet
+  // fills over the theme's own paper (--dg-ground). The table holds that
+  // paper, not the black: under the switch every fill is the colour it was
+  // and the ground under it is darker, so each ratio dgBarContrast answers
+  // is a floor - which the last check here computes rather than asserts.
   {
     const css = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
     const trip = (block, tok) => {
@@ -209,8 +216,13 @@ export async function run({ report }) {
     for (const [name, want] of Object.entries(DG_THEMES)) {
       const m = css.match(new RegExp(`body\\[data-theme=${name}\\]\\s*\\{([^}]*)\\}`));
       const block = m ? m[1] : '';
+      const isDark = /--paper-own:/.test(block);
+      if (isDark) {
+        ok(/--paper:\s*var\(--paper-own\);/.test(block),
+          `${name} names its paper once, as --paper-own, and --paper reads it`, block.trim().split('\n')[0]);
+      }
       const got = {
-        paper: trip(block, 'paper') || trip(root, 'paper'),
+        paper: trip(block, 'paper-own') || trip(block, 'paper') || trip(root, 'paper'),
         ink: trip(block, 'ink') || [inkL, 0.01, 260],
         emph: trip(block, 'emph') || trip(root, 'emph'),
       };
@@ -218,6 +230,32 @@ export async function run({ report }) {
       ok(same(got.paper, want.paper) && same(got.ink, want.ink) && same(got.emph, want.emph),
         `DG_THEMES agrees with build.js for ${name}`, JSON.stringify(got));
     }
+    // Every dark theme is one pitchblack reaches with its tones intact: the
+    // list the runtime keys data-mode off, against the blocks that carry a
+    // --paper-own. A dark theme added with a bare --paper would build, and
+    // lose its tone fills on a black ground.
+    const darkNames = JSON.parse(((css.match(/const DARK_THEME_NAMES = (\[[^\]]*\]);/) || [])[1] || '[]').replace(/'/g, '"'));
+    const owning = darkNames.filter((n) => /--paper-own:\s*oklch\(/.test(
+      (css.match(new RegExp(`body\\[data-theme=${n}\\]\\s*\\{([^}]*)\\}`)) || [])[1] || ''));
+    ok(darkNames.length >= 3 && owning.length === darkNames.length,
+      'every dark theme carries a --paper-own for pitchblack to mix over', `${owning.join(', ')} of ${darkNames.join(', ')}`);
+    ok(/body\[data-mode=dark\]\[data-pitchblack=on\] \{\s*--paper: oklch\(0 0 0\);\s*--dg-ground: var\(--paper-own\);\s*\}/.test(css),
+      'pitchblack takes --paper to black and hands the theme\'s own paper to --dg-ground');
+    const mixes = [...css.slice(css.indexOf('const DIAGRAM_CSS = `'), css.indexOf('const DIAGRAM_JS = `'))
+      .matchAll(/color-mix\(in oklab, var\(--(?:ink|emph)\) \d+%, ([^;]*?)\);/g)].map((m) => m[1])
+      .filter((m) => m.includes('--paper'));
+    ok(mixes.length === 5 && mixes.every((m) => m === 'var(--dg-ground, var(--paper))'),
+      'every mix against the paper in DIAGRAM_CSS goes over --dg-ground', mixes.join(' | '));
+    ok(dgBarFillCss().includes('var(--dg-ground, var(--paper))') && !/, var\(--paper\)\)/.test(dgBarFillCss().replace(/var\(--dg-ground, var\(--paper\)\)/g, '')),
+      'and so does every bar fill');
+    // Black under an unchanged fill: no ratio dgBarContrast models can fall,
+    // provided the fill is the lighter of the two - which it is exactly when
+    // both inks of a dark theme are lighter than its paper. Then the fill,
+    // a mix of an ink and that paper, lies above the paper, and a ground
+    // below the paper only widens the ratio. So the linter's table needs no
+    // row for the switch, and this is the premise it rests on.
+    const below = darkNames.filter((n) => !(DG_THEMES[n].ink[0] > DG_THEMES[n].paper[0] && DG_THEMES[n].emph[0] > DG_THEMES[n].paper[0]));
+    ok(below.length === 0, 'in every dark theme both inks are lighter than the paper, so black under an unchanged fill only raises a contrast', below.join(', '));
   }
 
   // ── a removal reaches what the statement expands into ─────────────

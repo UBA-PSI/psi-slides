@@ -52,6 +52,16 @@
  *     three buttons are START_MENU, run by the audience, spliced into one
  *     view.
  *
+ *   - **A command with no key.** An entry with `keys: []` is a command all
+ *     the same: it has a label and a run function in every view that lists
+ *     it, and its row runs from the panel. What it must not have is anything
+ *     that reads as a key - no binding in either key map, no kbd in its
+ *     row, no `show` or `mouse` (refused at load) - and it cannot stand in
+ *     the start menu, whose buttons print a key. NO_KEY_COMMANDS is the
+ *     reviewed list, each with its reason, so "no key" is a decision someone
+ *     wrote down and never what an entry falls back to: every other command
+ *     still has to spell at least one key, and every key still has a row.
+ *
  * Not read: gotoKey, which is modal and whose Enter / Esc / digits the prompt
  * names on its own foot; the editor's arrow nudge, a startsWith written as
  * prose in its row; and the documents, whose reader keys are the
@@ -79,6 +89,13 @@ const NOT_A_ROW = {
     '_': 'the shifted spelling of -, one physical key',
   },
   editor: {},
+};
+
+// The commands that have no key, and why. A command gets on this list on
+// purpose: it runs from the palette alone. An entry here that gains a key,
+// or a command with `keys: []` that is not here, fails.
+const NO_KEY_COMMANDS = {
+  pitchblack: 'a switch for the room, set once per projector from the palette or the frontmatter; a free letter is worth more to something pressed mid-talk',
 };
 
 // Every press the switch in AUDIENCE_JS answered when the table replaced it,
@@ -291,8 +308,17 @@ export async function run({ report }) {
   const P = literal(buildJs, 'SOUFFLEUSE_JS');
 
   // ── the table ──
-  const commands = CMD.COMMANDS.filter((c) => c.keys);
-  ok(commands.length > 30, 'the table has more than thirty commands', String(commands.length));
+  // A command is an entry with a keys list, empty or not (isCommand). The
+  // ones with an empty list are counted apart below; everything that was
+  // asked of "a command" before - a label, a run function, a runnable row -
+  // is asked of them too.
+  const commands = CMD.COMMANDS.filter(CMD.isCommand);
+  const keyed = commands.filter(CMD.hasKey);
+  const keyless = commands.filter((c) => !CMD.hasKey(c));
+  ok(keyed.length > 30, 'the table has more than thirty commands with a key', String(keyed.length));
+  ok(CMD.COMMANDS.every((c) => !('keys' in c) || Array.isArray(c.keys)), 'keys is a list wherever an entry has it');
+  ok(keyless.map((c) => c.id).sort().join() === Object.keys(NO_KEY_COMMANDS).sort().join(),
+    'the commands with no key are exactly the reviewed list', keyless.map((c) => c.id).join(', '));
   // The load-time assertion has to be able to fire: a copy of the table with
   // one key bound twice is refused by the same code, evaluated again.
   const src = fs.readFileSync(path.join(ROOT, 'commands.mjs'), 'utf8');
@@ -305,6 +331,22 @@ export async function run({ report }) {
   } catch (err) { refused = err.message; }
   ok(/in the audience view b is bound to blank and to demo/.test(refused),
     'and a table binding B twice is refused at load', refused || 'not refused');
+  // The same for the two rules a command with no key lives under: its row
+  // may not show a key or a gesture, and the start menu may not name it.
+  const loadError = (text) => {
+    try { new Function(text.replace(/^export\s+/gm, ''))(); } catch (err) { return err.message; } // eslint-disable-line no-new-func
+    return '';
+  };
+  const shown = src.replace("{ id: 'pitchblack', group: 'knobs', views: BOTH, keys: [],", "{ id: 'pitchblack', group: 'knobs', views: BOTH, keys: [], show: '<kbd>X</kbd>',");
+  ok(shown !== src && /pitchblack is a command with no key, and its row shows one/.test(loadError(shown)),
+    'a command with no key whose row shows one is refused at load', loadError(shown) || 'not refused');
+  const inMenu = src.replace("export const START_MENU = ['fullscreen',", "export const START_MENU = ['pitchblack',");
+  ok(inMenu !== src && /the start menu names pitchblack/.test(loadError(inMenu)),
+    'and so is a start menu that names one', loadError(inMenu) || 'not refused');
+  const notList = src.replace("views: BOTH, keys: [],", "views: BOTH, keys: '',");
+  ok(notList !== src && /pitchblack has keys that are not a list/.test(loadError(notList)),
+    'and keys that are not a list', loadError(notList) || 'not refused');
+  ok(loadError(src) === '', 'the table as written loads');
   ok(/const COMMAND_KEYS = PSI_COMMANDS\.keyMap\(VIEW\);/m.test(A)
     && /const id = PSI_COMMANDS\.commandFor\(COMMAND_KEYS, e\);\n\s*if \(id && COMMAND_RUN\[id\]\) COMMAND_RUN\[id\]\(e\);/.test(A),
   'the key map looks a press up in the table and runs COMMAND_RUN, and nothing else');
@@ -340,6 +382,24 @@ export async function run({ report }) {
   }
   ok(runP.has('prompter') && !runS.has('prompter'), 'the prompter\'s run function ships with the prompter and only there');
 
+  // ── a command with no key ──
+  // No press reaches it: it is in neither key map, under any spelling.
+  for (const view of CMD.VIEWS) {
+    const bound = new Set(Object.values(CMD.keyMap(view)));
+    const hit = keyless.filter((c) => bound.has(c.id)).map((c) => c.id);
+    ok(hit.length === 0, `no key of the ${view} view reaches a command with no key`, hit.join(', '));
+  }
+  // It runs all the same, in every view that lists it (the check above
+  // covers it with the others; said here by name so it cannot be filtered
+  // out of that one unnoticed), and runCommand hands it an event that names
+  // no key rather than reading keys[0] off an empty list.
+  ok(keyless.every((c) => c.views.every((v) => (v === 'speaker' ? runS : runA).has(c.id))),
+    'every command with no key has a run function in each view that lists it');
+  ok(/const combo = \(c && c\.keys && c\.keys\[0\]\) \|\| '';/.test(A),
+    'runCommand runs a command with no key with an event that names none');
+  ok(keyless.every((c) => c.label && !c.show && !c.mouse && !c.short),
+    'a command with no key has a label and nothing that stands for a key');
+
   // ── rows ──
   const lStart = A.indexOf("\ndocument.addEventListener('keydown', (e) => {\n  if (e.target.matches('.annot-textarea')) return;");
   const lEnd = A.indexOf('\n});\n', lStart);
@@ -362,19 +422,28 @@ export async function run({ report }) {
     'Ctrl/Cmd-Z · Shift-Ctrl/Cmd-Z reads as two chords');
   ok(dtCombos('<kbd>1</kbd>–<kbd>9</kbd>').length === 9, '1–9 reads as nine digits');
   ok(dtCombos('<kbd>Space</kbd> · <kbd>↓</kbd>').join() === ' ,arrowdown', 'Space and ↓ read as their e.key names');
-  ok(CMD.COMMANDS.filter((c) => c.keys && !c.show).every((c) =>
+  ok(keyed.filter((c) => !c.show).every((c) =>
     dtCombos(c.keys.map(CMD.keyText).join(' · ')).join() === c.keys.join()),
   'a generated key column reads back as exactly the keys it was made from');
+  ok(dtCombos(CMD.NO_KEY).length === 0 && !/<kbd>/.test(CMD.NO_KEY),
+    'and the column of a command with no key reads back as no key at all');
 
   // A command's row spells only keys that command answers - a row cannot
   // advertise a key that does something else.
   const overclaim = [];
+  const silent = [];
   for (const c of commands) {
     const own = new Set(c.keys);
-    const col = c.show || c.keys.map(CMD.keyText).join(' · ');
-    for (const k of dtCombos(col)) if (!own.has(k)) overclaim.push(`${c.id}: ${k}`);
+    const col = c.show || (CMD.hasKey(c) ? c.keys.map(CMD.keyText).join(' · ') : CMD.NO_KEY);
+    const spelled = dtCombos(col);
+    for (const k of spelled) if (!own.has(k)) overclaim.push(`${c.id}: ${k}`);
+    // The other direction, which "every command has a key" used to give for
+    // free: a command that has keys spells at least one of them, so a row
+    // without a key is one of the reviewed few and never an oversight.
+    if (CMD.hasKey(c) && !spelled.length) silent.push(c.id);
   }
   ok(overclaim.length === 0, 'every key a command\'s row spells is answered by that command', overclaim.join(', '));
+  ok(silent.length === 0, 'every command that has a key spells one in its row', silent.join(', '));
 
   let helpRows = 0;
   for (const view of CMD.VIEWS) {
@@ -391,7 +460,7 @@ export async function run({ report }) {
     ok(edGap.length === 0, `every key the editor answers has a row in the ${view} view's editor section`,
       edGap.map((k) => JSON.stringify(k)).join(', '));
   }
-  note(`${commands.length} commands; ${answered.audience.size} keys in the audience, ${answered.speaker.size} in the cockpit, `
+  note(`${commands.length} commands, ${keyless.length} of them with no key; ${answered.audience.size} keys in the audience, ${answered.speaker.size} in the cockpit, `
     + `${edKeys.size} in the editor; ${helpRows} combinations listed`);
 
   // The gate has to be able to fail: take the B row out of a rendered panel
@@ -417,7 +486,7 @@ export async function run({ report }) {
     const rowIds = [...panel.matchAll(/<dt([^>]*)>/g)].map((m) => (m[1].match(/data-row="([a-z0-9-]+)"/) || [])[1]);
     ok(rowIds.length > 20 && rowIds.every((id) => byId.has(id)) && new Set(rowIds).size === rowIds.length,
       `every row of the ${view} panel names the entry it is, once`, rowIds.filter((id) => !byId.has(id)).join(', '));
-    const wrong = named.filter((id) => !byId.has(id) || !byId.get(id).keys || id === 'help');
+    const wrong = named.filter((id) => !byId.has(id) || !CMD.isCommand(byId.get(id)) || id === 'help');
     ok(named.length > 20 && wrong.length === 0,
       `the ${view} panel names a command on every row it may run, and on no doc row`,
       `${named.length} named; wrong: ${wrong.join(', ')}`);
@@ -436,6 +505,16 @@ export async function run({ report }) {
       `the ${view} panel's reference line stands between the two runs`);
     ok(helpSections(panel).some((sec) => sec.combos.includes('mod+k')),
       `the ${view} panel has a row for Ctrl/Cmd-K`);
+    // A command with no key: a row the panel runs, in a runnable section,
+    // whose key column is the no-key tag and no kbd - so it is found and run
+    // and never listed as a key.
+    for (const c of keyless.filter((x) => x.views.includes(view))) {
+      const dt = (panel.match(new RegExp(`<dt data-row="${c.id}"([^>]*)>([\\s\\S]*?)</dt>`)) || []);
+      ok(dt.length === 3 && new RegExp(`data-cmd="${c.id}"`).test(dt[1]) && named.includes(c.id),
+        `the ${view} panel runs ${c.id} from its row`, dt[0] || 'no row');
+      ok(dt.length === 3 && dt[2] === CMD.NO_KEY && dtCombos(dt[2]).length === 0,
+        `and that row's key column lists no key`, dt[2]);
+    }
   }
   const head = A.slice(lStart, lEnd);
   const kAt = head.indexOf('openPalette();');

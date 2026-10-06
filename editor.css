@@ -529,9 +529,9 @@
 /* The fill swatches show the fill. A row of words would be a legend; a row
    of the actual tones is the thing itself. */
 .dge-sw[data-fill] { width: 1.9rem; height: 1.25rem; }
-.dge-sw[data-fill=tone-1] { background: color-mix(in oklab, var(--emph) 13%, var(--paper)); }
-.dge-sw[data-fill=tone-2] { background: color-mix(in oklab, var(--ink) 8%, var(--paper)); }
-.dge-sw[data-fill=tone-3] { background: color-mix(in oklab, var(--ink) 20%, var(--paper)); }
+.dge-sw[data-fill=tone-1] { background: color-mix(in oklab, var(--emph) 13%, var(--dg-ground, var(--paper))); }
+.dge-sw[data-fill=tone-2] { background: color-mix(in oklab, var(--ink) 8%, var(--dg-ground, var(--paper))); }
+.dge-sw[data-fill=tone-3] { background: color-mix(in oklab, var(--ink) 20%, var(--dg-ground, var(--paper))); }
 .dge-sw[data-fill=tone-4] { background: var(--emph); }
 .dge-sw[data-fill=clear] {
   background:

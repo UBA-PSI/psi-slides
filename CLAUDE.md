@@ -265,7 +265,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
 # against what build.js reads, and `image-refs` holds the two readers of the
 # image-reference set against the one collector both go through.
-# test/ is the things that only break in a built page - 51 specs, ~12 min,
+# test/ is the things that only break in a built page - 52 specs, ~12 min,
 # one Chromium; one of them, souffleuse, starts an engine of its own beside
 # that browser. `npm test` also runs test/reproducible.mjs, which needs
 # neither: it builds a lecture under a partial flag and under a full one and
@@ -279,7 +279,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # createSpanTable, or anything that moves a label or an extent. Anything
 # checkable without a browser belongs in lint.js or in test/gates/, never here.
 #
-# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the twenty specs that build a
+# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the twenty-one specs that build a
 # deck of their own rather than hunting shapes in a real one: test/README.md.
 npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
@@ -409,7 +409,7 @@ document's pagination. The plan and its decisions per stage are in
 
 **The sidecar is one socket and nothing else.** `createSouffleuse` (section `// ── souffleuse (--prompter) ──`) holds the deck, the cockpit's clock and the transcript, calls one model when there is an occasion, and whispers back; the cockpit reaches it over the **existing** nonce-guarded watch socket, so the `souffleuse-*` family rides the same `<type>-result` pairing a patch does. One direction is new – the server may speak first, through `psiWatch.on(type, fn)`, the listener map consulted *after* the pairing, never instead of it. Hints and the prompter's cards are cockpit-local exactly like the cue cards: not one field of `snapshot()` moves, so a full `applyRemoteState` cannot drag them across and the projection stays ignorant. The key is read from `OPENROUTER_API_KEY` in Node and stays there – `test/souffleuse.mjs` asserts that a built `speaker.html` never contains the string `OPENROUTER`, an assertion that has already caught a *comment* inside `SPEAKER_JS` quoting a badge text. `--prompter` without `--watch` is a usage error, because that socket is the only channel there is, and `--prompter-model` without `--prompter` is one too. **The cockpit's half is `SOUFFLEUSE_CSS` and `SOUFFLEUSE_JS`, two literals spliced into `speaker.html` only under the flag** – into the *same* `<style>` and `<script>` the cockpit's own CSS and JS are in, because the runtime lives in `SPEAKER_JS`'s lexical scope. They used to be part of those two constants, which put 36 KB of prompter into every cockpit ever built; what an ordinary `speaker.html` still carries is one `const SOUFFLEUSE = null`, the `souffleuseCues` Map the cue rail is drawn from, the `viewHooks.escapePrompter` default the projection has as well, and a `prompter` entry in the command table with no run function behind it, so `Shift`-`S` is spent on nothing.
 
-**`commands.mjs` is the sixth zero-dep module, and the one place a key is bound.** One entry per row of the `?` panel: a *command* has `keys` and is dispatched, a *doc row* has none (a mouse gesture, or a key answered by a guard before the lookup – the overview board, the search field, a focused figure, the editor). `helpGroups` lists a view's commands first, section by section, and every doc row (and `?` itself) after them as a muted reference, so the palette's arrows, which walk the runnable rows, never pass over one they cannot select; there is no shared row any more (`Shift`-`C F A L` is four lines). `renderHelpOverlay` renders its rows through `helpGroups(view, {editor, prompter})`; the same text is spliced into both live views as `window.PSI_COMMANDS`, the `cue-cards.mjs` treatment, and the keydown listener in `AUDIENCE_JS` ends in `commandFor(keyMap(VIEW), e)` → `COMMAND_RUN[id](e)`. Each run function is the body of the `case` it replaced; `SPEAKER_JS` and `SOUFFLEUSE_JS` add the cockpit's commands by assigning into `COMMAND_RUN`, the way they set `viewHooks`. **The listener's head stays code** – text fields, the panel's and the search's own keys, the link mark, any Cmd/Ctrl/Alt chord, the go-to prompt, the overview board's arrows – because those are rules about *where* a key is pressed, not about what a command is; so does the editor's `E` and everything under `dgeKeydown`, a modal that runs in capture ahead of the map. **A shifted press with no binding of its own falls back to the plain key**, which is what the switch's `case 'b': case 'B':` meant: `Shift`-`B` blanks, and `?` and `#`, which arrive with Shift held, reach their commands. The module asserts at load that no key is bound twice in one view; the `commands` gate holds a fixture of every press the switch answered, a run function for every command a view answers, and a row for every key – see `test/README.md`. **The `?` panel is also the command palette in both views**: `Cmd`/`Ctrl`-`K` is answered at the listener's head, ahead of the chord guard, and a row `runsFromPanel` allows runs through `runCommand(id)` – `COMMAND_RUN[id]` with an event shaped like its first key, never a second code path. With text in the field the panel shows a ranked list instead (`paletteScore`), in which a row that lists several commands is one runnable line per command. The same helper runs the projection's start menu (`START_MENU`, `renderStartMenu`, audience only, opening by itself only before the talk starts and folding to a `›` beside the `?` circle that opens it again; probes set `window.PSI_NO_START_MENU`).
+**`commands.mjs` is the sixth zero-dep module, and the one place a key is bound.** One entry per row of the `?` panel: a *command* has `keys` and is dispatched – **`keys: []` is a command with no key**, run from the palette alone, with `NO_KEY` and no `kbd` in its row (`isCommand`, `hasKey`; `pitchblack` is the first, and the gate's `NO_KEY_COMMANDS` is the reviewed list) – a *doc row* has none (a mouse gesture, or a key answered by a guard before the lookup – the overview board, the search field, a focused figure, the editor). `helpGroups` lists a view's commands first, section by section, and every doc row (and `?` itself) after them as a muted reference, so the palette's arrows, which walk the runnable rows, never pass over one they cannot select; there is no shared row any more (`Shift`-`C F A L` is four lines). `renderHelpOverlay` renders its rows through `helpGroups(view, {editor, prompter})`; the same text is spliced into both live views as `window.PSI_COMMANDS`, the `cue-cards.mjs` treatment, and the keydown listener in `AUDIENCE_JS` ends in `commandFor(keyMap(VIEW), e)` → `COMMAND_RUN[id](e)`. Each run function is the body of the `case` it replaced; `SPEAKER_JS` and `SOUFFLEUSE_JS` add the cockpit's commands by assigning into `COMMAND_RUN`, the way they set `viewHooks`. **The listener's head stays code** – text fields, the panel's and the search's own keys, the link mark, any Cmd/Ctrl/Alt chord, the go-to prompt, the overview board's arrows – because those are rules about *where* a key is pressed, not about what a command is; so does the editor's `E` and everything under `dgeKeydown`, a modal that runs in capture ahead of the map. **A shifted press with no binding of its own falls back to the plain key**, which is what the switch's `case 'b': case 'B':` meant: `Shift`-`B` blanks, and `?` and `#`, which arrive with Shift held, reach their commands. The module asserts at load that no key is bound twice in one view; the `commands` gate holds a fixture of every press the switch answered, a run function for every command a view answers, and a row for every key – see `test/README.md`. **The `?` panel is also the command palette in both views**: `Cmd`/`Ctrl`-`K` is answered at the listener's head, ahead of the chord guard, and a row `runsFromPanel` allows runs through `runCommand(id)` – `COMMAND_RUN[id]` with an event shaped like its first key, never a second code path. With text in the field the panel shows a ranked list instead (`paletteScore`), in which a row that lists several commands is one runnable line per command. The same helper runs the projection's start menu (`START_MENU`, `renderStartMenu`, audience only, opening by itself only before the talk starts and folding to a `›` beside the `?` circle that opens it again; probes set `window.PSI_NO_START_MENU`).
 
 Navigate build.js by the `// ── section ──` banners – `grep -n '^// ── ' build.js`
 lists all seventy-one in order, which is the map that cannot go stale. Two of them carry
@@ -498,7 +498,7 @@ The audience↔speaker sync is cross-`file://`-origin safe because it uses `wind
 ### The documents' reader tools
 
 `print.html` and `print-notes.html` are read on screen after the lecture, and
-**under `reader: on` (the default, the eleventh viewer-default key) they carry
+**under `reader: on` (the default, the eleventh of the twelve viewer-default keys) they carry
 tools for that reader**: a contents sidebar that marks where they are,
 highlights with an optional note each (words of prose or of a code block; a
 whole figure, code block or formula; a pin on a spot in a figure, set in the
@@ -767,7 +767,7 @@ wrapped in `<span class="nohy">` by `markAddresses` – a `marked` text-renderer
 override, because no selector can name a run of characters, and emitted only
 under `all`, so no other deck's bytes move. Seven themes cycle on
 `A`, and `applyFontTheme()` sets `body[data-mode]`, which is what every piece of
-chrome keys off rather than a theme name. Eleven frontmatter keys pin how a
+chrome keys off rather than a theme name. Twelve frontmatter keys pin how a
 lecture opens – three of them, `note-button`, `neighbours` and
 `transition`, are the ones a keynote sets and a lecture does not, and all three
 write their attribute only when the author asked for something other than the
@@ -810,7 +810,7 @@ not mirrored any more: it lives in `tails.mjs` and both files import it.) And **
 calibrated to the bundled sans**: a roster change that does not re-measure it
 overflows figure labels silently.
 
-Four of the viewer defaults carry a decision the table does not:
+Five of the viewer defaults carry a decision the table does not:
 
 - **`slide-numbers` defaults to `horizontal`.** It defaulted to `vertical` up to
   1.0.0, and this is the one viewer default whose own change moves what an
@@ -830,6 +830,14 @@ Four of the viewer defaults carry a decision the table does not:
   (2.2 vs the lecturer's own zoom). The snapshot carries the mode *and* a legacy
   boolean, because `--audience-only` rebuilds one of the two windows and an
   older peer coerces the field with `!!`.
+- **`pitchblack` is `on` / `off`, and it is a rule about `data-mode`, not a theme.**
+  `body[data-mode=dark][data-pitchblack=on]` takes `--paper` to black and sets
+  `--dg-ground` to the theme's own paper, over which a figure's tones are
+  mixed. **A dark theme therefore names its paper as `--paper-own` and writes
+  `--paper: var(--paper-own)`**, and `style: {neutrals}` tints the dark theme
+  through `--paper-own` – a theme or a rule that sets a dark `--paper`
+  directly either loses its tones under the switch or tints the black. The
+  state travels in the snapshot beside `theme`; the command has no key.
 - **`transition` is `pan` / `cut` / `fade`, and it resolves `neighbours`.** Only
   the slide *change* is affected – a reveal, a figure step, a `.middle` chunk's
   per-press glide and the walk down a chunk taller than the frame keep their
@@ -944,14 +952,14 @@ plan, its decisions and its build log are `docs/history/PLAN-electron-builder.md
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
 - `SECURITY.md` – **what a deck someone sent can do, what the build refuses from a `source.md` someone else wrote, and what `--watch`, `--serve` and `--prompter` expose** – written for lecturers and evaluators, its claims checked against the code or in a browser. Change it in the same commit as a refusal, a `--serve` rule or a prompter data flow it describes.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-two gates guards, the four browser-spec families, and the twenty specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-two gates guards, the four browser-spec families, and the twenty-one specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
 - `.claude/skills/psi-slides-authoring/SKILL.md` – **how to write a lecture `source.md`**: the chunk grammar in practice, the `:::` directive vocabulary, reveal segments, notes, images and math, with worked examples. Invoked as the `psi-slides-authoring` skill.
 - `.claude/skills/psi-slides-figures/SKILL.md` – **the `::: draw` vocabulary and the editor's contract**, lifted out of this file so it loads when figures are the work. Every statement, class, slot table and generated name, plus the three decisions behind the compiler. Invoked as the `psi-slides-figures` skill.
 - `.claude/skills/psi-slides-decoration/SKILL.md` – **the cover, backdrop, overlay, card, row and divider vocabulary**, same reasoning: the slot tables, the refusals, and the CSS traps each construct cost. Invoked as the `psi-slides-decoration` skill.
-- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the eleven viewer-default keys, the whole nineteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `code`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
+- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, `pitchblack` (every dark theme on true black, and the fills it lifts), the twelve viewer-default keys, the whole nineteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `code`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
 - `.claude/skills/psi-slides-media/SKILL.md` – **video, hosted embeds and link addresses**: the extension tables, the two sync protocols, clip staging, and the build-time QR codes. Invoked as the `psi-slides-media` skill.
 - `.claude/skills/psi-slides-prompter/SKILL.md` – **the live prompter (`--prompter`)**: the config surface, the socket protocol, the tick scheduler, the request shape, the policy table as coded, the failure modes with their badge texts, the log records, the cockpit ids and the STT adapter. Invoked as the `psi-slides-prompter` skill.
 - `docs/history/PLAN-souffleuse.md` – the live prompter's plan, its seven slices and **§ Decisions along the way**, which is where the code and the plan parted company and why. Read that section before changing `souffleuse.mjs`, the sidecar or the cockpit's prompter runtime; where the two disagree, the code wins.

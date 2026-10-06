@@ -734,7 +734,10 @@ footer .paths b { color: var(--ink); font-weight: 500; }
      cockpit window's and the same figure was capped at a different height in
      the two windows. Print defines no --slide-h and falls back to the number
      this rule has always had; it overrides the cap anyway (PRINT_CSS). */
-  max-height: calc(var(--slide-h, 100vh) * 0.62);
+  /* --fig-cap is the tier's share of the slide height (FIG_CAP in build.js):
+     unset on an ordinary chunk, 0.79 on a picture slide, 0.72 on a stacked
+     divider. The fallback is the ordinary chunk's. */
+  max-height: calc(var(--slide-h, 100vh) * var(--fig-cap, 0.62));
   height: auto;
 }
 @media print {
@@ -795,22 +798,30 @@ footer .paths b { color: var(--ink); font-weight: 500; }
    trust boundary, a segment, a machine - it has to read as a statement.
    Dashed at that weight it was barely visible on a shaded ground, which
    is exactly where these are usually drawn. */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--dg-ground, var(--paper))); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
 .psi-diagram .dg-brace .dg-stroke { stroke: var(--rule); }
 
 /* ── tones ── four theme-safe fills, mixed from the page's own inks ── */
+/* Over --dg-ground, which is --paper wherever nobody says otherwise - every
+   document, every theme. The one thing that sets it is pitchblack in the
+   live views, where the paper is black and a mix over it would be a few per
+   cent above nothing: there the ground is the dark theme's own paper, so the
+   three tones are the colours they always were. The same holds for every
+   other mix against the paper in this sheet and in dgBarFillCss; .paper and
+   the label on a .tone-4 stay on --paper itself, because they mean the
+   canvas. */
 .psi-diagram .tone-1 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--emph) 13%, var(--paper));
+  fill: color-mix(in oklab, var(--emph) 13%, var(--dg-ground, var(--paper)));
   stroke: color-mix(in oklab, var(--emph) 60%, var(--ink));
 }
 .psi-diagram .tone-2 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--ink) 8%, var(--paper)); stroke: var(--ink);
+  fill: color-mix(in oklab, var(--ink) 8%, var(--dg-ground, var(--paper))); stroke: var(--ink);
 }
 .psi-diagram .tone-3 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--ink) 20%, var(--paper)); stroke: var(--ink);
+  fill: color-mix(in oklab, var(--ink) 20%, var(--dg-ground, var(--paper))); stroke: var(--ink);
 }
 .psi-diagram .tone-4 > :is(rect, circle, .dg-shape) {
   fill: var(--emph); stroke: var(--emph);
@@ -853,7 +864,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 .psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
-.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
+.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--dg-ground, var(--paper))); }
 
 /* .tone-4 inverts its own label, and that has to win over .accent text:
    accent ink on an accent fill is invisible, legal, and would otherwise be
@@ -973,10 +984,10 @@ footer .paths b { color: var(--ink); font-weight: 500; }
    too pale for a theme - one table, so the warning is about the colour that
    is drawn. The block sits after the box tones on purpose: a column's tone
    rule is one class more specific and has to win. */
-.psi-diagram .dg-bar > rect { fill: color-mix(in oklab, var(--ink) 55%, var(--paper)); }
-.psi-diagram .dg-bar.tone-1 > rect { fill: color-mix(in oklab, var(--emph) 70%, var(--paper)); }
-.psi-diagram .dg-bar.tone-2 > rect { fill: color-mix(in oklab, var(--ink) 45%, var(--paper)); }
-.psi-diagram .dg-bar.tone-3 > rect { fill: color-mix(in oklab, var(--ink) 68%, var(--paper)); }
+.psi-diagram .dg-bar > rect { fill: color-mix(in oklab, var(--ink) 55%, var(--dg-ground, var(--paper))); }
+.psi-diagram .dg-bar.tone-1 > rect { fill: color-mix(in oklab, var(--emph) 70%, var(--dg-ground, var(--paper))); }
+.psi-diagram .dg-bar.tone-2 > rect { fill: color-mix(in oklab, var(--ink) 45%, var(--dg-ground, var(--paper))); }
+.psi-diagram .dg-bar.tone-3 > rect { fill: color-mix(in oklab, var(--ink) 68%, var(--dg-ground, var(--paper))); }
 .psi-diagram .dg-bar.emph > rect { fill: var(--emph); stroke: none; }
 .psi-diagram .dg-bar.tone-4.emph > rect { stroke: none; }
 /* Words are the third thing emphasis can act on, and leaving them out left the

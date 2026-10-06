@@ -259,9 +259,34 @@ Seven themes cycle on `A`: four light accents, a neutral `dark` (grey paper, whi
 
 **Theme precedence extends the viewer-default rule with the OS**: frontmatter wins over the reader's stored preference, which wins over `prefers-color-scheme`, which wins over the built-in default. The resolution happens in `themeBootScript()`, emitted as the **first child of `<body>`** so a synchronous script settles it before the first paint – otherwise a reader on a dark system gets a white flash while the module boots. When the frontmatter pins the theme no script is emitted at all. `loadPersisted()` reads the answer back off the body attribute instead of re-deriving the precedence, so the two cannot disagree.
 
+## Every dark theme on true black (`pitchblack`)
+
+**A projector cannot show black.** What it throws for a dark theme's paper – oklch 0.17 for `dark`, 0.12 and 0.11 for the two terminal themes – is a lit grey rectangle on the wall, and the words lose the contrast the dark theme was chosen for. `pitchblack: on` takes `--paper` to `oklch(0 0 0)` under all three and leaves every other token of the theme alone: ink, accent, `--paper-warm`, `--rule`, the syntax colours. It is **not a theme of its own** – it is one answer for every dark theme – and it is a viewer default, the twelfth: the frontmatter pins it, otherwise the reader's stored choice holds (`psi-slides:pitchblack`, global like the theme), and the default is `off`. Under a light theme nothing on the slide moves; the attribute stays, and `A` into a dark theme finds it.
+
+**It is toggled by a command that has no key.** `pitchblack` in `commands.mjs` is the first entry with `keys: []`: the `?` panel lists it among the rows it runs, with *no key* in the key column and no `kbd`, and the palette finds it by its words – `Ctrl/Cmd`-`K`, `pitch`, `Enter`, or a click on the row, in either window. No free letter was spent, because this is set once per room and nothing a hand reaches for mid-talk. `togglePitchblack()` is `cycleTheme()`'s shape: `state.pitchblack`, `applyFontTheme()` writing `body[data-pitchblack]`, `localStorage`, a toast (which under a light theme says that it shows under a dark one), and `broadcastState()` – so it travels **as a field of the state snapshot beside `theme`**, the cockpit and the projection agree, and a peer built before the switch ignores the field while one that sends none leaves the receiver's own answer alone. The touch palette behind `⋯` has no button for it; on a tablet the `?` circle opens the panel and a tap on the row runs it.
+
+**Before the first paint.** `viewBodyAttrs` writes `data-pitchblack="on"` only when the author wrote `on` – `off` is the absence, so a deck that says nothing carries no attribute in its markup. Where the frontmatter left the question open, `themeBootScript()` reads the stored choice in the same script that settles the theme, and `loadPersisted()` reads the answer back off the body. The script has two halves and each is emitted only for the key that is not pinned; with both pinned there is none. (Before this, a pinned theme meant no boot script at all; such a deck now carries the two lines that ask about `pitchblack`.)
+
+**The stylesheet keys off `data-mode`, never off a theme name**: `body[data-mode=dark][data-pitchblack=on] { --paper: oklch(0 0 0); --dg-ground: var(--paper-own); }`. So a later dark theme is reached without a rule of its own – provided it follows the contract the three have: **a dark theme names its paper as `--paper-own` and writes `--paper: var(--paper-own)`.** `style: {neutrals}` tints the dark theme by writing `--paper-own` too, not `--paper`, which is why the switch needs no word about neutrals to stay black (a tinted black is not black) while the tint still reaches the ink, the rule and the fills. The `semantics` gate holds every name in `DARK_THEME_NAMES` to a `--paper-own`.
+
+**A paper at zero costs every fill that was a few per cent over it**, and each was decided:
+
+| surface | under the switch, on a dark theme |
+|---|---|
+| a figure's `.tone-1` / `.tone-2` / `.tone-3`, its bar fills (`dgBarFillCss`), a container's stroke, `.muted` words | mixed over `--dg-ground`, which falls back to `--paper` everywhere and is the theme's **own** paper here – so each is the colour it was, to the digit, and stands off the black. Mixed over zero, `.tone-2` was about 8% of the ink, which a projector does not show. The editor's fill swatches follow |
+| `::: cards {.panel}`, the `::: rows` term cell (the same `--card-bg`), a `section: card` heading, `.dock.ov-tint` | 5% of the ink → **20%**, measured on a card row at 1600×900 in all three themes |
+| the same under `neutrals: tinted` (and `.ov-paper` there) | 8% / 6% of the accent → 26% / 20% |
+| the ground behind inline code under `style: {code: tint}` | 7% → 24% |
+| a `section: tinted` divider, the `cover: panel` field | still the accent mixed into the theme's own paper (`--paper-own`): a slide that *is* the accent is asking to be a lit ground, and mixed into black it is a brown nobody chose |
+| `cover-ground: ink` | black, where the literal 0.14 would be the one grey slide of the deck |
+
+**Left alone, deliberately**: `--paper-warm` (the terminal themes' code plate and expansion card, 0.17–0.22, a clear step on black), `--rule` (table and panel hairlines), `.cg-outline`'s 22% border, `.ov-paper` / `.ov-glass` and the backdrop and photo-card veils (the paper at an alpha over a picture – a black veil only raises the type's contrast, and glass has a measured floor), the `.ov-ink` slab and the invert scrims (literals that are meant to be a slab), the annotation's full-frame ground, the focus card and its scrim, the video and embed letterbox (0.12), and the chrome – the `?` circle, the start menu, the TOC, the go-to prompt and the search panel are derived from `--paper` plus a few points of lightness and each has a `--rule` border, so they are darker under the switch and still delimited. The cockpit takes the attribute like the projection, so its mirror shows what the room sees. **The two documents know nothing of it**: they have their own palette, emit no `data-pitchblack`, and `--dg-ground` is never set there.
+
+**`DG_THEMES` in `diagram-core.mjs` has no row for the switch.** The linter's bar-contrast check models a fill against the theme's paper; under the switch the fill is the same colour and the ground is darker, and in every dark theme both inks are lighter than the paper, so each modelled ratio is a floor. The `semantics` gate asserts that premise rather than leaving it as a remark.
+
 ## Viewer defaults in the frontmatter
 
-Eleven optional frontmatter keys pin how a lecture opens:
+Twelve optional frontmatter keys pin how a lecture opens:
 
 | key | values | default |
 |---|---|---|
@@ -276,10 +301,11 @@ Eleven optional frontmatter keys pin how a lecture opens:
 | `neighbours` | dim / hidden | dim *(hidden under `cut` / `fade`)* |
 | `transition` | pan / cut / fade | pan |
 | `reader` | on / off | on |
+| `pitchblack` | on / off | off |
 
 `editor` is not a look but a payload – whether the live views carry the diagram editor – and it goes through this machinery rather than growing its own because the failure mode is identical: a typo would otherwise cost the lecture its editor silently. The precedence rule is one sentence: **a key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone.** So lectures that say nothing behave exactly as before – font, theme and slide numbers keep following the reader across lectures – and an author who has designed a particular look gets it without asking anyone to press keys.
 
-**Six of those entries carry a decision the table cannot show.**
+**Seven of those entries carry a decision the table cannot show.**
 
 **`slide-numbers` defaults to `horizontal`, and it used to default to `vertical`.** This is the one viewer default whose change moves what an existing deck renders: the stacked form sets each digit on its own line, so slide 10 reaches the audience as a 1 above a 0. The content repo's house-style file had carried "set `slide-numbers: horizontal`" as standing advice, which is what a wrong default looks like from the outside. The old rendering is `slide-numbers: vertical`, and deliberately no compatibility flag was added beside it – one more key would make the old behaviour reachable two ways. The number in the corner is also an address: `G`, the digits and Enter jump to that slide in either window, the way a click in the contents does, so the cockpit and the projection stay in step; a number the deck does not have shakes the prompt and keeps the digits, and Backspace and Escape do what they say.
 

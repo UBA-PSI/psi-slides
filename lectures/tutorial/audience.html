@@ -147,7 +147,8 @@ body[data-theme=light-orange] { --emph: oklch(0.54 0.17 60);  }
    this one is an ordinary reading theme that happens to be dark, so syntax
    highlighting and the accent keep working. */
 body[data-theme=dark] {
-  --paper:      oklch(0.17 0.005 260);
+  --paper-own:  oklch(0.17 0.005 260);
+  --paper:      var(--paper-own);
   --paper-warm: oklch(0.22 0.008 260);
   --ink:        oklch(0.95 0 0);
   --ink-soft:   oklch(0.68 0.01 260);
@@ -157,9 +158,16 @@ body[data-theme=dark] {
 
 /* Terminal modes – black paper, amber or phosphor-green ink.
    Dim opacity stays via --dim, shiki colors get suppressed (see below)
-   so the whole slide reads as a single foreground color. */
+   so the whole slide reads as a single foreground color.
+
+   A dark theme names its paper twice, and that is the contract for a new
+   one: --paper-own is the colour, --paper reads it. pitchblack (below the
+   neutrals) takes --paper to black and still has the theme's own paper to
+   mix a quiet fill over; a dark theme that set --paper alone would lose
+   its tones under the switch. The semantics gate holds all three to it. */
 body[data-theme=terminal-amber] {
-  --paper:      oklch(0.12 0.02 60);
+  --paper-own:  oklch(0.12 0.02 60);
+  --paper:      var(--paper-own);
   --paper-warm: oklch(0.18 0.03 60);
   --ink:        oklch(0.82 0.14 75);
   --ink-soft:   oklch(0.60 0.10 75);
@@ -167,7 +175,8 @@ body[data-theme=terminal-amber] {
   --emph:       oklch(0.94 0.18 85);
 }
 body[data-theme=terminal-green] {
-  --paper:      oklch(0.11 0.02 150);
+  --paper-own:  oklch(0.11 0.02 150);
+  --paper:      var(--paper-own);
   --paper-warm: oklch(0.17 0.03 150);
   --ink:        oklch(0.80 0.20 145);
   --ink-soft:   oklch(0.58 0.12 145);
@@ -214,8 +223,10 @@ body[data-theme^=light]:is([data-neutrals=tinted], [data-neutrals=warm], [data-n
   --paper-warm: oklch(0.96 0.014 var(--accent-h));
   --rule:       oklch(0.78 0.013 var(--accent-h));
 }
+/* --paper-own and not --paper: the dark theme's --paper reads it, and so
+   does pitchblack, which then needs no word about neutrals to stay black. */
 body[data-theme=dark]:is([data-neutrals=tinted], [data-neutrals=warm], [data-neutrals=cool]) {
-  --paper:      oklch(0.17 0.010 var(--accent-h));
+  --paper-own:  oklch(0.17 0.010 var(--accent-h));
   --paper-warm: oklch(0.22 0.016 var(--accent-h));
   --ink:        oklch(0.95 0.006 var(--accent-h));
   --ink-soft:   oklch(0.68 0.014 var(--accent-h));
@@ -253,6 +264,83 @@ body[data-neutrals=tinted] .dock.ov-tint {
 body[data-neutrals=tinted] .cards.cg-outline {
   --card-border: 2px solid color-mix(in oklch, var(--emph) 26%, transparent);
 }
+
+/* ── pitchblack: every dark theme on a true black ground ───────────
+   pitchblack: on in the frontmatter, or the palette's command of that name
+   in either window. Off by default: a deck that says nothing carries no
+   data-pitchblack until the runtime writes "off", and reaches none of this.
+
+   A projector cannot show black. What it throws for a dark theme's paper -
+   oklch 0.17, 0.12, 0.11 - is a lit grey rectangle on the wall, and the
+   words lose the contrast the dark theme was chosen for. So the switch
+   takes --paper to zero and leaves every other token of the theme alone:
+   ink, accent, --paper-warm, --rule, the syntax colours.
+
+   Keyed on data-mode, so it reaches all three dark themes and any later
+   one, and under a light theme it matches nothing - the attribute stays,
+   and A into a dark theme finds it. (0,2,1) against a theme's (0,1,1), and
+   style: {neutrals} writes --paper-own for the dark theme rather than
+   --paper, so a tinted black is not possible and the tint still reaches
+   the ink, the rule and the quiet fills.
+
+   The cost of a paper at zero is every fill that was a few per cent over
+   it. --dg-ground is the answer for a figure: its tones, its bar fills,
+   its container stroke and its muted words are mixed over that rather than
+   over --paper (DIAGRAM_CSS, dgBarFillCss), it falls back to --paper where
+   nobody sets it - the documents, a light theme, the switch off - and here
+   it is the theme's own paper. So a figure's fills are the colours they
+   were, to the digit, and stand off the black instead of sinking into it;
+   mixed over zero, .tone-2 came out at about 8% of the ink, which a
+   projector does not show. */
+body[data-mode=dark][data-pitchblack=on] {
+  --paper: oklch(0 0 0);
+  --dg-ground: var(--paper-own);
+}
+/* The fills written as a few per cent of ink over nothing took their
+   visibility from the grey underneath: 5% of a white ink over oklch 0.17
+   is a step, over black it is not. 20%, measured on a card row at
+   1600x900 in all three dark themes: the plate reads as a plate and the
+   type on it keeps its contrast. The panel card, the rows' term cell (the
+   same --card-bg), the divider's card heading and the dock's tint are one
+   device and move together. */
+body[data-mode=dark][data-pitchblack=on] .cards.cg-panel { --card-bg: color-mix(in oklch, var(--ink) 20%, transparent); }
+body[data-mode=dark][data-pitchblack=on] .chunk[data-section=card]:not([data-has-backdrop]) .section-heading,
+body[data-mode=dark][data-pitchblack=on] .dock.ov-tint {
+  background: color-mix(in oklch, var(--ink) 20%, transparent);
+}
+/* Under neutrals: tinted the same three are mixed from the accent, and
+   lifted by the same factor. One attribute more than the rules above, so
+   the accent wins here as it does without the switch. */
+body[data-mode=dark][data-pitchblack=on][data-neutrals=tinted] .cards.cg-panel { --card-bg: color-mix(in oklch, var(--emph) 26%, transparent); }
+body[data-mode=dark][data-pitchblack=on][data-neutrals=tinted] .chunk[data-section=card]:not([data-has-backdrop]) .section-heading {
+  background: color-mix(in oklch, var(--emph) 26%, transparent);
+}
+body[data-mode=dark][data-pitchblack=on][data-neutrals=tinted] :is(.overlay-card, .dock).ov-paper,
+body[data-mode=dark][data-pitchblack=on][data-neutrals=tinted] .dock.ov-tint {
+  background: color-mix(in oklch, var(--emph) 20%, transparent);
+}
+/* style: {code: tint} - the ground behind an inline code span, 7% of the
+   ink and gone on black for the same reason. */
+body[data-code=tint][data-mode=dark][data-pitchblack=on] .chunk-body code:not(pre code):not(.embed-blocked code),
+body[data-code=tint][data-mode=dark][data-pitchblack=on] .exp-body code:not(pre code) {
+  background: color-mix(in oklch, var(--ink) 24%, transparent);
+}
+/* Two surfaces that were the accent mixed into the paper, and are a
+   statement about the whole slide or half of it: the tinted divider, the
+   cover's panel. Mixed into black they are a brown nobody chose, so they
+   keep the theme's own paper as their second colour - the one place the
+   switch leaves a lit ground, because a slide that is the accent is asking
+   to be one. */
+body[data-mode=dark][data-pitchblack=on] .chunk[data-section=tinted] {
+  background: color-mix(in oklch, var(--emph) 12%, var(--paper-own));
+}
+body[data-mode=dark][data-pitchblack=on] .chunk[data-cover=panel] {
+  --panel-field: color-mix(in oklab, var(--emph) 30%, var(--paper-own));
+}
+/* cover-ground: ink is a dark opening slide written as a literal, 0.14,
+   for a light deck. Under a dark theme it stood a shade under the paper;
+   under the switch it would be the one grey slide of the deck. */
+body[data-mode=dark][data-pitchblack=on] .chunk[data-cover-ground=ink] { background: oklch(0 0 0); }
 
 /* A dark reading theme switches shiki to its dark palette. Every token
    carries both colours: the light one as the inline color property, the dark one
@@ -4642,6 +4730,10 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
    the column gap on either side, so the key and its description read as one
    line rather than as two boxes. */
 .help-grid .help-run { cursor: pointer; }
+/* A command with no key (commands.mjs, keys: []): the key column says so in
+   the small type of a tag, never as a kbd, so the column advertises no key
+   that answers nothing. */
+.help-grid .help-nokey { color: var(--ink-soft); font-size: 0.82em; font-style: italic; }
 .help-grid .help-sel {
   background: oklch(from var(--emph) l c h / 0.12);
   box-shadow: -0.45rem 0 0 oklch(from var(--emph) l c h / 0.12), 0.45rem 0 0 oklch(from var(--emph) l c h / 0.12);
@@ -5475,22 +5567,30 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
    trust boundary, a segment, a machine - it has to read as a statement.
    Dashed at that weight it was barely visible on a shaded ground, which
    is exactly where these are usually drawn. */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--dg-ground, var(--paper))); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
 .psi-diagram .dg-brace .dg-stroke { stroke: var(--rule); }
 
 /* ── tones ── four theme-safe fills, mixed from the page's own inks ── */
+/* Over --dg-ground, which is --paper wherever nobody says otherwise - every
+   document, every theme. The one thing that sets it is pitchblack in the
+   live views, where the paper is black and a mix over it would be a few per
+   cent above nothing: there the ground is the dark theme's own paper, so the
+   three tones are the colours they always were. The same holds for every
+   other mix against the paper in this sheet and in dgBarFillCss; .paper and
+   the label on a .tone-4 stay on --paper itself, because they mean the
+   canvas. */
 .psi-diagram .tone-1 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--emph) 13%, var(--paper));
+  fill: color-mix(in oklab, var(--emph) 13%, var(--dg-ground, var(--paper)));
   stroke: color-mix(in oklab, var(--emph) 60%, var(--ink));
 }
 .psi-diagram .tone-2 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--ink) 8%, var(--paper)); stroke: var(--ink);
+  fill: color-mix(in oklab, var(--ink) 8%, var(--dg-ground, var(--paper))); stroke: var(--ink);
 }
 .psi-diagram .tone-3 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--ink) 20%, var(--paper)); stroke: var(--ink);
+  fill: color-mix(in oklab, var(--ink) 20%, var(--dg-ground, var(--paper))); stroke: var(--ink);
 }
 .psi-diagram .tone-4 > :is(rect, circle, .dg-shape) {
   fill: var(--emph); stroke: var(--emph);
@@ -5533,7 +5633,7 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
 .psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
-.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
+.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--dg-ground, var(--paper))); }
 
 /* .tone-4 inverts its own label, and that has to win over .accent text:
    accent ink on an accent fill is invisible, legal, and would otherwise be
@@ -5653,10 +5753,10 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
    too pale for a theme - one table, so the warning is about the colour that
    is drawn. The block sits after the box tones on purpose: a column's tone
    rule is one class more specific and has to win. */
-.psi-diagram .dg-bar > rect { fill: color-mix(in oklab, var(--ink) 55%, var(--paper)); }
-.psi-diagram .dg-bar.tone-1 > rect { fill: color-mix(in oklab, var(--emph) 70%, var(--paper)); }
-.psi-diagram .dg-bar.tone-2 > rect { fill: color-mix(in oklab, var(--ink) 45%, var(--paper)); }
-.psi-diagram .dg-bar.tone-3 > rect { fill: color-mix(in oklab, var(--ink) 68%, var(--paper)); }
+.psi-diagram .dg-bar > rect { fill: color-mix(in oklab, var(--ink) 55%, var(--dg-ground, var(--paper))); }
+.psi-diagram .dg-bar.tone-1 > rect { fill: color-mix(in oklab, var(--emph) 70%, var(--dg-ground, var(--paper))); }
+.psi-diagram .dg-bar.tone-2 > rect { fill: color-mix(in oklab, var(--ink) 45%, var(--dg-ground, var(--paper))); }
+.psi-diagram .dg-bar.tone-3 > rect { fill: color-mix(in oklab, var(--ink) 68%, var(--dg-ground, var(--paper))); }
 .psi-diagram .dg-bar.emph > rect { fill: var(--emph); stroke: none; }
 .psi-diagram .dg-bar.tone-4.emph > rect { stroke: none; }
 /* Words are the third thing emphasis can act on, and leaving them out left the
@@ -5769,15 +5869,15 @@ body[data-font=mono] .exp-body code:not(pre code) { font-size: 0.96em; }
 <body data-collapse="topic-bold" data-font="serif" data-theme="light-red" data-mode="light" data-slide-nums="horizontal">
 <script>
 (function () {
+  var d = document.body.dataset;
   var names = ["light-red","light-teal","light-blue","light-orange","dark","terminal-amber","terminal-green"];
   var dark = ["dark","terminal-amber","terminal-green"];
-  var d = document.body.dataset;
   var set = function (t) { d.theme = t; d.mode = dark.indexOf(t) >= 0 ? 'dark' : 'light'; };
-  try {
-    var stored = localStorage.getItem('psi-slides:theme');
-    if (stored && names.indexOf(stored) >= 0) { set(stored); return; }
-  } catch (e) {}
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) set('dark');
+  var stored = null;
+  try { stored = localStorage.getItem('psi-slides:theme'); } catch (e) {}
+  if (stored && names.indexOf(stored) >= 0) set(stored);
+  else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) set('dark');
+  try { if (localStorage.getItem('psi-slides:pitchblack') === 'on') d.pitchblack = 'on'; } catch (e) {}
 })();
 </script>
 <div id="psiINT-stage-viewport">
@@ -7663,7 +7763,7 @@ by using it.</p>
   
   <div class="chunk-content">
     
-    <h2 class="chunk-heading has-sub"><span class="hd-main">Deciding how a lecture opens</span> <span class="hd-sub">eleven frontmatter keys, and <code class="nb">lang:</code> beside them</span></h2>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">Deciding how a lecture opens</span> <span class="hd-sub">twelve frontmatter keys, and <code class="nb">lang:</code> beside them</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>A lecture can set its own starting look instead of inheriting whatever the reader last chose.</strong></p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#79C0FF">---</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">title</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">Anonymous Communication</span></span>
@@ -7685,6 +7785,8 @@ by using it.</p>
 <span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">transition</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">cut</span><span style="color:#6A737D;--shiki-dark:#8B949E">         # pan | cut | fade – how a slide change looks</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">reader</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#005CC5;--shiki-dark:#79C0FF">off</span><span style="color:#6A737D;--shiki-dark:#8B949E">             # on | off – the documents' contents</span></span>
 <span class="line"><span style="color:#6A737D;--shiki-dark:#8B949E">                        # sidebar and highlights</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">pitchblack</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#005CC5;--shiki-dark:#79C0FF">on</span><span style="color:#6A737D;--shiki-dark:#8B949E">          # on | off – the dark themes on a</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#8B949E">                        # true black ground, for a projector</span></span>
 <span class="line"><span style="color:#6F42C1;--shiki-dark:#79C0FF">---</span></span></code></pre>
 </div></div>
     
@@ -7705,14 +7807,15 @@ by using it.</p>
   
   <div class="chunk-content">
     
-    <h2 class="chunk-heading has-sub"><span class="hd-main">The language, and which setting wins</span> <span class="hd-sub"><code class="nb">lang:</code>, and the rule for the eleven keys</span></h2>
+    <h2 class="chunk-heading has-sub"><span class="hd-main">The language, and which setting wins</span> <span class="hd-sub"><code class="nb">lang:</code>, and the rule for the twelve keys</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;--shiki-dark-bg:#0d1117;color:#24292e;--shiki-dark:#e6edf3" tabindex="0"><code><span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">lang</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">de</span><span style="color:#6A737D;--shiki-dark:#8B949E">                # the language the lecture is written in:</span></span>
 <span class="line"><span style="color:#6A737D;--shiki-dark:#8B949E">                        # en, de, de-DE, fr and so on, and en</span></span>
 <span class="line"><span style="color:#6A737D;--shiki-dark:#8B949E">                        # when you leave it out</span></span></code></pre>
-<p><strong><code class="nb">lang:</code> picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.</strong> <code>style: {hyphenate: all}</code> puts it into the projection too, which a German lecture at <code class="nb">.narrow</code> usually wants, and <code class="nb">none</code> takes it out everywhere. Unlike the eleven keys on the last slide, it is not a setting the reader could change: it describes the lecture.</p>
+<p><strong><code class="nb">lang:</code> picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.</strong> <code>style: {hyphenate: all}</code> puts it into the projection too, which a German lecture at <code class="nb">.narrow</code> usually wants, and <code class="nb">none</code> takes it out everywhere. Unlike the twelve keys on the last slide, it is not a setting the reader could change: it describes the lecture.</p>
 <p><strong>A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.</strong> So in a lecture that sets none of them, font, theme and slide numbers follow the reader from lecture to lecture.</p>
 <p><code class="nb">slide-numbers</code> applies to <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> too, and <code class="nb">print-slide-numbers:</code> overrides it there when the printed document wants different numbering from the projection. A value the tool does not know stops the build and lists the ones it does.</p>
 <p><strong><code class="nb">neighbours</code>, <code class="nb">note-button</code> and <code class="nb">transition</code> are the ones a keynote sets and a lecture does not.</strong> <code>transition: cut</code> lands on the next slide without the camera glide, and <code class="nb">fade</code> dips through the paper; both hide the neighbours unless you also write <code>neighbours: dim</code>. <code>neighbours: hidden</code> takes off the projection the faint slides above and below, which otherwise show where you are in the column. <code>note-button: off</code> hides the <code>+ note</code> hint in the slide&#39;s left gutter; <code class="nb">N</code> still opens an annotation, and <code class="nb">M</code> shows or hides the hint at any time, in either window.</p>
+<p><strong><code>pitchblack: on</code> is for a projector, which cannot show a dark grey as black.</strong> The three dark themes then stand on a true black ground instead of their own dark paper, and a light theme is left as it is. It has no key: <code class="nb">Ctrl/Cmd</code>-<code class="nb">K</code>, type <code class="nb">pitch</code>, <code class="nb">Enter</code> switches it in either window, and the choice follows you from lecture to lecture like the theme.</p>
 <p><code>reader: off</code> ships the two documents without the contents sidebar and highlights.</p>
 </div></div>
     
@@ -7819,6 +7922,7 @@ by using it.</p>
         <dt data-row="font-back" data-cmd="font-back"><kbd>Shift</kbd>-<kbd>F</kbd></dt><dd>the font, backwards</dd>
         <dt data-row="theme-back" data-cmd="theme-back"><kbd>Shift</kbd>-<kbd>A</kbd></dt><dd>the theme, backwards</dd>
         <dt data-row="slide-numbers-back" data-cmd="slide-numbers-back"><kbd>Shift</kbd>-<kbd>L</kbd></dt><dd>the slide numbers, backwards</dd>
+        <dt data-row="pitchblack" data-cmd="pitchblack"><span class="help-nokey">no key</span></dt><dd>pitch black: every dark theme on a true black ground instead of its own dark paper, for a projector, which cannot show a grey as black – and back; a light theme keeps its paper and the switch stays set. <code>pitchblack: on</code> in the frontmatter opens that way</dd>
       </dl>
     </section>
     <section>
@@ -10289,8 +10393,13 @@ window.PSI_COMMANDS = (function () {
  * One entry is one row of the ? panel. Two kinds:
  *
  *   a command   has `keys`, and the key map dispatches them to COMMAND_RUN[id];
- *               the panel can run its row as a palette (all but ? itself)
- *   a doc row   has no `keys`: a mouse gesture (`mouse`), or a key answered
+ *               the panel can run its row as a palette (all but ? itself).
+ *               `keys: []` is a command with no key: nothing in the key map,
+ *               a run function all the same, and a row whose key column says
+ *               so (NO_KEY) - found by its words and run from the palette.
+ *               It is for a switch set once per room, where a free letter
+ *               would be spent on something no hand reaches for mid-talk
+ *   a doc row   has no `keys` at all: a mouse gesture (`mouse`), or a key answered
  *               somewhere other than the key map (`context`: the overview
  *               board, the search field, a focused figure, the cue cards, a
  *               note, the prompter's strip, the editor) - the guards before
@@ -10313,7 +10422,8 @@ window.PSI_COMMANDS = (function () {
  *             'shift+' in front when the binding needs Shift held. A shifted
  *             press with no binding of its own falls back to the plain key,
  *             which is how Shift-B still blanks and Shift-S still opens the
- *             cockpit, as they always did
+ *             cockpit, as they always did. An empty list is a command the
+ *             palette runs and no key does (isCommand, hasKey)
  *   label     a verb phrase, sentence case, for a menu or a palette row
  *   short     a name of one or two words, where the click is the verb: the
  *             projection's start menu (START_MENU) reads it
@@ -10629,6 +10739,12 @@ const COMMANDS = [
   { id: 'slide-numbers-back', group: 'knobs', views: BOTH, keys: ['shift+l'],
     label: 'Cycle the slide numbers backwards', reach: 'broadcast',
     hint: 'the slide numbers, backwards' },
+  // The first command with no key (keys: []). A switch for the room rather
+  // than for the talk - a projector cannot show a grey as black - so it is
+  // set once, from the palette or the frontmatter, and takes no letter.
+  { id: 'pitchblack', group: 'knobs', views: BOTH, keys: [],
+    label: 'Switch pitch black on or off', reach: 'broadcast', state: 'pitchblack',
+    hint: 'pitch black: every dark theme on a true black ground instead of its own dark paper, for a projector, which cannot show a grey as black – and back; a light theme keeps its paper and the switch stays set. <code>pitchblack: on</code> in the frontmatter opens that way' },
   { id: 'touch-palette', group: 'knobs', views: BOTH,
     mouse: 'on a touchscreen',
     hint: 'the same settings sit behind the ⋯ button on the toolbar' },
@@ -10733,10 +10849,25 @@ function keyText(combo) {
 
 const pick = (v, view) => (v && typeof v === 'object' ? v[view] : v);
 
-// Whether the panel may run this entry's row as a palette: a command, but
-// not ?, whose row would only open the panel again.
+// An entry the views run, as opposed to a doc row: it has a `keys` list. The
+// list may be empty - then no press reaches it and the palette is the way.
+function isCommand(c) {
+  return Array.isArray(c.keys);
+}
+// Whether a press reaches this command at all.
+function hasKey(c) {
+  return isCommand(c) && c.keys.length > 0;
+}
+// What stands in the panel's key column for a command with no key. Not a
+// kbd: the column must not advertise a key that answers nothing, and every
+// reader of the panel - the palette's index, the commands gate - takes a
+// row's keys from its kbd elements.
+const NO_KEY = '<span class="help-nokey">no key</span>';
+
+// Whether the panel may run this entry's row as a palette: a command, with
+// a key or without, but not ?, whose row would only open the panel again.
 function runsFromPanel(c) {
-  return !!(c.keys && c.id !== 'help');
+  return isCommand(c) && c.id !== 'help';
 }
 
 // The panel's sections for one view, in two runs:
@@ -10755,7 +10886,7 @@ function helpGroups(view, ships = {}) {
     for (const c of COMMANDS) {
       if (!c.views.includes(view) || pick(c.group, view) !== g.id) continue;
       if (c.requires && !ships[c.requires]) continue;
-      const keys = c.show || c.mouse || c.keys.map(keyText).join(' · ');
+      const keys = c.show || c.mouse || (hasKey(c) ? c.keys.map(keyText).join(' · ') : NO_KEY);
       const runs = runsFromPanel(c);
       rows[runs ? 0 : 1].push([keys, pick(c.hint, view), runs ? c.id : null, c.id]);
     }
@@ -10782,14 +10913,18 @@ function helpGroups(view, ships = {}) {
     if (c.reach && !REACH.includes(c.reach)) fail(c.id + ' has an unknown reach ' + c.reach);
     if (c.when && !WHEN.includes(c.when)) fail(c.id + ' has an unknown when ' + c.when);
     if (c.context && !CONTEXTS.includes(c.context)) fail(c.id + ' has an unknown context ' + c.context);
-    if (c.keys && !c.label) fail(c.id + ' is a command without a label');
+    if ('keys' in c && !isCommand(c)) fail(c.id + ' has keys that are not a list');
+    if (isCommand(c) && !c.label) fail(c.id + ' is a command without a label');
     if (!c.hint) fail(c.id + ' is a row without a hint');
-    if (!c.keys && !c.show && !c.mouse) fail(c.id + ' has no keys and nothing to show for them');
+    if (!isCommand(c) && !c.show && !c.mouse) fail(c.id + ' has no keys and nothing to show for them');
+    // A command with no key is found by its words alone, so its row may not
+    // spell a key or a gesture in the column where the others have theirs.
+    if (isCommand(c) && !hasKey(c) && (c.show || c.mouse)) fail(c.id + ' is a command with no key, and its row shows one');
   }
   for (const c of COMMANDS) if ('row' in c) fail(c.id + ' names a row to share; every command has a row of its own');
   for (const id of START_MENU) {
     const c = COMMANDS.find((x) => x.id === id);
-    if (!c || !c.keys || !c.short || !c.views.includes('audience')) fail('the start menu names ' + id + ', which is no audience command with a short name');
+    if (!c || !hasKey(c) || !c.short || !c.views.includes('audience')) fail('the start menu names ' + id + ', which is no audience command with a key and a short name');
   }
   for (const view of VIEWS) {
     const seen = Object.create(null);
@@ -10804,7 +10939,7 @@ function helpGroups(view, ships = {}) {
   }
 })();
 
-return { VIEWS, REQUIRES, REACH, WHEN, CONTEXTS, GROUPS, COMMANDS, START_MENU, comboOf, keyMap, commandFor, keyText, runsFromPanel, helpGroups };
+return { VIEWS, REQUIRES, REACH, WHEN, CONTEXTS, GROUPS, COMMANDS, START_MENU, comboOf, keyMap, commandFor, keyText, isCommand, hasKey, NO_KEY, runsFromPanel, helpGroups };
 })();
 </script>
 <script>
@@ -11510,6 +11645,7 @@ const state = {
   theme: VIEW_DEFAULTS.theme || 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
   slideNums: VIEW_DEFAULTS.slideNums || "horizontal",  // vertical | horizontal | off – L cycles
   noteButton: VIEW_DEFAULTS.noteButton || 'on',  // on | off – M toggles
+  pitchblack: VIEW_DEFAULTS.pitchblack || 'off', // on | off – the palette's pitchblack command toggles, no key
 };
 // pan | cut | fade. Not a field of state: it is the author's decision about
 // what a slide change looks like, there is no key that cycles it, and the
@@ -11631,6 +11767,11 @@ function loadPersisted() {
     const nb = localStorage.getItem('psi-slides:note-button');
     if (!VIEW_DEFAULTS.noteButton && (nb === 'on' || nb === 'off')) state.noteButton = nb;
   } catch (e) {}
+  // Pitch black is settled before first paint by the same boot script as the
+  // theme, from the reader's stored choice, and read back here the same way:
+  // one place knows the precedence. Pinned in the frontmatter, the attribute
+  // carries the author's word (or its absence, which is off).
+  if (!VIEW_DEFAULTS.pitchblack && document.body.dataset.pitchblack === 'on') state.pitchblack = 'on';
 }
 function saveAnnotations() {
   try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
@@ -11650,6 +11791,7 @@ function applyFontTheme() {
   document.body.dataset.mode = DARK_THEMES.includes(state.theme) ? 'dark' : 'light';
   document.body.dataset.slideNums = state.slideNums;
   document.body.dataset.noteButton = state.noteButton;
+  document.body.dataset.pitchblack = state.pitchblack;
 }
 // The add-note button on the projection. Its own function rather than a
 // field of the snapshot, and its own message type, for the reason blank has
@@ -11668,6 +11810,21 @@ function setNoteButton(mode, announce) {
     sendToPeer({ type: 'note-button', source: VIEW, mode: state.noteButton });
     flashMode(state.noteButton === 'off' ? 'note button hidden' : 'note button shown');
   }
+}
+// Every dark theme on a true black ground, or back on its own paper. The
+// state is one word beside the theme and travels the way the theme does - a
+// field of the snapshot, stored globally, pinned by the frontmatter - because
+// it is the same kind of thing: a reading preference both windows have to
+// agree on. It has no key (commands.mjs, keys: []): the palette runs it.
+// Under a light theme nothing on the slide moves, so the toast says where it
+// will show; the switch is set all the same and A finds it there.
+function togglePitchblack() {
+  state.pitchblack = state.pitchblack === 'on' ? 'off' : 'on';
+  applyFontTheme();
+  try { localStorage.setItem('psi-slides:pitchblack', state.pitchblack); } catch (e) {}
+  flashMode('pitch black · ' + state.pitchblack
+    + (state.pitchblack === 'on' && !DARK_THEMES.includes(state.theme) ? ' · shows under a dark theme' : ''));
+  broadcastState();
 }
 function cycleSlideNums(dir) {
   const i = SLIDE_NUM_MODES.indexOf(state.slideNums);
@@ -11791,6 +11948,9 @@ function snapshot() {
     font: state.font,
     theme: state.theme,
     slideNums: state.slideNums,
+    // A peer built before the switch ignores the field, and one that sends
+    // none leaves this window's own answer alone (applyRemoteState).
+    pitchblack: state.pitchblack,
     // Inner window dimensions travel with every snapshot so the speaker
     // can match its preview's aspect ratio to the actual projector
     // window. Without this, laser-pointer coordinates (fractions of the
@@ -11937,6 +12097,7 @@ function applyRemoteStateNow(payload, changed) {
     if (payload.font && FONT_CYCLE.includes(payload.font)) state.font = payload.font;
     if (payload.theme && THEME_CYCLE.includes(payload.theme)) state.theme = payload.theme;
     if (payload.slideNums && SLIDE_NUM_MODES.includes(payload.slideNums)) state.slideNums = payload.slideNums;
+    if (payload.pitchblack === 'on' || payload.pitchblack === 'off') state.pitchblack = payload.pitchblack;
     applyFontTheme();
     // Speaker mirrors the audience window's aspect so its preview area
     // lays out content identically. Ignored on audience side (its own
@@ -14744,12 +14905,14 @@ function pageHelpSel(dir) {
   }
   setHelpSel(list[next]);
 }
-// A command run from anywhere but its key: the panel, the start menu.
+// A command run from anywhere but its key: the panel, the start menu. For a
+// command that has no key this is the only way in.
 function runCommand(id) {
   const run = COMMAND_RUN[id];
   if (!run) return;
   const c = PSI_COMMANDS.COMMANDS.find((x) => x.id === id);
-  const combo = c && c.keys ? c.keys[0] : '';
+  // A command with no key (keys: []) is run with an event that names none.
+  const combo = (c && c.keys && c.keys[0]) || '';
   const shift = combo.indexOf('shift+') === 0;
   run({
     key: shift ? combo.slice(6) : combo, shiftKey: shift,
@@ -15772,6 +15935,9 @@ const COMMAND_RUN = {
   'theme-back': (e) => { cycleTheme(-1); e.preventDefault(); },
   'slide-numbers': (e) => { cycleSlideNums(1); e.preventDefault(); },
   'slide-numbers-back': (e) => { cycleSlideNums(-1); e.preventDefault(); },
+  // The one command no key reaches: the palette runs it (runCommand), with
+  // an event that names no key.
+  'pitchblack': (e) => { togglePitchblack(); e.preventDefault(); },
   // The add-note affordance on the projection, shown or hidden. A bare
   // free letter and not a Shift pair: Shift-B was the obvious mnemonic
   // (both take something off the screen) and is exactly the one that
@@ -17319,9 +17485,9 @@ stage.addEventListener('load', (e) => {
 /* The fill swatches show the fill. A row of words would be a legend; a row
    of the actual tones is the thing itself. */
 .dge-sw[data-fill] { width: 1.9rem; height: 1.25rem; }
-.dge-sw[data-fill=tone-1] { background: color-mix(in oklab, var(--emph) 13%, var(--paper)); }
-.dge-sw[data-fill=tone-2] { background: color-mix(in oklab, var(--ink) 8%, var(--paper)); }
-.dge-sw[data-fill=tone-3] { background: color-mix(in oklab, var(--ink) 20%, var(--paper)); }
+.dge-sw[data-fill=tone-1] { background: color-mix(in oklab, var(--emph) 13%, var(--dg-ground, var(--paper))); }
+.dge-sw[data-fill=tone-2] { background: color-mix(in oklab, var(--ink) 8%, var(--dg-ground, var(--paper))); }
+.dge-sw[data-fill=tone-3] { background: color-mix(in oklab, var(--ink) 20%, var(--dg-ground, var(--paper))); }
 .dge-sw[data-fill=tone-4] { background: var(--emph); }
 .dge-sw[data-fill=clear] {
   background:
@@ -18071,7 +18237,7 @@ function dgBarFill(tone, prominence) {
 function dgBarFillCss() {
   const mix = (key) => {
     const [tok, pct] = DG_BAR_FILLS[key];
-    return pct >= 100 ? `var(--${tok})` : `color-mix(in oklab, var(--${tok}) ${pct}%, var(--paper))`;
+    return pct >= 100 ? `var(--${tok})` : `color-mix(in oklab, var(--${tok}) ${pct}%, var(--dg-ground, var(--paper)))`;
   };
   return [
     `.psi-diagram .dg-bar > rect { fill: ${mix('plain')}; }`,

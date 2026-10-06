@@ -15,8 +15,13 @@
  * One entry is one row of the ? panel. Two kinds:
  *
  *   a command   has `keys`, and the key map dispatches them to COMMAND_RUN[id];
- *               the panel can run its row as a palette (all but ? itself)
- *   a doc row   has no `keys`: a mouse gesture (`mouse`), or a key answered
+ *               the panel can run its row as a palette (all but ? itself).
+ *               `keys: []` is a command with no key: nothing in the key map,
+ *               a run function all the same, and a row whose key column says
+ *               so (NO_KEY) - found by its words and run from the palette.
+ *               It is for a switch set once per room, where a free letter
+ *               would be spent on something no hand reaches for mid-talk
+ *   a doc row   has no `keys` at all: a mouse gesture (`mouse`), or a key answered
  *               somewhere other than the key map (`context`: the overview
  *               board, the search field, a focused figure, the cue cards, a
  *               note, the prompter's strip, the editor) - the guards before
@@ -39,7 +44,8 @@
  *             'shift+' in front when the binding needs Shift held. A shifted
  *             press with no binding of its own falls back to the plain key,
  *             which is how Shift-B still blanks and Shift-S still opens the
- *             cockpit, as they always did
+ *             cockpit, as they always did. An empty list is a command the
+ *             palette runs and no key does (isCommand, hasKey)
  *   label     a verb phrase, sentence case, for a menu or a palette row
  *   short     a name of one or two words, where the click is the verb: the
  *             projection's start menu (START_MENU) reads it
@@ -355,6 +361,12 @@ export const COMMANDS = [
   { id: 'slide-numbers-back', group: 'knobs', views: BOTH, keys: ['shift+l'],
     label: 'Cycle the slide numbers backwards', reach: 'broadcast',
     hint: 'the slide numbers, backwards' },
+  // The first command with no key (keys: []). A switch for the room rather
+  // than for the talk - a projector cannot show a grey as black - so it is
+  // set once, from the palette or the frontmatter, and takes no letter.
+  { id: 'pitchblack', group: 'knobs', views: BOTH, keys: [],
+    label: 'Switch pitch black on or off', reach: 'broadcast', state: 'pitchblack',
+    hint: 'pitch black: every dark theme on a true black ground instead of its own dark paper, for a projector, which cannot show a grey as black – and back; a light theme keeps its paper and the switch stays set. <code>pitchblack: on</code> in the frontmatter opens that way' },
   { id: 'touch-palette', group: 'knobs', views: BOTH,
     mouse: 'on a touchscreen',
     hint: 'the same settings sit behind the ⋯ button on the toolbar' },
@@ -459,10 +471,25 @@ export function keyText(combo) {
 
 const pick = (v, view) => (v && typeof v === 'object' ? v[view] : v);
 
-// Whether the panel may run this entry's row as a palette: a command, but
-// not ?, whose row would only open the panel again.
+// An entry the views run, as opposed to a doc row: it has a `keys` list. The
+// list may be empty - then no press reaches it and the palette is the way.
+export function isCommand(c) {
+  return Array.isArray(c.keys);
+}
+// Whether a press reaches this command at all.
+export function hasKey(c) {
+  return isCommand(c) && c.keys.length > 0;
+}
+// What stands in the panel's key column for a command with no key. Not a
+// kbd: the column must not advertise a key that answers nothing, and every
+// reader of the panel - the palette's index, the commands gate - takes a
+// row's keys from its kbd elements.
+export const NO_KEY = '<span class="help-nokey">no key</span>';
+
+// Whether the panel may run this entry's row as a palette: a command, with
+// a key or without, but not ?, whose row would only open the panel again.
 export function runsFromPanel(c) {
-  return !!(c.keys && c.id !== 'help');
+  return isCommand(c) && c.id !== 'help';
 }
 
 // The panel's sections for one view, in two runs:
@@ -481,7 +508,7 @@ export function helpGroups(view, ships = {}) {
     for (const c of COMMANDS) {
       if (!c.views.includes(view) || pick(c.group, view) !== g.id) continue;
       if (c.requires && !ships[c.requires]) continue;
-      const keys = c.show || c.mouse || c.keys.map(keyText).join(' · ');
+      const keys = c.show || c.mouse || (hasKey(c) ? c.keys.map(keyText).join(' · ') : NO_KEY);
       const runs = runsFromPanel(c);
       rows[runs ? 0 : 1].push([keys, pick(c.hint, view), runs ? c.id : null, c.id]);
     }
@@ -508,14 +535,18 @@ export function helpGroups(view, ships = {}) {
     if (c.reach && !REACH.includes(c.reach)) fail(c.id + ' has an unknown reach ' + c.reach);
     if (c.when && !WHEN.includes(c.when)) fail(c.id + ' has an unknown when ' + c.when);
     if (c.context && !CONTEXTS.includes(c.context)) fail(c.id + ' has an unknown context ' + c.context);
-    if (c.keys && !c.label) fail(c.id + ' is a command without a label');
+    if ('keys' in c && !isCommand(c)) fail(c.id + ' has keys that are not a list');
+    if (isCommand(c) && !c.label) fail(c.id + ' is a command without a label');
     if (!c.hint) fail(c.id + ' is a row without a hint');
-    if (!c.keys && !c.show && !c.mouse) fail(c.id + ' has no keys and nothing to show for them');
+    if (!isCommand(c) && !c.show && !c.mouse) fail(c.id + ' has no keys and nothing to show for them');
+    // A command with no key is found by its words alone, so its row may not
+    // spell a key or a gesture in the column where the others have theirs.
+    if (isCommand(c) && !hasKey(c) && (c.show || c.mouse)) fail(c.id + ' is a command with no key, and its row shows one');
   }
   for (const c of COMMANDS) if ('row' in c) fail(c.id + ' names a row to share; every command has a row of its own');
   for (const id of START_MENU) {
     const c = COMMANDS.find((x) => x.id === id);
-    if (!c || !c.keys || !c.short || !c.views.includes('audience')) fail('the start menu names ' + id + ', which is no audience command with a short name');
+    if (!c || !hasKey(c) || !c.short || !c.views.includes('audience')) fail('the start menu names ' + id + ', which is no audience command with a key and a short name');
   }
   for (const view of VIEWS) {
     const seen = Object.create(null);

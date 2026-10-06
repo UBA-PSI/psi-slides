@@ -9,6 +9,44 @@ from building the same way is a major version.
 
 ### Added
 
+- `pitchblack: on | off`, a twelfth viewer default: every dark theme on a
+  true black ground. A projector cannot show black, so the paper of `dark`,
+  `terminal-amber` and `terminal-green` (oklch 0.17, 0.12, 0.11) is a lit
+  grey rectangle on the wall; under the switch `--paper` is `#000` for all
+  three, and for any later dark theme, because the rule keys off `data-mode`
+  and names none. It is not a theme: ink, accent, `--paper-warm`, `--rule`
+  and the syntax colours stay each theme's own, a light theme shows nothing
+  of it, and the switch stays set for the next press of `A`. Default `off`;
+  the frontmatter pins it, otherwise the reader's stored choice holds and is
+  applied before the first paint; an unknown value is refused by the build
+  and by the linter (`unknown-view-default`). A deck that does not write the
+  key carries no attribute in its markup. The fills that were a few per cent
+  over the paper are kept visible: a figure's tones, bar fills, container
+  stroke and muted words are mixed over a new `--dg-ground`, which is the
+  theme's own paper under the switch and `--paper` everywhere else, so they
+  are the colours they were; a panel card, a row's term cell, a
+  `section: card` heading and a dock's tint go from 5% of the ink to 20%
+  (26% / 20% of the accent under `neutrals: tinted`), the ground behind
+  inline code under `code: tint` from 7% to 24%; a `section: tinted` divider
+  and the `cover: panel` field keep the theme's own paper as their second
+  colour, and `cover-ground: ink` is black. The two documents are untouched.
+  For that, a dark theme now names its paper as `--paper-own` and `--paper`
+  reads it, and `neutrals` tints the dark theme through `--paper-own`.
+
+  **It is switched by a command that has no key, and commands can now exist
+  without one.** In `commands.mjs`, `keys: []` is a command the key map never
+  reaches: it has a label and a run function like any other, the `?` panel
+  lists it among the rows it runs with *no key* in the key column (never a
+  `kbd`), and the palette finds it by its words – `Ctrl/Cmd`-`K`, `pitch`,
+  `Enter`, in either window; the cockpit and the projection follow each
+  other, as they do for the theme. `isCommand`, `hasKey` and `NO_KEY` are
+  the three new names; the start menu refuses such a command at load, and
+  the `commands` gate holds a reviewed list of them (`NO_KEY_COMMANDS`) so
+  that “no key” is a decision and never what an entry falls back to.
+  One thing moves for an existing deck: one that pins `theme:` used to carry
+  no boot script at the head of its body and now carries the two lines that
+  read the stored `pitchblack` choice.
+
 - The six skills in `.claude/skills/`, in the open Agent Skills format, are
   downloads on the project site – one ZIP per skill and one with all six –
   built from `main` by `docs/site/build-site.js`, with a note on what a

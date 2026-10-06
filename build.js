@@ -4216,22 +4216,30 @@ const DIAGRAM_CSS = `
    trust boundary, a segment, a machine - it has to read as a statement.
    Dashed at that weight it was barely visible on a shaded ground, which
    is exactly where these are usually drawn. */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--dg-ground, var(--paper))); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
 .psi-diagram .dg-brace .dg-stroke { stroke: var(--rule); }
 
 /* ── tones ── four theme-safe fills, mixed from the page's own inks ── */
+/* Over --dg-ground, which is --paper wherever nobody says otherwise - every
+   document, every theme. The one thing that sets it is pitchblack in the
+   live views, where the paper is black and a mix over it would be a few per
+   cent above nothing: there the ground is the dark theme's own paper, so the
+   three tones are the colours they always were. The same holds for every
+   other mix against the paper in this sheet and in dgBarFillCss; .paper and
+   the label on a .tone-4 stay on --paper itself, because they mean the
+   canvas. */
 .psi-diagram .tone-1 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--emph) 13%, var(--paper));
+  fill: color-mix(in oklab, var(--emph) 13%, var(--dg-ground, var(--paper)));
   stroke: color-mix(in oklab, var(--emph) 60%, var(--ink));
 }
 .psi-diagram .tone-2 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--ink) 8%, var(--paper)); stroke: var(--ink);
+  fill: color-mix(in oklab, var(--ink) 8%, var(--dg-ground, var(--paper))); stroke: var(--ink);
 }
 .psi-diagram .tone-3 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--ink) 20%, var(--paper)); stroke: var(--ink);
+  fill: color-mix(in oklab, var(--ink) 20%, var(--dg-ground, var(--paper))); stroke: var(--ink);
 }
 .psi-diagram .tone-4 > :is(rect, circle, .dg-shape) {
   fill: var(--emph); stroke: var(--emph);
@@ -4274,7 +4282,7 @@ const DIAGRAM_CSS = `
 .psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
-.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
+.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--dg-ground, var(--paper))); }
 
 /* .tone-4 inverts its own label, and that has to win over .accent text:
    accent ink on an accent fill is invisible, legal, and would otherwise be
@@ -7770,6 +7778,17 @@ const VIEW_DEFAULT_SPEC = [
   // how a figure is read rather than a tool of the reader's. The live views
   // do not read the key: a projection is driven by keys and clicks already.
   ['reader',        'reader',     ['on', 'off']],
+  // Every dark theme on a true black ground. A projector cannot show black:
+  // what it throws for a dark grey paper is a lit rectangle on the wall, and
+  // the words lose the contrast the dark theme was chosen for. `on` takes
+  // --paper to #000 under the three dark themes and under any later one,
+  // because the rule keys off data-mode and not off a theme name; a light
+  // theme shows nothing of it, and the switch stays set for the next press
+  // of A. Not a theme of its own, since it is one answer for all of them,
+  // and a reading preference like the theme: the frontmatter pins it,
+  // otherwise the reader's stored choice holds, and the palette's
+  // `pitchblack` command toggles it in either window. The owner's word.
+  ['pitchblack',    'pitchblack', ['on', 'off']],
 ];
 // ── lecture-wide typographic settings (the `style:` block) ───────────
 // Three knobs an author reaches for on a whole lecture rather than on one
@@ -8493,6 +8512,10 @@ function viewBodyAttrs(defaults, extra = '') {
     // pins neither still carries neither attribute.
     neighbourMode(defaults) === 'hidden' ? 'data-neighbours="hidden"' : '',
     slideTransition(defaults) !== 'pan' ? `data-transition="${slideTransition(defaults)}"` : '',
+    // And once more: `on` is written, `off` is the absence, so a deck that
+    // does not say `pitchblack:` carries no attribute until the runtime or
+    // the boot script below writes the reader's own choice.
+    defaults.pitchblack === 'on' ? 'data-pitchblack="on"' : '',
   ].filter(Boolean);
   return parts.join(' ');
 }
@@ -8506,20 +8529,30 @@ function viewBodyAttrs(defaults, extra = '') {
 // Precedence, and it is the same sentence as everywhere else in this file:
 // a frontmatter key wins over the reader's stored preference, which wins
 // over the operating system's. When the author pinned the theme there is
-// nothing to resolve, so no script is emitted at all.
+// nothing to resolve for it.
+//
+// `pitchblack` is the second thing settled here, for the same reason in a
+// smaller size: a reader who switched it on would otherwise see the dark
+// theme's own grey paper for the frames before the runtime boots, which on
+// a projector is the flash the switch exists to remove. Stored choice only -
+// the operating system has no opinion on it. Each half is emitted only where
+// the frontmatter left its question open, and with both pinned there is no
+// script at all.
 function themeBootScript(defaults) {
-  if (defaults.theme) return '';
-  return `<script>
-(function () {
+  const theme = defaults.theme ? '' : `
   var names = ${JSON.stringify(THEME_NAMES)};
   var dark = ${JSON.stringify(DARK_THEME_NAMES)};
-  var d = document.body.dataset;
   var set = function (t) { d.theme = t; d.mode = dark.indexOf(t) >= 0 ? 'dark' : 'light'; };
-  try {
-    var stored = localStorage.getItem('psi-slides:theme');
-    if (stored && names.indexOf(stored) >= 0) { set(stored); return; }
-  } catch (e) {}
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) set('dark');
+  var stored = null;
+  try { stored = localStorage.getItem('psi-slides:theme'); } catch (e) {}
+  if (stored && names.indexOf(stored) >= 0) set(stored);
+  else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) set('dark');`;
+  const pitch = defaults.pitchblack ? '' : `
+  try { if (localStorage.getItem('psi-slides:pitchblack') === 'on') d.pitchblack = 'on'; } catch (e) {}`;
+  if (!theme && !pitch) return '';
+  return `<script>
+(function () {
+  var d = document.body.dataset;${theme}${pitch}
 })();
 </script>`;
 }
@@ -14601,7 +14634,8 @@ body[data-theme=light-orange] { --emph: oklch(0.54 0.17 60);  }
    this one is an ordinary reading theme that happens to be dark, so syntax
    highlighting and the accent keep working. */
 body[data-theme=dark] {
-  --paper:      oklch(0.17 0.005 260);
+  --paper-own:  oklch(0.17 0.005 260);
+  --paper:      var(--paper-own);
   --paper-warm: oklch(0.22 0.008 260);
   --ink:        oklch(0.95 0 0);
   --ink-soft:   oklch(0.68 0.01 260);
@@ -14611,9 +14645,16 @@ body[data-theme=dark] {
 
 /* Terminal modes – black paper, amber or phosphor-green ink.
    Dim opacity stays via --dim, shiki colors get suppressed (see below)
-   so the whole slide reads as a single foreground color. */
+   so the whole slide reads as a single foreground color.
+
+   A dark theme names its paper twice, and that is the contract for a new
+   one: --paper-own is the colour, --paper reads it. pitchblack (below the
+   neutrals) takes --paper to black and still has the theme's own paper to
+   mix a quiet fill over; a dark theme that set --paper alone would lose
+   its tones under the switch. The semantics gate holds all three to it. */
 body[data-theme=terminal-amber] {
-  --paper:      oklch(0.12 0.02 60);
+  --paper-own:  oklch(0.12 0.02 60);
+  --paper:      var(--paper-own);
   --paper-warm: oklch(0.18 0.03 60);
   --ink:        oklch(0.82 0.14 75);
   --ink-soft:   oklch(0.60 0.10 75);
@@ -14621,7 +14662,8 @@ body[data-theme=terminal-amber] {
   --emph:       oklch(0.94 0.18 85);
 }
 body[data-theme=terminal-green] {
-  --paper:      oklch(0.11 0.02 150);
+  --paper-own:  oklch(0.11 0.02 150);
+  --paper:      var(--paper-own);
   --paper-warm: oklch(0.17 0.03 150);
   --ink:        oklch(0.80 0.20 145);
   --ink-soft:   oklch(0.58 0.12 145);
@@ -14668,8 +14710,10 @@ body[data-theme^=light]:is([data-neutrals=tinted], [data-neutrals=warm], [data-n
   --paper-warm: oklch(0.96 0.014 var(--accent-h));
   --rule:       oklch(0.78 0.013 var(--accent-h));
 }
+/* --paper-own and not --paper: the dark theme's --paper reads it, and so
+   does pitchblack, which then needs no word about neutrals to stay black. */
 body[data-theme=dark]:is([data-neutrals=tinted], [data-neutrals=warm], [data-neutrals=cool]) {
-  --paper:      oklch(0.17 0.010 var(--accent-h));
+  --paper-own:  oklch(0.17 0.010 var(--accent-h));
   --paper-warm: oklch(0.22 0.016 var(--accent-h));
   --ink:        oklch(0.95 0.006 var(--accent-h));
   --ink-soft:   oklch(0.68 0.014 var(--accent-h));
@@ -14707,6 +14751,82 @@ body[data-neutrals=tinted] .dock.ov-tint {
 body[data-neutrals=tinted] .cards.cg-outline {
   --card-border: 2px solid color-mix(in oklch, var(--emph) 26%, transparent);
 }
+
+/* ── pitchblack: every dark theme on a true black ground ───────────
+   pitchblack: on in the frontmatter, or the palette's command of that name
+   in either window. Off by default: a deck that says nothing carries no
+   data-pitchblack until the runtime writes "off", and reaches none of this.
+
+   A projector cannot show black. What it throws for a dark theme's paper -
+   oklch 0.17, 0.12, 0.11 - is a lit grey rectangle on the wall, and the
+   words lose the contrast the dark theme was chosen for. So the switch
+   takes --paper to zero and leaves every other token of the theme alone:
+   ink, accent, --paper-warm, --rule, the syntax colours.
+
+   Keyed on data-mode, so it reaches all three dark themes and any later
+   one, and under a light theme it matches nothing - the attribute stays,
+   and A into a dark theme finds it. (0,2,1) against a theme's (0,1,1), and
+   style: {neutrals} writes --paper-own for the dark theme rather than
+   --paper, so a tinted black is not possible and the tint still reaches
+   the ink, the rule and the quiet fills.
+
+   The cost of a paper at zero is every fill that was a few per cent over
+   it. --dg-ground is the answer for a figure: its tones, its bar fills,
+   its container stroke and its muted words are mixed over that rather than
+   over --paper (DIAGRAM_CSS, dgBarFillCss), it falls back to --paper where
+   nobody sets it - the documents, a light theme, the switch off - and here
+   it is the theme's own paper. So a figure's fills are the colours they
+   were, to the digit, and stand off the black instead of sinking into it;
+   mixed over zero, .tone-2 came out at about 8% of the ink, which a
+   projector does not show. */
+body[data-mode=dark][data-pitchblack=on] {
+  --paper: oklch(0 0 0);
+  --dg-ground: var(--paper-own);
+}
+/* The fills written as a few per cent of ink over nothing took their
+   visibility from the grey underneath: 5% of a white ink over oklch 0.17
+   is a step, over black it is not. 20%, measured on a card row at
+   1600x900 in all three dark themes: the plate reads as a plate and the
+   type on it keeps its contrast. The panel card, the rows' term cell (the
+   same --card-bg), the divider's card heading and the dock's tint are one
+   device and move together. */
+body[data-mode=dark][data-pitchblack=on] .cards.cg-panel { --card-bg: color-mix(in oklch, var(--ink) 20%, transparent); }
+body[data-mode=dark][data-pitchblack=on] .chunk[data-section=card]:not([data-has-backdrop]) .section-heading,
+body[data-mode=dark][data-pitchblack=on] .dock.ov-tint {
+  background: color-mix(in oklch, var(--ink) 20%, transparent);
+}
+/* Under neutrals: tinted the same three are mixed from the accent, and
+   lifted by the same factor. One attribute more than the rules above, so
+   the accent wins here as it does without the switch. */
+body[data-mode=dark][data-pitchblack=on][data-neutrals=tinted] .cards.cg-panel { --card-bg: color-mix(in oklch, var(--emph) 26%, transparent); }
+body[data-mode=dark][data-pitchblack=on][data-neutrals=tinted] .chunk[data-section=card]:not([data-has-backdrop]) .section-heading {
+  background: color-mix(in oklch, var(--emph) 26%, transparent);
+}
+body[data-mode=dark][data-pitchblack=on][data-neutrals=tinted] :is(.overlay-card, .dock).ov-paper,
+body[data-mode=dark][data-pitchblack=on][data-neutrals=tinted] .dock.ov-tint {
+  background: color-mix(in oklch, var(--emph) 20%, transparent);
+}
+/* style: {code: tint} - the ground behind an inline code span, 7% of the
+   ink and gone on black for the same reason. */
+${inlineCodeSel('live', 'body[data-code=tint][data-mode=dark][data-pitchblack=on]')} {
+  background: color-mix(in oklch, var(--ink) 24%, transparent);
+}
+/* Two surfaces that were the accent mixed into the paper, and are a
+   statement about the whole slide or half of it: the tinted divider, the
+   cover's panel. Mixed into black they are a brown nobody chose, so they
+   keep the theme's own paper as their second colour - the one place the
+   switch leaves a lit ground, because a slide that is the accent is asking
+   to be one. */
+body[data-mode=dark][data-pitchblack=on] .chunk[data-section=tinted] {
+  background: color-mix(in oklch, var(--emph) 12%, var(--paper-own));
+}
+body[data-mode=dark][data-pitchblack=on] .chunk[data-cover=panel] {
+  --panel-field: color-mix(in oklab, var(--emph) 30%, var(--paper-own));
+}
+/* cover-ground: ink is a dark opening slide written as a literal, 0.14,
+   for a light deck. Under a dark theme it stood a shade under the paper;
+   under the switch it would be the one grey slide of the deck. */
+body[data-mode=dark][data-pitchblack=on] .chunk[data-cover-ground=ink] { background: oklch(0 0 0); }
 
 /* A dark reading theme switches shiki to its dark palette. Every token
    carries both colours: the light one as the inline color property, the dark one
@@ -19074,6 +19194,10 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
    the column gap on either side, so the key and its description read as one
    line rather than as two boxes. */
 .help-grid .help-run { cursor: pointer; }
+/* A command with no key (commands.mjs, keys: []): the key column says so in
+   the small type of a tag, never as a kbd, so the column advertises no key
+   that answers nothing. */
+.help-grid .help-nokey { color: var(--ink-soft); font-size: 0.82em; font-style: italic; }
 .help-grid .help-sel {
   background: oklch(from var(--emph) l c h / 0.12);
   box-shadow: -0.45rem 0 0 oklch(from var(--emph) l c h / 0.12), 0.45rem 0 0 oklch(from var(--emph) l c h / 0.12);
@@ -20023,6 +20147,7 @@ const state = {
   theme: VIEW_DEFAULTS.theme || 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
   slideNums: VIEW_DEFAULTS.slideNums || ${JSON.stringify(SLIDE_NUM_DEFAULT)},  // vertical | horizontal | off – L cycles
   noteButton: VIEW_DEFAULTS.noteButton || 'on',  // on | off – M toggles
+  pitchblack: VIEW_DEFAULTS.pitchblack || 'off', // on | off – the palette's pitchblack command toggles, no key
 };
 // pan | cut | fade. Not a field of state: it is the author's decision about
 // what a slide change looks like, there is no key that cycles it, and the
@@ -20144,6 +20269,11 @@ function loadPersisted() {
     const nb = localStorage.getItem('psi-slides:note-button');
     if (!VIEW_DEFAULTS.noteButton && (nb === 'on' || nb === 'off')) state.noteButton = nb;
   } catch (e) {}
+  // Pitch black is settled before first paint by the same boot script as the
+  // theme, from the reader's stored choice, and read back here the same way:
+  // one place knows the precedence. Pinned in the frontmatter, the attribute
+  // carries the author's word (or its absence, which is off).
+  if (!VIEW_DEFAULTS.pitchblack && document.body.dataset.pitchblack === 'on') state.pitchblack = 'on';
 }
 function saveAnnotations() {
   try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
@@ -20163,6 +20293,7 @@ function applyFontTheme() {
   document.body.dataset.mode = DARK_THEMES.includes(state.theme) ? 'dark' : 'light';
   document.body.dataset.slideNums = state.slideNums;
   document.body.dataset.noteButton = state.noteButton;
+  document.body.dataset.pitchblack = state.pitchblack;
 }
 // The add-note button on the projection. Its own function rather than a
 // field of the snapshot, and its own message type, for the reason blank has
@@ -20181,6 +20312,21 @@ function setNoteButton(mode, announce) {
     sendToPeer({ type: 'note-button', source: VIEW, mode: state.noteButton });
     flashMode(state.noteButton === 'off' ? 'note button hidden' : 'note button shown');
   }
+}
+// Every dark theme on a true black ground, or back on its own paper. The
+// state is one word beside the theme and travels the way the theme does - a
+// field of the snapshot, stored globally, pinned by the frontmatter - because
+// it is the same kind of thing: a reading preference both windows have to
+// agree on. It has no key (commands.mjs, keys: []): the palette runs it.
+// Under a light theme nothing on the slide moves, so the toast says where it
+// will show; the switch is set all the same and A finds it there.
+function togglePitchblack() {
+  state.pitchblack = state.pitchblack === 'on' ? 'off' : 'on';
+  applyFontTheme();
+  try { localStorage.setItem('psi-slides:pitchblack', state.pitchblack); } catch (e) {}
+  flashMode('pitch black · ' + state.pitchblack
+    + (state.pitchblack === 'on' && !DARK_THEMES.includes(state.theme) ? ' · shows under a dark theme' : ''));
+  broadcastState();
 }
 function cycleSlideNums(dir) {
   const i = SLIDE_NUM_MODES.indexOf(state.slideNums);
@@ -20304,6 +20450,9 @@ function snapshot() {
     font: state.font,
     theme: state.theme,
     slideNums: state.slideNums,
+    // A peer built before the switch ignores the field, and one that sends
+    // none leaves this window's own answer alone (applyRemoteState).
+    pitchblack: state.pitchblack,
     // Inner window dimensions travel with every snapshot so the speaker
     // can match its preview's aspect ratio to the actual projector
     // window. Without this, laser-pointer coordinates (fractions of the
@@ -20450,6 +20599,7 @@ function applyRemoteStateNow(payload, changed) {
     if (payload.font && FONT_CYCLE.includes(payload.font)) state.font = payload.font;
     if (payload.theme && THEME_CYCLE.includes(payload.theme)) state.theme = payload.theme;
     if (payload.slideNums && SLIDE_NUM_MODES.includes(payload.slideNums)) state.slideNums = payload.slideNums;
+    if (payload.pitchblack === 'on' || payload.pitchblack === 'off') state.pitchblack = payload.pitchblack;
     applyFontTheme();
     // Speaker mirrors the audience window's aspect so its preview area
     // lays out content identically. Ignored on audience side (its own
@@ -23257,12 +23407,14 @@ function pageHelpSel(dir) {
   }
   setHelpSel(list[next]);
 }
-// A command run from anywhere but its key: the panel, the start menu.
+// A command run from anywhere but its key: the panel, the start menu. For a
+// command that has no key this is the only way in.
 function runCommand(id) {
   const run = COMMAND_RUN[id];
   if (!run) return;
   const c = PSI_COMMANDS.COMMANDS.find((x) => x.id === id);
-  const combo = c && c.keys ? c.keys[0] : '';
+  // A command with no key (keys: []) is run with an event that names none.
+  const combo = (c && c.keys && c.keys[0]) || '';
   const shift = combo.indexOf('shift+') === 0;
   run({
     key: shift ? combo.slice(6) : combo, shiftKey: shift,
@@ -24285,6 +24437,9 @@ const COMMAND_RUN = {
   'theme-back': (e) => { cycleTheme(-1); e.preventDefault(); },
   'slide-numbers': (e) => { cycleSlideNums(1); e.preventDefault(); },
   'slide-numbers-back': (e) => { cycleSlideNums(-1); e.preventDefault(); },
+  // The one command no key reaches: the palette runs it (runCommand), with
+  // an event that names no key.
+  'pitchblack': (e) => { togglePitchblack(); e.preventDefault(); },
   // The add-note affordance on the projection, shown or hidden. A bare
   // free letter and not a Shift pair: Shift-B was the obvious mnemonic
   // (both take something off the screen) and is exactly the one that

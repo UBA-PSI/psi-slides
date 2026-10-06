@@ -1302,7 +1302,7 @@ repository and not against a released psi-slides.
 
 ## Viewer defaults in frontmatter
 
-Eleven optional keys pin how the lecture opens. A key that is present wins over
+Twelve optional keys pin how the lecture opens. A key that is present wins over
 the reader's stored preference; a key that is absent leaves that preference
 alone. A value outside the allowed set fails the build (and lints as
 `unknown-view-default`), because a typo here is otherwise silent.
@@ -1320,7 +1320,14 @@ note-button: off       # on | off  - the + note button in the slide's left gutte
 neighbours: hidden     # dim | hidden  - the slide before and after, faintly or not at all
 transition: cut        # pan | cut | fade  - what a slide change looks like
 reader: off            # on | off  - contents sidebar and highlights in print.html / print-notes.html
+pitchblack: on         # on | off  - every dark theme on a true black ground (default: off)
 ```
+
+`pitchblack: on` is for a projector: it cannot show black, so a dark theme's
+grey paper is a lit rectangle on the wall. The three dark themes then stand on
+`#000`; a light theme shows no change and the switch stays set. It is the one
+viewer default with no key - the palette (`Ctrl/Cmd`-`K`, `pitch`, `Enter`)
+toggles it in either window. See the `psi-slides-appearance` skill.
 
 `note-button`, `neighbours` and `transition` are what a keynote sets and a lecture does not. `note-button: off`
 takes the `+ note` hint out of the gutter without taking anything away - `N`

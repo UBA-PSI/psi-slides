@@ -321,7 +321,7 @@ export function dgBarFill(tone, prominence) {
 export function dgBarFillCss() {
   const mix = (key) => {
     const [tok, pct] = DG_BAR_FILLS[key];
-    return pct >= 100 ? `var(--${tok})` : `color-mix(in oklab, var(--${tok}) ${pct}%, var(--paper))`;
+    return pct >= 100 ? `var(--${tok})` : `color-mix(in oklab, var(--${tok}) ${pct}%, var(--dg-ground, var(--paper)))`;
   };
   return [
     `.psi-diagram .dg-bar > rect { fill: ${mix('plain')}; }`,

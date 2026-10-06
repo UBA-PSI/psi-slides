@@ -93,7 +93,7 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
   'fonts', 'font', 'ligatures', 'draw-defaults',
   // viewer defaults
   'theme', 'collapse', 'auto-fit', 'slide-numbers', 'print-slide-numbers',
-  'editor', 'note-button', 'neighbours', 'transition', 'reader',
+  'editor', 'note-button', 'neighbours', 'transition', 'reader', 'pitchblack',
   // the live prompter. `duration:` sits at the top level rather than inside
   // the block because it is a property of the talk like `lang:` – the
   // cockpit's clock measures against it whether or not a prompter listens.
@@ -140,6 +140,10 @@ const VIEW_DEFAULTS = {
   // reader's own highlights after it. `on` is the default; `off` ships none
   // of it and leaves the lightbox, which is not a reader tool.
   'reader': ['on', 'off'],
+  // Every dark theme on a true black ground, for a projector. `off` is the
+  // default; the palette's `pitchblack` command writes the same thing at
+  // runtime, so like note-button this is a starting value.
+  'pitchblack': ['on', 'off'],
   // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
   'cover': ['classic', 'masthead', 'stack', 'display', 'panel', 'quote',
             'split', 'hero', 'beside', 'above'],

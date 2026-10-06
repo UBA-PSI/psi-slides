@@ -47,6 +47,7 @@ const SPECS = [
   './live-sync.mjs',
   './camera-fit.mjs',
   './transition.mjs',
+  './pitchblack.mjs',
   './squint.mjs',
   './editor-edges.mjs',
   './editor-waypoints.mjs',

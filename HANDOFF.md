@@ -1917,6 +1917,12 @@ Open items:
   flag, `stage-engine.mjs` unchanged. CLAUDE.md says what would have to move
   together if that ever changes.
 
+## pitchblack und Befehle ohne Taste
+
+`pitchblack: on | off` ist der zwölfte Viewer-Default: `--paper` wird unter `body[data-mode=dark][data-pitchblack=on]` schwarz, für alle dunklen Themes, ohne eines beim Namen zu nennen. Dafür nennt ein dunkles Theme sein Papier als `--paper-own` (und `--paper: var(--paper-own)`); `--dg-ground` ist unter dem Schalter dieses Papier, darüber werden die Figurentöne gemischt, also bleiben sie exakt die alten Farben. Die leisen Flächen „n % Tinte über nichts“ sind einzeln entschieden – Tabelle im `psi-slides-appearance`-Skill. Der Zustand reist im Snapshot neben `theme`.
+
+Geschaltet wird über den ersten Befehl ohne Taste: `keys: []` in `commands.mjs` (`isCommand`, `hasKey`, `NO_KEY`), nur über die Palette. Das `commands`-Gate führt `NO_KEY_COMMANDS` als geprüfte Liste. **Nicht gebaut:** ein Knopf in der Touch-Palette hinter `⋯` (dort läuft es über das `?`-Panel) und eine Anzeige des Schalterzustands im Panel.
+
 ## Gaps / Bekannte Limits
 
 - **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.

@@ -89,6 +89,7 @@ That is the considered answer to “can I open a page on the projector”. It is
 | `collapse` | enum | `none` / `topic-bold` |
 | `zoom` | float | text scale multiplier, whichever collapse mode is live |
 | `blanked` | bool | audience blackout |
+| `font`, `theme`, `slideNums`, `pitchblack` | enums | the reading knobs both windows wear; each is taken only when it is a word the receiver knows, so a peer built before `pitchblack` (`on` / `off`, the palette's keyless command) ignores it and one that sends none changes nothing |
 | `annotations` | `{id: string}` | speaker-edited, mirrors to audience |
 | `annotEditingId` | id / null | so the non-editing peer raises the box to the frame and centres the chunk; the layer's sizes and its QR code are derived from the text on each side, never sent |
 | `openExp` | `{chunkIdx, expIdx}` | expansions are mirrored, see below |

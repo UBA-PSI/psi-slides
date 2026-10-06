@@ -3052,6 +3052,89 @@ console.log('\nlayout generations');
        'and a bad value is refused by a build that renders no live view at all');
   }
 
+  // ── pitchblack: every dark theme on a true black ground ──────────────────
+  // The fourth key whose default is the absence of its attribute, and the
+  // one whose runtime half has no key at all: the palette runs it. What a
+  // rendered page does with it - the computed ground under each theme, the
+  // toggle, the two windows - is test/pitchblack.mjs; these are the rows a
+  // build and a lint answer without a browser.
+  {
+    const quiet = raw(DECK(''), ['--audience-only']);
+    ok(quiet.code === 0 && !/data-pitchblack/.test(bodyOf(quiet.html)),
+       'a deck that does not say pitchblack: carries no data-pitchblack on its body', bodyOf(quiet.html));
+    const off = raw(DECK('pitchblack: off\n'), ['--audience-only']);
+    ok(off.code === 0 && !/data-pitchblack/.test(bodyOf(off.html)),
+       'pitchblack: off is accepted and is the absence of the attribute too', bodyOf(off.html));
+    // off is pinned all the same: the runtime must not let a stored "on"
+    // back in, so the page knows the author answered.
+    ok(/const VIEW_DEFAULTS = \{[^\n]*"pitchblack":"off"/.test(off.html)
+       && !/const VIEW_DEFAULTS = \{[^\n]*pitchblack/.test(quiet.html),
+       'but it is pinned: VIEW_DEFAULTS carries the author\'s off, and nothing where the author said nothing');
+    for (const theme of ['dark', 'terminal-amber', 'terminal-green', 'light-teal']) {
+      const on = raw(DECK(`theme: ${theme}\npitchblack: on\n`), ['--audience-only']);
+      ok(on.code === 0 && /data-pitchblack="on"/.test(bodyOf(on.html)) && new RegExp(`data-theme="${theme}"`).test(bodyOf(on.html)),
+         `pitchblack: on is on the body from the first paint beside theme: ${theme}`, bodyOf(on.html) || on.out);
+    }
+    const on = raw(DECK('pitchblack: on\n'), []);
+    ok(/data-pitchblack="on"/.test(bodyOf(on.html))
+       && /data-pitchblack="on"/.test(bodyOf(fs.readFileSync(path.join(on.dir, 'speaker.html'), 'utf8'))),
+       'the cockpit carries it as the projection does');
+    ok(!/data-pitchblack/.test(on.print) && !/data-pitchblack/.test(on.notes),
+       'and neither document knows the key: they have a palette of their own');
+    // The stylesheet: keyed on data-mode, so no theme is named and a light
+    // theme matches nothing; the paper to black, the theme's own paper kept
+    // for a figure's fills.
+    ok(/body\[data-mode=dark\]\[data-pitchblack=on\] \{\s*--paper: oklch\(0 0 0\);\s*--dg-ground: var\(--paper-own\);\s*\}/.test(on.html),
+       'the rule takes --paper to black under data-mode=dark and hands the theme\'s own paper to --dg-ground');
+    ok(!/\[data-pitchblack=on\]\[data-theme/.test(on.html) && !/\[data-theme[^\]]*\]\[data-pitchblack/.test(on.html),
+       'and names no theme, so a later dark theme is reached without a rule of its own');
+    ok(/body\[data-mode=dark\]\[data-pitchblack=on\] \.cards\.cg-panel \{ --card-bg: color-mix\(in oklch, var\(--ink\) 20%, transparent\); \}/.test(on.html),
+       'a panel card is lifted to 20% of the ink, which 5% over black is not');
+    ok(/\.tone-2 > :is\(rect, circle, \.dg-shape\) \{\s*fill: color-mix\(in oklab, var\(--ink\) 8%, var\(--dg-ground, var\(--paper\)\)\);/.test(on.html)
+       && /fill: color-mix\(in oklab, var\(--ink\) 8%, var\(--dg-ground, var\(--paper\)\)\);/.test(on.print),
+       'a figure\'s tones are mixed over --dg-ground, which is --paper wherever nobody sets it - the documents included');
+    // style: {neutrals} writes the dark theme's --paper-own, never --paper,
+    // so a tinted black is not possible.
+    const dn = on.html.match(/body\[data-theme=dark\]:is\(\[data-neutrals=tinted\][^{]*\{([^}]*)\}/);
+    ok(dn && /--paper-own:/.test(dn[1]) && !/--paper:/.test(dn[1]),
+       'neutrals tints the dark theme through --paper-own, so the switch stays black under it', dn ? dn[1] : 'no rule');
+    // Before first paint: the reader's stored choice, where the frontmatter
+    // left the question open. Pinned, there is nothing to ask.
+    const boot = (html) => (html.match(/<body [^>]*>\s*(<script>[\s\S]*?<\/script>)?/) || [])[1] || '';
+    ok(/psi-slides:pitchblack/.test(boot(quiet.html)) && /psi-slides:theme/.test(boot(quiet.html)),
+       'the script at the head of the body settles theme and pitchblack from the store when neither is pinned');
+    const themeOnly = raw(DECK('theme: dark\n'), ['--audience-only']);
+    ok(/psi-slides:pitchblack/.test(boot(themeOnly.html)) && !/psi-slides:theme/.test(boot(themeOnly.html)),
+       'with the theme pinned it still asks about pitchblack, and no longer about the theme');
+    ok(/psi-slides:theme/.test(boot(off.html)) && !/psi-slides:pitchblack/.test(boot(off.html)),
+       'with pitchblack pinned it asks about the theme alone');
+    ok(boot(raw(DECK('theme: dark\npitchblack: on\n'), ['--audience-only']).html) === '',
+       'and with both pinned there is no script at all');
+    // The runtime half: a command with no key, a field of the snapshot like
+    // the theme, stored globally.
+    ok(/id: 'pitchblack', group: 'knobs', views: BOTH, keys: \[\],/.test(on.html)
+       && /'pitchblack': \(e\) => \{ togglePitchblack\(\); e\.preventDefault\(\); \}/.test(on.html),
+       'the command is in the table with no key and has a run function');
+    ok(/<dt data-row="pitchblack" data-cmd="pitchblack"><span class="help-nokey">no key<\/span><\/dt>/.test(on.html),
+       'its row in the ? panel runs it and lists no key');
+    ok(/pitchblack: state\.pitchblack,/.test(on.html)
+       && /if \(payload\.pitchblack === 'on' \|\| payload\.pitchblack === 'off'\) state\.pitchblack = payload\.pitchblack;/.test(on.html),
+       'it travels in the state snapshot beside the theme, and a peer that sends none changes nothing');
+    ok(/localStorage\.setItem\('psi-slides:pitchblack', state\.pitchblack\)/.test(on.html),
+       'and the choice is stored globally, as the theme is');
+    // Refused, by a build of any view and by the linter alike.
+    for (const bad of ['yes', 'true', 'black', 'On']) {
+      const r = raw(DECK(`pitchblack: ${bad}\n`), ['--print-only']);
+      ok(r.code !== 0 && /pitchblack/.test(r.out) && /Valid values for pitchblack: on, off/.test(r.out),
+         `pitchblack: ${bad} is refused by a build that renders no live view at all`, r.out.slice(0, 200));
+      ok(/unknown-view-default/.test(lintOf(DECK(`pitchblack: ${bad}\n`))),
+         `and by the linter`);
+    }
+    ok(!/unknown-frontmatter-key|unknown-view-default/.test(lintOf(DECK('pitchblack: on\n')))
+       && !/unknown-frontmatter-key|unknown-view-default/.test(lintOf(DECK('pitchblack: off\n'))),
+       'the linter knows the key and both its words');
+  }
+
   // ── the third key of that kind, and the one that resolves another ───────
   // transition says what a slide CHANGE looks like. Same absence-is-the-
   // default shape as the two above, with one step more: cut and fade imply

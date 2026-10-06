@@ -927,7 +927,7 @@ One command is for after the writing rather than during it: `node build.js <sour
 
 A source file can switch one check off with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for `density`, and says there why.
 
-## free: Deciding how a lecture opens | eleven frontmatter keys, and `lang:` beside them {.wide #view-defaults}
+## free: Deciding how a lecture opens | twelve frontmatter keys, and `lang:` beside them {.wide #view-defaults}
 
 **A lecture can set its own starting look instead of inheriting whatever the reader last chose.**
 
@@ -952,10 +952,12 @@ neighbours: hidden      # dim | hidden – whether the slide
 transition: cut         # pan | cut | fade – how a slide change looks
 reader: off             # on | off – the documents' contents
                         # sidebar and highlights
+pitchblack: on          # on | off – the dark themes on a
+                        # true black ground, for a projector
 ---
 ```
 
-## free: The language, and which setting wins | `lang:`, and the rule for the eleven keys {.wide #view-lang}
+## free: The language, and which setting wins | `lang:`, and the rule for the twelve keys {.wide #view-lang}
 
 ```yaml
 lang: de                # the language the lecture is written in:
@@ -963,13 +965,15 @@ lang: de                # the language the lecture is written in:
                         # when you leave it out
 ```
 
-**`lang:` picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.** `style: {hyphenate: all}` puts it into the projection too, which a German lecture at `.narrow` usually wants, and `none` takes it out everywhere. Unlike the eleven keys on the last slide, it is not a setting the reader could change: it describes the lecture.
+**`lang:` picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.** `style: {hyphenate: all}` puts it into the projection too, which a German lecture at `.narrow` usually wants, and `none` takes it out everywhere. Unlike the twelve keys on the last slide, it is not a setting the reader could change: it describes the lecture.
 
 **A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.** So in a lecture that sets none of them, font, theme and slide numbers follow the reader from lecture to lecture.
 
 `slide-numbers` applies to `print.html` and `print-notes.html` too, and `print-slide-numbers:` overrides it there when the printed document wants different numbering from the projection. A value the tool does not know stops the build and lists the ones it does.
 
 **`neighbours`, `note-button` and `transition` are the ones a keynote sets and a lecture does not.** `transition: cut` lands on the next slide without the camera glide, and `fade` dips through the paper; both hide the neighbours unless you also write `neighbours: dim`. `neighbours: hidden` takes off the projection the faint slides above and below, which otherwise show where you are in the column. `note-button: off` hides the `+ note` hint in the slide's left gutter; `N` still opens an annotation, and `M` shows or hides the hint at any time, in either window.
+
+**`pitchblack: on` is for a projector, which cannot show a dark grey as black.** The three dark themes then stand on a true black ground instead of their own dark paper, and a light theme is left as it is. It has no key: `Ctrl/Cmd`-`K`, type `pitch`, `Enter` switches it in either window, and the choice follows you from lecture to lecture like the theme.
 
 `reader: off` ships the two documents without the contents sidebar and highlights.
 
