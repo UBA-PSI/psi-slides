@@ -828,6 +828,13 @@ function main() {
 `);
   wrote('figures-you-write.html');
   console.log('  figures-you-write.html -> forwards to figures.html');
+  // The tutors' one-pager: a German hand-out that stands on its own and is
+  // printed on one A4 page, so it is copied as it is – no top bar, no
+  // site.css, and no row in SITE_PAGES, because nothing on the site links to
+  // it; its address is handed out in the exercise.
+  fs.copyFileSync(path.join(ROOT, 'docs', 'tutoren-onepager.html'), path.join(outDir, 'tutoren-onepager.html'));
+  wrote('tutoren-onepager.html');
+  console.log('  docs/tutoren-onepager.html -> tutoren-onepager.html');
   fs.copyFileSync(path.join(HERE, 'site.css'), path.join(outDir, 'site.css'));
   fs.copyFileSync(path.join(HERE, 'site.js'), path.join(outDir, 'site.js'));
   // Screenshots the landing page shows. Copied rather than referenced out of

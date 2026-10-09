@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>psi-slides für die Übung</title>
+<style>
+  :root { --ink: #1c1d22; --soft: #5b5e6a; --line: #d9dbe2; --paper: #fff; --tint: #f3f4f7; --emph: #1d4f91; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #e8e9ee; --soft: #a3a7b4; --line: #3a3d48; --paper: #16171c; --tint: #22242c; --emph: #8fb8ee; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+    font: 14px/1.42 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 32px; }
+  h1 { font-size: 1.55rem; margin: 0 0 2px; letter-spacing: -0.01em; }
+  .lede { color: var(--soft); margin: 0 0 16px; max-width: 70ch; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  section { min-width: 0; }
+  h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--emph);
+    margin: 0 0 6px; padding-bottom: 3px; border-bottom: 1px solid var(--line); }
+  p, ul, ol { margin: 0 0 7px; }
+  ul, ol { padding-left: 1.15em; }
+  li { margin-bottom: 2px; }
+  code, kbd, pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.88em; }
+  code { background: var(--tint); padding: 0.05em 0.3em; border-radius: 3px; }
+  kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
+    padding: 0 0.35em; background: var(--paper); white-space: nowrap; }
+  pre { background: var(--tint); padding: 8px 10px; border-radius: 5px; margin: 0 0 7px;
+    overflow-x: auto; line-height: 1.38; }
+  pre code { background: none; padding: 0; font-size: 1em; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 2px 0; vertical-align: top; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { width: 42%; padding-right: 10px; white-space: nowrap; }
+  .full { grid-column: 1 / -1; }
+  .traps li::marker { color: var(--emph); }
+  @page { size: A4; margin: 11mm; }
+  @media print {
+    :root { --ink: #000; --soft: #444; --line: #bbb; --paper: #fff; --tint: #f1f1f1; --emph: #1d4f91; }
+    body { font-size: 9.6pt; }
+    main { max-width: none; padding: 0; }
+    .grid { grid-template-columns: 1fr 1fr; gap: 10px 20px; }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>psi-slides für die Übung</h1>
+  <p class="lede">Eine Markdown-Datei <code>source.md</code> pro Termin ergibt vier HTML-Dateien: Projektion, Cockpit, Skript, Skript mit Notizen. Sie öffnen sich per Doppelklick, ohne Server. Bearbeitet wird nur <code>source.md</code>.</p>
+
+  <div class="grid">
+
+    <section>
+      <h2>1 · Bauen</h2>
+      <p>Einmalig: Node 22 oder neuer, dann im Ordner <code>psi-slides</code> <code>npm install</code>.</p>
+<pre><code># bauen und bei jedem Speichern neu laden
+node ../psi-slides/build.js lectures/ue03/source.md --watch
+
+# vor dem Commit prüfen
+node ../psi-slides/lint.js lectures/ue03/source.md
+
+# neues Gerüst anlegen
+node ../psi-slides/build.js --new ue04 --into lectures</code></pre>
+      <table>
+        <tr><td><code>audience.html</code></td><td>Projektion für den Beamer</td></tr>
+        <tr><td><code>speaker.html</code></td><td>Cockpit: Notizen, Vorschau, Uhr</td></tr>
+        <tr><td><code>print.html</code></td><td>Skript mit dem vollen Text</td></tr>
+        <tr><td><code>print-notes.html</code></td><td>Skript plus Sprechnotizen</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h2>2 · Im Raum</h2>
+      <ol>
+        <li><code>audience.html</code> im Browser öffnen, <kbd>S</kbd> öffnet das Cockpit in einem zweiten Fenster.</li>
+        <li>Projektion auf den Beamer ziehen, Cockpit bleibt auf dem Laptop.</li>
+        <li><kbd>W</kbd> für Vollbild, danach einmal in die Projektion klicken.</li>
+      </ol>
+      <p>Beide Fenster laufen synchron; gesteuert wird aus dem Cockpit. YouTube-Einbettungen spielen nur mit <code>--serve</code>, nicht von <code>file://</code>.</p>
+      <table>
+        <tr><td><kbd>Leertaste</kbd> <kbd>→</kbd> <kbd>↓</kbd></td><td>weiter (nächster Schritt oder nächste Folie)</td></tr>
+        <tr><td><kbd>←</kbd> <kbd>↑</kbd></td><td>zurück</td></tr>
+        <tr><td><kbd>Shift</kbd>+<kbd>→</kbd> / <kbd>←</kbd></td><td>nächster / voriger Teil</td></tr>
+        <tr><td><kbd>O</kbd> · <kbd>G</kbd> · <kbd>/</kbd></td><td>Übersicht · Foliennummer · Suche</td></tr>
+        <tr><td><kbd>1</kbd>–<kbd>9</kbd></td><td>Zusatzmaterial der Folie öffnen, <kbd>Esc</kbd> schließt</td></tr>
+        <tr><td><kbd>C</kbd></td><td>Folientext ↔ voller Text</td></tr>
+        <tr><td><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd> · <kbd>A</kbd></td><td>Schriftgröße · Farbschema</td></tr>
+        <tr><td><kbd>B</kbd> · <kbd>V</kbd></td><td>Projektion schwarz · einfrieren (Cockpit)</td></tr>
+        <tr><td><kbd>N</kbd> · <kbd>D</kbd></td><td>Folie beschriften · Fenster als Live-Demo zeigen</td></tr>
+        <tr><td><kbd>?</kbd></td><td>alle Tasten, mit Suchfeld</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h2>3 · Schreiben</h2>
+<pre><code>---
+title: Übung 3 – Hashfunktionen
+presenter: Vorname Nachname
+lang: de
+---
+
+## title: {#title}
+
+# Aufgabe 1 {#a1}
+
+## question: Was leistet eine Hashfunktion? {#a1-frage}
+
+Der erste Satz steht auf der Folie. Dazu kommt
+**alles, was fett gesetzt ist**. Der Rest steht
+nur im Skript.
+
+---
+
+Dieser Teil kommt erst beim nächsten Tastendruck.
+
+> note: Nur im Cockpit sichtbar.
+
+::: expand Lösung
+Öffnet sich mit der Taste 1.
+:::
+
+## example: Kollision von Hand {.wide #a1-bsp}
+
+![Skizze](assets/kollision.png)</code></pre>
+    </section>
+
+    <section>
+      <h2>4 · Die Grammatik in sechs Zeilen</h2>
+      <table>
+        <tr><td><code># Titel {#id}</code></td><td>Teil der Übung, mindestens zwei Folien</td></tr>
+        <tr><td><code>## typ: Titel {.breite #id}</code></td><td>eine Folie</td></tr>
+        <tr><td><code>---</code> (allein in der Zeile)</td><td>Schritt: Rest erscheint auf Tastendruck</td></tr>
+        <tr><td><code>&gt; note: …</code></td><td>Sprechnotiz</td></tr>
+        <tr><td><code>::: expand Name</code> … <code>:::</code></td><td>Zusatzmaterial, nicht auf der Folie</td></tr>
+        <tr><td><code>::: slide</code> … <code>:::</code></td><td>genau dieser Block ist die Folie</td></tr>
+      </table>
+      <p style="margin-top:7px"><strong>Typen:</strong> <code>free</code> <code>question</code> <code>exercise</code> <code>example</code> <code>definition</code> <code>principle</code> <code>statement</code> <code>figure</code> <code>outline</code> <code>title</code> <code>closing</code></p>
+      <p><strong>Breiten:</strong> <code>.narrow</code> <code>.standard</code> (Vorgabe) <code>.wide</code> <code>.full</code></p>
+      <p><strong>Außerdem:</strong> Code in <code>```</code>-Blöcken, Formeln als <code>$…$</code> und <code>$$…$$</code>, zwei Spalten mit <code>::: cols 2</code>, Text neben Bild mit <code>::: side</code>.</p>
+    </section>
+
+    <section class="full traps">
+      <h2>5 · Woran es meistens hängt</h2>
+      <ul style="columns: 2; column-gap: 28px;">
+        <li><strong>Text fehlt auf der Folie.</strong> Gewollt: Die Projektion zeigt den ersten Satz jedes Absatzes und alles Fette. Wichtiges fett setzen oder <code>::: slide</code> nehmen; <kbd>C</kbd> zeigt den vollen Text.</li>
+        <li><strong>Jede Folie braucht eine eindeutige <code>{#id}</code>.</strong> Einmal vergeben, bleibt sie, auch wenn sich die Überschrift ändert.</li>
+        <li><strong><code>---</code> ist keine Trennlinie,</strong> sondern ein Klick. Für eine Linie <code>***</code> schreiben.</li>
+        <li><strong>Ein Bild über 2 MB bricht den Build ab.</strong> Abhilfe: <code>node ../psi-slides/build.js &lt;source.md&gt; --optimize-images</code>.</li>
+        <li><strong>Folie zu voll?</strong> Der Linter zählt die Wörter pro Typ (etwa 80 für <code>question</code>, 350 für <code>exercise</code>) und warnt.</li>
+        <li><strong>Der Build meldet einen Fehler</strong> und die alte HTML-Datei bleibt liegen. Erst die Meldung im Terminal lesen, dann im Browser suchen.</li>
+      </ul>
+    </section>
+
+  </div>
+</main>
+</body>
+</html>
