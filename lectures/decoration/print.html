@@ -166,6 +166,9 @@ code:not(pre code):not(.chunk-heading code):not(.nb) {
   margin: 0 0.25em;
   word-spacing: -0.28em;
 }
+/* A span that opens its block keeps the right-hand margin only: on the left
+   it would indent the line. Marked by the build, see CODE_LEAD_RE. */
+code:not(pre code):not(.chunk-heading code):not(.nb).lead { margin-left: 0; }
 body[data-code=tint] code:not(pre code):not(.chunk-heading code) {
   margin: 0;
   word-spacing: normal;
@@ -3695,7 +3698,7 @@ settings in YAML rather than wearing them.</p>
 <span class="line"><span style="color:#22863A">  print-bold</span><span style="color:#24292E">: </span><span style="color:#032F62">italic</span><span style="color:#6A737D">    #   accent-bold | accent-italic – live, then paper</span></span>
 <span class="line"><span style="color:#22863A">  code</span><span style="color:#24292E">: </span><span style="color:#032F62">tint</span><span style="color:#6A737D">            # plain | tint | spaced – code inside a sentence</span></span>
 <span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # with body-scale, bounded to 0.6 … 1.8</span></span></code></pre>
-<p><code>headings: auto</code> is the default: the chunk type decides, so a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides that for one line of alignment down the lecture; <code class="nb">off</code> takes headings off the projection and keeps them in print, the contents list and search.</p>
+<p><code class="lead">headings: auto</code> is the default: the chunk type decides, so a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides that for one line of alignment down the lecture; <code class="nb">off</code> takes headings off the projection and keeps them in print, the contents list and search.</p>
 
   
   

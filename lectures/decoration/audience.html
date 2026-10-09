@@ -766,6 +766,10 @@ code.nb { white-space: nowrap; }
   margin: 0 0.25em;
   word-spacing: -0.28em;
 }
+/* A span that opens its block keeps the right-hand margin only: on the left
+   it would indent the line. Marked by the build, see CODE_LEAD_RE. */
+.chunk-body code:not(pre code):not(.embed-blocked code):not(.nb).lead,
+.exp-body code:not(pre code):not(.nb).lead { margin-left: 0; }
 body[data-code=tint] .chunk-body code:not(pre code):not(.embed-blocked code),
 body[data-code=tint] .exp-body code:not(pre code) {
   margin: 0;
@@ -7521,7 +7525,7 @@ settings in YAML rather than wearing them.</p>
 <span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  print-bold</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">italic</span><span style="color:#6A737D;--shiki-dark:#8B949E">    #   accent-bold | accent-italic – live, then paper</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  code</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#032F62;--shiki-dark:#A5D6FF">tint</span><span style="color:#6A737D;--shiki-dark:#8B949E">            # plain | tint | spaced – code inside a sentence</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#7EE787">  heading-scale</span><span style="color:#24292E;--shiki-dark:#E6EDF3">: </span><span style="color:#005CC5;--shiki-dark:#79C0FF">1.15</span><span style="color:#6A737D;--shiki-dark:#8B949E">   # with body-scale, bounded to 0.6 … 1.8</span></span></code></pre>
-<p><code>headings: auto</code> is the default: the chunk type decides, so a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides that for one line of alignment down the lecture; <code class="nb">off</code> takes headings off the projection and keeps them in print, the contents list and search.</p>
+<p><code class="lead">headings: auto</code> is the default: the chunk type decides, so a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides that for one line of alignment down the lecture; <code class="nb">off</code> takes headings off the projection and keeps them in print, the contents list and search.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="style-block">

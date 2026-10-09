@@ -166,6 +166,9 @@ code:not(pre code):not(.chunk-heading code):not(.nb) {
   margin: 0 0.25em;
   word-spacing: -0.28em;
 }
+/* A span that opens its block keeps the right-hand margin only: on the left
+   it would indent the line. Marked by the build, see CODE_LEAD_RE. */
+code:not(pre code):not(.chunk-heading code):not(.nb).lead { margin-left: 0; }
 body[data-code=tint] code:not(pre code):not(.chunk-heading code) {
   margin: 0;
   word-spacing: normal;

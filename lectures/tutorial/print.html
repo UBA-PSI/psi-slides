@@ -166,6 +166,9 @@ code:not(pre code):not(.chunk-heading code):not(.nb) {
   margin: 0 0.25em;
   word-spacing: -0.28em;
 }
+/* A span that opens its block keeps the right-hand margin only: on the left
+   it would indent the line. Marked by the build, see CODE_LEAD_RE. */
+code:not(pre code):not(.chunk-heading code):not(.nb).lead { margin-left: 0; }
 body[data-code=tint] code:not(pre code):not(.chunk-heading code) {
   margin: 0;
   word-spacing: normal;
@@ -3885,10 +3888,10 @@ and answer. A rule inside either half is written <code class="nb">***</code>.</p
   <h2 class="chunk-heading has-sub"><span class="hd-main">Writing your own</span> <span class="hd-sub"><code class="nb">--new</code>, <code class="nb">--watch</code>, <code class="nb">lint.js</code></span></h2>
   <p><strong>These are the commands you need while writing a lecture:</strong></p>
 <ul>
-<li><code>node build.js --new &lt;slug&gt;</code> makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.</li>
-<li><code>node build.js &lt;source.md&gt; --watch</code> rebuilds and reloads every open tab on every save.</li>
-<li><code>node lint.js lectures/</code> checks what can be checked without building: unknown types, unclosed <code class="nb">:::</code> blocks, repeated ids, word budgets, too many segments, one-chunk columns, captions that repeat the heading, frontmatter keys nothing reads. <code class="nb">--strict</code> turns the warnings into failures.</li>
-<li><code>node build.js &lt;source.md&gt; --squint</code> writes <code class="nb">squint.txt</code>: what the projection shows, slide by slide and beat by beat – the squint test from earlier.</li>
+<li><code class="lead">node build.js --new &lt;slug&gt;</code> makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.</li>
+<li><code class="lead">node build.js &lt;source.md&gt; --watch</code> rebuilds and reloads every open tab on every save.</li>
+<li><code class="lead">node lint.js lectures/</code> checks what can be checked without building: unknown types, unclosed <code class="nb">:::</code> blocks, repeated ids, word budgets, too many segments, one-chunk columns, captions that repeat the heading, frontmatter keys nothing reads. <code class="nb">--strict</code> turns the warnings into failures.</li>
+<li><code class="lead">node build.js &lt;source.md&gt; --squint</code> writes <code class="nb">squint.txt</code>: what the projection shows, slide by slide and beat by beat – the squint test from earlier.</li>
 </ul>
 <p>One command is for after the writing rather than during it: <code>node build.js &lt;source.md&gt; --slides-pdf</code> prints <code class="nb">slides.pdf</code>, one page per presentation state, for a room where the HTML will not run or for someone who wants a deck to keep. <code class="nb">--print-pdf</code> and <code class="nb">--print-notes-pdf</code> print the two documents as <code class="nb">print.pdf</code> and <code class="nb">print-notes.pdf</code>, and the desktop app exports the same three.</p>
 <p>A source file can switch one check off with <code>&lt;!-- linter: ignore reveal-overuse, density --&gt;</code> anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for <code class="nb">density</code>, and says there why.</p>
@@ -3948,7 +3951,7 @@ and answer. A rule inside either half is written <code class="nb">***</code>.</p
 <p><code class="nb">slide-numbers</code> applies to <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> too, and <code class="nb">print-slide-numbers:</code> overrides it there when the printed document wants different numbering from the projection. A value the tool does not know stops the build and lists the ones it does.</p>
 <p><strong><code class="nb">neighbours</code>, <code class="nb">note-button</code> and <code class="nb">transition</code> are the ones a keynote sets and a lecture does not.</strong> <code>transition: cut</code> lands on the next slide without the camera glide, and <code class="nb">fade</code> dips through the paper; both hide the neighbours unless you also write <code>neighbours: dim</code>. <code>neighbours: hidden</code> takes off the projection the faint slides above and below, which otherwise show where you are in the column. <code>note-button: off</code> hides the <code>+ note</code> hint in the slide&#39;s left gutter; <code class="nb">N</code> still opens an annotation, and <code class="nb">M</code> shows or hides the hint at any time, in either window.</p>
 <p><strong><code>pitchblack: on</code> is for a projector, which cannot show a dark grey as black.</strong> The three dark themes then stand on a true black ground instead of their own dark paper, and a light theme is left as it is. It has no key: <code class="nb">Ctrl/Cmd</code>-<code class="nb">K</code>, type <code class="nb">pitch</code>, <code class="nb">Enter</code> switches it in either window, and the choice follows you from lecture to lecture like the theme.</p>
-<p><code>reader: off</code> ships the two documents without the contents sidebar and highlights.</p>
+<p><code class="lead">reader: off</code> ships the two documents without the contents sidebar and highlights.</p>
 
   
   

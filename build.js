@@ -3196,6 +3196,24 @@ function markAddresses(text) {
 
 // ── marked renderer overrides (code highlighting + image shorthand) ──
 
+// A code span that opens its block. The spaced look puts a margin on both
+// sides of a span with a space in it, and at the head of a paragraph, a list
+// item, a table cell or a row's body that margin is an indent: the line
+// starts a quarter em to the right of the lines under it. No selector can
+// say "nothing but white space before me" - :first-child counts elements and
+// does not see a text node - so the build marks the span, the way the
+// codespan renderer marks .nb. Only the bare tag is matched, which is the
+// span the margin is on; a listing is preceded by its pre and never by one
+// of these openers.
+const CODE_LEAD_RE = /(<(?:p|li|td|th|dd)(?:\s[^>]*)?>|<span class="row-body">|<br\s*\/?>)(\s*)<code>/g;
+marked.use({
+  hooks: {
+    postprocess(html) {
+      return html.replace(CODE_LEAD_RE, '$1$2<code class="lead">');
+    },
+  },
+});
+
 marked.use({
   renderer: {
     code(code, infostring) {
@@ -9617,6 +9635,9 @@ ${inlineCodeSel('print', '', ':not(.nb)')} {
   margin: 0 0.25em;
   word-spacing: -0.28em;
 }
+/* A span that opens its block keeps the right-hand margin only: on the left
+   it would indent the line. Marked by the build, see CODE_LEAD_RE. */
+${inlineCodeSel('print', '', ':not(.nb).lead')} { margin-left: 0; }
 ${inlineCodeSel('print', 'body[data-code=tint]')} {
   margin: 0;
   word-spacing: normal;
@@ -15251,6 +15272,9 @@ ${inlineCodeSel('live', '', ':not(.nb)')} {
   margin: 0 0.25em;
   word-spacing: -0.28em;
 }
+/* A span that opens its block keeps the right-hand margin only: on the left
+   it would indent the line. Marked by the build, see CODE_LEAD_RE. */
+${inlineCodeSel('live', '', ':not(.nb).lead')} { margin-left: 0; }
 ${inlineCodeSel('live', 'body[data-code=tint]')} {
   margin: 0;
   word-spacing: normal;

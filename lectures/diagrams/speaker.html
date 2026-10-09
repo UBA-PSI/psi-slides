@@ -766,6 +766,10 @@ code.nb { white-space: nowrap; }
   margin: 0 0.25em;
   word-spacing: -0.28em;
 }
+/* A span that opens its block keeps the right-hand margin only: on the left
+   it would indent the line. Marked by the build, see CODE_LEAD_RE. */
+.chunk-body code:not(pre code):not(.embed-blocked code):not(.nb).lead,
+.exp-body code:not(pre code):not(.nb).lead { margin-left: 0; }
 body[data-code=tint] .chunk-body code:not(pre code):not(.embed-blocked code),
 body[data-code=tint] .exp-body code:not(pre code) {
   margin: 0;
