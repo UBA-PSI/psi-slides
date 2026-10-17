@@ -335,7 +335,7 @@ try {
   // Everything asserted below is about the print DOM, which is the body. The
   // dump is documentElement.outerHTML, so <head> carries every inlined
   // stylesheet - and three of these checks first failed on prose inside a CSS
-  // comment: AUDIENCE_CSS explains why the TOC overlay is scoped to `nav#psiINT-toc`
+  // comment: runtime/audience.css explains why the TOC overlay is scoped to `nav#psiINT-toc`
   // rather than `id="psiINT-toc"`, and the export stylesheet says what stands where
   // an <iframe> was. Both are correct comments about elements that are not
   // there. Cut at the last </head> for the same reason settings.mjs anchors
@@ -534,7 +534,7 @@ try {
   const r4 = run(dir, ['--pdf-zoom=0.9', `--pdf-out=${fx}`, `--pdf-dump-dom=${fxDom}`]);
   ok(r4.status === 0, '--pdf-zoom=<n> exits 0', (r4.stderr || '').slice(-300));
   if (r4.status === 0) {
-    // Body only. AUDIENCE_CSS declares `--zoom: 1.35` on :root in <head>, and
+    // Body only. runtime/audience.css declares `--zoom: 1.35` on :root in <head>, and
     // reading the whole dump picks that up as a second value - the same trap
     // the cleanliness assertions fell into.
     const fxFull = fs.readFileSync(fxDom, 'utf8');

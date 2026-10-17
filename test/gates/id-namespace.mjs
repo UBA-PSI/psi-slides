@@ -33,14 +33,16 @@
  * an id something else emitted, and that emitter is what is checked.
  *
  * The stylesheets are the third half. Every `#id` that stands in a selector
- * of an inlined stylesheet - the CSS literal in build.js (AUDIENCE_CSS),
- * the figures' runtime/diagram.css, the cockpit's runtime/speaker.css and
+ * of an inlined stylesheet - the live views' runtime/audience.css, the
+ * figures' runtime/diagram.css, the cockpit's runtime/speaker.css and
  * runtime/souffleuse.css, the documents' runtime/print.css and
  * runtime/pulse-print.css and the failed-build banner's
- * runtime/watch-banner.css (DIAGRAM_CSS, SPEAKER_CSS, SOUFFLEUSE_CSS,
- * PRINT_CSS, PULSE_PRINT_CSS and WATCH_BANNER_CSS until they left
- * build.js – the banner's sheet was not read while it was a literal; the id
- * it names is emitted by runtime/watch-banner.js),
+ * runtime/watch-banner.css (AUDIENCE_CSS, DIAGRAM_CSS, SPEAKER_CSS,
+ * SOUFFLEUSE_CSS, PRINT_CSS, PULSE_PRINT_CSS and WATCH_BANNER_CSS until they
+ * left build.js – the banner's sheet was not read while it was a literal; the
+ * id it names is emitted by runtime/watch-banner.js; the six inline-code
+ * selector lists audience.css takes by placeholder name classes and body
+ * attributes only, so reading the file raw loses no #id),
  * editor.css and pdf-core.mjs's PDF_CSS - has to
  * start with psiINT- (or be on
  * CSS_ALLOWED), and has to name an id some site above emits. The second rule
@@ -103,7 +105,7 @@ const ALLOWED = [
 // a whole .css file].
 const CSS_SOURCES = [
   ['runtime/diagram.css', null], ['runtime/print.css', null], ['runtime/pulse-print.css', null],
-  ['build.js', 'AUDIENCE_CSS'], ['runtime/speaker.css', null], ['runtime/souffleuse.css', null],
+  ['runtime/audience.css', null], ['runtime/speaker.css', null], ['runtime/souffleuse.css', null],
   ['pdf-core.mjs', 'PDF_CSS'], ['editor.css', null], ['runtime/watch-banner.css', null],
 ];
 // A selector id that is not psiINT-, or that no site emits: id, why. Empty,

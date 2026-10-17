@@ -449,7 +449,7 @@ console.log('\nlayout generations');
   ok(/body\[data-print-neutrals=warm\]/.test(both.print) && !/body\[data-neutrals=warm\]/.test(both.print),
      'runtime/print.css keys on data-print-neutrals and not on the live attribute');
   ok(/body\[data-neutrals=cool\]/.test(both.html),
-     'and AUDIENCE_CSS still keys on the live one');
+     'and runtime/audience.css still keys on the live one');
   // The one accent that measured under 4.5:1 against the paper. 0.58 gave
   // 4.23, 0.56 clears at 4.57, 0.54 at 4.96 - the wider margin, because a
   // projector adds the room's light and nobody measured that.
@@ -2925,7 +2925,7 @@ console.log('\nlayout generations');
   {
     const plain = chunkCls('');
     ok(/#psiINT-stage \.chunk\[data-wrap=none\][\s\S]{0,260}?text-wrap: wrap/.test(plain.html),
-       'the per-chunk wrap override ships in AUDIENCE_CSS, keyed on the attribute');
+       'the per-chunk wrap override ships in runtime/audience.css, keyed on the attribute');
     ok(/\.chunk\[data-wrap=none\][\s\S]{0,220}?text-wrap: wrap/.test(plain.print),
        'and in runtime/print.css, which is a separate copy');
     ok(/body\[data-blocks=left\] #psiINT-stage \.reveal-segment > pre/.test(plain.html)
@@ -3515,7 +3515,7 @@ console.log('\nlayout generations');
     ok(/\.chunk\[data-tag=exercise\] \.chunk-content::before \{ content: "AUFGABE"; \}/.test(de.html),
        'the projection eyebrow rides in as a same-specificity override, uppercased');
     ok(de.html.includes("content: 'EXERCISE'"),
-       'and the base rule in AUDIENCE_CSS is untouched, so the override wins on source order');
+       'and the base rule in runtime/audience.css is untouched, so the override wins on source order');
     // Two German words for one English one, on purpose: the box below the
     // slide is the Anmerkung, the button that opens it says Notiz. The button
     // is chrome on every active slide and the shorter word is the quieter one.

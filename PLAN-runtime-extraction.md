@@ -8,16 +8,17 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **14 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+Status: **15 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
 `PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS`,
 `WATCH_BANNER_CSS` and `WATCH_BANNER_JS` (see *Log*): every static CSS and
 JS literal on the list; then `PRINT_VIEW_JS`, the first with substitutions,
 under the scheme decided for it (see *Substitution scheme*), then
 `PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS`, which close step 8 of *Order*,
 `DIAGRAM_CSS`, the first with a generated block (step 9), `DIAGRAM_JS`,
-whose four function sources go in by placeholder (step 10), and `PRINT_CSS`,
-the documents' sheet with 21 substitutions (step 11). Next: step 12,
-`AUDIENCE_CSS`.
+whose four function sources go in by placeholder (step 10), `PRINT_CSS`,
+the documents' sheet with 21 substitutions (step 11), and `AUDIENCE_CSS`,
+the live views' sheet with 15, six of them in selector position (step 12).
+Next: step 13, `AUDIENCE_JS`, the last.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -1166,3 +1167,163 @@ included; and the output is byte-identical.
   not); no view holds `__PSI_`; a staged engine (`FILES` copied into a
   scratch folder) builds python-intro and the document fixture equal. Not
   run: the browser suite and `test/pdf-export.mjs`.
+- **`AUDIENCE_CSS` → `runtime/audience.css`** – done, the stylesheet of the
+  two live views (the cockpit layers `runtime/speaker.css` on top of it) and
+  the second of the three big literals. 271,922 bytes, 5,476 lines (the
+  first one empty), written by `--extract … --names` with fifteen names,
+  which filled the file back to the literal's value before writing it. The
+  value differs from the source in one place: a comment in the code-span
+  rules spelled `- **Measure**\` followed by spaces, and the template literal
+  read `\ ` as a plain space – the file keeps the space, because that is
+  what a `PSI_KEEP_COMMENTS=1` view always carried. **Every substitution is
+  a build-wide constant**: each is a pure function of tables declared above
+  the literal (`FONT_STACK_TAILS`, `INLINE_CODE_SEL`, `DISPLAY_LH`,
+  `BOLD_LOOKS` and `DERIVED_STRONG`, and `FIGURE_TYPE_STEPS`, imported from
+  `tails.mjs`), none of them written to anywhere in build.js, and none reads
+  a lecture, its frontmatter or a mutable module variable – what `style:`
+  changes on screen is a body attribute these rules key off, and the
+  deck-dependent CSS (`fontStyleTag`, `codeTag`, `styleBlockCss`) is emitted
+  in a `<style>` of its own after the sheet. The placeholders:
+
+  | name | form | filled with |
+  |---|---|---|
+  | `FONT_STACK_TAILS_SERIF` | bare | `FONT_STACK_TAILS.serif` |
+  | `FONT_STACK_TAILS_SANS` | bare | `FONT_STACK_TAILS.sans` |
+  | `FONT_STACK_TAILS_MONO` | bare | `FONT_STACK_TAILS.mono` |
+  | `LIVE_INLINE_CODE_TINT_PITCHBLACK` | bare, selector | `inlineCodeSel('live', 'body[data-code=tint][data-mode=dark][data-pitchblack=on]')` |
+  | `LIVE_INLINE_CODE_TERMINAL` | bare, selector | `inlineCodeSel('live', 'body[data-theme^=terminal]')` |
+  | `LIVE_INLINE_CODE_SPACED` | bare, selector | `inlineCodeSel('live', '', ':not(.nb)')` |
+  | `LIVE_INLINE_CODE_SPACED_LEAD` | bare, selector | `inlineCodeSel('live', '', ':not(.nb).lead')` |
+  | `LIVE_INLINE_CODE_SPACED_TRAIL` | bare, selector | `inlineCodeSel('live', '', ':not(.nb).trail')` |
+  | `LIVE_INLINE_CODE_TINT` | bare, selector | `inlineCodeSel('live', 'body[data-code=tint]')` |
+  | `FIGURE_TYPE_RULES` | comment | one `.chunk[data-figure-type="N"]` rule per `FIGURE_TYPE_STEPS` entry |
+  | `LIVE_DISPLAY_LH_TITLE` | bare | `displayLh('live', '.chunk-title .title-main')` |
+  | `LIVE_DISPLAY_LH_EYEBROW_SUBTITLE` | bare | `displayLh('live', 'body[data-headline=eyebrow] .chunk-title .title-subtitle')` |
+  | `LIVE_DISPLAY_LH_DISPLAY_COVER_TITLE` | bare | `displayLh('live', '.chunk[data-cover=display] .title-main')` |
+  | `LIVE_DISPLAY_LH_SECTION_HEADING` | bare | `displayLh('live', '.chunk-section .section-heading')` |
+  | `LIVE_BOLD_LOOKS` | comment | `boldLookCss('bold', 'plain', 'var(--bold-weight)')` |
+
+  Names chosen by hand. The font stacks keep the derived names: the same
+  expression wherever it stands. What `runtime/print.css` fills from the
+  same function with the `'print'` view, this sheet fills under the print
+  sheet's name with `LIVE_` in front (`INLINE_CODE_SPACED` →
+  `LIVE_INLINE_CODE_SPACED`, `DISPLAY_LH_TITLE` → `LIVE_DISPLAY_LH_TITLE`,
+  `PRINT_BOLD_LOOKS` → `LIVE_BOLD_LOOKS`), so a name means one expression
+  across `runtime/`; the two lists the print sheet has no counterpart for are
+  named after the guard they carry (`…_TINT_PITCHBLACK`, `…_TERMINAL`), the
+  section heading's line height after its slot, and the figure-type steps
+  after what they are.
+
+  `build.js` lost 5,499 lines and gained 60: `AUDIENCE_CSS_PATH`, the
+  `AUDIENCE_CSS_FILL` table where the literal stood (every name in it is
+  declared above, so it evaluates where the literal did), `audienceCss()`
+  through `fillRuntime`, a comment; the two render sites (`renderAudience`,
+  `renderSpeaker`) are `${shipCss(audienceCss())}`, and the stylesheet
+  check's `sheets` entry is `'runtime/audience.css': audienceCss()`, the
+  sheet filled, as it ships – the check's comment, which said every CSS
+  block of the file lives in a template literal, now says the sheets are
+  files. Ten Node-side comments that named the literal as where a rule
+  lives name the file, the speaker CSS banner among them (“layered on top of
+  runtime/audience.css”), and the list of literals `shipJs` / `shipCss`
+  handle dropped it. The two comments inside `AUDIENCE_JS` that name
+  `AUDIENCE_CSS` stay (rule 7), as do the ones in `editor.mjs` and
+  `diagram-core.mjs`, which ship as text, and the one inside `pdf-core.mjs`'s
+  `PDF_CSS`, which goes into the export's page.
+
+  **Readers, found by emptying the literal in build.js and running the
+  gates** (2,208 → 2,183 passed, 22 failed): five gates failed loudly and
+  one shrank without a sound, and each is repointed at the file rather than
+  loosened; with the move made, each gate's full output was compared with
+  the one before it, and nothing differs but what is listed here.
+  `semantics` – the dark theme held against `DARK_TOKENS`, the seven
+  `DG_THEMES` blocks, the three `--paper-own` checks and the pitchblack rule
+  read the file; the root slice, which cut build.js from
+  ``const AUDIENCE_CSS = ` `` to the first `--zoom:`, is the file's head up
+  to `--zoom:` (the same eleven lines); `DARK_TOKENS` and `DARK_THEME_NAMES`
+  are still read out of build.js. No check there would have turned vacuous:
+  each one failed when the literal was emptied, or (the `--paper-own`
+  checks, inside a loop over the theme blocks) disappeared from the output.
+  `tails` – `DISPLAY_TRACK is complete` reads the file raw for the live
+  half; the scan finds the same nine tracked title rules, compared as lists.
+  `canvas` – the `--body-fs` scan, the `var(--fig-cap, …)` fallbacks, the
+  picture, bleed and stack `--fig-cap` rules and the bleed chunk rule search
+  build.js followed by the file, so they cover what they covered while the
+  sheet was a literal; what they find is the same, compared as lists.
+  `zoom-scope` – the file joins `RUNTIME_SHEETS`; **54 selectors, not 51**:
+  as a literal the sheet was scanned in build.js's source text, where the
+  `${displayLh(…)}` in three declarations carried braces the gate's block
+  walk took for a block of its own, which hid three rules reading
+  `var(--zoom)` – `.chunk-title .title-main`, the eyebrow subtitle and
+  `.chunk-section .section-heading`, all three on a slide. Read from the
+  file, whose placeholders have no braces, the walk sees them; the 51 it saw
+  before are among the 54, in the same order. The file is read raw, not
+  filled: no rule headed by one of the six selector placeholders reads
+  `var(--zoom)`, and neither generated block sets it. Its first check's
+  message said “the CSS literals still hold the rules”, which none does now:
+  “the stylesheets”. `id-namespace` – the silent one: emptied, the count
+  fell 570 → 354 and nothing failed; its `CSS_SOURCES` entry is
+  `['runtime/audience.css', null]`, and read from the file it is 570 again.
+  Reading it raw loses nothing: the six selector placeholders are type
+  selectors, and what fills them names classes and body attributes only
+  (`INLINE_CODE_SEL`'s live entry and five guards, no `#`), as do the two
+  generated blocks. `strip` – the literal leaves `LITERALS` (which now holds
+  `AUDIENCE_JS` alone) and the file joins `RUNTIME`: its ship check, the two
+  stylesheet strip checks on the raw file and the per-file fill check (15
+  names), minus the literal's ship check: 2,208 → 2,211; the fill check
+  fails on a renamed table key, and a build with that key refuses with
+  `runtime/audience.css: placeholder __PSI_LIVE_DISPLAY_LH_SECTION_HEADING__
+  has no value`. `inlined` scans only the literals left (14 named). No other
+  reader of build.js as text reads the sheet: `test/settings.mjs`, `cli`,
+  `commands`, `frontmatter`, `xheight` and the rest read other tables or
+  built views, and `refresh-figures.mjs --check` says up to date. Desktop:
+  `FILES` gained the file, the read count went 20 → 21; with the file off
+  `FILES` the test fails by name. Docs: `test/README.md` (`id-namespace`,
+  `zoom-scope`, and the coverage paragraph's example, which named
+  `const AUDIENCE_CSS = …` and names `AUDIENCE_JS` now, as
+  `tools/coverage-logic.mjs`'s header does), every sentence in the
+  appearance, decoration and figures skills that named the literal as a
+  location, the module header of `pdf-core.mjs`, three assertion messages in
+  `test/settings.mjs` and two comments in `test/pdf-export.mjs`.
+
+  Identity: `npm run build:tracked` leaves `lectures/` unchanged (all three
+  tracked decks carry `audience.html`, the first two `speaker.html`); built
+  by an archive of `2500531` and by the new engine into
+  `<old|new>/<plain|kept>/L/<deck>` – python-intro, network-security,
+  display-face (`fonts: {display: Anton}`, `cover: display`), title-block
+  (`headline: eyebrow`, `caps: on`), a fixture with `theme: terminal-green`,
+  `pitchblack: on`, `code: tint`, `bold: accent-italic`, `neutrals: cool`,
+  `figure-type: 1.3`, `headline: eyebrow`, `hyphenate: all`,
+  `section: number` and a `.figure-type-70` figure, and one with `theme:
+  dark`, `cover: display`, `code: plain`, `bold: plain`, `neutrals: warm`
+  and a `.figure-type-150` chunk – all 48 views `cmp`-equal, plain and under
+  `PSI_KEEP_COMMENTS=1` (whose live views carry the file's comment “Fifteen
+  steps, the key's own 0.6-2.0 in tenths”, the plain ones and the documents
+  not); no view holds `__PSI_`; a staged engine (`FILES` copied into a
+  scratch folder) builds python-intro and the first fixture equal.
+  `test/settings.mjs`, `reproducible`, `containers`, `cli`, `present` and
+  `large-deck` pass. Not run: the browser suite and `test/pdf-export.mjs`.
+
+  **For `AUDIENCE_JS`, the last.** Emptied the same way, it fails fourteen
+  checks in three gates and empties one more without a sound. `commands`
+  reads it as `literal(buildJs, 'AUDIENCE_JS')` – `COMMAND_RUN`, the key
+  map's listener, the overview switch, the `Cmd`-`K` head – and reads the
+  file instead, the value (66 resolved backslashes; the `e.key` comparisons
+  it extracts are to be checked against that, as `SPEAKER_JS`'s were).
+  `id-namespace` – the file joins `FILES`, the emitter scan: it emits
+  `psiINT-nav-hints`, and without it six selectors in
+  `runtime/audience.css` name an id nothing writes (123 → 122 emitted ids).
+  `canvas` – `FIG_REF_ZOOM` against `state.zoom`, `FULL_FIT_FILL` and the
+  bleed branch of `fitAvail` read build.js plus the file, and **its absence
+  check, that nothing beside `fitAvail` reads `FULL_FIT_FILL` off the
+  viewport, turns vacuous** unless the file is in the text it searches.
+  `strip` – the file joins `RUNTIME` with the four script checks (its five
+  JSON placeholders stand in expression position, so the raw file
+  compiles), and `LITERALS` would be empty: the loop goes, rather than
+  staying as a check over nothing. `inlined` then scans only the small
+  literals – the markup ones, `PRINT_VIEW_EARLY_JS`, `READER_EARLY_JS`,
+  `DOCUMENT_PAGE_CSS`, `SANS_STACK_TAIL` – so its header (“roughly two
+  thirds of build.js is stylesheets and runtime scripts held in template
+  literals”) and CLAUDE.md's convention on template literals need
+  rewriting; the gate keeps its use while those literals stay (open
+  questions 6 and 7), and its regex-escape half then applies only to the
+  two `<script>` one-liners. Desktop: `FILES` and a read count of 22.

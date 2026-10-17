@@ -197,14 +197,17 @@ export async function run({ report }) {
 
   // ── the documents' dark scheme is the dark theme ─────────────────
   // print.html follows a dark screen with DARK_TOKENS (printDarkCss), a copy
-  // of body[data-theme=dark] in AUDIENCE_CSS so that the gates below can go
-  // on reading that block as text. A copy is held equal here, token by token.
+  // of body[data-theme=dark] in runtime/audience.css (AUDIENCE_CSS until it
+  // left build.js) so that the gates below can go on reading that block as
+  // text. A copy is held equal here, token by token: DARK_TOKENS out of
+  // build.js, the theme block out of the stylesheet.
   {
     const src = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const live = fs.readFileSync(path.join(ROOT, 'runtime/audience.css'), 'utf8');
     const tb = src.slice(src.indexOf('const DARK_TOKENS = {'));
     const tokens = Object.fromEntries([...tb.slice(0, tb.indexOf('\n};')).matchAll(/^\s+'?([a-z-]+)'?: '([^']+)',/gm)]
       .map(m => [m[1], m[2]]));
-    const theme = (src.match(/body\[data-theme=dark\]\s*\{([^}]*)\}/) || [, ''])[1];
+    const theme = (live.match(/body\[data-theme=dark\]\s*\{([^}]*)\}/) || [, ''])[1];
     const decl = (k) => (theme.match(new RegExp(`--${k}:\\s*([^;]+);`)) || [])[1];
     const pairs = [['paper', 'paper-own'], ['paper-warm', 'paper-warm'], ['ink', 'ink'], ['ink-soft', 'ink-soft'], ['rule', 'rule'], ['emph', 'emph']];
     const off = pairs.filter(([t, c]) => tokens[t] !== decl(c)).map(([t, c]) => `${t}: ${tokens[t]} / ${decl(c)}`);
@@ -222,13 +225,19 @@ export async function run({ report }) {
   // paper, not the black: under the switch every fill is the colour it was
   // and the ground under it is darker, so each ratio dgBarContrast answers
   // is a floor - which the last check here computes rather than asserts.
+  //
+  // The theme blocks, the root palette and the pitchblack rule are in
+  // runtime/audience.css (AUDIENCE_CSS until it left build.js), whose head,
+  // up to --zoom, is the :root block; the list of dark themes,
+  // DARK_THEME_NAMES, is still in build.js.
   {
-    const css = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const build = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const css = fs.readFileSync(path.join(ROOT, 'runtime/audience.css'), 'utf8');
     const trip = (block, tok) => {
       const m = block.match(new RegExp(`--${tok}:\\s*oklch\\(([\\d.]+) ([\\d.]+) ([\\d.]+)\\)`));
       return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
     };
-    const root = css.slice(css.indexOf('const AUDIENCE_CSS = `'), css.indexOf('--zoom:'));
+    const root = css.slice(0, css.indexOf('--zoom:'));
     const inkL = Number((root.match(/--ink-l:\s*([\d.]+)/) || [])[1]);
     for (const [name, want] of Object.entries(DG_THEMES)) {
       const m = css.match(new RegExp(`body\\[data-theme=${name}\\]\\s*\\{([^}]*)\\}`));
@@ -251,7 +260,7 @@ export async function run({ report }) {
     // list the runtime keys data-mode off, against the blocks that carry a
     // --paper-own. A dark theme added with a bare --paper would build, and
     // lose its tone fills on a black ground.
-    const darkNames = JSON.parse(((css.match(/const DARK_THEME_NAMES = (\[[^\]]*\]);/) || [])[1] || '[]').replace(/'/g, '"'));
+    const darkNames = JSON.parse(((build.match(/const DARK_THEME_NAMES = (\[[^\]]*\]);/) || [])[1] || '[]').replace(/'/g, '"'));
     const owning = darkNames.filter((n) => /--paper-own:\s*oklch\(/.test(
       (css.match(new RegExp(`body\\[data-theme=${n}\\]\\s*\\{([^}]*)\\}`)) || [])[1] || ''));
     ok(darkNames.length >= 3 && owning.length === darkNames.length,

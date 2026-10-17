@@ -38,9 +38,16 @@ export const name = 'canvas: the measured numbers behind a figure box';
 export async function run({ report }) {
   const { ok, note } = report;
   const src = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+  // The live views' stylesheet, runtime/audience.css (AUDIENCE_CSS until it
+  // left build.js), read raw: the rules below carry no placeholder. The
+  // stylesheet checks search build.js and then the file, so they still cover
+  // everything they covered while the sheet was a literal.
+  const live = fs.readFileSync(path.join(ROOT, 'runtime/audience.css'), 'utf8');
+  const css = src + '\n' + live;
 
   // ── FIG_BODY_REM against the stylesheet it mirrors ────────────────
-  // Every `--body-fs:` rule in build.js, as {selector-tag -> coefficient}.
+  // Every `--body-fs:` rule in build.js and runtime/audience.css, as
+  // {selector-tag -> coefficient}.
   // The base rule is `.chunk { --body-fs: calc(1rem * …) }` and every other
   // is `.chunk[data-tag=NAME] { --body-fs: calc(Nrem * …) }`; a fourth form
   // (`--body-fs: var(--statement-size)`) carries no coefficient at all and is
@@ -49,7 +56,7 @@ export async function run({ report }) {
   let noCoefficient = 0;
   const re = /\.chunk(?:\[data-tag=([a-z]+)\])?\s*\{\s*--body-fs:\s*([^;]+);/g;
   let m;
-  while ((m = re.exec(src))) {
+  while ((m = re.exec(css))) {
     const tag = m[1] || '';
     const calc = /calc\(\s*([\d.]+)rem/.exec(m[2]);
     if (!calc) { noCoefficient++; continue; }
@@ -164,22 +171,22 @@ export async function run({ report }) {
   // ...and the stylesheet says the same four numbers. The base cap is the
   // fallback of every `var(--fig-cap, N)`; the other three are rules of their own.
   // The max-height rule is in runtime/diagram.css (DIAGRAM_CSS until it left
-  // build.js), --dg-box-w in AUDIENCE_CSS, so both texts are read.
+  // build.js), --dg-box-w in runtime/audience.css, so both texts are read.
   const dgCss = fs.readFileSync(path.join(ROOT, 'runtime/diagram.css'), 'utf8');
-  const fallbacks = [...(src + dgCss).matchAll(/var\(--fig-cap, ([\d.]+)\)/g)].map(m => Number(m[1]));
+  const fallbacks = [...(css + dgCss).matchAll(/var\(--fig-cap, ([\d.]+)\)/g)].map(m => Number(m[1]));
   ok(fallbacks.length >= 2 && fallbacks.filter(n => n === caps.get('chunk')).length >= 2,
      'the max-height rule and --dg-box-w both fall back to the chunk cap', fallbacks.join(', '));
-  const picCss = /\.chunk\[data-canvas-tier=picture\] \{ --fig-cap: ([\d.]+); \}/.exec(src);
+  const picCss = /\.chunk\[data-canvas-tier=picture\] \{ --fig-cap: ([\d.]+); \}/.exec(css);
   ok(!!picCss && Number(picCss[1]) === caps.get('picture'),
      'the picture slide rule sets the picture cap', String(picCss && picCss[1]));
-  const bleedCss = /\.chunk\[data-canvas-tier=bleed\] \{ --fig-cap: ([\d.]+); \}/.exec(src);
+  const bleedCss = /\.chunk\[data-canvas-tier=bleed\] \{ --fig-cap: ([\d.]+); \}/.exec(css);
   ok(!!bleedCss && Number(bleedCss[1]) === caps.get('bleed'),
      'the bleed chunk rule sets the bleed cap', String(bleedCss && bleedCss[1]));
   // A bleed chunk's box has to be the frame for that cap to mean anything:
   // no padding, a column as wide as the slide.
-  ok(/\.chunk\[data-width=bleed\] \{ padding: 0; --content-w: var\(--slide-w\); min-height: var\(--slide-h\); \}/.test(src),
+  ok(/\.chunk\[data-width=bleed\] \{ padding: 0; --content-w: var\(--slide-w\); min-height: var\(--slide-h\); \}/.test(css),
      'and a bleed chunk pads nothing and takes the slide as its column');
-  const stackCss = /\.chunk-section\[data-section-layout=stack\] \{ --fig-cap: ([\d.]+); \}/.exec(src);
+  const stackCss = /\.chunk-section\[data-section-layout=stack\] \{ --fig-cap: ([\d.]+); \}/.exec(css);
   ok(!!stackCss && Number(stackCss[1]) === caps.get('stack'),
      'the stacked divider rule sets the stack cap', String(stackCss && stackCss[1]));
   // The picture cap is also bounded from above, by auto-fit: FULL_FIT_FILL

@@ -179,7 +179,7 @@ drawing, and the canvas rides the channel a stepped figure's union box already
 rode: `data-live-viewbox` for the attribute the runtime swaps, and
 `--dg-live-type-w` / `--dg-live-ar` / `--dg-live-ink-x` beside the print
 numbers for the three a stylesheet reads. **Read `--dg-fit-w`, never
-`--dg-type-w`, from anything that measures a live view** – `AUDIENCE_CSS`
+`--dg-type-w`, from anything that measures a live view** – `runtime/audience.css`
 resolves the fallback chain once on `.psi-diagram`, and `figureCapProbe`,
 `--check-fit` and `test/figure-type.mjs` all read the resolved value.
 

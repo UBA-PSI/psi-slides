@@ -3,8 +3,8 @@
  * node tools/coverage-logic.mjs [coverage/lcov.info]
  *
  * build.js's line coverage without its inlined runtime. V8 counts a template
- * literal as one expression, so the moment `const AUDIENCE_CSS = ...` is
- * evaluated every line of that stylesheet counts as covered, and the file's
+ * literal as one expression, so the moment `const AUDIENCE_JS = ...` is
+ * evaluated every line of that script counts as covered, and the file's
  * line figure says more about how much of it is CSS and browser JS than about
  * what the tests exercise. This prints the figure for the lines outside the
  * top-level literal constants, which is the one that should not fall when

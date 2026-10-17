@@ -79,7 +79,13 @@ export function sheetZoomSelectors(text, literal) {
 // read files and dropped out of it unnoticed; none reads var(--zoom), so
 // nothing was missed, but a rule added to one later would have been. The
 // documents' sheet (PRINT_CSS) reads none either, and is listed for the same
-// reason.
+// reason. The live views' sheet (AUDIENCE_CSS) holds every rule found here.
+// Read as a file it is scanned better than it was as a literal: a `${…}` in
+// a declaration (the display face's line heights) carried braces the walk
+// above took for a block, which hid three rules reading var(--zoom); its
+// placeholders have none. Read raw, not filled: the six selector lists it
+// takes by placeholder head rules that read no var(--zoom), and the two
+// generated blocks (figure-type steps, bold looks) set none either.
 const RUNTIME_SHEETS = [
   'runtime/speaker.css',
   'runtime/souffleuse.css',
@@ -87,6 +93,7 @@ const RUNTIME_SHEETS = [
   'runtime/watch-banner.css',
   'runtime/diagram.css',
   'runtime/print.css',
+  'runtime/audience.css',
 ];
 
 // The selector as compounds, subject last, each with the combinator that
@@ -137,7 +144,7 @@ export async function run({ report }) {
   for (const file of RUNTIME_SHEETS) {
     found.push(...sheetZoomSelectors(fs.readFileSync(path.join(ROOT, file), 'utf8'), file));
   }
-  ok(found.length > 20, 'the CSS literals still hold the rules that read var(--zoom)', String(found.length));
+  ok(found.length > 20, 'the stylesheets still hold the rules that read var(--zoom)', String(found.length));
   note(found.length + ' selector(s) read var(--zoom)');
   const off = found.filter(f => !onSlide(f.selector));
   ok(off.length === 0,

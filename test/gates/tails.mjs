@@ -476,16 +476,13 @@ export async function run({ report }) {
     // the -0.042em under `cover: display` among them - the one the whole
     // reset exists for.
     const flat = (t) => t.replace(/\$\{[^}]*\}/g, 'X').replace(/\/\*[\s\S]*?\*\//g, '');
-    const cut = (from, to) => {
-      const a = bsrc.search(from); const b = bsrc.indexOf(to, a);
-      return flat(bsrc.slice(a, b));
-    };
-    // The documents' sheet is runtime/print.css (PRINT_CSS until it left
-    // build.js), read raw: its placeholders are values and selector lists,
-    // with no brace among them, and the generated blocks are comments.
+    // The two sheets are runtime/print.css and runtime/audience.css
+    // (PRINT_CSS and AUDIENCE_CSS until they left build.js), read raw: their
+    // placeholders are values and selector lists, with no brace among them,
+    // and the generated blocks are comments.
     const sheets = {
       print: flat(fs.readFileSync(path.join(ROOT, 'runtime/print.css'), 'utf8')),
-      live: cut(/const AUDIENCE_CSS = `/, '// \u2500\u2500 audience runtime JS'),
+      live: flat(fs.readFileSync(path.join(ROOT, 'runtime/audience.css'), 'utf8')),
     };
     const declared = {};
     for (const m of bsrc.slice(bsrc.indexOf('const DISPLAY_TRACK = {'))

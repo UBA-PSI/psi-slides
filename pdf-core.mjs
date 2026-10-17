@@ -38,7 +38,7 @@
  *    chunks go in, and document.body's children are then replaced wholesale.
  *    Help, search, TOC, the mode badge, the laser dot and the figure overlay
  *    are siblings of #psiINT-stage and vanish without anyone naming them - which
- *    matters, because all eleven `position: fixed` rules in AUDIENCE_CSS sit on
+ *    matters, because all eleven `position: fixed` rules in runtime/audience.css sit on
  *    id-selected chrome, and a fixed element in a paginated document repeats on
  *    *every* page. A strike list could miss one. Inclusion cannot.
  *
