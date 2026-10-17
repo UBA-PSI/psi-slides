@@ -2740,16 +2740,16 @@ console.log('\nlayout generations');
   // mirrors. A word budget or a directive check re-implements a *contract*,
   // and a contract drifts when somebody changes a number – visibly, in a
   // diff. This one mirrors an *algorithm*: splitSentencesIn's three sentence
-  // helpers, which live inside the AUDIENCE_JS template literal and so cannot
-  // be imported by anything. That drifts when somebody fixes an edge case in
+  // helpers, which live in runtime/audience.js, a fragment of a page's script
+  // element rather than a module, and so cannot be imported by anything. That drifts when somebody fixes an edge case in
   // the renderer, invisibly, and the warning then describes a collapse that
   // no longer happens. So the test that matters is not "lint warns" – lint
   // agreeing with itself proves nothing – it is "lint's copy and the copy
   // that ships to the browser still answer the same way".
   //
   // Both copies are lifted out as text and run side by side. Not imported:
-  // lint.js calls main() at module scope, and the build's copy only exists as
-  // characters inside a string until a page runs it. Extraction is also the
+  // lint.js calls main() at module scope, and the build's copy is a fragment
+  // that runs only in a page, after the placeholders are filled. Extraction is also the
   // point rather than a workaround – if either file renames or restructures
   // these helpers this slice stops matching and the test fails loudly, which
   // is exactly when a person should be looking at the pair.

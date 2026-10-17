@@ -261,7 +261,7 @@ custom property does not.
 | :6359–6376 `abbrevForLabel` | English prefixes | add the German prefixes to the same chain (`bew` → `Pf`, `bei` → `Ex`, `lit`/`que` → `Ref`, `lös`/`ant` → `?`, `abb` → `Fig`, `war`/`ach` → `!`); the abbreviations themselves stay, they are glyph-like |
 | :6808–6947 `renderHelpOverlay` | one array literal | the arrays move under `STRINGS.<lang>.help`; the shape is already data, which is why this is cheap |
 | :6743–6799 the five HTML constants | literals | become functions of `S`, the way `renderHelpOverlay` already is; `test/gates/inlined.mjs:53` names these five literals by name and scans them as literals, so the gate's opener/closer detection needs a look |
-| :11359–14730 audience `flashMode` | literals inside `AUDIENCE_JS` | the runtime cannot read `S` at build time; emit `window.PSI_STRINGS = {…}` in the page head (the way `VIEW`, `KATEX_TOGGLE_FAMS` and the editor payload are already injected) and have `flashMode` read from it. Second pass; see §7 |
+| `runtime/audience.js` `flashMode` | literals inside `runtime/audience.js` (`AUDIENCE_JS` until it left build.js) | the runtime cannot read `S` at build time; emit `window.PSI_STRINGS = {…}` in the page head (the way `VIEW`, `KATEX_TOGGLE_FAMS` and the editor payload are already injected) and have `flashMode` read from it. Second pass; see §7 |
 
 ## 4. German wording
 

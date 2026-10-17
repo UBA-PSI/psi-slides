@@ -919,11 +919,12 @@ function wordCountOf(lines) {
 // is the threshold because the honest fix is always to widen the bold into a
 // phrase that stands alone, and a two-word bold almost never does.
 //
-// Mirrors build.js's three sentence helpers rather than importing them –
-// they live inside the AUDIENCE_JS template literal, which is a string, not
-// an export. Keep them congruent: a linter that disagrees with the build
-// about where the first sentence ends reports on the wrong half of a
-// paragraph. (Backslashes are single here and doubled there for that reason.)
+// Mirrors the live runtime's three sentence helpers rather than importing
+// them – they live in runtime/audience.js, a fragment of a page's script
+// element, not a module with exports. Keep them congruent: a linter that
+// disagrees with the build about where the first sentence ends reports on the
+// wrong half of a paragraph. (Backslashes are single in both; they were
+// doubled there while the runtime was a template literal in build.js.)
 const SENTENCE_ABBREVS = new Set(['bzw','ca','vgl','etc','usw','engl','sog',
   'inkl','zzgl','ggf','evtl','al','vs','resp','Nr','Dr','Prof','Abs','Art',
   'Kap','Abb','Tab','Aufl','Hrsg','Mio','Mrd','ff','ebd','St']);

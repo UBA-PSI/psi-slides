@@ -2,13 +2,17 @@
 /*
  * node tools/coverage-logic.mjs [coverage/lcov.info]
  *
- * build.js's line coverage without its inlined runtime. V8 counts a template
- * literal as one expression, so the moment `const AUDIENCE_JS = ...` is
- * evaluated every line of that script counts as covered, and the file's
- * line figure says more about how much of it is CSS and browser JS than about
- * what the tests exercise. This prints the figure for the lines outside the
- * top-level literal constants, which is the one that should not fall when
- * those literals move into files of their own.
+ * build.js's line coverage without its multi-line literal constants. V8
+ * counts a template literal as one expression, so the moment a constant such
+ * as `const TOUCH_CONTROLS_HTML = ...` is evaluated every line of it counts
+ * as covered. While the runtime scripts and stylesheets were literals here
+ * (AUDIENCE_JS and two dozen others, about 20,900 lines), the file's line
+ * figure said more about how much of it was CSS and browser JS than about
+ * what the tests exercise; they have moved into runtime/
+ * (PLAN-runtime-extraction.md), and what is left is the markup and a few
+ * one-line constants, so the two figures are now close. This prints the
+ * figure for the lines outside the top-level literal constants, the one to
+ * watch.
  *
  * A literal's end is found by V8's own parser, not by a pattern: from the
  * `const NAME = ...` line, the first line up to which the text compiles as a

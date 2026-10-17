@@ -8,7 +8,7 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **15 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+Status: **16 of 24 moved, and every literal on the list** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
 `PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS`,
 `WATCH_BANNER_CSS` and `WATCH_BANNER_JS` (see *Log*): every static CSS and
 JS literal on the list; then `PRINT_VIEW_JS`, the first with substitutions,
@@ -16,9 +16,11 @@ under the scheme decided for it (see *Substitution scheme*), then
 `PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS`, which close step 8 of *Order*,
 `DIAGRAM_CSS`, the first with a generated block (step 9), `DIAGRAM_JS`,
 whose four function sources go in by placeholder (step 10), `PRINT_CSS`,
-the documents' sheet with 21 substitutions (step 11), and `AUDIENCE_CSS`,
-the live views' sheet with 15, six of them in selector position (step 12).
-Next: step 13, `AUDIENCE_JS`, the last.
+the documents' sheet with 21 substitutions (step 11), `AUDIENCE_CSS`,
+the live views' sheet with 15, six of them in selector position (step 12),
+and `AUDIENCE_JS`, the live views' runtime with 5 (step 13, the last). What
+is left in build.js are the eight small literals the list never named (open
+questions 6 and 7).
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -1327,3 +1329,118 @@ included; and the output is byte-identical.
   rewriting; the gate keeps its use while those literals stay (open
   questions 6 and 7), and its regex-escape half then applies only to the
   two `<script>` one-liners. Desktop: `FILES` and a read count of 22.
+
+- **`AUDIENCE_JS` → `runtime/audience.js`** – done, the runtime of the two
+  live views (the cockpit's `runtime/speaker.js`, and under `--prompter`
+  `runtime/souffleuse.js`, run after it in the same script element and in
+  its lexical scope) and the last of the three big literals. 293,818 bytes,
+  6,041 lines (the first one empty), written by `--extract … --names
+  AUTO_FIT_CYCLE,SLIDE_NUM_DEFAULT,SLIDE_NUM_MODES,THEME_NAMES,DARK_THEME_NAMES`,
+  which filled the file back to the literal's value before writing it. The
+  value differs from the source: the 66 backslashes are the nine escaped
+  `\${` browser templates and the escaped backticks of their template
+  literals, doubled escapes in regexes (`\\s`, `\\p{L}`, `\\d`, `\\/`,
+  `\\]`, `\\u0300-\\u036f`) and in two `'\\n'` strings, each a single
+  character in the file, and three `\u` escapes in strings (`·` twice,
+  `⌄`), which the literal resolved to the characters themselves – the
+  file carries them as UTF-8, with the same meaning and the same bytes in
+  the view. The placeholders, all bare JSON values in expression position,
+  so the raw file compiles as a script:
+
+  | name | form | filled with |
+  |---|---|---|
+  | `AUTO_FIT_CYCLE` | bare | `JSON.stringify(AUTO_FIT_CYCLE)` |
+  | `SLIDE_NUM_DEFAULT` | bare | `JSON.stringify(SLIDE_NUM_DEFAULT)` |
+  | `SLIDE_NUM_MODES` | bare | `JSON.stringify(SLIDE_NUM_MODES)` |
+  | `THEME_NAMES` | bare | `JSON.stringify(THEME_NAMES)` (the runtime's `THEME_CYCLE`) |
+  | `DARK_THEME_NAMES` | bare | `JSON.stringify(DARK_THEME_NAMES)` (the runtime's `DARK_THEMES`) |
+
+  Named after the build-side table each is filled from, as `DG_SHAPES` is,
+  not after the runtime constant it initialises (two of the five are renamed
+  on the way in) and not with the derived `JSON_STRINGIFY_…` prefix. Every
+  value is a build-wide constant: the five tables are declared above the
+  literal, written to nowhere in build.js, and read no lecture.
+
+  `build.js` lost 6,058 lines and gained 42: `AUDIENCE_JS_PATH`, the
+  `AUDIENCE_JS_FILL` table where the literal stood, `audienceJs()` through
+  `fillRuntime`, a comment; the two render sites (`renderAudience`,
+  `renderSpeaker`) are `${shipJs(audienceJs())}`, still after
+  `diagramJs()` in the same script element; ten Node-side comments that
+  named the literal as where a function lives (`liveQrSvg`, the key map,
+  `psiBuildBannerHere`, the start menu, `toggleHelp`, the lightbox's note on
+  the figure focus, `AUTO_FIT_CYCLE`'s, the speaker runtime's banner and
+  comment) name the file, and the paragraph on what `shipJs` / `shipCss`
+  handle no longer lists a literal. The comments inside shipped text that
+  name `AUDIENCE_JS` stay (rule 7): `runtime/speaker.js`,
+  `runtime/watch-banner.js`, `runtime/audience.css`, `commands.mjs` and
+  `editor.mjs`, which ship as text.
+
+  **Readers, found by emptying the literal in build.js and running the
+  gates** (2,211 → 2,195 passed, 14 failed, one check gone from the output
+  and one count fallen): three gates failed loudly, and one check would have
+  turned vacuous; each is repointed at the file rather than loosened, and
+  with the move made each gate's full output was compared with the one
+  before it. `commands` – the twelve failures (`COMMAND_RUN` not found, no
+  run function for any command in either view, the listener and its
+  overview switch not found, the `Cmd`-`K` head, and the audience's key
+  count 52 → 51) all came from `literal(buildJs, 'AUDIENCE_JS')`, the
+  literal's source text; the gate reads the file, the value, raw (its five
+  placeholders stand for tables, none a key or a command), and its now
+  unused `literal()` helper is gone. None of the lines whose backslashes the
+  literal resolved holds an `e.key` comparison, a `case` label or a
+  `COMMAND_RUN` entry, and **the gate's output is line for line what it
+  was**, the two assertion messages that still say “in AUDIENCE_JS”
+  included. `canvas` – `both zooms are findable`, `FULL_FIT_FILL is
+  findable` (and with it the picture-cap check, which the output then
+  dropped) and the bleed branch of `fitAvail` failed; the four runtime
+  checks now search build.js followed by the file, as the stylesheet checks
+  do. **The absence check – nothing beside `fitAvail` reads `FULL_FIT_FILL`
+  off the viewport – would have passed vacuously** with build.js alone; it
+  searches build.js plus the file too, and a line `return
+  viewport.clientHeight * FULL_FIT_FILL;` appended to the file temporarily
+  fails it. `id-namespace` – emptied, the six `#psiINT-nav-hints` selectors
+  in `runtime/audience.css` named an id nothing writes and the emitted ids
+  fell 123 → 122; the file joins `FILES`, the emitter scan, and the counts
+  are as before (123 emitted ids, 570 selectors in 9 stylesheets); the one
+  line that moved is the assertion naming the files it read. `strip` – the
+  literal leaves `LITERALS`, which is now empty (the loop goes in the next
+  commit), and the file joins `RUNTIME`: its ship check, the four script
+  checks and the per-file fill check (5 names), minus the literal's ship
+  check: 2,211 → 2,216. `inlined` scans the literals left (13 named,
+  from 14). The one other line that moved is the tracked-file count of a
+  scan over the working tree (278 → 279, the new file). Other readers
+  checked and left: `test/settings.mjs` lifts the sentence helpers out of a
+  *built* `audience.html`, and `refresh-figures.mjs` lifts the runtime out
+  of built views between markers; both pass, `--check` up to date.
+
+  Desktop: `FILES` gained the file, the read count went 21 → 22; with the
+  file off `FILES` the test fails by name. Docs: `test/README.md` (`commands`,
+  `id-namespace`, the browser-suite paragraph, `window.psiIdle`, and the
+  coverage paragraph, which now says the large literals have gone),
+  `tools/coverage-logic.mjs`'s header, every sentence in the appearance,
+  figures, media and prompter skills and in `speaker.md` that named the
+  literal as a location, `CONTRIBUTING.md`'s and `browser.yml`'s “run it
+  after touching”, `pdf-core.mjs`'s header, `lint.js`'s comment over its
+  mirrored sentence helpers, two comments in `test/settings.mjs`, and the
+  `flashMode` row of `TODO-localisation.md`. Left: `PLAN-presenter.md`,
+  `editor.md` and `HANDOFF.md`, which name the literal as it was when they
+  were written.
+
+  Identity: `npm run build:tracked` leaves `lectures/` unchanged; built by
+  an archive of `3f790c1` and by the new engine into
+  `<old|new>/<plain|kept>/L/<deck>` – python-intro, network-security,
+  spoken-talk (cue cards and `> note: from N`), a fixture with `auto-fit:
+  shrink`, `transition: fade`, `neighbours: dim`, `note-button: off`, `theme:
+  dark`, `slide-numbers: vertical` and a stepped figure, and one with `editor:
+  none`, `transition: cut`, `note-button: on`, `auto-fit: false`, `lang: de`,
+  an `autoplay 1400 cycle` figure and maths – all 40 views `cmp`-equal,
+  plain and under `PSI_KEEP_COMMENTS=1` (whose live views carry the file's
+  comment “The audience runtime is shared with the speaker view”, the plain
+  ones not); a `--watch --prompter --prompter-dry-run` build of python-intro
+  by both engines, 20 seconds each under `perl -e 'alarm 20'`, gives eight
+  views equal once run id, socket port, nonce and listen key are
+  placeholders; no view holds `__PSI_`; no `build.js` was left running; a
+  staged engine (`FILES` copied into a scratch folder) builds python-intro
+  and the first fixture equal. `test/settings.mjs`, `reproducible`,
+  `containers`, `cli`, `present` and `large-deck` pass. Not run: the browser
+  suite and `test/pdf-export.mjs`.

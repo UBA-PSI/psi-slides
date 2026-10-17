@@ -44,6 +44,15 @@ export async function run({ report }) {
   // everything they covered while the sheet was a literal.
   const live = fs.readFileSync(path.join(ROOT, 'runtime/audience.css'), 'utf8');
   const css = src + '\n' + live;
+  // The live views' runtime, runtime/audience.js (AUDIENCE_JS until it left
+  // build.js), read raw: its placeholders stand for tables none of the
+  // checks below reads. The runtime checks - state.zoom, FULL_FIT_FILL,
+  // fitAvail's bleed branch and the absence check beside it - search build.js
+  // and then the file, so they still cover everything they covered while the
+  // runtime was a literal, and the absence check still has the runtime to
+  // look through.
+  const runtime = fs.readFileSync(path.join(ROOT, 'runtime/audience.js'), 'utf8');
+  const js = src + '\n' + runtime;
 
   // ── FIG_BODY_REM against the stylesheet it mirrors ────────────────
   // Every `--body-fs:` rule in build.js and runtime/audience.css, as
@@ -92,11 +101,11 @@ export async function run({ report }) {
   ok(!stale.length, 'and the table names no type the stylesheet has moved on from', stale.join(', '));
 
   // ── the reference zoom is the runtime's own default ───────────────
-  // `state.zoom` in AUDIENCE_JS is what a slide opens at, and the canvas is
+  // `state.zoom` in runtime/audience.js is what a slide opens at, and the canvas is
   // the column measured in that em. The two are a quarter apart if this
   // drifts, which is invisible: every figure simply comes out a little small.
   const refZoom = /const FIG_REF_ZOOM = ([\d.]+);/.exec(src);
-  const stateZoom = /\n  zoom: ([\d.]+),/.exec(src);
+  const stateZoom = /\n  zoom: ([\d.]+),/.exec(js);
   ok(!!refZoom && !!stateZoom, 'both zooms are findable',
      `${refZoom && refZoom[1]} / ${stateZoom && stateZoom[1]}`);
   if (refZoom && stateZoom) {
@@ -192,7 +201,7 @@ export async function run({ report }) {
   // The picture cap is also bounded from above, by auto-fit: FULL_FIT_FILL
   // of the frame less the chunk's padding (2 x 44 px) and the figure's own
   // margins (2 x 20 px) is what the svg may take before the type steps down.
-  const fill = /const FULL_FIT_FILL = ([\d.]+);/.exec(src);
+  const fill = /const FULL_FIT_FILL = ([\d.]+);/.exec(js);
   ok(!!fill, 'FULL_FIT_FILL is findable');
   if (fill && caps.get('picture')) {
     const room = 900 * Number(fill[1]) - 88 - 40;
@@ -205,9 +214,9 @@ export async function run({ report }) {
   // fitZoomToChunk gives that tier the whole viewport (fitAvail) and the cap
   // is held against fill 1.0. Without the branch every bleed slide is stepped
   // down a notch, which is the label size the canvas promises.
-  const bleedFit = /el\.dataset\.canvasTier === 'bleed'\s*\?\s*viewport\.clientHeight \+ 1\s*:\s*viewport\.clientHeight \* FULL_FIT_FILL/.test(src);
+  const bleedFit = /el\.dataset\.canvasTier === 'bleed'\s*\?\s*viewport\.clientHeight \+ 1\s*:\s*viewport\.clientHeight \* FULL_FIT_FILL/.test(js);
   ok(bleedFit, 'auto-fit gives a bleed chunk the whole frame instead of FULL_FIT_FILL of it');
-  ok(!/viewport\.clientHeight \* FULL_FIT_FILL/.test(src.replace(/function fitAvail[\s\S]*?\n}\n/, '')),
+  ok(!/viewport\.clientHeight \* FULL_FIT_FILL/.test(js.replace(/function fitAvail[\s\S]*?\n}\n/, '')),
      'and nothing reads FULL_FIT_FILL off the viewport beside fitAvail');
   if (caps.get('bleed')) {
     ok(900 * caps.get('bleed') <= 900 * 1.0,

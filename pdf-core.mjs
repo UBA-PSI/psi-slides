@@ -12,7 +12,7 @@
  * through the driver's evaluate, one at a time, as text.
  *
  * **The order of the beats is not reimplemented here.** It has exactly one
- * definition, in AUDIENCE_JS, and this module calls it through
+ * definition, in runtime/audience.js, and this module calls it through
  * `window.psiExport` - eleven members of mechanism that ship in the two live
  * views. That is what makes the export unable to be wrong about the order;
  * it can only be wrong about the rendering, and that is a class of fault you

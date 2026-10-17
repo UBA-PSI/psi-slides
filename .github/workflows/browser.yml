@@ -5,7 +5,7 @@
 # wrong trade on every branch and the reason `gates.yml` leaves it out and
 # says so. Where it does run automatically is a tag, in
 # `release.yml`. This file is the same run started by hand, so a branch can be
-# put through it before it is tagged - after a change to AUDIENCE_JS, the key
+# put through it before it is tagged - after a change to runtime/audience.js, the key
 # map, editor.mjs, createSpanTable, or anything that moves a label or an
 # extent - rather than finding out at release time.
 #

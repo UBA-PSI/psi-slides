@@ -18,10 +18,10 @@
  *     (commandFor(keyMap(view), e)), so a key that drops out, moves to
  *     another command or starts answering where it did not fails here.
  *   - **A run function for every command a view answers**, read out of the
- *     literals the view is built from as text: the COMMAND_RUN object in
- *     AUDIENCE_JS, and the COMMAND_RUN['id'] assignments in runtime/speaker.js
- *     and runtime/souffleuse.js (SPEAKER_JS and SOUFFLEUSE_JS until they left
- *     build.js) for the cockpit.
+ *     runtime files the view is built from as text: the COMMAND_RUN object in
+ *     runtime/audience.js, and the COMMAND_RUN['id'] assignments in
+ *     runtime/speaker.js and runtime/souffleuse.js for the cockpit (AUDIENCE_JS,
+ *     SPEAKER_JS and SOUFFLEUSE_JS until they left build.js).
  *     A run function for an id the table does not have fails too. The prompter's command is the one exception the
  *     table states itself: it requires the prompter, and its run function
  *     ships only with it.
@@ -38,7 +38,7 @@
  *     1–9 nine digits. The handler half is the table plus what the guards
  *     before the lookup still answer in code: the overview board's arrows,
  *     the search field's keys, the Alt that starts a selection - every e.key
- *     comparison in AUDIENCE_JS (and, for the cockpit, runtime/speaker.js and
+ *     comparison in runtime/audience.js (and, for the cockpit, runtime/speaker.js and
  *     runtime/souffleuse.js). The editor's keys are read out of editor.mjs and held
  *     against the editor's own section, since its F and the slide's F are
  *     two keys.
@@ -230,13 +230,6 @@ function listed(render, view) {
 
 // ── the handler half ───────────────────────────────────────────────
 
-function literal(text, name) {
-  const open = 'const ' + name + ' = `';
-  const start = text.indexOf(open);
-  const end = text.indexOf('\n`;', start);
-  if (start < 0 || end < 0) throw new Error(name + ' not found in build.js');
-  return text.slice(start + open.length, end);
-}
 const stripComment = (line) => line.replace(/(^|\s)\/\/.*$/, '');
 
 // The case labels of what switch is left in the listener: the overview
@@ -260,8 +253,8 @@ function withoutFunction(text, head) {
   return text.slice(0, start) + text.slice(end + 2);
 }
 
-// The ids COMMAND_RUN answers in one literal: the keys of the object in
-// AUDIENCE_JS, the assignments into it elsewhere.
+// The ids COMMAND_RUN answers in one runtime file: the keys of the object in
+// runtime/audience.js, the assignments into it elsewhere.
 function runIds(text) {
   const ids = new Set();
   const open = text.indexOf('const COMMAND_RUN = {\n');
@@ -318,10 +311,13 @@ export async function run({ report }) {
   const editorJs = fs.readFileSync(path.join(ROOT, 'editor.mjs'), 'utf8');
   const render = loadRenderer(buildJs);
 
-  const A = literal(buildJs, 'AUDIENCE_JS');
-  // The cockpit's runtime and the prompter's half of it left build.js for
-  // runtime/speaker.js and runtime/souffleuse.js (PLAN-runtime-extraction.md);
-  // each file is the literal's value.
+  // The live views' runtime, the cockpit's and the prompter's half of it left
+  // build.js for runtime/audience.js, runtime/speaker.js and
+  // runtime/souffleuse.js (PLAN-runtime-extraction.md); each file is the
+  // literal's value, escapes resolved. runtime/audience.js is read raw, its
+  // five placeholders unfilled: they stand for build-side tables, none of
+  // them a key or a command.
+  const A = fs.readFileSync(path.join(ROOT, 'runtime/audience.js'), 'utf8');
   const S = fs.readFileSync(path.join(ROOT, 'runtime/speaker.js'), 'utf8');
   const P = fs.readFileSync(path.join(ROOT, 'runtime/souffleuse.js'), 'utf8');
 

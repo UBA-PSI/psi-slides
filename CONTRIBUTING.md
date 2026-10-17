@@ -56,7 +56,7 @@ each spec, because it is an invariant of running one at all – it was a line
 twenty-one specs remembered and one forgot, and that one swallowed console
 errors for as long as it existed.
 
-Run it after touching `AUDIENCE_JS`, the key map, `editor.mjs`,
+Run it after touching `runtime/audience.js`, the key map, `editor.mjs`,
 `createSpanTable`, or anything that decides a diagram's `viewBox`. The header
 of `test/harness.mjs` says how to write a spec that will not need rewriting
 the next time a lecture is redrawn. It is not a unit-test suite and should not
