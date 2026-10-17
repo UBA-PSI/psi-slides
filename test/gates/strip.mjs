@@ -110,6 +110,10 @@ const RUNTIME = [['runtime/speaker.css', 'speakerCss'], ['runtime/print.js', 'pr
   ['runtime/pulse-print.css', 'pulsePrintCss'], ['runtime/speaker.js', 'speakerJs'],
   ['runtime/souffleuse.css', 'souffleuseSheet', 'souffleuseCss'],
   ['runtime/souffleuse.js', 'souffleuseScript', 'souffleuseRuntime']];
+// The ones that ship raw, as their literals did: the failed-build banner,
+// which goes into a watch build's reload script with its comments and
+// nothing else. [file, getter]; held below to reloadScript and kept off ship*.
+const RUNTIME_RAW = [['runtime/watch-banner.css', 'watchBannerCss']];
 const asScript = (text) => {
   const names = [...text.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
   return { names, body: text.replace(/^export\s+(function|const|let)\s/gm, '$1 ') };
@@ -229,5 +233,18 @@ export async function run({ report }) {
     const shipped = [...build.matchAll(new RegExp('ship(?:Js|Css)\\(' + getter + '\\(\\)\\)', 'g'))].length;
     ok(bare === 0 && shipped > 0, `${file} (${getter}()) reaches a view only through shipJs / shipCss`,
       `${bare} bare, ${shipped} shipped`);
+  }
+  // A raw one stays raw, and stays in the reload script: every call of its
+  // getter is inside reloadScript, and none goes through ship*, which would
+  // change what a watch build ships.
+  const reload = build.slice(build.indexOf('\nfunction reloadScript('), build.indexOf('\n}\n', build.indexOf('\nfunction reloadScript(')));
+  for (const [file, getter] of RUNTIME_RAW) {
+    const calls = (text) => [...text.matchAll(new RegExp('\\b' + getter + '\\(\\)', 'g'))].length;
+    const inReload = calls(reload);
+    const shipped = [...build.matchAll(new RegExp('ship(?:Js|Css)\\(' + getter + '\\(\\)\\)', 'g'))].length;
+    const elsewhere = calls(build) - inReload;
+    ok(reload.length > 0 && inReload > 0 && elsewhere === 0 && shipped === 0,
+      `${file} (${getter}()) reaches a page only through reloadScript, raw`,
+      `${inReload} in reloadScript, ${elsewhere} elsewhere, ${shipped} through ship*`);
   }
 }

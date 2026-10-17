@@ -33,9 +33,11 @@
  * The stylesheets are the third half. Every `#id` that stands in a selector
  * of an inlined stylesheet - the three CSS literals in build.js (DIAGRAM_CSS,
  * PRINT_CSS, AUDIENCE_CSS), the cockpit's runtime/speaker.css and
- * runtime/souffleuse.css and the documents' runtime/pulse-print.css
- * (SPEAKER_CSS, SOUFFLEUSE_CSS and PULSE_PRINT_CSS until they left
- * build.js), editor.css and pdf-core.mjs's PDF_CSS - has to
+ * runtime/souffleuse.css, the documents' runtime/pulse-print.css and the
+ * failed-build banner's runtime/watch-banner.css (SPEAKER_CSS,
+ * SOUFFLEUSE_CSS, PULSE_PRINT_CSS and WATCH_BANNER_CSS until they left
+ * build.js – the banner's sheet was not read while it was a literal),
+ * editor.css and pdf-core.mjs's PDF_CSS - has to
  * start with psiINT- (or be on
  * CSS_ALLOWED), and has to name an id some site above emits. The second rule
  * is the one that matters: `#toc-panel li` stood in the heading rule's :is
@@ -96,7 +98,7 @@ const ALLOWED = [
 const CSS_SOURCES = [
   ['build.js', 'DIAGRAM_CSS'], ['build.js', 'PRINT_CSS'], ['runtime/pulse-print.css', null],
   ['build.js', 'AUDIENCE_CSS'], ['runtime/speaker.css', null], ['runtime/souffleuse.css', null],
-  ['pdf-core.mjs', 'PDF_CSS'], ['editor.css', null],
+  ['pdf-core.mjs', 'PDF_CSS'], ['editor.css', null], ['runtime/watch-banner.css', null],
 ];
 // A selector id that is not psiINT-, or that no site emits: id, why. Empty,
 // and should stay so - a chrome selector names a psiINT- id, and a selector

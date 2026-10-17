@@ -8,9 +8,9 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **6 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
-`PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS` and `SOUFFLEUSE_JS` (see
-*Log*). Next: `WATCH_BANNER_CSS`.
+Status: **7 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+`PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS` and
+`WATCH_BANNER_CSS` (see *Log*). Next: `WATCH_BANNER_JS`.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -487,3 +487,34 @@ is byte-identical.
   normalisation, plain and under `PSI_KEEP_COMMENTS=1` (whose cockpit
   carries the file's head comment). Neither cockpit nor the file contains
   `OPENROUTER`. Not run: the browser suite and `test/pdf-export.mjs`.
+- **`WATCH_BANNER_CSS` → `runtime/watch-banner.css`** – done. 737 bytes,
+  15 lines. **The one literal whose value is not a stylesheet**: it was
+  `<style>` + the rules + `</style>`, and a `.css` file that opens with a
+  tag is not CSS to any tool, which would defeat the move. So the file is
+  the value between the two tags – written by `--extract` to a scratch file
+  and cut there by a script that asserted the value's shape and that
+  `'<style>' + file + '</style>'` equals the value – and `reloadScript`
+  writes the tags: its two sites are now
+  `<style>${watchBannerCss()}</style><script>` where they were
+  `${WATCH_BANNER_CSS}<script>`. **It ships raw**, as the literal did: no
+  `shipCss`, only in a watch build, in all four views (the documents'
+  receive-only reload script carries it too). Not added to the stylesheet
+  check's `sheets`, where the literal never was; it would be a new check,
+  and the sheet has no comment to unbalance. `build.js` lost 18 lines and
+  gained 14: `WATCH_BANNER_CSS_PATH`, `watchBannerCss()`, a paragraph
+  appended to the banner's comment, the two sites. Gates: `strip` – a
+  `RUNTIME_RAW` table, `[file, getter]`, for the files that ship raw; its
+  check holds every call of the getter to `reloadScript`'s body and none to
+  `ship*` (shown to fail on a site wrapped in `shipCss`): 2,160 → 2,161.
+  `id-namespace` – **a widening, not a repointing**: the literal was never
+  in `CSS_SOURCES`, the file is, so its selectors are now held to the
+  emitted ids: 564 → 570 `#id` selectors, 8 → 9 stylesheets, the six new
+  ones all `#psiINT-build-failed`, which the banner's script emits (still
+  in build.js here, in `runtime/watch-banner.js` next) – 2,161 → 2,162.
+  Desktop: `FILES` gained the file, the read count went 12 → 13; with the
+  file off `FILES` the test fails by name. Docs: `test/README.md`
+  (`id-namespace`, `strip`). Identity: tracked views unchanged; the
+  `--watch --prompter --prompter-dry-run` fixture against `de63bde`, which
+  is a watch build of all four views: equal after normalisation, plain and
+  under `PSI_KEEP_COMMENTS=1`; the banner's rules are in all four views of
+  the plain build. Not run: the browser suite and `test/pdf-export.mjs`.

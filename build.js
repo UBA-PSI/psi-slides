@@ -7512,22 +7512,18 @@ function lectureStats(src, lecture) {
 // The diagram editor's status line already says it while the editor is
 // open (psiWatchBuildFailed answers true when it did), so the banner then
 // stands behind the editor rather than beside it.
-const WATCH_BANNER_CSS = `<style>
-#psiINT-build-failed {
-  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
-  z-index: 2147483000; box-sizing: border-box;
-  max-width: min(46rem, calc(100vw - 32px)); padding: 8px 14px;
-  background: var(--paper, #fff); color: var(--ink, #222);
-  border: 1px solid var(--rule, #bbb); border-radius: 6px;
-  box-shadow: 0 2px 12px rgb(0 0 0 / 0.18);
-  font: 13px/1.45 system-ui, sans-serif; text-align: left; cursor: pointer;
-  overflow-wrap: anywhere;
-}
-#psiINT-build-failed[hidden], body.dge-open #psiINT-build-failed.by-editor { display: none; }
-#psiINT-build-failed strong { font-weight: 600; }
-#psiINT-build-failed .bf-soft { color: var(--ink-soft, #666); }
-@media print { #psiINT-build-failed { display: none; } }
-</style>`;
+//
+// runtime/watch-banner.css, read as text at build time
+// (PLAN-runtime-extraction.md; WATCH_BANNER_CSS until it left this file),
+// in editor.css's shape: read once per process. It ships **raw**, as the
+// literal did, not through shipCss, and only in a watch build, inside
+// reloadScript's own style element: the literal carried the <style> and
+// </style> tags, the file holds only the rules so that it is a stylesheet,
+// and reloadScript writes the two tags round it. Its bytes are the literal's
+// value between those tags.
+const WATCH_BANNER_CSS_PATH = new URL('./runtime/watch-banner.css', import.meta.url);
+let watchBannerCssCache = null;
+const watchBannerCss = () => (watchBannerCssCache ??= fs.readFileSync(WATCH_BANNER_CSS_PATH, 'utf8'));
 const WATCH_BANNER_JS = `
   let bfEl = null;
   const bfPaint = () => {
@@ -7628,7 +7624,7 @@ function reloadScript(port, nonce, opts = {}) {
     ws.addEventListener('open', () => {
       try { ws.send(JSON.stringify({ type: 'hello', listen })); } catch (err) { /* closing */ }
     });` : '';
-    return `${WATCH_BANNER_CSS}<script>
+    return `<style>${watchBannerCss()}</style><script>
 (() => {${WATCH_BANNER_JS}${watchRunJs(opts.run)}
   const connect = () => {
     const ws = new WebSocket('ws://127.0.0.1:${port}');${listen}
@@ -7646,7 +7642,7 @@ function reloadScript(port, nonce, opts = {}) {
 })();
 </script>`;
   }
-  return `${WATCH_BANNER_CSS}<script>
+  return `<style>${watchBannerCss()}</style><script>
 window.psiWatch = (() => {${WATCH_BANNER_JS}${watchRunJs(opts.run)}
   let sock = null;
   let seq = 0;

@@ -1,0 +1,15 @@
+
+#psiINT-build-failed {
+  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+  z-index: 2147483000; box-sizing: border-box;
+  max-width: min(46rem, calc(100vw - 32px)); padding: 8px 14px;
+  background: var(--paper, #fff); color: var(--ink, #222);
+  border: 1px solid var(--rule, #bbb); border-radius: 6px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.18);
+  font: 13px/1.45 system-ui, sans-serif; text-align: left; cursor: pointer;
+  overflow-wrap: anywhere;
+}
+#psiINT-build-failed[hidden], body.dge-open #psiINT-build-failed.by-editor { display: none; }
+#psiINT-build-failed strong { font-weight: 600; }
+#psiINT-build-failed .bf-soft { color: var(--ink-soft, #666); }
+@media print { #psiINT-build-failed { display: none; } }
