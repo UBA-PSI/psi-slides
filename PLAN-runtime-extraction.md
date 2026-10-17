@@ -22,7 +22,10 @@ and `AUDIENCE_JS`, the live views' runtime with 5 (step 13, the last); then
 the gates that read build.js's literals were fitted to a build.js that holds
 none of the large ones (`strip` lost its empty literal list, `inlined` gained
 its counterpart for `runtime/*.js`; see *Log*), and the comments that still
-named a moved literal as a place were swept (open question 4). What is left in build.js are
+named a moved literal as a place were swept (open question 4), and a
+pre-flight refuses a build whose engine lacks one of its files (open
+question 11); re-reading `runtime/` under `--watch` is the one follow-up
+left open (question 8). What is left in build.js are
 the small literals the list never named – six markup constants, two
 one-line `<head>` scripts, `DOCUMENT_PAGE_CSS` and `SANS_STACK_TAIL` – and
 the recommendation is to leave them there (open questions 6 and 7).
@@ -181,7 +184,9 @@ replaces: `SPEAKER_CSS` → `runtime/speaker.css`, `SOUFFLEUSE_JS` →
    raise the run-time read count in `desktop/test/stage-engine.test.mjs`.
    `.github/workflows/desktop.yml` filters on `runtime/**` (added with the
    pilot), and the test accepts a `folder/**` entry, so a new runtime file
-   needs no third list entry.
+   needs no third list entry. **And the pre-flight checks it**: its path
+   constant goes on `ENGINE_FILES` in build.js, and the `engine-files` gate
+   fails until it does (added after the last move; see *Log*).
 6. **Gates that named the literal keep their assertion, moved to the file.**
    `strip`: the literal leaves `LITERALS` and joins the runtime list, which
    asserts the getter reaches a view only through `ship*` and holds the
@@ -516,7 +521,42 @@ included; and the output is byte-identical.
 8. **`--watch` does not re-read `runtime/`.** Files are memoised per
    process, as `editor.css` is; editing one during a watch needs a restart,
    which is what editing the literal in `build.js` needed. Proposed: leave
-   it.
+   it. **Open, low priority** (the maintainer's order: after the comment
+   sweep and the pre-flight; only someone editing `runtime/` with a watch
+   running gains, and a restart costs seconds). Design notes, no code:
+   - *What is watched.* A second watcher in `runWatch`, beside the source's,
+     on `runtime/` – and at most the other text-only reads, `editor.css`,
+     `editor.mjs` and `pulse-embed.js`. **Never the modules build.js also
+     imports** (`diagram-core.mjs`, `commands.mjs`): the spliced text would
+     move and the imported module would not, so `renderHelpOverlay` (Node,
+     the imported `COMMANDS`) and `window.PSI_COMMANDS` (the re-read text)
+     would disagree in one page; those keep needing a restart, and the run
+     should say so once if one changes. A `NAME_FILL` table is evaluated at
+     module load, so a placeholder added to a file during a watch has no
+     value until a restart – `fillRuntime` refuses it, and the rebuild
+     reports that like any failed build, which is the right answer.
+   - *Clearing.* Each getter memoises into its own `let …Cache`; a change
+     has to null the right one, and the `shipJs` / `shipCss` memo, keyed by
+     text, should be cleared too, or every edit leaves the old text's strip
+     in it for the rest of the run. Sixteen named caches cleared by name
+     would be the second hand-kept list `ENGINE_FILES` was built to avoid,
+     so this is where open question 13's shared reader would earn its keep:
+     one `Map` from URL to text, `.clear()`ed (or `.delete(url)`) on a
+     change – with the `strip` gate taught the new getter shape in the same
+     commit.
+   - *The rebuild.* Debounced like a save, through the existing
+     `rebuild(label, reason)`, so the pre-flight, the stylesheet check, the
+     reload over the socket and the failed-build banner all behave as for a
+     source change. Its `reason` would be a new word (`engine`) beside
+     `initial`, `change`, `patch` and `manual`: that is a change to the
+     `--events` interface, so `desktop/main/builder.js` and its
+     `events.test.mjs` learn the word in the same commit, and no `changed`
+     event is sent (that one carries the *source's* `modifiedMs`, and the
+     app reads it as the author's save).
+   - *The app.* Its engine is a staged copy nobody edits, so it should never
+     start the second watcher – off unless the engine runs from a checkout
+     (a `.git` beside `build.js`), or behind an environment variable, rather
+     than a flag on the documented command line.
 9. **`editor.css` into `runtime/`?** A separate decision, not this plan's.
 10. **CLAUDE.md** needs a paragraph on `runtime/` under *Single-file build
     pipeline* and “six files” → “seven” in *Desktop app*. Left to the
@@ -527,7 +567,17 @@ included; and the output is byte-identical.
     stage-engine test is what keeps the packaged app from meeting one. One
     pre-flight in `buildOnce` that reads them all and names the missing
     file is recommended as a small commit of its own – it would also move
-    the first `fillRuntime` refusal ahead of every renderer.
+    the first `fillRuntime` refusal ahead of every renderer. **Done**, as
+    `assertEngineComplete`, the first line of `buildOnce` (ahead of
+    `assertStylesheetsWellFormed`, which reads six of the files), over
+    `ENGINE_FILES` – a list of the 22 path constants, not of names – with
+    the `engine-files` gate holding it equal to every such `new URL` read
+    in build.js and `test/cli.mjs` running the refusal on a copy of the
+    engine. It checks existence and permission and reads nothing, so it does
+    **not** move the first `fillRuntime` refusal: that needs the file's text
+    and its table, and stays in the getter, where the `strip` gate already
+    holds every file's placeholders against its table before any build. The
+    decisions are in the *Log*.
 12. **Coverage.** Answered: `build.js`'s overall line figure fell as the
     literals left (they read 100 %), and with about fifty literal lines left
     of 16,500 the overall figure and the one outside the literals
@@ -545,7 +595,13 @@ included; and the output is byte-identical.
     text (`const name = () => (cache ??= fillRuntime(PATH, …, FILL))`), so
     it would have to learn the new shape in the same commit. Recommended:
     together with question 11's pre-flight, which needs the list of files
-    anyway, or not at all.
+    anyway, or not at all. **Answered: not with the pre-flight.** The
+    pre-flight needs the URLs, not the reading, and a list of the existing
+    path constants gives it them without touching a getter; a shared reader
+    would rewrite sixteen getters and the `strip` gate's reading of them
+    for no change in what any build does. Its use would come with question
+    8's re-read under `--watch`, where one cache to clear is the point;
+    until then, not at all.
 
 ## Log
 
@@ -1634,3 +1690,97 @@ included; and the output is byte-identical.
   since no edited comment held an `#id`, a regex or a placeholder. `lint.js`,
   `refresh-figures.mjs --check`, `settings`, `reproducible`, `containers`
   and `cli` pass. Not run: the browser suite and `test/pdf-export.mjs`.
+
+- **The pre-flight for the engine's own files** (open questions 11 and 13) –
+  done. `assertEngineComplete()` is the first line of `buildOnce`, so every
+  build reaches it – the partial ones and every rebuild of a `--watch` –
+  and it stands ahead of `assertStylesheetsWellFormed()`, which reads six of
+  the files and was where a missing sheet surfaced first. It checks every
+  file in `ENGINE_FILES` for existence, permission to read and being a file
+  (`fs.accessSync(url, R_OK)` and `statSync().isFile()`), reads none, and
+  refuses in one sentence, e.g. *The psi-slides installation in
+  /…/engine is incomplete: runtime/print.js is missing or unreadable –
+  reinstall psi-slides, or restore the file from the release it came from.*
+  Several missing files are named together, in the list's order. The same
+  copy of the engine without the check died with `ENOENT: no such file or
+  directory, open '…/runtime/print.js'` and a stack through `printJs`,
+  `renderDocument` and `buildOnce`.
+
+  The decisions:
+  - **Which list.** `ENGINE_FILES` is an array of the 22 path constants
+    (`DIAGRAM_CORE_PATH`, …, `SOUFFLEUSE_JS_PATH`), declared just above the
+    stylesheet check, after the last of them – a list of the constants,
+    so a path cannot drift from it, and no second spelling of a name. What
+    can drift is a new path constant left off it, and **the new
+    `engine-files` gate** closes that: every `new URL('./…',
+    import.meta.url)` in build.js (the pattern the stage-engine test reads)
+    must be a path constant of the documented shape, every path constant
+    must be on the list and nothing else, each file must be in the
+    repository, and `buildOnce` must call the check first. A gate rather
+    than a check in `test/cli.mjs`, because `gates.yml` runs it on every
+    push. Rejected: wrapping each constant in a registering call
+    (`engineFile(new URL(…))`), which removes the list but changes the shape
+    the `strip` gate (`const NAME = new URL('./<file>', import.meta.url);`)
+    and the plan's rule 2 rely on; and build.js reading its own text to find
+    its reads at run time.
+  - **`userFacing`.** Yes. A missing engine file is no mistake of the
+    author's, but CLAUDE.md's line is between errors whose message is all
+    the person running the build needs and defects in build.js, which keep
+    their stack; this is the first kind. Nothing in build.js is wrong – the
+    stack points into a renderer that read a correct path – and the fix is
+    outside it (reinstall, or put the file back). `fillRuntime`'s refusals
+    and the stylesheet check's stay plain errors with a stack: those are
+    defects in build.js or a runtime file. Under `--events` the refusal is
+    the `build-error` line with `userFacing: true` and `stack: null`, which
+    the app already reads.
+  - **The prompter's script: always.** Every file, every build. The rule
+    is then one sentence, the one the stage-engine test holds the app's copy
+    to (every run-time read is there); no engine this repository ships lacks
+    the file (the release tarball and the app's staged copy carry it); and
+    for most of the others too, which ones a build reads is known only after
+    the parse (the reader scripts by frontmatter, `pulse-embed.js` by a
+    `::: pulse`, `editor.mjs` by a figure, the banner by `--watch`), so a
+    narrower check would move behind the parse or check some files and not
+    others. A build without `--prompter` still reads nothing of the file:
+    the check is `access` and `stat`.
+  - **`editor.css` and the modules read as text: in.** They are the same
+    kind of read – a path constant and a memoised getter – and failed the
+    same way (`editor.css` in the stylesheet check, `pulse-embed.js`,
+    `editor.mjs` and `cue-cards.mjs` in a renderer). `diagram-core.mjs` and
+    `commands.mjs` are imported as well, so when one of those is missing
+    Node refuses the import before the check can run; they are on the list
+    because the rule is every run-time read, and a comment says so.
+  - **Not in it: the first `fillRuntime` refusal.** Open question 11
+    hoped the pre-flight would move it ahead of every renderer; it needs the
+    text and the table, so it stays in the getter, and the `strip` gate
+    already holds each file's placeholders against its table before any
+    build.
+  - **The neighbouring message.** The stylesheet check's refusal said “Fix
+    build.js before shipping.” about a sheet that is now a file; it names
+    the file (`Fix ${name} …`), the one string outside the pre-flight this
+    commit changes.
+
+  Tests: `engine-files` (9 assertions; gates 2,221 → 2,230), shown to fail
+  with `SOUFFLEUSE_JS_PATH` taken off the list and with the call taken out
+  of `buildOnce`. `test/cli.mjs` copies the engine into its scratch folder –
+  build.js, every file it imports or reads beside itself (the two patterns
+  the stage-engine test reads), `package.json`, `node_modules` linked –
+  builds the deck with the whole copy, then refuses with `runtime/print.js`
+  missing under `--print-only`, with it and `runtime/souffleuse.js` missing
+  on a full build, with `runtime/speaker.css` unreadable under
+  `--speaker-only` (skipped as root), and with `runtime/audience.js`
+  missing under `--events`: exit 1, the sentence, no stack, no view
+  written, and the event line (217 → 235 assertions). With the call taken
+  out of `buildOnce`, nine of them fail on the ENOENT and EACCES stacks.
+  Docs: `test/README.md` (the gate's row, the counts, the `cli.mjs`
+  paragraph), `test/gates/run.mjs`'s header, rule 5 above, and the comments
+  in `desktop/scripts/stage-engine.mjs` and `desktop/test/stage-engine.test.mjs`
+  that said an unstaged read dies in a renderer with an ENOENT stack.
+
+  Verification: the gates, `lint.js`, `refresh-figures.mjs --check`,
+  `settings`, `reproducible`, `containers`, `cli` and `node --test
+  desktop/test/stage-engine.test.mjs` pass; `npm run build:tracked` leaves
+  `lectures/` unchanged; python-intro, network-security and the `kind:
+  document` fixture built by this tree are `cmp`-equal to the archive of
+  `0a12040`'s; a copied engine builds python-intro equal. Not run: the
+  browser suite and `test/pdf-export.mjs`.

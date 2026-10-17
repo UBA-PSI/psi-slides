@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Twenty-five gates, and they prove twenty-five different things – which is
+ * Twenty-six gates, and they prove twenty-six different things – which is
  * worth stating because a green run summarised as one number hid a wrong
  * drawing behind a passing parse:
  *
@@ -93,6 +93,9 @@
  *              else: the cases a regex strip gets wrong, the spliced modules'
  *              exported tables equal before and after, and every runtime
  *              and stylesheet literal routed through the strip
+ *   engine-files  every file build.js reads beside itself is on the list
+ *              its pre-flight checks before a build, and the check runs
+ *              first in buildOnce
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -129,6 +132,7 @@ const GATES = [
   './zoom-scope.mjs',
   './cli.mjs',
   './strip.mjs',
+  './engine-files.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

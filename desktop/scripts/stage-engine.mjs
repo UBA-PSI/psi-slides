@@ -26,8 +26,9 @@
 // FILES is a hand-written list of files another file reads, so it rots.
 // test/stage-engine.test.mjs holds it against build.js in both directions;
 // the run-time reads are the half that matters, because a missing static
-// import fails at module load and a missing run-time read fails mid-build,
-// in a renderer, with an ENOENT stack and no output written. cue-cards.mjs
+// import fails at module load and a missing run-time read fails every build,
+// refused by the pre-flight in buildOnce with a sentence naming the file (an
+// ENOENT stack out of a renderer before it), with no output written. cue-cards.mjs
 // was missing from this list through builder-0.1.0 and builder-0.1.1, which
 // is why the test exists.
 //

@@ -35,9 +35,9 @@ function ok(cond, what, detail = '') {
   failures.push(detail ? `${what}\n      ${String(detail).split('\n').slice(0, 4).join(' / ')}` : what);
 }
 
-function run(args, { cwd = ROOT, timeout = 60000 } = {}) {
+function run(args, { cwd = ROOT, timeout = 60000, build = BUILD } = {}) {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [BUILD, ...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(process.execPath, [build, ...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
     child.stdout.on('data', (d) => { out += d; });
@@ -59,9 +59,9 @@ const clean = () => { for (const v of views()) fs.rmSync(path.join(deck, v + '.h
 
 // Every refusal: exit 1, the words, no stack, nothing written. Run one at a
 // time, because "nothing written" is read off the one deck folder.
-async function refused(args, re, what) {
+async function refused(args, re, what, runOpts = {}) {
   clean();
-  const r = await run(args);
+  const r = await run(args, runOpts);
   ok(r.code === 1, `${what}: exit 1`, `exit ${r.code}\n${r.err}${r.out}`);
   ok(re.test(r.err), `${what}: says so`, r.err || r.out);
   ok(!STACK.test(r.err), `${what}: without a stack trace`, r.err);
@@ -294,6 +294,70 @@ await refused([src, '--serve', '--port', '99999'], /^Error: --port takes a port 
   fs.rmSync(path.join(talk, talkLog));
   await refused([tsrc, '--prompter-debrief'], /^No prompter log beside .* but 2 dry runs; name one to read it:/,
     'a lecture with dry runs only');
+}
+
+// ── an engine with a file missing ────────────────────────────────────
+// A copy of the engine – build.js, every file it imports or reads beside
+// itself (found with the two patterns desktop/test/stage-engine.test.mjs
+// reads), package.json, and node_modules linked – builds the deck; take a
+// file of runtime/ away and every build refuses in one sentence that names
+// it, without a stack, before any view is written. Before the pre-flight
+// (assertEngineComplete, held in place by the engine-files gate) the same
+// copy died in a renderer with an ENOENT stack. Each case puts back what it
+// took.
+{
+  const eng = path.join(dir, 'engine');
+  const engineBuild = { build: path.join(eng, 'build.js') };
+  const own = new Set(['build.js', 'package.json',
+    ...[...buildSrc.matchAll(/new URL\(\s*'\.\/([^']+)'\s*,\s*import\.meta\.url\s*\)/g)].map(m => m[1]),
+    ...[...buildSrc.matchAll(/^\s*import\s[\s\S]*?from\s+'\.\/([^']+)'/gm)].map(m => m[1])]);
+  for (const name of own) {
+    fs.mkdirSync(path.dirname(path.join(eng, name)), { recursive: true });
+    fs.copyFileSync(path.join(ROOT, name), path.join(eng, name));
+  }
+  fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(eng, 'node_modules'), 'dir');
+  const without = async (files, fn) => {
+    for (const f of files) fs.rmSync(path.join(eng, f));
+    try { await fn(); } finally {
+      for (const f of files) fs.copyFileSync(path.join(ROOT, f), path.join(eng, f));
+    }
+  };
+  const sentence = (names) => new RegExp('^The psi-slides installation in \\S*engine\\S* is incomplete: '
+    + names.map(n => n.replace(/[./]/g, '\\$&')).join(', ') + ` ${names.length === 1 ? 'is' : 'are'} missing or unreadable `
+    + `– reinstall psi-slides, or restore the ${names.length === 1 ? 'file' : 'files'} from the release it came from\\.\\n$`);
+
+  clean();
+  const whole = await run([src, '--audience-only', '--no-optimize-images'], engineBuild);
+  ok(whole.code === 0 && views().join() === 'audience', 'the copied engine builds the deck', whole.err);
+  clean();
+
+  // A partial build reaches the check: runtime/print.js is read only by the
+  // document renderer, which is where the ENOENT used to come from.
+  await without(['runtime/print.js'], () => refused([src, '--print-only', '--no-optimize-images'],
+    sentence(['runtime/print.js']), 'a runtime file missing, under --print-only', engineBuild));
+  // Two at once are named together, in the order build.js lists them; the
+  // prompter's script is checked although this build has no --prompter.
+  await without(['runtime/print.js', 'runtime/souffleuse.js'], () => refused([src, '--no-optimize-images'],
+    sentence(['runtime/print.js', 'runtime/souffleuse.js']), 'two files missing, the prompter\'s among them', engineBuild));
+  // Unreadable is missing too. Not as root, whom no mode refuses.
+  if (!(process.getuid && process.getuid() === 0)) {
+    const sheet = path.join(eng, 'runtime/speaker.css');
+    fs.chmodSync(sheet, 0o000);
+    try {
+      await refused([src, '--speaker-only', '--no-optimize-images'], sentence(['runtime/speaker.css']),
+        'a runtime file that cannot be read', engineBuild);
+    } finally { fs.chmodSync(sheet, 0o644); }
+  }
+  // A driver hears it as the build-error line it already reads.
+  await without(['runtime/audience.js'], async () => {
+    const r = await refused([src, '--events', '--no-optimize-images'], /runtime\/audience\.js is missing/,
+      'a runtime file missing, under --events', engineBuild);
+    const line = r.out.split('\n').find(l => l.startsWith('{"type":"build-error"'));
+    let ev = null;
+    try { ev = JSON.parse(line); } catch { /* reported below */ }
+    ok(ev && ev.userFacing === true && ev.stack === null && /runtime\/audience\.js/.test(ev.message),
+      'under --events a missing file is a build-error with no stack', line);
+  });
 }
 
 // ── and what still works ─────────────────────────────────────────────

@@ -18,7 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFile, execFileSync, spawn } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 import os from 'node:os';
 import matter from 'gray-matter';
@@ -12923,6 +12923,61 @@ function guardConsole() {
   err.write = (chunk, ...rest) => rawErr(consoleSafe(asText(chunk)), 'utf8', callback(rest));
 }
 
+// The files build.js reads beside itself at run time, one entry per path
+// constant – the URL on import.meta.url each getter reads from – so this is
+// a list of the constants rather than a second list of names, and the
+// `engine-files` gate holds it equal to every such read in this file, in
+// both directions. assertEngineComplete checks them at the head of buildOnce,
+// before the stylesheet check reads the first of them: a file missing from a
+// broken install, a partial copy of the engine or a staging list that missed
+// one used to surface as an ENOENT stack out of whichever renderer read it
+// first (or out of that check), and the one useful line was buried in it.
+//
+// Every file, every build, whichever view or flag reads it – the prompter's
+// script included, which only a --prompter build reads. The rule is one
+// sentence, the one desktop/scripts/stage-engine.mjs's test holds the staged
+// copy to (every run-time read is there); no engine this repository ships
+// lacks one of them (the release tarball and the app's staged copy carry them
+// all); and which files a build will read is known only after the parse for
+// most of the others too (the reader scripts by frontmatter, pulse-embed.js by
+// a ::: pulse, editor.mjs by a figure, the banner by --watch), so a narrower
+// check would either move behind the parse or check some files and not
+// others. An install that lacks one is incomplete, and is told so by its
+// first build rather than by the first deck that happens to need the file.
+// Existence and permission only – nothing is read here, so the getters'
+// memos and what a build without --prompter reads are as they were.
+//
+// diagram-core.mjs and commands.mjs are imported as well as read, so when one
+// of those is missing Node refuses the import before this runs; they are
+// listed because the rule is every run-time read.
+const ENGINE_FILES = [
+  DIAGRAM_CORE_PATH, CUE_CARDS_PATH, COMMANDS_PATH, PULSE_EMBED_PATH, EDITOR_JS_PATH, EDITOR_CSS_PATH,
+  DIAGRAM_CSS_PATH, DIAGRAM_JS_PATH, WATCH_BANNER_CSS_PATH, WATCH_BANNER_JS_PATH,
+  PRINT_CSS_PATH, PULSE_PRINT_CSS_PATH, PRINT_JS_PATH, PRINT_READER_JS_PATH, PRINT_VIEW_JS_PATH, PRINT_HIGHLIGHTS_JS_PATH,
+  AUDIENCE_CSS_PATH, AUDIENCE_JS_PATH, SPEAKER_CSS_PATH, SPEAKER_JS_PATH, SOUFFLEUSE_CSS_PATH, SOUFFLEUSE_JS_PATH,
+];
+// userFacing, although a missing engine file is no mistake of the author's:
+// the flag is for errors whose message is the whole of what the person
+// running the build needs, and this is one. Nothing in build.js is wrong –
+// the stack would point into a renderer that read a path correctly – and what
+// has to happen happens outside it: reinstall, or put the file back. A defect
+// in build.js itself (a placeholder without a value, an unbalanced comment in
+// a sheet) keeps its stack.
+function assertEngineComplete() {
+  const unreadable = ENGINE_FILES.filter((url) => {
+    try { fs.accessSync(url, fs.constants.R_OK); return !fs.statSync(url).isFile(); } catch { return true; }
+  });
+  if (!unreadable.length) return;
+  const engineDir = path.dirname(fileURLToPath(import.meta.url));
+  const names = unreadable.map((url) => path.relative(engineDir, fileURLToPath(url)).split(path.sep).join('/'));
+  const err = new Error(
+    `The psi-slides installation in ${engineDir} is incomplete: ${names.join(', ')} ` +
+    `${names.length === 1 ? 'is' : 'are'} missing or unreadable – reinstall psi-slides, or restore ` +
+    `${names.length === 1 ? 'the file' : 'the files'} from the release it came from.`);
+  err.userFacing = true;
+  throw err;
+}
+
 // Self-check on the inlined stylesheets. Every one of them lived inside a
 // template literal in this file, where two edit mistakes are silent and
 // costly: an unterminated /* comment swallows the rules that follow it, and a
@@ -12947,7 +13002,7 @@ function assertStylesheetsWellFormed() {
     if (opens !== closes) {
       throw new Error(
         `${name} has ${opens} "/*" but ${closes} "*/" – an unbalanced CSS comment ` +
-        `silently drops every rule until the next "*/". Fix build.js before shipping.`
+        `silently drops every rule until the next "*/". Fix ${name} before shipping.`
       );
     }
     // Nesting is not allowed in CSS comments either: /* /* */ terminates at
@@ -12963,6 +13018,7 @@ function assertStylesheetsWellFormed() {
 // errors – callers in --watch wrap this so a single bad save does not
 // kill the watcher.
 function buildOnce(absIn, only, opts = {}) {
+  assertEngineComplete();
   assertStylesheetsWellFormed();
   const src = fs.readFileSync(absIn, 'utf8');
   const outDir = path.dirname(absIn);

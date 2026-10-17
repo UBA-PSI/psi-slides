@@ -4,7 +4,7 @@ Two suites, split by one question: **can this be decided without a browser?**
 
 - **`test/gates/`** – everything that can, which is no longer only the figure
   language and the `{…}` tail grammar: a gate is the right home for any
-  hand-mirrored list one file keeps of another's. Twenty-five gates, about three seconds,
+  hand-mirrored list one file keeps of another's. Twenty-six gates, about three seconds,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
 - **`test/`** – the things that only break in a built page. 58 specs, about 2,110
@@ -67,8 +67,12 @@ hidden, which is the half the `cli` gate cannot run. It also reads a
 synthetic prompter log back – `--prompter-debrief` picking the newest log that
 is not a dry run (by name and by content), the time table, `--transcript`, an
 escape sequence printed as a space, a bare log name beside `source.md` for
-`--prompter-replay` too, and the debrief's refusals. About 220 assertions,
-five seconds.
+`--prompter-replay` too, and the debrief's refusals. And an engine with a file
+missing: a copy of build.js and every file it imports or reads beside itself,
+with one file of `runtime/` taken away (two at once, one unreadable, one
+under `--events`), must refuse in the pre-flight's one sentence naming it,
+under `--print-only` too, where the same copy used to die in a renderer with
+an ENOENT stack. About 235 assertions, five seconds.
 
 `test/present.mjs` follows it, for the same reason, and is the start of a
 talk from the command line: the addresses after the first build, the
@@ -111,11 +115,11 @@ npm run containers                  # every container × every line type, build 
 npm run cli                         # the command line: refusals, help, folders, ports
 ```
 
-## The gates: twenty-five contracts
+## The gates: twenty-six contracts
 
 `diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`, `souffleuse.mjs`, `pdf-core.mjs`,
 `commands.mjs`, `strip-comments.mjs` and `lint.js` are all zero-dependency, which is what makes this suite runnable
-with nothing installed. Twenty-five gates, about 1,800 assertions, about three
+with nothing installed. Twenty-six gates, about 1,800 assertions, about three
 seconds.
 
 | gate | the contract |
@@ -145,6 +149,7 @@ seconds.
 | `cli` | the command line's one flag table, `CLI_FLAGS` in build.js, read out of the file as text between its `cli-flags:` markers: well formed (no name twice, a known value kind, a `need` for every value read from the next word, a `why` for every flag refused without its partner, a mode that lists its company), every flag `main()` reads – `flags.has`, `values.get`, `argv.indexOf`, `pdfFlagValue`, the PDF export table, the `--*-only` and slide-option lists – has a row, because a flag without one is refused as unknown, every row is read, and CLAUDE.md's commands block names every flag that is not hidden, plus `-h`. The `--help` text is generated from the rows; that it lists them is `test/cli.mjs` |
 | `zoom-scope` | every CSS rule that reads `var(--zoom)` – in build.js's CSS literals and the stylesheets that left it for `runtime/` (`RUNTIME_SHEETS`: `speaker.css`, `souffleuse.css`, `pulse-print.css`, `watch-banner.css`, `diagram.css`, `print.css`, `audience.css`) – sits on a slide: its selector names `.chunk` / `.chunk-…`, or its subject is on `IN_CHUNK`, the reviewed list of classes the renderers only emit inside a chunk article. The auto-fit walk writes its trial zooms on the chunk it measures rather than on `<html>` (a change there restyles every slide, 90 ms a step on `lectures/diagrams`), which is exact only while nothing outside the chunk reads the property. The same holds for `showZoom`, which puts a new zoom inline on the slides that can be on screen and on `<html>` only at the catch-up: a reader outside a chunk would lag behind the slide. That the live slide shows the zoom at once, and that after the catch-up no chunk keeps a zoom of its own, is `test/auto-fit.mjs` |
 | `strip` | the comments `strip-comments.mjs` takes out of what a view is handed, and nothing else. Hand-written cases for each place a regex strip goes wrong – `//` and `/*` in a string, a template literal with `${…}` nested in `${…}`, a regex holding `/*`, division against regex after `)`, `if (…)`, `]`, `a++` and a keyword, a comment that is the only thing between two tokens, a comment spanning lines (automatic semicolon insertion), the load-bearing `/*!`, `@license` and `//# sourceURL=` – plus snippets evaluated before and after. Then the modules spliced in as text: each stripped one compiles, a second strip changes nothing, and every exported value that is not a function (the vocabulary tables, the command table, regexes by source) is equal before and after – a check on strings and regexes that does not go through the tokenizer. Last, build.js read as text: every file in `runtime/` – the runtime scripts and stylesheets, which were template literals in build.js until they moved out – reaches a view only through `shipJs` / `shipCss` (`PLAN-runtime-extraction.md`; the prompter's through the local `renderSpeaker` sets to its text under `--prompter` and to an empty string otherwise), whose strip is held like editor.css's – idempotent, and for a stylesheet no comment left, for a script compiling as a script before and after. The failed-build banner's two files are the exception they always were: they reach a page raw, only through `reloadScript` and never through `ship*`. For a file whose literal had substitutions, the step before the strip: `fillRuntime`, lifted out of build.js as text, fills both placeholder forms with `String()` of each value and refuses a placeholder without a value, a value without a placeholder, a value that is not a string or a finite number, and any `__PSI_` that is not a placeholder; and per file, without a build, a file holding a placeholder is read through `fillRuntime` with a table whose keys are exactly its placeholder names, and a file without one is read as it is. During development the strip was held against acorn's tokenizer and Chromium's CSSOM over eight decks; neither is a dependency |
+| `engine-files` | the files build.js reads beside itself at run time – the sixteen in `runtime/`, `editor.css` and the modules it splices into a view as text – against `ENGINE_FILES`, the list of their path constants that `assertEngineComplete` checks at the head of `buildOnce`. Every `new URL('./…', import.meta.url)` in build.js (the pattern `desktop/test/stage-engine.test.mjs` reads) is a path constant of the documented shape, every path constant is on the list and nothing else is, each file is in the repository, and `buildOnce` calls the check first, ahead of the stylesheet check that reads six of the files. A file left off the list is a file the pre-flight misses, which then fails in a renderer with an ENOENT stack again; `test/cli.mjs` runs the refusal itself |
 
 **`frontmatter` is the one gate that is not about figures**, and it is here
 because the shape is the one this suite exists for: a closed list in one file

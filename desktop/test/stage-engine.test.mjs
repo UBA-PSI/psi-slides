@@ -1,8 +1,10 @@
 // FILES in scripts/stage-engine.mjs is a hand-written list of the files
 // build.js reads about itself, and nothing but this test holds the two
 // together. When they disagree the packaged app does not degrade – a
-// run-time read that is not staged throws ENOENT inside a renderer, before
-// any view reaches disk, so every build in the app fails with a stack trace.
+// run-time read that is not staged fails every build in the app: since the
+// pre-flight (assertEngineComplete in build.js) with one sentence naming the
+// file, before that with an ENOENT stack out of a renderer, and either way
+// before any view reaches disk.
 // cue-cards.mjs sat off the list from the day it landed through
 // builder-0.1.0 and builder-0.1.1.
 //
@@ -56,7 +58,7 @@ test('every file build.js reads at run time is staged', () => {
   for (const name of reads) {
     assert.ok(files.includes(name),
       `build.js reads ./${name} at run time but stage-engine.mjs does not stage it – ` +
-      'the packaged app would fail every build with ENOENT');
+      'the packaged app would refuse every build, naming the file');
   }
 });
 
