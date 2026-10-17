@@ -7524,51 +7524,18 @@ function lectureStats(src, lecture) {
 const WATCH_BANNER_CSS_PATH = new URL('./runtime/watch-banner.css', import.meta.url);
 let watchBannerCssCache = null;
 const watchBannerCss = () => (watchBannerCssCache ??= fs.readFileSync(WATCH_BANNER_CSS_PATH, 'utf8'));
-const WATCH_BANNER_JS = `
-  let bfEl = null;
-  const bfPaint = () => {
-    if (!bfEl) return;
-    const here = !window.psiBuildBannerHere || window.psiBuildBannerHere();
-    bfEl.hidden = !here || bfEl.hasAttribute('data-dismissed');
-  };
-  window.psiBuildBannerRefresh = bfPaint;
-  const bfShow = (why, detailed) => {
-    if (!document.body) {
-      document.addEventListener('DOMContentLoaded', () => bfShow(why, detailed), { once: true });
-      return;
-    }
-    let byEditor = false;
-    if (detailed && window.psiWatchBuildFailed) {
-      try { byEditor = window.psiWatchBuildFailed(why || 'the rebuild failed') === true; } catch (err) { /* ignore */ }
-    }
-    if (!bfEl) {
-      bfEl = document.createElement('div');
-      bfEl.id = 'psiINT-build-failed';
-      bfEl.setAttribute('role', 'status');
-      bfEl.title = 'Click to hide. It goes by itself when a build succeeds.';
-      bfEl.addEventListener('click', () => { bfEl.setAttribute('data-dismissed', ''); bfPaint(); });
-      document.body.appendChild(bfEl);
-    }
-    let first = detailed ? String(why || '').split('\\n')[0].trim() : '';
-    if (first.length > 240) first = first.slice(0, 239) + '\u2026';
-    const head = document.createElement('div');
-    const strong = document.createElement('strong');
-    strong.textContent = first ? 'The rebuild failed: ' : 'The rebuild failed.';
-    head.append(strong, first);
-    const soft = document.createElement('div');
-    soft.className = 'bf-soft';
-    soft.textContent = (first ? '' : 'The terminal says why. ') + 'This page still shows the last good build.';
-    bfEl.replaceChildren(head, soft);
-    bfEl.classList.toggle('by-editor', byEditor);
-    bfEl.removeAttribute('data-dismissed');
-    bfPaint();
-  };
-  // A watch reload: the live views stash where they are first (psiWatchResume
-  // in AUDIENCE_JS), so the page comes back on the same chunk and beat.
-  const bfReload = () => {
-    try { if (window.psiWatchResumeSave) window.psiWatchResumeSave(); } catch (err) { /* ignore */ }
-    location.reload();
-  };`;
+
+// runtime/watch-banner.js, the banner's script, read the same way
+// (WATCH_BANNER_JS until it left this file) and also shipped raw, comments
+// and all: reloadScript splices it at the head of the function its reload
+// script runs, so it is a fragment of that function's body, not a module,
+// and its bfReload is what the rest of the reload script calls. Its bytes
+// are the old literal's *value* – the literal resolved a doubled backslash
+// in '\\n', and the \u escape of an ellipsis, which it turned into the
+// character itself.
+const WATCH_BANNER_JS_PATH = new URL('./runtime/watch-banner.js', import.meta.url);
+let watchBannerJsCache = null;
+const watchBannerJs = () => (watchBannerJsCache ??= fs.readFileSync(WATCH_BANNER_JS_PATH, 'utf8'));
 
 // What every page with a reload script does when its socket closes and when
 // it opens again. The watcher's socket has a port of the lecture's own
@@ -7625,7 +7592,7 @@ function reloadScript(port, nonce, opts = {}) {
       try { ws.send(JSON.stringify({ type: 'hello', listen })); } catch (err) { /* closing */ }
     });` : '';
     return `<style>${watchBannerCss()}</style><script>
-(() => {${WATCH_BANNER_JS}${watchRunJs(opts.run)}
+(() => {${watchBannerJs()}${watchRunJs(opts.run)}
   const connect = () => {
     const ws = new WebSocket('ws://127.0.0.1:${port}');${listen}
     ws.addEventListener('open', () => { retryMs = 500; });
@@ -7643,7 +7610,7 @@ function reloadScript(port, nonce, opts = {}) {
 </script>`;
   }
   return `<style>${watchBannerCss()}</style><script>
-window.psiWatch = (() => {${WATCH_BANNER_JS}${watchRunJs(opts.run)}
+window.psiWatch = (() => {${watchBannerJs()}${watchRunJs(opts.run)}
   let sock = null;
   let seq = 0;
   const waiting = new Map();

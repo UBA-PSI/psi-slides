@@ -12,9 +12,10 @@
  * would reopen the hole without anyone noticing, so every site in build.js,
  * editor.mjs, diagram-core.mjs, pdf-core.mjs, cue-cards.mjs and the runtime/
  * scripts that left build.js (runtime/print.js, the documents' lightbox,
- * runtime/speaker.js, the cockpit's runtime, and runtime/souffleuse.js, the
- * prompter's half of it) that writes or names an id is read here and has to
- * be one of two things -
+ * runtime/speaker.js, the cockpit's runtime, runtime/souffleuse.js, the
+ * prompter's half of it, and runtime/watch-banner.js, the failed-build
+ * banner) that writes or names an id is read here and has to be one of two
+ * things -
  *
  *   - a literal that starts with psiINT-, or
  *   - a site on ALLOWED below, which says why its id is not the build's to
@@ -36,7 +37,8 @@
  * runtime/souffleuse.css, the documents' runtime/pulse-print.css and the
  * failed-build banner's runtime/watch-banner.css (SPEAKER_CSS,
  * SOUFFLEUSE_CSS, PULSE_PRINT_CSS and WATCH_BANNER_CSS until they left
- * build.js – the banner's sheet was not read while it was a literal),
+ * build.js – the banner's sheet was not read while it was a literal; the id
+ * it names is emitted by runtime/watch-banner.js),
  * editor.css and pdf-core.mjs's PDF_CSS - has to
  * start with psiINT- (or be on
  * CSS_ALLOWED), and has to name an id some site above emits. The second rule
@@ -65,7 +67,7 @@ export const name = 'every id the build invents starts with psiINT-';
 const P = RESERVED_ID_PREFIX;
 const FILES = ['build.js', 'editor.mjs', 'diagram-core.mjs', 'pdf-core.mjs', 'cue-cards.mjs',
   // the scripts that have left build.js for runtime/ (PLAN-runtime-extraction.md)
-  'runtime/print.js', 'runtime/speaker.js', 'runtime/souffleuse.js'];
+  'runtime/print.js', 'runtime/speaker.js', 'runtime/souffleuse.js', 'runtime/watch-banner.js'];
 
 // file, kind, the id text as the scanner reads it, how often it occurs, why.
 const ALLOWED = [

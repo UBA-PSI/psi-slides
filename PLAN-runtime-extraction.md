@@ -8,9 +8,11 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **7 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
-`PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS` and
-`WATCH_BANNER_CSS` (see *Log*). Next: `WATCH_BANNER_JS`.
+Status: **8 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+`PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS`,
+`WATCH_BANNER_CSS` and `WATCH_BANNER_JS` (see *Log*): every static CSS and
+JS literal on the list. Next: step 8 of *Order*, `PRINT_READER_JS`,
+`PRINT_VIEW_JS` and `PRINT_HIGHLIGHTS_JS`, the first with substitutions.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -518,3 +520,54 @@ is byte-identical.
   is a watch build of all four views: equal after normalisation, plain and
   under `PSI_KEEP_COMMENTS=1`; the banner's rules are in all four views of
   the plain build. Not run: the browser suite and `test/pdf-export.mjs`.
+- **`WATCH_BANNER_JS` → `runtime/watch-banner.js`** – done. 2,010 bytes,
+  45 lines with no newline at the end (the literal's value ends in `  };`,
+  and the file keeps it so), written by `--extract` from the value: `'\\n'`
+  in build.js is `'\n'` in the file, and the ellipsis escape the literal
+  resolved is the character itself. A fragment of a function body, not a
+  module: `reloadScript` splices it at the head of the arrow function its
+  reload script runs (`(() => {${watchBannerJs()}${watchRunJs(opts.run)}` at
+  both sites, where it was `${WATCH_BANNER_JS}`), and the rest of that
+  function calls its `bfReload` and `bfShow`. **Raw**, comments and all, as
+  the literal was: the plain watch build carries its comment “A watch
+  reload: the live views stash where they are first” in all four views.
+  `build.js` lost 47 lines and gained 14: `WATCH_BANNER_JS_PATH`,
+  `watchBannerJs()`, a comment, the two sites. Gates: `strip` (the file
+  joins `RUNTIME_RAW`: 2,162 → 2,163), `id-namespace` (the file joins
+  `FILES`: it emits `psiINT-build-failed`, and without it the gate fails on
+  the banner sheet's six selectors, which then name an id nothing writes –
+  checked; 123 emitted ids, as before). Desktop: `FILES` gained the file,
+  the read count went 13 → 14; with the file off `FILES` the test fails by
+  name. Docs: `test/README.md` (`id-namespace`, `strip`) and the row in
+  `TODO-localisation.md` that pointed at the literal. Identity: tracked
+  views unchanged; the `--watch --prompter --prompter-dry-run` fixture
+  against `de63bde`, equal after normalisation, plain and under
+  `PSI_KEEP_COMMENTS=1`; and, for the four moves together, a plain `--watch`
+  build of the same fixture by an archive of `de63bde` unpacked in
+  `$TMPDIR`, by this `build.js`, and by a staged engine (`FILES` copied into
+  a scratch folder – which has no `souffleuse.mjs`, so no `--prompter`
+  there, as in the app): four views equal after normalisation in all three.
+  Not run: the browser suite and `test/pdf-export.mjs`.
+
+  **For step 8.** The three print reader scripts are the first literals
+  with substitutions, so `--extract` refuses them and the scheme has to be
+  designed first (open question 5): `PRINT_READER_JS` and
+  `PRINT_HIGHLIGHTS_JS` carry one number each, `READER_WIDE_PX - 0.02` /
+  `READER_NOTES_PX - 0.02`, inside a `matchMedia` string, and
+  `PRINT_VIEW_JS` the two `PRINT_PREF_KEYS` strings. Whatever the
+  placeholder, it is filled on the file's text before `shipJs`, so the
+  strip memo still sees one string per process, and
+  `tools/runtime-literals.mjs` will need an `--extract` that writes the
+  placeholders where the substitutions stood and checks that filling them
+  gives the value back. `PRINT_HIGHLIGHTS_JS` has 34 backslashes, so its
+  file is not its source text either. All three ship only under
+  `reader: on`, in every tracked print view, so the tracked views are the
+  identity check – plus a deck with `reader: off`, which must stay without
+  them. `PRINT_HIGHLIGHTS_JS` emits `psiINT-rd-help` and looks up
+  `psiINT-lightbox` and `psiINT-reader-data`, and `PRINT_READER_JS` looks up
+  `psiINT-reader-contents`, so both join `id-namespace`'s `FILES`
+  (`PRINT_VIEW_JS` names no id). `strip`'s `LITERALS` lists
+  `PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS` but not `PRINT_VIEW_JS`,
+  which is shipped through `shipJs` all the same; the move puts all three in
+  `RUNTIME`. The appearance skill names `PRINT_HIGHLIGHTS_JS` and several
+  Node-side comments in build.js name all three.

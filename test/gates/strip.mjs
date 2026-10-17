@@ -113,7 +113,7 @@ const RUNTIME = [['runtime/speaker.css', 'speakerCss'], ['runtime/print.js', 'pr
 // The ones that ship raw, as their literals did: the failed-build banner,
 // which goes into a watch build's reload script with its comments and
 // nothing else. [file, getter]; held below to reloadScript and kept off ship*.
-const RUNTIME_RAW = [['runtime/watch-banner.css', 'watchBannerCss']];
+const RUNTIME_RAW = [['runtime/watch-banner.css', 'watchBannerCss'], ['runtime/watch-banner.js', 'watchBannerJs']];
 const asScript = (text) => {
   const names = [...text.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
   return { names, body: text.replace(/^export\s+(function|const|let)\s/gm, '$1 ') };
