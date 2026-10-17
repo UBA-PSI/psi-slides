@@ -7925,8 +7925,8 @@ const STRINGS = {
     // The contents sidebar folds each part to its heading: the name of the
     // button beside a heading that opens or closes its list of slides.
     'reader-fold': 'Slides in this part',
-    // The two switches over the sidebar's foot (PRINT_VIEW_JS): how the page
-    // is lit and which face the running text is set in.
+    // The two switches over the sidebar's foot (runtime/print-view.js): how
+    // the page is lit and which face the running text is set in.
     'reader-scheme': 'Page',
     'reader-scheme-auto': 'Auto',
     'reader-scheme-light': 'Light',
@@ -8432,7 +8432,8 @@ function codeTag(st, sizing, view) {
     const em = st['print-body'] === 'sans' ? sizing.sans : sizing.serif;
     if (em) rules.push(`${inlineCodeSel('print')} { font-size: ${em}em; }`);
     // The reader may set the text in the other face on screen
-    // (PRINT_VIEW_JS), and the code size is a pairing with the prose face.
+    // (runtime/print-view.js), and the code size is a pairing with the prose
+    // face.
     const faced = ['serif', 'sans'].filter(f => sizing[f])
       .map(f => `${inlineCodeSel('print', `:root[data-face=${f}] body`)} { font-size: ${sizing[f]}em; }`);
     if (faced.length) rules.push(`@media screen {\n${faced.join('\n')}\n}`);
@@ -9944,7 +9945,7 @@ ${groups}
 // The reader's two switches, over the foot of the contents: the page light,
 // dark or as the system has it, and the running text in the serif or the
 // sans. Written by the build so their words come out of STRINGS; wired by
-// PRINT_VIEW_JS, which also says which button is pressed. Toggle buttons in
+// runtime/print-view.js, which also says which button is pressed. Toggle buttons in
 // a labelled group, so each is one Tab stop with a name and a state.
 function renderReaderView(S) {
   const seg = (label, attr, pairs) => `<div class="rd-view-row"><span class="rd-view-label" aria-hidden="true">${escapeHtml(label)}</span>`
@@ -10159,7 +10160,7 @@ ${toc}
 ${pulseTop}${namedHtml}
 ${pulseEnd}</main>
 <script>${shipJs(printJs())}</script>
-${pulseScript}${readerOn ? `${readerData}<script>${shipJs(PRINT_READER_JS)}${shipJs(PRINT_VIEW_JS)}${shipJs(PRINT_HIGHLIGHTS_JS)}</script>\n` : ''}</body>
+${pulseScript}${readerOn ? `${readerData}<script>${shipJs(PRINT_READER_JS)}${shipJs(printViewJs())}${shipJs(PRINT_HIGHLIGHTS_JS)}</script>\n` : ''}</body>
 </html>
 `;
 }
@@ -10178,7 +10179,7 @@ const READER_NOTES_PX = 920;
 // print.html is read on screens after the lecture, and a reader whose system
 // is dark got a white page. It follows prefers-color-scheme now, and the
 // reader's sidebar carries a switch - light, dark, or the system's - and one
-// for the face of the running text, serif or sans (PRINT_VIEW_JS). Both are
+// for the face of the running text, serif or sans (runtime/print-view.js). Both are
 // the reader's, remembered in their browser under PRINT_PREF_KEYS, and both
 // stop at the screen: every rule here is under @media screen, so paper and
 // the PDF export are the author's document as it always was.
@@ -12724,49 +12725,23 @@ const PRINT_READER_JS = `
 // lecture's: one choice for every document the browser opens from this
 // origin, and a choice made in another tab arrives through the storage
 // event. Every access is in a try - without storage the switches still
-// work, for as long as the page is open. Same template-literal rules as
-// every inlined block.
-const PRINT_VIEW_JS = `
-(() => {
-  const d = document.documentElement;
-  const box = document.querySelector('.rd-view');
-  if (!box) return;
-  const KEYS = { scheme: '${PRINT_PREF_KEYS.scheme}', face: '${PRINT_PREF_KEYS.face}' };
-  const authoredFace = document.body.getAttribute('data-print-body') === 'sans' ? 'sans' : 'serif';
-  const store = (k, v) => {
-    try { if (v) localStorage.setItem(KEYS[k], v); else localStorage.removeItem(KEYS[k]); } catch (e) { /* this tab only */ }
-  };
-  const paint = () => {
-    const scheme = d.getAttribute('data-scheme') || 'auto';
-    const face = d.getAttribute('data-face') || authoredFace;
-    for (const b of box.querySelectorAll('[data-set-scheme]')) b.setAttribute('aria-pressed', String(b.getAttribute('data-set-scheme') === scheme));
-    for (const b of box.querySelectorAll('[data-set-face]')) b.setAttribute('aria-pressed', String(b.getAttribute('data-set-face') === face));
-  };
-  const apply = (attr, v) => { if (v) d.setAttribute(attr, v); else d.removeAttribute(attr); };
-  box.addEventListener('click', (e) => {
-    const b = e.target.closest('button');
-    if (!b) return;
-    const scheme = b.getAttribute('data-set-scheme');
-    const face = b.getAttribute('data-set-face');
-    if (scheme) {
-      const v = scheme === 'auto' ? null : scheme;
-      apply('data-scheme', v);
-      store('scheme', v);
-    } else if (face) {
-      apply('data-face', face);
-      store('face', face);
-    }
-    paint();
-  });
-  window.addEventListener('storage', (e) => {
-    if (e.key === KEYS.scheme) apply('data-scheme', e.newValue === 'light' || e.newValue === 'dark' ? e.newValue : null);
-    else if (e.key === KEYS.face) apply('data-face', e.newValue === 'serif' || e.newValue === 'sans' ? e.newValue : null);
-    else return;
-    paint();
-  });
-  paint();
-})();
-`;
+// work, for as long as the page is open.
+//
+// runtime/print-view.js, read as text at build time (PLAN-runtime-extraction.md;
+// PRINT_VIEW_JS until it left this file), and the first runtime/ file with
+// placeholders: the two storage keys stand in it as __PSI_PRINT_PREF_KEYS_SCHEME__
+// and __PSI_PRINT_PREF_KEYS_FACE__, inside the quotes the literal had, and
+// fillRuntime puts PRINT_PREF_KEYS's two words there from the table below,
+// once per process, before shipJs strips it on its way into print.html and
+// print-notes.html. Filled, its bytes are the old literal's value, so a
+// document built before and after the move is the same file.
+const PRINT_VIEW_JS_PATH = new URL('./runtime/print-view.js', import.meta.url);
+const PRINT_VIEW_JS_FILL = {
+  PRINT_PREF_KEYS_SCHEME: PRINT_PREF_KEYS.scheme,
+  PRINT_PREF_KEYS_FACE: PRINT_PREF_KEYS.face,
+};
+let printViewJsCache = null;
+const printViewJs = () => (printViewJsCache ??= fillRuntime(PRINT_VIEW_JS_PATH, fs.readFileSync(PRINT_VIEW_JS_PATH, 'utf8'), PRINT_VIEW_JS_FILL));
 
 // ── the reader's highlights and notes (reader: on) ───────────────────
 // Select words in a slide and a button at the end of the selection marks

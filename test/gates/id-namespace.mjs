@@ -67,7 +67,8 @@ export const name = 'every id the build invents starts with psiINT-';
 const P = RESERVED_ID_PREFIX;
 const FILES = ['build.js', 'editor.mjs', 'diagram-core.mjs', 'pdf-core.mjs', 'cue-cards.mjs',
   // the scripts that have left build.js for runtime/ (PLAN-runtime-extraction.md)
-  'runtime/print.js', 'runtime/speaker.js', 'runtime/souffleuse.js', 'runtime/watch-banner.js'];
+  'runtime/print.js', 'runtime/speaker.js', 'runtime/souffleuse.js', 'runtime/watch-banner.js',
+  'runtime/print-view.js'];
 
 // file, kind, the id text as the scanner reads it, how often it occurs, why.
 const ALLOWED = [

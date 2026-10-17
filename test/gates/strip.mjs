@@ -115,7 +115,8 @@ const MODULES = ['diagram-core.mjs', 'editor.mjs', 'commands.mjs', 'cue-cards.mj
 const RUNTIME = [['runtime/speaker.css', 'speakerCss'], ['runtime/print.js', 'printJs'],
   ['runtime/pulse-print.css', 'pulsePrintCss'], ['runtime/speaker.js', 'speakerJs'],
   ['runtime/souffleuse.css', 'souffleuseSheet', 'souffleuseCss'],
-  ['runtime/souffleuse.js', 'souffleuseScript', 'souffleuseRuntime']];
+  ['runtime/souffleuse.js', 'souffleuseScript', 'souffleuseRuntime'],
+  ['runtime/print-view.js', 'printViewJs']];
 // The ones that ship raw, as their literals did: the failed-build banner,
 // which goes into a watch build's reload script with its comments and
 // nothing else. [file, getter]; held below to reloadScript and kept off ship*.

@@ -8,12 +8,12 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **8 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+Status: **9 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
 `PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS`,
 `WATCH_BANNER_CSS` and `WATCH_BANNER_JS` (see *Log*): every static CSS and
-JS literal on the list. **The substitution scheme is decided** (see
-*Substitution scheme*). Next: step 8 of *Order*, `PRINT_VIEW_JS` first, then
-`PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS`, the first with substitutions.
+JS literal on the list; then `PRINT_VIEW_JS`, the first with substitutions,
+under the scheme decided for it (see *Substitution scheme*). Next: the rest
+of step 8 of *Order*, `PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS`.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -152,7 +152,9 @@ replaces: `SPEAKER_CSS` → `runtime/speaker.css`, `SOUFFLEUSE_JS` →
    so the strip, its memo and `PSI_KEEP_COMMENTS=1` behave as before. A literal
    that shipped raw (`WATCH_BANNER_*`, `READER_EARLY_JS`) stays raw. The path
    and getter stand where the literal stood, under its section banner, so
-   `grep -n '^// ── ' build.js` still maps the file.
+   `grep -n '^// ── ' build.js` still maps the file. A literal with
+   substitutions adds a `NAME_FILL` table there and its getter reads through
+   `fillRuntime` (*Substitution scheme*).
 3. **The file is written from the literal's evaluated value, never copied
    from the source text.** A template literal resolves escapes (`\\s` →
    `\s`, `\`` → a backtick, `\${` → `${`). A script evaluates the old
@@ -764,3 +766,44 @@ included; and the output is byte-identical.
   placeholder names, one without read as it is (eight files, none with a
   placeholder yet): 2,163 → 2,181 assertions. Docs: `test/README.md`
   (`strip`).
+- **`PRINT_VIEW_JS` → `runtime/print-view.js`** – done, the first literal
+  with substitutions. 1,799 bytes, 40 lines, written by `--extract …
+  --names PRINT_PREF_KEYS_SCHEME,PRINT_PREF_KEYS_FACE`, which filled the file
+  back to the literal's value before writing it; the value equals the source
+  text (no escapes), so the file is the literal's text with the two
+  `${PRINT_PREF_KEYS.…}` replaced by `__PSI_PRINT_PREF_KEYS_SCHEME__` and
+  `__PSI_PRINT_PREF_KEYS_FACE__`, inside the quotes they stood in. The
+  derived names were kept: they say where the value comes from, and
+  `PRINT_VIEW_EARLY_JS`, which reads the same keys, still takes them from
+  `PRINT_PREF_KEYS` in build.js. `build.js` lost 49 lines and gained 24 –
+  the literal's 41 went, and in came `PRINT_VIEW_JS_PATH`, the
+  `PRINT_VIEW_JS_FILL` table where the literal
+  stood, `printViewJs()` reading through `fillRuntime`, a comment replacing
+  the literal's last sentence (“Same template-literal rules as every inlined
+  block”); the render site is `${shipJs(printViewJs())}` between the two
+  reader literals still in build.js; four Node-side comments that named
+  `PRINT_VIEW_JS` (`STRINGS`' reader keys, `codeTag`, `renderReaderView`,
+  the dark-documents section) now name the file. Gates: `strip` – the file
+  joins `RUNTIME` (it was missing from `LITERALS`, though it always shipped
+  through `shipJs`), so it gains the ship check, the four script checks and
+  the per-file fill check: 2,181 → 2,187. The per-file check was shown to
+  fail on a table key renamed (`…_FACES`) and on a getter that reads the
+  file without `fillRuntime`; the build with that renamed key refuses with
+  `runtime/print-view.js: placeholder __PSI_PRINT_PREF_KEYS_FACE__ has no
+  value`, a stack, exit 1 and no view written. `id-namespace` – the file
+  joins `FILES`; it names no id (no `getElementById`, no `.id =`, no `#` in
+  a selector string – only `.rd-view` and data attributes), and the counts
+  are as before: 123 emitted ids, 570 selectors in 9 stylesheets, 16
+  allow-list entries and 25 allowed sites. Desktop: `FILES` gained the file,
+  the read count went 14 → 15; with the file off `FILES` the test fails by
+  name. Docs: `test/README.md` (`id-namespace`), the appearance skill's
+  sentence on the two switches. Identity: `npm run build:tracked` leaves
+  `lectures/` unchanged – every tracked `print.html` and `print-notes.html`
+  carries the filled file; python-intro's four views and a `reader: off`
+  fixture deck's four, built by the build.js before and after into
+  `$TMPDIR/<before|after>/<plain|kept>/L/<deck>` (one parent folder name),
+  `cmp`-equal plain and under `PSI_KEEP_COMMENTS=1` (whose documents carry
+  the file's comment `/* this tab only */` and both filled keys, and the
+  `reader: off` documents neither); and a staged engine (`FILES` copied
+  into a scratch folder) builds python-intro equal. Not run: the browser
+  suite and `test/pdf-export.mjs`.
