@@ -28,7 +28,7 @@
    -> and -- into one glyph, so a waypoint list or a step chip would show
    a token the author cannot type back. #psiINT-dge-canvas is left out because
    what is in it is the compiler's own SVG: its mono labels are already
-   answered by the rule in DIAGRAM_CSS, and its sans and serif labels have
+   answered by the rule in runtime/diagram.css, and its sans and serif labels have
    to look here exactly as they look on the slide. */
 #psiINT-dge-top, #psiINT-dge-tools, #psiINT-dge-side, #psiINT-dge-status, #psiINT-dge-strip {
   font-variant-ligatures: none;

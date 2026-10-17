@@ -221,9 +221,9 @@ export function resolvePdfOptions({ beats, size, zoom, zoomMax, collapse } = {})
 export const PDF_CSS = `
 /* Without these two declarations the whole deck prints as ONE page. Measured,
    Chromium 1228, four page-sized divs: height:100%/overflow:hidden gives
-   /Count 1, height:auto/overflow:visible gives /Count 4. AUDIENCE_CSS sets
-   them on html,body because that is right for a window and fatal for a
-   paginated document. */
+   /Count 1, height:auto/overflow:visible gives /Count 4.
+   runtime/audience.css sets them on html,body because that is right for a
+   window and fatal for a paginated document. */
 html[data-psi-pdf], html[data-psi-pdf] body {
   height: auto !important;
   overflow: visible !important;

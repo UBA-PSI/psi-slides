@@ -3,7 +3,7 @@
 // The cockpit's half of docs/history/PLAN-souffleuse.md: an ear, a switch, and one way
 // back to the sidecar over the watch socket that is already here. This whole
 // text is spliced into speaker.html only under --prompter, at the end of
-// the same script element SPEAKER_JS is in, so everything below reads the
+// the same script element runtime/speaker.js is in, so everything below reads the
 // cockpit's own bindings - flatChunks, state, viewHooks, cueSync,
 // souffleuseCues, applyCueMode, cuePosition, flashMode - as if it still
 // stood where it was written. A cockpit built any other way carries none of

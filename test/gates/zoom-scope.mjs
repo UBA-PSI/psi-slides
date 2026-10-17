@@ -78,8 +78,8 @@ export function sheetZoomSelectors(text, literal) {
 // matched, so each is scanned as it was. The first four moved before the gate
 // read files and dropped out of it unnoticed; none reads var(--zoom), so
 // nothing was missed, but a rule added to one later would have been. The
-// documents' sheet (PRINT_CSS) reads none either, and is listed for the same
-// reason. The live views' sheet (AUDIENCE_CSS) holds every rule found here.
+// documents' sheet (runtime/print.css) reads none either, and is listed for the same
+// reason. The live views' sheet (runtime/audience.css) holds every rule found here.
 // Read as a file it is scanned better than it was as a literal: a `${…}` in
 // a declaration (the display face's line heights) carried braces the walk
 // above took for a block, which hid three rules reading var(--zoom); its

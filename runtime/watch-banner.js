@@ -38,7 +38,7 @@
     bfPaint();
   };
   // A watch reload: the live views stash where they are first (psiWatchResume
-  // in AUDIENCE_JS), so the page comes back on the same chunk and beat.
+  // in runtime/audience.js), so the page comes back on the same chunk and beat.
   const bfReload = () => {
     try { if (window.psiWatchResumeSave) window.psiWatchResumeSave(); } catch (err) { /* ignore */ }
     location.reload();

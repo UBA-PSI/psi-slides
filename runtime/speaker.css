@@ -648,7 +648,7 @@ body[data-view=speaker] .chunk[data-canvas-tier=bleed] .dg-hint {
 body[data-view=speaker].overview-mode .dg-hint { display: none; }
 
 /* Cockpit chrome on a dark theme – same reasoning as the dark-chrome block
-   in AUDIENCE_CSS. The footer, its key crib and the export modal all carry
+   in runtime/audience.css. The footer, its key crib and the export modal all carry
    fixed light backgrounds otherwise. */
 body[data-mode=dark] #psiINT-speaker-footer kbd,
 body[data-mode=dark] #psiINT-speaker-footer #psiINT-export-annot-btn,
@@ -674,7 +674,7 @@ body[data-mode=dark] .export-modal-keep:hover {
   background: oklch(from var(--paper) calc(l + 0.12) c h);
 }
 
-/* Center toast — prominent transient feedback for export-flow events.
+/* Center toast – prominent transient feedback for export-flow events.
    Placed inside the stage viewing zone (bottom-centre of #psiINT-stage-cell)
    because the 10px #psiINT-mode-badge in the top-right is too peripheral for
    outcomes the lecturer actually needs to see. */

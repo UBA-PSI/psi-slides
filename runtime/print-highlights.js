@@ -1507,7 +1507,7 @@
     setTimeout(() => d.classList.remove('rd-pulse'), 1300);
   };
 
-  // The lightbox is PRINT_JS's; this half hears it open and close, and is
+  // The lightbox is in runtime/print.js; this half hears it open and close, and is
   // asked about a click before the click closes it. On a figure it gains a
   // bar with a close button and Mark a spot (also m). Marking, the cursor is
   // a crosshair, the part of a diagram under it is outlined, and a click that

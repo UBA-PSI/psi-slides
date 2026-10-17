@@ -67,8 +67,8 @@
   --slide-pad-y: calc(var(--slide-h) * 0.049);
   --slide-height: calc(var(--slide-h) * 0.4);
   --chunk-gap: calc(var(--slide-h) * 0.04);
-  /* Interpolated from FONT_STACK_TAILS so an embedded family can be
-     prepended to the very same list – see the embedded-webfonts section. */
+  /* Filled in by the build from FONT_STACK_TAILS so an embedded family
+     can be prepended to the very same list – see the embedded-webfonts section. */
   --serif-stack: __PSI_FONT_STACK_TAILS_SERIF__;
   --sans-stack:  __PSI_FONT_STACK_TAILS_SANS__;
   /* Readable mono ("iA Writer"-style): prefer the Duo/Quattro faces if
@@ -279,7 +279,7 @@ body[data-neutrals=tinted] .cards.cg-outline {
    The cost of a paper at zero is every fill that was a few per cent over
    it. --dg-ground is the answer for a figure: its tones, its bar fills,
    its container stroke and its muted words are mixed over that rather than
-   over --paper (DIAGRAM_CSS, dgBarFillCss), it falls back to --paper where
+   over --paper (runtime/diagram.css, dgBarFillCss), it falls back to --paper where
    nobody sets it - the documents, a light theme, the switch off - and here
    it is the theme's own paper. So a figure's fills are the colours they
    were, to the digit, and stand off the black instead of sinking into it;
@@ -736,8 +736,7 @@ code.nb { white-space: nowrap; }
    same emitted tag so it outranks the sizes whatever order they land in.
    Both selector lists come from inlineCodeSel, so what counts as running
    text is decided in one place – not a heading, not a listing, not the
-   blocked-embed card. No backtick anywhere in this comment: AUDIENCE_CSS
-   is a template literal and one would end it.
+   blocked-embed card.
 
    spaced reaches only a span that HAS whitespace in it – the codespan
    renderer marks the others .nb – because the hole it closes is the mono
@@ -776,10 +775,10 @@ __PSI_LIVE_INLINE_CODE_TINT__ {
      under a whole block. */
   background: color-mix(in oklch, var(--ink) 7%, transparent);
 }
-/* Same reason as the matching rule in PRINT_CSS: the bundled mono face
-   ligates the arrow tokens into one glyph, and a slide is where the room is
+/* Same reason as the matching rule in runtime/print.css: the bundled mono
+   face ligates the arrow tokens into one glyph, and a slide is where the room is
    reading the token rather than the prose. Bare element selectors, so the
-   cockpit gets it too – SPEAKER_CSS is layered on top of this sheet. */
+   cockpit gets it too – runtime/speaker.css is layered on top of this sheet. */
 /* Ligature policy, from the ligatures: frontmatter key. "text" is the
    default and is what this rule always did: none in code, ordinary fi and
    fl in prose. "all" puts the code ligatures back - JetBrains Mono draws
@@ -855,7 +854,7 @@ body[data-liga=none] { font-variant-ligatures: none; }
 .chunk-body pre.shiki code { font-size: inherit; }
 /* Shiki wraps each line in <span class="line">. With white-space:pre on
    the outer <pre>, the newline text nodes between spans already break
-   lines — display:block on .line would double the gap, so we force
+   lines – display:block on .line would double the gap, so we force
    inline explicitly (some shiki versions apply block via their CSS). */
 .chunk-body pre.shiki .line { display: inline; }
 
@@ -917,7 +916,7 @@ body[data-liga=none] { font-variant-ligatures: none; }
    and past it: the slide is framed as if the aside were not there, so
    whatever does not fit is simply cut off by the frame, which is what tells
    the reader there is more of it. Clicking it slides the camera right until
-   all of it is on screen (asidePan in AUDIENCE_JS); Esc, or a click on the
+   all of it is on screen (asidePan in runtime/audience.js); Esc, or a click on the
    slide, gives the frame back. */
 .marginalia {
   position: absolute;
@@ -1078,7 +1077,7 @@ figure.figure-img svg {
 }
 /* ── how large a drawing is in the room ───────────────────────────────
    The document answered this first and the reasoning is written out over
-   main .psi-diagram in PRINT_CSS: a label's rendered size is DG_FONT times
+   main .psi-diagram in runtime/print.css: a label's rendered size is DG_FONT times
    (rendered width / viewBox width), so filling the measure sets the type
    inside a figure by however many grid units the author happened to draw in.
    The projection had exactly the same defect and it was worse here, because
@@ -1121,8 +1120,8 @@ figure.figure-img svg {
    that as "does not fit" and takes the slide's type down to meet it, and the
    build says so at compile time (figureTypeWarning).
 
-   Both terms are definite LENGTHS and the column is left to DIAGRAM_CSS's
-   max-width: 100% - print's own 100% inside the min() is correct there and
+   Both terms are definite LENGTHS and the column is left to
+   runtime/diagram.css's max-width: 100% - print's own 100% inside the min() is correct there and
    wrong here. Several containers on a slide are shrink-to-fit (a figure chunk
    centres its column, a card, a pane), and a percentage
    inside min() contributes nothing to a container's intrinsic width: the svg
@@ -1156,7 +1155,7 @@ figure.figure-img svg {
   /* The box hugs the drawing now instead of spanning the measure, so it has
      somewhere to sit. Centre by default, matching figure.figure-img above;
      styleBodyAttrs writes data-blocks only when it is left, so the centre case
-     has to be the bare rule. Same three rules as PRINT_CSS, including the
+     has to be the bare rule. Same three rules as runtime/print.css, including the
      ink-edge correction: see the comment there for what --dg-ink-x buys. */
   margin-inline: auto;
 }
@@ -1384,7 +1383,7 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    and what it actually did was centre the heading alone: .chunk-body resets to
    left a few rules down, so a question with prose under it came out as a
    centred heading over a left-aligned paragraph, two axes on one slide. The
-   printed document never did this: PRINT_CSS gives .chunk-question an italic
+   printed document never did this: runtime/print.css gives .chunk-question an italic
    heading and no alignment, so the two views disagreed as well.
    The rule the rest of this stylesheet already follows is in the comment on
    .chunk[data-center] below: centring reads well for one or two lines and badly
@@ -1681,8 +1680,8 @@ body[data-headings=center] .chunk-heading { text-align: center; }
    writing the class forty times is the repetition the key exists to remove.
    display: none rather than a dropped element, because the TOC, the search
    index and the speaker's lists all read the heading's text out of the DOM
-   and every one of them keeps working. Both are audience-only: PRINT_CSS
-   carries neither, so the document and its contents page are unchanged. */
+   and every one of them keeps working. Both are audience-only:
+   runtime/print.css carries neither, so the document and its contents page are unchanged. */
 .chunk[data-bare] > .chunk-content > .chunk-heading,
 body[data-headings=off] .chunk-heading { display: none; }
 /* .center sets the chunk's prose on a centre axis. Audience-only for the
@@ -1737,7 +1736,7 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
    so the switch that turns the tag word off has to reach it too, or
    labels: off leaves the loudest of the two standing on every footnote.
 
-   Live views only. PRINT_CSS keeps its label, because there the aside is one
+   Live views only. runtime/print.css keeps its label, because there the aside is one
    more block in a column of blocks with nothing to mark it as a footnote;
    on the slide the hairline and the position already say that. */
 body[data-labels=off] .margin-note::before { content: none; }
@@ -2295,7 +2294,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* Reversed out, like the four fields above it. */
 /* Both attributes named, so this beats the soft-ink rule above by
    specificity rather than by being written after it. It was correct here
-   only because of the order, and the same pair in PRINT_CSS was ordered
+   only because of the order, and the same pair in runtime/print.css was ordered
    the other way and shipped grey text on a brown plate. */
 .chunk[data-cover=panel][data-closing] .closing-body {
   color: color-mix(in oklch, var(--panel-ink) 76%, transparent);
@@ -3596,7 +3595,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    heading's rank rather than a second thing on the slide, and a number or a
    small-caps word standing over a drawing with no part title under it
    announces a part whose name is missing. Audience-only, like a chunk's
-   .bare - PRINT_CSS carries neither, so the document and its contents page
+   .bare - runtime/print.css carries neither, so the document and its contents page
    are unchanged.
 
    Prefixed #psiINT-stage, and that is load-bearing: the beside layout above gives
@@ -3870,7 +3869,7 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
    pan the camera a third of the way right and open a 21vw column beside the
    text, which is a margin note the room reads at 0.56em - fine for a remark,
    useless for the word the talk turned out to need. Now the box grows to the
-   frame and the type to the room: fitAnnotation() in AUDIENCE_JS sets the
+   frame and the type to the room: fitAnnotation() in runtime/audience.js sets the
    three custom properties from the text alone - the largest size at which
    the longest line stands in 70% of the frame and every line in its height,
    capped at three times the slide's own type - so both windows compute the
@@ -4142,7 +4141,7 @@ body[data-neighbours=hidden] .chunk:not(.active) {
    by focusCamera(true) from the one place a chunk changes, and the *mode*
    owns whatever the change looks like: nothing under cut, and under
    fade a dip of the whole stage to the paper and back, with the camera's
-   jump taken at the bottom of it (fadeSwap in AUDIENCE_JS).
+   jump taken at the bottom of it (fadeSwap in runtime/audience.js).
 
    So the arrival fades have to go. They were written for a camera in
    motion - a neighbour still at a tenth of its opacity when the pan lands
@@ -4185,7 +4184,7 @@ body[data-transition=fade] .chunk { transition: none; }
    every line of a paragraph that is meant to read as prose.
 
    The document views have had this since 1.0.0; this is the same pair of
-   lines from PRINT_CSS, minus dd, because the only dl in a live view is the
+   lines from runtime/print.css, minus dd, because the only dl in a live view is the
    help overlay's key table and a key is not a paragraph. Both selectors
    below it are more specific and keep winning: the collapsed slide line
    stays balanced, and a card stays pretty for its own reason.
@@ -4343,7 +4342,7 @@ body[data-blocks=left] #psiINT-stage .math-display .katex-display > .katex,
 #psiINT-stage .chunk[data-blocks=center] .math-display .katex-display > .katex { text-align: center; }
 /* Hyphenation on the projection, which is off unless the author asks.
    style: {hyphenate: all} is the ask, and the reason it is a key rather
-   than a default is in PRINT_CSS: a broken word reads badly across a room
+   than a default is in runtime/print.css: a broken word reads badly across a room
    and a live view reflows under the reader's hands. What makes it worth
    having anyway is a German deck at .narrow, where one compound noun opens
    a hole in the measure that no rewriting closes - which is also why the
@@ -4352,7 +4351,7 @@ body[data-blocks=left] #psiINT-stage .math-display .katex-display > .katex,
    Scoped to the stage, so it is the slide's prose and never the chrome: a
    TOC entry, a search hit and the help sheet are lists a reader scans, and
    a broken word in one of those is only harder to scan. And the same
-   manual reset PRINT_CSS carries, for the same reason - hyphens inherits,
+   manual reset runtime/print.css carries, for the same reason - hyphens inherits,
    and a hyphenated identifier or URL is wrong in any view.
 
    A footnote is in that reset too, and it is the one entry that is prose.
@@ -4361,7 +4360,7 @@ body[data-blocks=left] #psiINT-stage .math-display .katex-display > .katex,
    and every break it takes is a word cut in half for nothing. Measured on a
    keynote at hyphenate: all - "Pro-blemlösen" and "Teil-nahme freiwillig"
    in two consecutive footnotes, and a "Handreichung / Z/PQM" split across
-   the slash. Print keeps its hyphens - see PRINT_CSS - because there the
+   the slash. Print keeps its hyphens - see runtime/print.css - because there the
    note sits in a document at the document's measure and reads as the rest
    of the page does. */
 body[data-hyphenate=all] #psiINT-stage :is(p, li, blockquote, figcaption) {

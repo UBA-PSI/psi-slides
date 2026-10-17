@@ -2,7 +2,7 @@
  * cue-cards.mjs – a speaker note read as cue cards.
  *
  * One pure function, `notesToCards(text)`, and the two helpers around a time
- * mark. build.js imports it and splices it as text into SPEAKER_JS, the way
+ * mark. build.js imports it and splices it as text into speaker.html, the way
  * diagram-core.mjs and the QR encoder travel: one text, two runtimes, so the
  * cards the cockpit derives from a rehearsal override in the textarea are
  * the cards the source would have given – and so the grammar's regexes live

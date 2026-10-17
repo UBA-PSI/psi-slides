@@ -28,7 +28,7 @@
      dimensions and then transforms it into its cell, so a raw vh there is the
      cockpit window's and the same figure was capped at a different height in
      the two windows. Print defines no --slide-h and falls back to the number
-     this rule has always had; it overrides the cap anyway (PRINT_CSS). */
+     this rule has always had; it overrides the cap anyway (runtime/print.css). */
   /* --fig-cap is the tier's share of the slide height (FIG_CAP in build.js):
      unset on an ordinary chunk, 0.79 on a picture slide, 0.72 on a stacked
      divider. The fallback is the ordinary chunk's. */
@@ -41,7 +41,7 @@
      proportion and a sheet of paper is not a slide - true, and it left the
      document with no cap at all, so a portrait diagram resolved to the
      measure times its ratio and came out taller than the page. The answer
-     now lives beside every other figure kind in PRINT_CSS, under a selector
+     now lives beside every other figure kind in runtime/print.css, under a selector
      specific enough to beat the cap above in both media. Do not re-add a
      .psi-diagram max-height here without reading that rule. */
   /* A diagram is one picture; splitting it across a page break makes it
@@ -291,8 +291,7 @@
    is the same act on the same channel and was already written this way.
    .tone-4 inverts its own label, and has to keep winning here exactly as it
    does over .accent text; one class more in the selector settles it rather
-   than source order, which is the guard the stroke case below already uses.
-   (No backticks in here: this whole stylesheet is a template literal.) */
+   than source order, which is the guard the stroke case below already uses. */
 .psi-diagram .emph text { fill: var(--emph); font-weight: 600; }
 .psi-diagram .tone-4.emph text, .psi-diagram .tone-4.emph tspan { fill: var(--paper); }
 /* .tone-4 fills with the accent, so an emphasis stroke in the accent lands
@@ -300,8 +299,7 @@
    nothing on screen - the silent no-op again, arriving through the stylesheet
    rather than through the grammar. Inverted the way .tone-4's own label
    already is, and for the same reason. Higher specificity than the rule above,
-   so source order does not decide it. (No backticks in here: this whole
-   stylesheet is a template literal, and one would end it.) */
+   so source order does not decide it. */
 .psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
 /* emph acts in the prominence slot and .bare in the stroke-weight slot, so
    neither may overwrite the other - and until this rule the emphasis stroke

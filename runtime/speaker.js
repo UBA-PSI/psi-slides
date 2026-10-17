@@ -38,7 +38,7 @@ requestAnimationFrame(sizeStageViewport);
 // disappears: thawing *is* the resync, because the first thing an ungated
 // broadcast does is hand the room our current state.
 // A --watch save reloads this window with the freeze it had (watchResume in
-// AUDIENCE_JS); a frozen cockpit that came back live pushed its look-ahead
+// runtime/audience.js); a frozen cockpit that came back live pushed its look-ahead
 // to the room on the first message.
 let frozen = !!(watchResume && watchResume.frozen);
 viewHooks.shouldBroadcast = () => !frozen;
@@ -105,7 +105,7 @@ function applyFreezeIndicator() {
     : 'The room follows this window. Click or press V to freeze the projection.';
 }
 // The heartbeat a projection opened by hand reads before it opens a second
-// cockpit (cockpitElsewhere in AUDIENCE_JS). Removed when this page goes.
+// cockpit (cockpitElsewhere in runtime/audience.js). Removed when this page goes.
 function cockpitBeat() {
   try { localStorage.setItem(COCKPIT_BEAT_KEY, String(Date.now())); } catch (e) {}
 }
@@ -150,7 +150,7 @@ freezeBtn.addEventListener('click', () => {
 });
 
 // Export live annotation drafts as Markdown. Copies to clipboard first,
-// then asks for explicit confirmation before clearing the draft buffer —
+// then asks for explicit confirmation before clearing the draft buffer –
 // a failed copy or a cancelled confirm leaves localStorage untouched, so
 // nothing is lost if the lecturer aborts mid-workflow.
 const centerToast = document.getElementById('psiINT-center-toast');
@@ -492,7 +492,7 @@ flatChunks.forEach((c, i) => {
   colChunkIdx[c.colIdx].push(i);
 });
 
-// Scrubber DOM is static after build — cache the node lists once so the
+// Scrubber DOM is static after build – cache the node lists once so the
 // onActiveChange hook (every keystroke, every remote-state apply) doesn't
 // re-scan the document on each tick.
 const colEntryEls = Array.from(document.querySelectorAll('.col-entry'));
@@ -841,7 +841,7 @@ viewHooks.onStateChange = () => { cueSync(); };
 // The prompter's cards for slides that have not come up yet, chunk id to a
 // list of {cueId, text}. This and the merge in cueCardsFor are the two pieces
 // of the prompter that a cockpit carries whether or not it has one: the rail
-// is drawn from here, and drawing it cannot be conditional on a literal that
+// is drawn from here, and drawing it cannot be conditional on a script that
 // may not have been spliced. Over an empty Map both are free. Declared up
 // here rather than beside them because the cue section restores the saved
 // arrangement at its end, which draws the rail - and a let still in its

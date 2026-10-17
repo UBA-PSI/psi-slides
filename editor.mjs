@@ -10,10 +10,9 @@
 // drift, no export step that flattens relations into numbers, and no file the
 // editor owns. Everything it produces is a block a human could have typed.
 //
-// Shipped as text, like AUDIENCE_JS – but read from disk rather than embedded
-// in a template literal, which is why a backtick in here is safe and a
-// backtick in AUDIENCE_JS is a parse error. Same for the regexes: `\s` means
-// what it says here.
+// Shipped as text and read from disk, as the files in runtime/ are – never
+// embedded in a template literal, so a backtick in here is safe and `\s` in a
+// regex means what it says.
 //
 // Naming: everything is `dge*`. `dg*` is the compiler and is taken.
 //
@@ -724,7 +723,7 @@ const dgeNum = (n, places) => {
 // Switching between them changes nothing in the source.
 
 const DGE_FRAME_EM = {
-  // the chunk's own width class, from AUDIENCE_CSS. `bleed` is the slide
+  // the chunk's own width class, from runtime/audience.css. `bleed` is the slide
   // frame itself: 16:9 in the chunk's em (lint.js SLIDE_EM), and
   // dgeFrameMetrics takes the window's own width for it rather than this
   // number, so the preview frame is the slide at any aspect.

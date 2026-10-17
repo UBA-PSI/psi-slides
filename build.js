@@ -1529,8 +1529,8 @@ function safeSize(p) { try { return fs.statSync(p).size; } catch { return 0; } }
 // Generated at build time, not at runtime. The encoder is a dependency
 // rather than 300 hand-rolled lines of Reed-Solomon, because a mistake in
 // that maths yields codes that scan to the wrong string and look perfectly
-// fine to the eye. Running it in Node also keeps it out of the inlined
-// template literals, where an escape mistake is silent.
+// fine to the eye. Running it in Node also kept it out of the template
+// literals the runtime then lived in, where an escape mistake was silent.
 //
 // Error correction level M (~15%), which survives a projector's contrast
 // and a photograph taken at an angle from the back of a room.
@@ -12933,9 +12933,8 @@ function guardConsole() {
 // collapse-mode rule once shipped broken. Cheap to check, so check it on
 // every build.
 function assertStylesheetsWellFormed() {
-  // editor.css and runtime/speaker.css are real files rather than constants,
-  // and they go through this check for exactly the same reason the constants
-  // do: an unterminated comment silently drops every rule to the next one.
+  // Every sheet here is a file, and an unterminated comment in a file
+  // silently drops every rule to the next one as it did in a constant.
   // runtime/diagram.css (DIAGRAM_CSS until it left this file) ships into all
   // four views and was the one inlined stylesheet this guard did not cover –
   // the exact gap the guard exists to close. It is checked filled, as it

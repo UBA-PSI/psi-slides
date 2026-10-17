@@ -10,7 +10,7 @@ const DG_DUR = 380;
 // nobody would think to keep in step.
 // Keyed by the outline alone; a drawable kind may carry a direction after a
 // colon (`chevron:up`), which dgShapeD reads and this lookup must not.
-// Interpolated from DG_SHAPE_CLASSES rather than spelled out – a fifth
+// Filled in by the build from DG_SHAPE_CLASSES rather than spelled out – a fifth
 // outline added to the table would otherwise draw at build time and be
 // unknown to the very runtime that has to move it.
 const DG_SHAPES = __PSI_DG_SHAPES__;

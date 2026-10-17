@@ -100,8 +100,7 @@ p { margin: 0.4em 0 0.9em; orphans: 3; widows: 3; }
    German lecture until the author sets lang: de, and German is exactly the
    case where a 42rem measure needs it most.
    Limited to prose: hyphenating an identifier in code, a heading, or a URL
-   would be actively wrong, and the hyphens property is inherited.
-   (No backticks in this comment: one would end the template literal.) */
+   would be actively wrong, and the hyphens property is inherited. */
 body:not([data-hyphenate=none]) :is(p, li, blockquote, figcaption, .speaker-note) {
   hyphens: auto;
   -webkit-hyphens: auto;
@@ -136,11 +135,10 @@ li > p:last-child { margin-bottom: 0.3em; }
 code { font-family: var(--mono); font-size: 0.92em; }
 /* Set by the codespan renderer on a span with no space in it – see the note
    there. Keeps a three-hyphen separator, or an arrow token, from being split
-   across a line break. No backtick in this comment: PRINT_CSS is a template
-   literal and one would end it. */
+   across a line break. */
 code.nb { white-space: nowrap; }
 /* style: {code} on paper. Same three looks and the same reasoning as in
-   AUDIENCE_CSS – read the note there – with two differences that belong to
+   runtime/audience.css – read the note there – with two differences that belong to
    the medium. The selector is the bare element minus a listing and a
    heading, because print wraps prose in no .chunk-body. And the tint is
    mixed out of print's own --ink, which style: {print-neutrals} moves, so a
@@ -177,9 +175,7 @@ pre code { font-size: inherit; }
    arrow glyph, and <-, <->, --, != and :: the same way. A listing is source
    a reader retypes, so the characters have to be the characters. The value
    is none and not no-contextual: the arrows live in the contextual set
-   (calt) and the rest in liga, and only none covers both. No backtick in
-   this comment, escaped or otherwise – see the template-literal rule in
-   CLAUDE.md. */
+   (calt) and the rest in liga, and only none covers both. */
 /* Ligature policy, from the ligatures: frontmatter key. "text" is the
    default and is what this rule always did: none in code, ordinary fi and
    fl in prose. "all" puts the code ligatures back - JetBrains Mono draws
@@ -883,9 +879,8 @@ body[data-blocks=left] .math-display .katex-display > .katex,
    separator between them, because in the live views the span is a grid item
    and a separator would be a stray anonymous item in the same grid. That
    made the span's placement load-bearing – and it existed only in
-   AUDIENCE_CSS, so on paper the two ran together and every row in every
+   runtime/audience.css, so on paper the two ran together and every row in every
    lecture read "§ 202aObtaining specially protected data…".
-   (No backticks in this comment: one would end the template literal.)
 
    The fix is a grid here too, but a smaller one than the live view's: the
    li keeps its box, so its border, padding and break-inside: avoid all
@@ -1141,7 +1136,7 @@ body[data-kind=document] .rd-part-num { font-variant-numeric: tabular-nums; marg
 img { max-width: 100%; height: auto; }
 
 /* figure-img: single-column figure with caption below. Both <img> and
-   inlined <svg> need an explicit max-width — SVGs spliced via
+   inlined <svg> need an explicit max-width – SVGs spliced via
    inlineSvg() preserve their intrinsic width="…" attribute and would
    otherwise overflow the page measure. */
 figure.figure-img { margin: 1rem 0; text-align: center; }
@@ -1180,9 +1175,9 @@ figure.figure-img svg { max-width: 100%; height: auto; }
    on, and print.html is printed by whichever browser the reader has. 34rem
    at the 10pt root is about half the A4 text height - a figure may be the
    largest thing on a page without being the only thing on it.
-   The selectors are (0,1,1) on purpose: DIAGRAM_CSS is concatenated after
-   this stylesheet, so a bare .psi-diagram here would lose to its 62vh on
-   screen and to its max-height: none on paper. */
+   The selectors are (0,1,1) on purpose: runtime/diagram.css is
+   concatenated after this stylesheet, so a bare .psi-diagram here would lose
+   to its 62vh on screen and to its max-height: none on paper. */
 main .psi-diagram,
 figure.figure-video video { max-height: 34rem; }
 /* A picture is capped on paper only. On a screen the reader scrolls, and a
@@ -1273,7 +1268,7 @@ body[data-blocks=left] main .psi-diagram,
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
 
 @media print {
-  /* The same sentence DIAGRAM_CSS says about a diagram - one picture, and
+  /* The same sentence runtime/diagram.css says about a diagram - one picture, and
      splitting it makes two useless halves - is true of a photograph, and
      only the diagram was hearing it. It is reachable rather than theoretical:
      .chunk avoids breaking, so a figure inside a chunk that fits a page was
@@ -1652,8 +1647,8 @@ pre.shiki .line { display: inline; }
 }
 
 /* ── the reader's highlights and note cards (reader: on) ──
-   PRINT_HIGHLIGHTS_JS paints a highlight as mark.rd-hl round the words and
-   puts its note on a card: in the notes column the layout keeps free from
+   runtime/print-highlights.js paints a highlight as mark.rd-hl round the
+   words and puts its note on a card: in the notes column the layout keeps free from
    920px, at the height of the highlight (the script sets top and left); below
    that, inline under the block that holds it, and only while it is the one
    being read. A highlight with a note carries a line under it, because a
@@ -1913,7 +1908,7 @@ body[data-reader=on] {
      narrow window. */
   .rd-toast { bottom: 3.5rem; }
 }
-/* Highlights on figures (plan §11). PRINT_HIGHLIGHTS_JS puts a button in a
+/* Highlights on figures (plan §11). runtime/print-highlights.js puts a button in a
    figure's corner - shown on hover and on keyboard focus, and always, faint,
    where there is no hover, because a touch reader has no other way to find
    it - and draws what a reader marked in the figure's own coordinates: a
@@ -2125,7 +2120,7 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
    highlight with a note ends in a small number, and the note stands in the
    outer margin the print layout keeps free because a handout is written on
    (main's rule in the @media print block above: a 38rem column in a 16cm
-   page area leaves 3.9cm inside it). PRINT_HIGHLIGHTS_JS writes the number
+   page area leaves 3.9cm inside it). runtime/print-highlights.js writes the number
    and the note into the text, where only print shows them, and keeps them
    there - so what a print engine lays out is ordinary markup, and a printer
    driven without a beforeprint event (a PDF made by a script) gets them too.
@@ -2193,7 +2188,7 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
    code block or a display formula and it opens on a paper card over the
    dimmed page, sized to the window; the wheel or a pinch zooms under the
    pointer, a drag pans, + / - / 0 zoom from the keyboard, and Esc or a click
-   that did not drag closes it. PRINT_JS builds the overlay, so a document
+   that did not drag closes it. runtime/print.js builds the overlay, so a document
    opened without scripts is exactly the document it was. Nothing here reaches
    paper. */
 @media screen {

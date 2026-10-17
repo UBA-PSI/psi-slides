@@ -1,6 +1,6 @@
 
 /* The switch wears the chrome of the other footer buttons, and the rules that
-   dress them are in SPEAKER_CSS - in selector lists this id is deliberately
+   dress them are in runtime/speaker.css - in selector lists this id is deliberately
    not a member of, because a button that exists in one build out of two
    cannot be a name in the stylesheet every cockpit carries. So the shape is
    repeated here for the one selector; the declarations are the same
@@ -249,5 +249,5 @@ body[data-mode=dark] #psiINT-souffleuse-strip[data-severity=high] { background: 
    positioned ancestor happens to be up the tree - so anything growing above
    the rail moved every card by its own height. The strip is the only thing
    that ever grows there, which is why the line is here and not in
-   SPEAKER_CSS: a cockpit with no prompter has nothing to correct for. */
+   runtime/speaker.css: a cockpit with no prompter has nothing to correct for. */
 #psiINT-cue-rail { position: relative; }

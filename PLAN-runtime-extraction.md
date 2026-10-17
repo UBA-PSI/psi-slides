@@ -21,7 +21,8 @@ the live views' sheet with 15, six of them in selector position (step 12),
 and `AUDIENCE_JS`, the live views' runtime with 5 (step 13, the last); then
 the gates that read build.js's literals were fitted to a build.js that holds
 none of the large ones (`strip` lost its empty literal list, `inlined` gained
-its counterpart for `runtime/*.js`; see *Log*). What is left in build.js are
+its counterpart for `runtime/*.js`; see *Log*), and the comments that still
+named a moved literal as a place were swept (open question 4). What is left in build.js are
 the small literals the list never named – six markup constants, two
 one-line `<head>` scripts, `DOCUMENT_PAGE_CSS` and `SANS_STACK_TAIL` – and
 the recommendation is to leave them there (open questions 6 and 7).
@@ -196,7 +197,8 @@ replaces: `SPEAKER_CSS` → `runtime/speaker.css`, `SOUFFLEUSE_JS` →
 7. **Comments inside other literals that name the moved one stay as they
    are**: they ship under `PSI_KEEP_COMMENTS=1`, so editing them breaks that
    half of byte identity (open question 4). Node-side comments in `build.js`
-   may be updated.
+   may be updated. **Swept once every literal had moved**, in a commit that
+   changed only comments (see *Log*).
 
 ## Substitution scheme
 
@@ -474,7 +476,14 @@ included; and the output is byte-identical.
    over those files finds them. Recommended: one commit that changes only
    comments, and so only the `PSI_KEEP_COMMENTS=1` output – the plain views
    must stay byte-identical, which is how the commit shows it touched no
-   code; it can go with question 3's headers or before them.
+   code; it can go with question 3's headers or before them. **Done**,
+   before the headers, in one commit of comment text only: 60 comments in
+   eleven runtime files, 11 in the six modules and sheets that ship as text,
+   two in build.js, three in two tests and one each in `speaker.md` and
+   `TODO-localisation.md` now name the file (or say the
+   build fills a placeholder in), the eight “no backtick” sentences are gone,
+   and six em-dashes in `runtime/` comments are en-dashes. Plain views
+   byte-identical; kept-comment views equal once stripped (see *Log*).
 5. **The substitution schemes.** **Decided: one scheme for all eight** –
    `__PSI_NAME__`, or `/*__PSI_NAME__*/` for a generated block, filled by
    `fillRuntime` from a `NAME_FILL` table before `ship*`, strictly (see
@@ -1545,3 +1554,83 @@ included; and the output is byte-identical.
   paragraph, the `strip` row). Identity: no engine file changed; the
   tracked views are unchanged and the same 40-view comparison against
   `3f790c1` passes.
+
+- **The comment sweep** (open question 4) – done, comment text only. Found
+  by `grep -rnE` for the sixteen moved names, as whole words, over
+  `runtime/`, build.js, the root modules, `editor.css`, `lint.js`, `test/`,
+  `tools/`, `docs/` (not `docs/history/`), the skills and `desktop/`, plus a
+  second pass over `runtime/` for “literal”, “backtick”, “interpolated” and
+  em-dashes. Each mention was read in its sentence: where it names the place
+  a rule or a function lives, or treats the name as a live constant, it now
+  names the file (`runtime/print.css`, `fadeSwap in runtime/audience.js`);
+  where it is history it stays.
+
+  | file | comments changed |
+  |---|---:|
+  | `runtime/audience.css` | 21 |
+  | `runtime/print.css` | 13 |
+  | `runtime/audience.js` | 9 |
+  | `runtime/speaker.js` | 5 |
+  | `runtime/diagram.css` | 4 |
+  | `runtime/speaker.css`, `runtime/souffleuse.css` | 2 each |
+  | `runtime/print-highlights.js`, `runtime/souffleuse.js`, `runtime/watch-banner.js`, `runtime/diagram.js` | 1 each |
+  | `diagram-core.mjs` | 4 |
+  | `commands.mjs`, `editor.mjs` | 2 each |
+  | `cue-cards.mjs`, `editor.css`, `pdf-core.mjs` (inside `PDF_CSS`) | 1 each |
+  | `build.js` (Node-side) | 2 |
+  | `test/gates/zoom-scope.mjs` | 2 |
+  | `test/settings.mjs`, `speaker.md`, `TODO-localisation.md` | 1 each |
+
+  Besides the names: the eight comments that said there must be no backtick
+  in them (one in `audience.css`, four in `print.css` – one of them pointing
+  at CLAUDE.md's template-literal rule – two in `diagram.css`, one in
+  `audience.js`) lose that sentence; three comments over a placeholder that
+  said the value was “interpolated” (`audience.css`'s font stacks,
+  `diagram.js`'s `DG_SHAPES`, `audience.js`'s `AUTO_FIT_CYCLE`) say the build
+  fills it in – without spelling the placeholder token, which `fillRuntime`
+  would take for one; `editor.mjs`'s header no longer contrasts itself with
+  a runtime held in a template literal; `runtime/speaker.js`'s “conditional
+  on a literal that may not have been spliced” is a script;
+  `runtime/audience.js`'s “a contract no reader of build.js can see” is this
+  file; build.js's stylesheet check no longer speaks of “the constants”, and
+  the QR encoder's comment says it *kept* the encoder out of the literals
+  the runtime then lived in. No comment in `runtime/` told the reader to
+  double a regex backslash. Six em-dashes in `runtime/` comments are
+  en-dashes; two more stand in user-facing strings in `runtime/speaker.js`
+  (“Clipboard blocked — copy manually below”, “No live annotations to export
+  — type some with N first.”) and are code, so they stay for a commit that
+  may change a view.
+
+  Kept as history, each reading as history already: build.js's seventeen
+  “`NAME` until it left this file” comments beside the path constants and
+  the souffleuse section's “then `SPEAKER_CSS`, now `runtime/speaker.css`”;
+  the gates' “until it left build.js” notes (`semantics`, `canvas`,
+  `strip`, `tails`, `id-namespace`, `commands`' header) and `commands`'
+  “the switch in `AUDIENCE_JS` answered” (the fixture records what the old
+  switch did); `tools/coverage-logic.mjs`'s “while the runtime scripts and
+  stylesheets were literals here (`AUDIENCE_JS` and two dozen others)”;
+  `speaker.md` §8, an implementation order written when the cockpit was
+  built; the skills' “(`NAME` until it left build.js)” and “then `NAME`”
+  asides and the prompter skill's account of a spec that once failed on a
+  comment in `SPEAKER_JS`; `TODO-localisation.md`'s two rows that already
+  say “until it moved”. `test/settings.mjs`'s note on how the 1.0.0 list was
+  found now names both: the diff was of `AUDIENCE_CSS` and `PRINT_CSS` then,
+  of the two files now.
+
+  Identity: comments are stripped on the way into a view, so the plain
+  output cannot move, and it does not. `npm run build:tracked` leaves
+  `lectures/` unchanged; python-intro, network-security and a `kind:
+  document` fixture (`lang: de`, a margin note, a footnote, a `###` heading,
+  maths and code), built by an archive of `0a12040` and by the new tree into
+  `<old|new>/<plain|kept>/L/<deck>`: the nine plain views `cmp`-equal; the
+  nine `PSI_KEEP_COMMENTS=1` views differ, and are equal once every
+  `<script>` and `<style>` body in both is put through `stripJs` /
+  `stripCss` – the raw line diff of one (python-intro's `print.html`, 27
+  lines out, 20 in) was read and is the edited comments and nothing else.
+  The gates pass with the same 2,221 assertions; the only output lines that
+  moved are the `strip` gate's raw byte counts for five files
+  (`diagram-core.mjs`, `editor.mjs`, `commands.mjs`, `cue-cards.mjs`,
+  `runtime/speaker.js`), whose stripped sizes are unchanged – no count moved,
+  since no edited comment held an `#id`, a regex or a placeholder. `lint.js`,
+  `refresh-figures.mjs --check`, `settings`, `reproducible`, `containers`
+  and `cli` pass. Not run: the browser suite and `test/pdf-export.mjs`.

@@ -32,8 +32,9 @@
  * From 1.0.0 the source format is the interface, and a lecture that laid out
  * a certain way should be able to lay out that way again. Exactly four
  * things have moved since 1.0.0 that a finished deck would notice, found by
- * diffing AUDIENCE_CSS and PRINT_CSS between the v1.0.0 tag and HEAD rather
- * than by reading commit titles:
+ * diffing the two stylesheets (AUDIENCE_CSS and PRINT_CSS then,
+ * runtime/audience.css and runtime/print.css now) between the v1.0.0 tag and
+ * HEAD rather than by reading commit titles:
  *
  *   1. the bundled sans           -> `fonts: {sans: Inter Tight}`
  *   2. text-wrap balance/pretty   -> `style: {wrap: none}`

@@ -1479,7 +1479,7 @@ export function dgLabelAnchor(classes) {
 // 12 px type and 3 is the floor anything on a projector has to clear.
 //
 // So the two are split at the one place where they can be: this number goes
-// on the group, and DIAGRAM_CSS multiplies it back down for the shape, the
+// on the group, and runtime/diagram.css multiplies it back down for the shape, the
 // stroke, the head and an image - every drawable that is not type. The
 // product is the number that was here before, to the pixel, so no existing
 // figure's outline or fill moves; only the type inside a softened element
@@ -2307,7 +2307,7 @@ export function dgPointOf(model, node) {
 // which no `via` can ever rescue – becomes the error its sibling already was.
 //
 // Almost every entry is a fact about the **grammar**, decidable from the kind
-// word with no reference to DIAGRAM_CSS, because the kind decides which
+// word with no reference to runtime/diagram.css, because the kind decides which
 // drawables the group holds: an `image` group holds one `<image>` and nothing
 // else, a `brace` holds one stroke path, a free `text` holds a label and a rect
 // only when it is filled. The handful that are genuinely stylesheet facts –
@@ -3289,7 +3289,7 @@ export function dgDiffFrames(frames) {
 }
 // Whole frames again, in place, and idempotent: a frame that is already whole
 // is left alone, so every reader may call it. Self-contained, because the
-// live runtime carries it as text (DIAGRAM_JS) in views with no compiler.
+// live runtime carries it as text (runtime/diagram.js) in views with no compiler.
 export function dgFullFrames(data) {
   const fr = data && data.frames;
   if (!fr) return data;
@@ -9749,7 +9749,8 @@ export function createDiagramCompiler(env = {}) {
     // because a height budget has to become a width before it can join the
     // same min().
     //
-    // Read by PRINT_CSS and, since the room measurements, by AUDIENCE_CSS too:
+    // Read by runtime/print.css and, since the room measurements, by
+    // runtime/audience.css too:
     // a projection used to want the opposite of this - the figure was the
     // slide and filled the frame whatever that did to the type - and what it
     // actually did was set one lecture's labels between 0.53x and 2.97x of its

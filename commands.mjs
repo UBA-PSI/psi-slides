@@ -5,7 +5,7 @@
  * APIs, the sixth module of that kind. build.js imports it to render the ?
  * panel (renderHelpOverlay) and splices this same text into both live views
  * as window.PSI_COMMANDS, the way cue-cards.mjs travels as window.PSI_CARDS:
- * the keydown listener in AUDIENCE_JS looks a press up in keyMap(VIEW) and
+ * the keydown listener in runtime/audience.js looks a press up in keyMap(VIEW) and
  * runs COMMAND_RUN[id], so the key in the panel and the key in the handler
  * are one entry here and cannot drift apart. test/gates/commands.mjs holds
  * the rest without a browser: every key the key map answered before the
@@ -452,7 +452,7 @@ export const COMMANDS = [
 
 // The projection's start menu: the three things a lecturer does before the
 // first slide moves, in this order. audience.html only, and only until the
-// talk starts (see the start menu in AUDIENCE_JS).
+// talk starts (see the start menu in runtime/audience.js).
 export const START_MENU = ['fullscreen', 'cockpit', 'print'];
 
 // ── reading the table ─────────────────────────────────────────────────

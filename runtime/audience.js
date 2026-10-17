@@ -175,8 +175,8 @@ document.querySelectorAll('.column').forEach((col, ci) => {
 //   shrink  – fit, ceilinged at the lecturer's own zoom. Only ever smaller.
 //   full    – fit, ceilinged at the global maximum. Grows a short slide too.
 //
-// Interpolated from build.js so the cycle and the frontmatter vocabulary
-// have one source. Declared above state, because state's initialiser calls
+// Filled in by the build from build.js's tables so the cycle and the
+// frontmatter vocabulary have one source. Declared above state, because state's initialiser calls
 // normAutoFit and a const read before its own line is a TDZ error, not a
 // fallback.
 const AUTO_FIT_CYCLE = __PSI_AUTO_FIT_CYCLE__;
@@ -1600,7 +1600,7 @@ function focusCamera(instant = false) {
   if (annotEditingId === entry.id) {
     // The annotation being typed is a layer over the whole chunk, which
     // takes the slide's height for the duration (the annot-visible rules in
-    // AUDIENCE_CSS), so framing it is centring the chunk - whatever its
+    // runtime/audience.css), so framing it is centring the chunk - whatever its
     // height, because the layer is centred on the chunk and the words are
     // centred in the layer. It used to park the slide a third of the way
     // right to uncover a margin column; that column is now the frame.
@@ -2750,7 +2750,7 @@ function wireAnnotations() {
     if (!ta) return;
     // Source-authored annotation is baked into ta.defaultValue by the
     // server render; a localStorage draft (if any) wins. An explicit
-    // empty-string draft is honored — the lecturer deliberately cleared.
+    // empty-string draft is honored – the lecturer deliberately cleared.
     if (id in annotations) ta.value = annotations[id];
     if (ta.value.trim()) el.classList.add('has-annot');
     autosize(ta);
@@ -2906,8 +2906,8 @@ function nowrapProbe(el) {
 }
 
 // The third thing a slide can fail to do, and the newest. A figure is sized
-// from the type it stands in (.chunk .psi-diagram in AUDIENCE_CSS): the width
-// it wants is --dg-fit-w base labels, one label to the em - the slide canvas
+// from the type it stands in (.chunk .psi-diagram in runtime/audience.css):
+// the width it wants is --dg-fit-w base labels, one label to the em - the slide canvas
 // where the chunk has one. When that is more
 // than the column has, or more than the height cap allows, the min() caps it
 // and the drawing stops following the type - so growing the slide's words from
@@ -4791,8 +4791,8 @@ function announceFullscreen() {
 // The ? panel is rendered from the same table, so a key cannot be bound
 // without a row (test/gates/commands.mjs holds the rest).
 //
-// SPEAKER_JS and SOUFFLEUSE_JS add their own commands by assigning into
-// COMMAND_RUN, the way they set viewHooks; a command this view's table has
+// runtime/speaker.js and runtime/souffleuse.js add their own commands by
+// assigning into COMMAND_RUN, the way they set viewHooks; a command this view's table has
 // and nothing here runs is a press spent on nothing.
 //
 // What stays code is the listener's head: the rules about *where* a key was
@@ -4976,7 +4976,7 @@ const COMMAND_RUN = {
   'fullscreen': (e) => { toggleProjectionFullscreen(); e.preventDefault(); },
   // A view this build left without its sibling (see siblingViewsAbsent)
   // says so rather than opening a window onto a missing file. The cockpit
-  // runs this same function for its P and its palette row - SPEAKER_JS
+  // runs this same function for its P and its palette row - runtime/speaker.js
   // must not assign a print of its own that skips withView.
   'print': (e) => {
     e.preventDefault();
@@ -4998,7 +4998,8 @@ const COMMAND_RUN = {
   // Only in audience: open the speaker window and remember it as our peer.
   // A cockpit that is already open is brought forward, never opened again
   // (openViewWindow); one this window cannot reach is named rather than
-  // doubled (cockpitElsewhere). The cockpit's S is SPEAKER_JS's projection.
+  // doubled (cockpitElsewhere). The cockpit's S is the projection command in
+  // runtime/speaker.js.
   'cockpit': (e) => {
     e.preventDefault();
     if (hasLivePeer()) { try { peer.focus(); } catch (err) {} return; }
@@ -5176,7 +5177,6 @@ document.addEventListener('keydown', (e) => {
   // and the reverse-cycling Shift-C are real bindings. Alt is here even
   // though holding Alt alone starts text selection – that listener tests the
   // key name, and Alt with a letter is a character on macOS, not a command.
-  // (No backticks in this comment: one would end the template literal.)
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   // The go-to prompt is modal over the key map, and it stands after the
   // guards above rather than before them: an annotation textarea and the
@@ -5895,7 +5895,7 @@ function wireFigureClicks() {
 // Reaching into the runtime's own consts from an injected function would work,
 // because this is a classic script and they sit in the global lexical scope,
 // and it would save these lines at the price of a contract no reader of
-// build.js can see and a rename breaks in silence.
+// this file can see and a rename breaks in silence.
 window.psiExport = {
   // The export writes <html>'s zoom itself after jumpTo and the fit, and
   // clones the slide it prints, so it must find no slide holding a zoom

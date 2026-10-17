@@ -76,7 +76,7 @@ footers carry `counter(page)` and no word (:5556–5560).
 
 | String | Where | Seen by |
 | --- | --- | --- |
-| `EXERCISE` – the one eyebrow the projection still generates | `content: 'EXERCISE'` in AUDIENCE_CSS, build.js:7952; its `labels: off` counterpart at :8042 | Reader |
+| `EXERCISE` – the one eyebrow the projection still generates | `content: 'EXERCISE'` in `runtime/audience.css` (`.chunk[data-tag=exercise]`); its `labels: off` counterpart a little below it | Reader |
 | `note` – default aside label, as above | `content: attr(data-label)` at build.js:9829 (`.margin-note::before`) | Reader |
 | `annotation · <chunk-id>` – label over a shown `> annot:` box | build.js:6584 (`.annot-box-label`; shown in the audience at full opacity, :9866) | Reader, when a chunk carries an annotation |
 | `+ note` – the annotation button on the active chunk | build.js:6588; hidden only in the cockpit (:15668), dim on the projection (:10003) | Reader |
