@@ -101,6 +101,9 @@ const CSS_CASES = [
 // The modules spliced into a view as text, as build.js splices them: the
 // export keyword dropped, the names collected and returned.
 const MODULES = ['diagram-core.mjs', 'editor.mjs', 'commands.mjs', 'cue-cards.mjs'];
+// The literals that have left build.js for runtime/ (PLAN-runtime-extraction.md),
+// each with the getter build.js reads it through: [file, getter].
+const RUNTIME = [['runtime/speaker.css', 'speakerCss'], ['runtime/print.js', 'printJs']];
 const asScript = (text) => {
   const names = [...text.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
   return { names, body: text.replace(/^export\s+(function|const|let)\s/gm, '$1 ') };
@@ -165,16 +168,30 @@ export async function run({ report }) {
   }
   // The stylesheets that are real files: editor.css, and the literals that
   // have moved out of build.js into runtime/ (PLAN-runtime-extraction.md).
-  for (const file of ['editor.css', 'runtime/speaker.css']) {
+  for (const file of ['editor.css', ...RUNTIME.map(([f]) => f).filter(f => f.endsWith('.css'))]) {
     const css = fs.readFileSync(path.join(ROOT, file), 'utf8');
     const strippedCss = stripCss(css);
     ok(stripCss(strippedCss) === strippedCss, `${file}: a second strip changes nothing`);
     ok(!/\/\*/.test(strippedCss), `${file}: no comment is left`);
   }
+  // The scripts among them are fragments run in a <script>, not modules:
+  // each compiles as a script before and after the strip, the strip takes
+  // something, and a second strip changes nothing.
+  for (const file of RUNTIME.map(([f]) => f).filter(f => f.endsWith('.js'))) {
+    const js = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const strippedJs = stripJs(js);
+    ok(stripJs(strippedJs) === strippedJs, `${file}: a second strip changes nothing`);
+    ok(strippedJs.length < js.length, `${file}: the strip took something (${js.length} → ${strippedJs.length} bytes)`);
+    for (const [what, text] of [['the file', js], ['the stripped text', strippedJs]]) {
+      let err = '';
+      try { new vm.Script(text); } catch (e) { err = e.message; }
+      ok(!err, `${file}: ${what} compiles as a script`, err);
+    }
+  }
 
   // ── build.js hands every runtime and stylesheet literal through ship* ──
   const build = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
-  const LITERALS = ['AUDIENCE_JS', 'SPEAKER_JS', 'DIAGRAM_JS', 'PRINT_JS', 'PRINT_READER_JS',
+  const LITERALS = ['AUDIENCE_JS', 'SPEAKER_JS', 'DIAGRAM_JS', 'PRINT_READER_JS',
     'PRINT_HIGHLIGHTS_JS', 'AUDIENCE_CSS', 'DIAGRAM_CSS', 'PRINT_CSS', 'PULSE_PRINT_CSS'];
   for (const lit of LITERALS) {
     const bare = [...build.matchAll(new RegExp('\\$\\{(?:[^}]*\\? )?' + lit + '\\b', 'g'))].length;
@@ -190,7 +207,7 @@ export async function run({ report }) {
   ok(/shipCss\(editorCss\(\)\)/.test(build), 'editor.css is stripped on its way in');
   // A literal moved into runtime/ keeps the guarantee it had as a literal:
   // its text reaches a view only through ship*, never bare.
-  for (const [file, getter] of [['runtime/speaker.css', 'speakerCss']]) {
+  for (const [file, getter] of RUNTIME) {
     const bare = [...build.matchAll(new RegExp('\\$\\{(?:[^}]*\\? )?' + getter + '\\(\\)', 'g'))].length;
     const shipped = [...build.matchAll(new RegExp('ship(?:Js|Css)\\(' + getter + '\\(\\)\\)', 'g'))].length;
     ok(bare === 0 && shipped > 0, `${file} (${getter}()) reaches a view only through shipJs / shipCss`,

@@ -8,10 +8,10 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **1 of 24 moved** – the pilot, `SPEAKER_CSS` (see *Log*). Next:
-`PRINT_JS`. The inventory's line numbers are those of `a49b625`, before the
-pilot; `SPEAKER_JS` now starts 1,127 lines earlier (27360), everything
-from `SOUFFLEUSE_CSS` on 1,126 earlier (a comment above it grew a line).
+Status: **2 of 24 moved** – the pilot, `SPEAKER_CSS`, and `PRINT_JS` (see
+*Log*). Next: `PULSE_PRINT_CSS`. The inventory's line numbers are those of
+`a49b625`, before the pilot; `node tools/runtime-literals.mjs` has the
+current ones.
 
 ## Inventory
 
@@ -169,7 +169,9 @@ replaces: `SPEAKER_CSS` → `runtime/speaker.css`, `SOUFFLEUSE_JS` →
    asserts the getter reaches a view only through `ship*` and holds the
    file's strip (idempotent, no comment left) as `editor.css`'s is.
    `id-namespace`: its `CSS_SOURCES` entry becomes `['runtime/<file>', null]`
-   (read whole). `inlined` scans the literals that remain and needs nothing.
+   (read whole); a script joins its `FILES`, the emitter scan, because the
+   ids a script writes are what the stylesheets' selectors are checked
+   against (found with `PRINT_JS`). `inlined` scans the literals that remain and needs nothing.
    Before each move, `grep -rn NAME` over `test/`, `tools/`, `docs/`,
    `desktop/`, `.github/` and the skills for anything else that reads it.
 7. **Comments inside other literals that name the moved one stay as they
@@ -319,3 +321,27 @@ is byte-identical.
   the same lecture built by a staged copy of the engine, equal. Not run: the
   browser suite and `test/pdf-export.mjs`.
 - **Tooling** – `tools/runtime-literals.mjs` restores the inventory and extraction scripts the pilot used and deleted; its output matches the table above (with `SPEAKER_CSS` gone). CLAUDE.md describes `runtime/` and the seven run-time reads.
+- **`PRINT_JS` → `runtime/print.js`** – done. 5,857 bytes, 147 lines,
+  written by `--extract` (value equals source). Named after the literal like
+  `speaker.css`, not after what it does (the lightbox): the rule is the
+  literal's name, and the comment above the path constant says what it is.
+  `build.js` lost 153 lines and gained 13: `PRINT_JS_PATH`, `printJs()`, a
+  comment replacing the one that said the literal held no backticks or
+  regexes; the render site is `shipJs(printJs())`; two Node-side comments
+  that named `PRINT_JS` now name the file. Gates: `strip` – a `RUNTIME`
+  table of `[file, getter]` now drives both runtime checks; the ship check
+  moved from `LITERALS` to it, and a script in it is held by three new
+  checks (a second strip changes nothing, the strip took something, file
+  and stripped text compile as a script): 2,142 → 2,146 assertions.
+  **`id-namespace` needed more than the plan said**: the lightbox *emits* an
+  id (`box.id = 'psiINT-lightbox'`), and the gate's emitter scan read it as
+  part of build.js, so with the literal gone `PRINT_CSS`'s
+  `#psiINT-lightbox` selectors named an id nothing emitted. The file joins
+  the gate's `FILES` (the emitter scan), not only `CSS_SOURCES`; 123
+  emitted ids and 564 selectors, as before. Any later script literal that
+  writes or looks up an id goes the same way. Desktop: `FILES` gained the
+  file, the read count went 7 → 8; with the file off `FILES` the test fails
+  by name. Identity: tracked views unchanged; python-intro's four views
+  `cmp`-equal plain and under `PSI_KEEP_COMMENTS=1` (whose two documents
+  carry the file's comments), and when built by a staged copy of the engine.
+  Not run: the browser suite and `test/pdf-export.mjs`.

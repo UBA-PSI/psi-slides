@@ -4,10 +4,11 @@
 // createRequire for the bundled fonts and the KaTeX stylesheet, a dynamic
 // import() for ws, and a WASM load for Shiki's regex engine.
 //
-// What is copied is what the engine reads about itself: build.js, the seven
+// What is copied is what the engine reads about itself: build.js, the eight
 // files it splices in at run time over import.meta.url (diagram-core.mjs,
 // cue-cards.mjs, commands.mjs, pulse-embed.js, editor.mjs, editor.css,
-// runtime/speaker.css – and every runtime/ file after it), the
+// runtime/speaker.css, runtime/print.js – and every runtime/ file after
+// them), the
 // four it only imports statically (tails.mjs, pdf-core.mjs for the PDF
 // option checks, local-files.mjs, the rule for which local files a
 // lecture may reach – which the app's own PDF export loads as well – and
@@ -50,6 +51,7 @@ const FILES = [
   'editor.mjs',
   'editor.css',
   'runtime/speaker.css',
+  'runtime/print.js',
   'package.json',
   'package-lock.json',
   'LICENSE',
