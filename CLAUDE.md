@@ -446,7 +446,9 @@ A source file can silence specific lint warnings (never an error) with an HTML c
 
 ### Single-file build pipeline
 
-`build.js` holds the entire rendering stack: parser, three renderers, inlined audience/speaker/print runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file, and a large one – roughly two thirds of it is the embedded CSS and runtime JS, so the Node-side build logic is much smaller than the file size suggests.
+`build.js` holds the entire rendering stack: parser, three renderers, inlined audience/speaker/print runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file, and a large one – roughly half of it is the embedded CSS and runtime JS, so the Node-side build logic is much smaller than the file size suggests.
+
+**That embedded runtime is moving out into `runtime/`, one literal at a time** (`PLAN-runtime-extraction.md`, item 4 of `docs/history/REVIEW-code-2026-10-17.md`). `runtime/speaker.css` was the first; each file is read the way `editor.css` is – `new URL('./runtime/…', import.meta.url)` spelled as a literal, which is what `desktop/test/stage-engine.test.mjs` looks for, a memoised getter, `shipCss` / `shipJs` on the way into a view – and its bytes are the old literal's *value*, written from the evaluated string, so every view is the same file before and after. `node tools/runtime-literals.mjs` lists the literals still in build.js and writes a static one out (`--extract`). Until the plan is done, a stylesheet or script may be in either place: grep both.
 
 **`diagram-core.mjs` is the first documented exception** (with `tails.mjs`, the tail grammar shared with `lint.js`, as a much smaller companion – see *lint.js is independent* below), and the reason is narrow: the graphical editor answers a drag by rewriting the source and re-running the compiler *in the browser*, so exactly one text has to compile a diagram in Node and in the page. Two copies of a 6,500-line compiler is not a duplication anyone can maintain. The file is pure JS with **zero imports and zero Node APIs**; the four leaves that were Node-only (asset resolution, aspect reading, the warning sink, `escapeHtml`) plus a fifth (`assetMarkup`, which splices a vector file inline) are injected by `createDiagramCompiler({…})`. build.js keeps those leaves, the diagram CSS and the step runtime. The move also *removes* a duplication: `lint.js` imports the vocabulary tables instead of mirroring them by hand – tables only, never a function, or the whole compiler comes in behind it and the linter stops being runnable without the Markdown/Shiki stack. See `editor.md` §8.1.
 
@@ -1154,7 +1156,7 @@ section of `build.js` are an interface with one consumer: change one there
 and `desktop/main/builder.js` and its `events.test.mjs` change in the same
 commit. The human log lines are free to move. The engine the packaged app
 runs is a copy staged by `desktop/scripts/stage-engine.mjs` – `build.js`, the
-six files it reads relative to itself (`commands.mjs` is read and imported),
+seven files it reads relative to itself (`commands.mjs` is read and imported; each `runtime/` file has its own line in `FILES`, while `desktop.yml`'s filter names the folder as `runtime/**`),
 the four more it only imports (`tails.mjs`, `pdf-core.mjs`, `local-files.mjs`, `strip-comments.mjs`), plus a production `npm ci` that omits optional dependencies – so a new runtime file that `build.js` reads via `import.meta.url`
 has to be added to that script's `FILES` or the packaged app fails **every**
 build: the read is a bare `readFileSync` inside a renderer, so it throws

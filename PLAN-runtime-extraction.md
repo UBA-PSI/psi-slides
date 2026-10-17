@@ -15,6 +15,8 @@ from `SOUFFLEUSE_CSS` on 1,126 earlier (a comment above it grew a line).
 
 ## Inventory
 
+**`node tools/runtime-literals.mjs` prints the current inventory** (the literals still in build.js, with lines, substitutions, escaped `\${`, backslashes and whether the value equals the source), and `--extract NAME FILE` writes a static literal's *value* to a file and reads it back – the method below, kept as a tool so every later step uses the same one. The table here is the snapshot the plan was written against.
+
 The 24 multi-line template-literal constants in `build.js` at `a49b625`,
 20,912 lines between them. Found by V8's parser, as `tools/coverage-logic.mjs`
 does: from a `const NAME = …` line holding a backtick, the first line up to
@@ -316,3 +318,4 @@ is byte-identical.
   `PSI_KEEP_COMMENTS=1` (whose `speaker.html` carries the file's comments);
   the same lecture built by a staged copy of the engine, equal. Not run: the
   browser suite and `test/pdf-export.mjs`.
+- **Tooling** – `tools/runtime-literals.mjs` restores the inventory and extraction scripts the pilot used and deleted; its output matches the table above (with `SPEAKER_CSS` gone). CLAUDE.md describes `runtime/` and the seven run-time reads.
