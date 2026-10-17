@@ -258,11 +258,14 @@ export async function run({ report }) {
       'every dark theme carries a --paper-own for pitchblack to mix over', `${owning.join(', ')} of ${darkNames.join(', ')}`);
     ok(/body\[data-mode=dark\]\[data-pitchblack=on\] \{\s*--paper: oklch\(0 0 0\);\s*--dg-ground: var\(--paper-own\);\s*\}/.test(css),
       'pitchblack takes --paper to black and hands the theme\'s own paper to --dg-ground');
-    const mixes = [...css.slice(css.indexOf('const DIAGRAM_CSS = `'), css.indexOf('const DIAGRAM_JS = `'))
+    // runtime/diagram.css, DIAGRAM_CSS until it left build.js, read as the
+    // file stands: the bar fills are its one generated block, checked below.
+    const dgCss = fs.readFileSync(path.join(ROOT, 'runtime/diagram.css'), 'utf8');
+    const mixes = [...dgCss
       .matchAll(/color-mix\(in oklab, var\(--(?:ink|emph)\) \d+%, ([^;]*?)\);/g)].map((m) => m[1])
       .filter((m) => m.includes('--paper'));
     ok(mixes.length === 5 && mixes.every((m) => m === 'var(--dg-ground, var(--paper))'),
-      'every mix against the paper in DIAGRAM_CSS goes over --dg-ground', mixes.join(' | '));
+      'every mix against the paper in runtime/diagram.css goes over --dg-ground', mixes.join(' | '));
     ok(dgBarFillCss().includes('var(--dg-ground, var(--paper))') && !/, var\(--paper\)\)/.test(dgBarFillCss().replace(/var\(--dg-ground, var\(--paper\)\)/g, '')),
       'and so does every bar fill');
     // Black under an unchanged fill: no ratio dgBarContrast models can fall,
@@ -925,13 +928,15 @@ export async function run({ report }) {
     // The stylesheet half. Both rules exist, the one that keeps the outline
     // off is the more specific of the two, and it is written after the
     // .tone-4.emph rule it ties with – so a cell carrying all three is still
-    // un-stroked. Read as text, because what it asserts is source order.
-    const css = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    // un-stroked. Read as text, because what it asserts is source order – in
+    // runtime/diagram.css, the figures' stylesheet (DIAGRAM_CSS until it left
+    // build.js).
+    const css = fs.readFileSync(path.join(ROOT, 'runtime/diagram.css'), 'utf8');
     const emphAt = css.indexOf('.psi-diagram .emph > :is(rect, circle, .dg-shape)');
     const bareAt = css.indexOf('.psi-diagram .bare.emph > :is(rect, circle, .dg-shape) { stroke: none; }');
     const toneAt = css.indexOf('.psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape)');
     ok(bareAt > 0, 'the stylesheet says emph draws no outline on a .bare element',
-      'no .bare.emph rule in build.js');
+      'no .bare.emph rule in runtime/diagram.css');
     ok(bareAt > emphAt && emphAt > 0 && bareAt > toneAt && toneAt > 0,
       'and it is written after both rules it has to beat, which is what settles the tie',
       `emph ${emphAt}, tone-4.emph ${toneAt}, bare.emph ${bareAt}`);

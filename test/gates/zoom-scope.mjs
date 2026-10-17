@@ -49,22 +49,34 @@ const IN_CHUNK = {
 export function zoomSelectors(src) {
   const out = [];
   for (const m of src.matchAll(/^const ([A-Z_0-9]*CSS[A-Z_0-9]*)\s*=\s*`([\s\S]*?)^`;/gm)) {
-    const css = m[2].replace(/\/\*[\s\S]*?\*\//g, '');
-    const stack = [];
-    let start = 0;
-    for (let k = 0; k < css.length; k++) {
-      if (css[k] === '{') { stack.push(css.slice(start, k).trim()); start = k + 1; }
-      else if (css[k] === '}') {
-        const body = css.slice(start, k), sel = stack.pop();
-        if (body.includes('var(--zoom') && !body.includes('{')) {
-          for (const one of sel.split(',')) out.push({ literal: m[1], selector: one.replace(/\s+/g, ' ').trim() });
-        }
-        start = k + 1;
+    out.push(...sheetZoomSelectors(m[2], m[1]));
+  }
+  return out;
+}
+
+// The same for one stylesheet, named by `literal` in what is reported.
+export function sheetZoomSelectors(text, literal) {
+  const out = [];
+  const css = text.replace(/\/\*[\s\S]*?\*\//g, '');
+  const stack = [];
+  let start = 0;
+  for (let k = 0; k < css.length; k++) {
+    if (css[k] === '{') { stack.push(css.slice(start, k).trim()); start = k + 1; }
+    else if (css[k] === '}') {
+      const body = css.slice(start, k), sel = stack.pop();
+      if (body.includes('var(--zoom') && !body.includes('{')) {
+        for (const one of sel.split(',')) out.push({ literal, selector: one.replace(/\s+/g, ' ').trim() });
       }
+      start = k + 1;
     }
   }
   return out;
 }
+
+// The stylesheets that left build.js for runtime/ and ship into a live view
+// (PLAN-runtime-extraction.md), read as files: the figures' sheet, which was
+// DIAGRAM_CSS and so one of the literals above.
+const RUNTIME_SHEETS = ['runtime/diagram.css'];
 
 // The selector as compounds, subject last, each with the combinator that
 // joins it to the next one. The arguments of :has(), :not(), :is() and
@@ -111,6 +123,9 @@ export async function run({ report }) {
   const { ok, note } = report;
   const src = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
   const found = zoomSelectors(src);
+  for (const file of RUNTIME_SHEETS) {
+    found.push(...sheetZoomSelectors(fs.readFileSync(path.join(ROOT, file), 'utf8'), file));
+  }
   ok(found.length > 20, 'the CSS literals still hold the rules that read var(--zoom)', String(found.length));
   note(found.length + ' selector(s) read var(--zoom)');
   const off = found.filter(f => !onSlide(f.selector));

@@ -163,7 +163,10 @@ export async function run({ report }) {
      'and the bleed column is the reference width');
   // ...and the stylesheet says the same four numbers. The base cap is the
   // fallback of every `var(--fig-cap, N)`; the other three are rules of their own.
-  const fallbacks = [...src.matchAll(/var\(--fig-cap, ([\d.]+)\)/g)].map(m => Number(m[1]));
+  // The max-height rule is in runtime/diagram.css (DIAGRAM_CSS until it left
+  // build.js), --dg-box-w in AUDIENCE_CSS, so both texts are read.
+  const dgCss = fs.readFileSync(path.join(ROOT, 'runtime/diagram.css'), 'utf8');
+  const fallbacks = [...(src + dgCss).matchAll(/var\(--fig-cap, ([\d.]+)\)/g)].map(m => Number(m[1]));
   ok(fallbacks.length >= 2 && fallbacks.filter(n => n === caps.get('chunk')).length >= 2,
      'the max-height rule and --dg-box-w both fall back to the chunk cap', fallbacks.join(', '));
   const picCss = /\.chunk\[data-canvas-tier=picture\] \{ --fig-cap: ([\d.]+); \}/.exec(src);

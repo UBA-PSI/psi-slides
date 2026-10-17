@@ -8,13 +8,14 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **11 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+Status: **12 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
 `PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS`,
 `WATCH_BANNER_CSS` and `WATCH_BANNER_JS` (see *Log*): every static CSS and
 JS literal on the list; then `PRINT_VIEW_JS`, the first with substitutions,
 under the scheme decided for it (see *Substitution scheme*), then
-`PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS`, which close step 8 of *Order*.
-Next: step 9, `DIAGRAM_CSS`.
+`PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS`, which close step 8 of *Order*,
+and `DIAGRAM_CSS`, the first with a generated block (step 9). Next: step 10,
+`DIAGRAM_JS`, after open question 5's last half is decided.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -882,3 +883,72 @@ included; and the output is byte-identical.
   three times and should name it `READER_NOTES_BELOW`, beside
   `READER_WIDE_BELOW` (above); its plain `${READER_NOTES_PX}px` /
   `${READER_WIDE_PX}px` widths keep the derived names.
+- **`DIAGRAM_CSS` → `runtime/diagram.css`** – done, and the first use of
+  the comment form. 22,957 bytes, 360 lines, written by `--extract …
+  --names 'DG_SOFT_GROUND_DIM,DG_SOFT_GROUND_GHOST,/*BAR_FILL_RULES*/'`,
+  which filled the file back to the literal's value before writing it; the
+  value equals the source text (no escapes). The two `toFixed(4)` opacities
+  a dimmed and a ghosted element's ground is taken down by are bare values
+  (`opacity: __PSI_DG_SOFT_GROUND_DIM__;`, named for the `DG_SOFT_GROUND` key
+  rather than the derived `…_DIM_TOFIXED_4`), and the six column-fill rules
+  `dgBarFillCss()` generates stand on a line of their own as
+  `/*__PSI_BAR_FILL_RULES__*/`, where a bare name would have been read as the
+  next rule's selector. `build.js` lost 371 lines and gained 30:
+  `DIAGRAM_CSS_PATH`, the `DIAGRAM_CSS_FILL` table where the literal stood
+  (`DG_SOFT_GROUND` and `dgBarFillCss` are imports at the top of the file,
+  so the table evaluates them where the literal did), `diagramCss()`
+  through `fillRuntime`, a comment under the section banner; the three
+  render sites (print, audience, speaker) are `${shipCss(diagramCss())}`;
+  the stylesheet check's `sheets` entry is `'runtime/diagram.css':
+  diagramCss()` – the sheet is checked filled, as it ships; two Node-side
+  comments (on `FIG_CAP`'s `--fig-cap` fallback and in
+  `assertStylesheetsWellFormed`) name the file. The four comments inside
+  `PRINT_CSS` and `AUDIENCE_CSS` that name `DIAGRAM_CSS` stay (rule 7).
+
+  **Five gates read the literal, and four of them as part of build.js's
+  text, so the move would have left them reading less**; each is repointed
+  at the file rather than loosened. `strip`: out of `LITERALS`, into
+  `RUNTIME` (ship check, the two stylesheet strip checks on the raw file,
+  the per-file fill check): 2,197 → 2,200. `id-namespace`: its
+  `CSS_SOURCES` entry is `['runtime/diagram.css', null]`; the generated
+  block names no `#id`, so reading the raw file loses nothing; still 570
+  selectors in 9 stylesheets. `semantics`: the check that every
+  `color-mix` against the paper goes over `--dg-ground` sliced build.js
+  between `const DIAGRAM_CSS` and `const DIAGRAM_JS` and asserts exactly
+  five – it reads the file now (the generated bar fills were never in that
+  slice and have their own check on `dgBarFillCss()`); and the
+  source-order check for `.bare.emph` against `.emph` and
+  `.tone-4.emph` searched all of build.js, and searches the file. Both
+  would have failed, not passed vacuously. `canvas`: “the max-height rule
+  and `--dg-box-w` both fall back to the chunk cap” counted
+  `var(--fig-cap, 0.62)` in build.js; the max-height rule is in the file,
+  so it scans build.js plus the file (it would have failed: one of two).
+  `zoom-scope`: it reads every template literal in build.js whose name
+  holds `CSS`, which included this one; the sheet has no `var(--zoom)`
+  rule, so nothing was lost today, but the gate would have stopped seeing
+  the file. Its per-sheet walk is now a function of its own
+  (`sheetZoomSelectors`) and a `RUNTIME_SHEETS` list holds
+  `runtime/diagram.css`; still 51 selectors. **A gap found on the way, not
+  closed here**: `speaker.css`, `souffleuse.css` and `pulse-print.css`
+  left `zoom-scope`'s scope silently when their literals moved, since the
+  gate found them by the `const …CSS = ` shape (none reads `var(--zoom)`
+  today, so the count did not move). Adding them to `RUNTIME_SHEETS` is a
+  commit of its own. All 51 of today's selectors are `AUDIENCE_CSS`'s, so
+  its move fails the gate's `found.length > 20` unless the file joins the
+  list; `PRINT_CSS` has none, and would drop out without a sound, so it
+  joins the list in its own move too. Desktop: `FILES` gained the file, the read
+  count went 17 → 18; with the file off `FILES` the test fails by name.
+  Docs: `test/README.md` (`id-namespace`, `zoom-scope`), the figures
+  skill's sentence on `DG_SOFT_GROUND`. Readers checked and left: the
+  figure page's stylesheet, which `docs/artifact/refresh-figures.mjs` lifts
+  out of a *built* view between two marker strings, and `--check` says it
+  is up to date. Identity: `npm run build:tracked` leaves `lectures/`
+  unchanged (all three tracked decks carry the sheet in every view, the
+  generated block included); python-intro, the `reader: off` fixture and a
+  fixture with a stacked `bars` pair, built by `build.js` at `1f4a323` and
+  by the new one, `cmp`-equal plain and under `PSI_KEEP_COMMENTS=1` (whose
+  views carry the file's comment “emph / dim are what a step reaches for”);
+  every view of the bars fixture carries the filled `.dg-bar.tone-1` rule
+  and no `BAR_FILL_RULES`, and no view anywhere holds `__PSI_`; a staged
+  engine builds python-intro equal. Not run: the browser suite and
+  `test/pdf-export.mjs`.

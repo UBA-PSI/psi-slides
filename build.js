@@ -4033,9 +4033,9 @@ function figureRefEm(tag) {
 const FIG_REF_BODY_PX = FIG_REF_REM_PX * FIG_REF_ZOOM;   // 31.59, the ordinary chunk's em
 // **How much of the slide's height a live figure may take, per tier.** One
 // table, mirrored by four stylesheet rules that set `--fig-cap` (the base
-// value written as the fallback in DIAGRAM_CSS and in `--dg-box-w`, plus
-// `.chunk[data-canvas-tier=picture]`, `.chunk[data-canvas-tier=bleed]` and
-// the stacked divider's) and held
+// value written as the fallback in runtime/diagram.css and in
+// `--dg-box-w`, plus `.chunk[data-canvas-tier=picture]`,
+// `.chunk[data-canvas-tier=bleed]` and the stacked divider's) and held
 // against them by `node test/gates/run.mjs canvas`. The reasoning for each
 // number is beside the label count it belongs to, under FIG_CANVAS_H_LABELS.
 const FIG_CAP = { chunk: 0.62, picture: 0.79, stack: 0.72, bleed: 1 };
@@ -4360,367 +4360,25 @@ function reportFigureTypeStatic() {
 // four distinguishable fills that stay inside whichever theme is active,
 // instead of a palette imported from a slide deck that only worked on one
 // background.
-const DIAGRAM_CSS = `
-.figure-diagram { margin: 0.7em 0; }
-.psi-diagram {
-  --dg-sans: var(--sans-font, var(--sans));
-  --dg-mono: var(--mono-font, var(--mono));
-  /* the serif FAMILY, not the reading voice: --body-font is what the F
-     toggle rewrites, so naming it here made .serif and .hand follow the
-     reader's font choice and collapse onto the sans the diagram already
-     defaults to. Print was never affected - it defines no --body-font and
-     fell through to --serif. Parallel to --dg-sans / --dg-mono above. */
-  --dg-serif: var(--serif-stack, var(--serif));
-  display: block; overflow: visible;
-  /* Deliberately the same numbers as figure.figure-img svg. A diagram is a
-     figure, and figures in this project are sized in viewport space, not
-     em space: the drawing has a natural size (its viewBox in px, so the
-     unit option is also the nominal on-slide scale), max-width shrinks it
-     when it is wider, and the vh cap keeps a tall one from overflowing the
-     slide. Diverging here would have made diagrams the one figure kind that
-     responds to the zoom key, which reads as a bug rather than a feature. */
-  max-width: 100%;
-  /* A little taller than figure.figure-img's 50vh. A photo shares the slide
-     with a caption and often arrives in portrait; a diagram is landscape and
-     is usually the whole point of the chunk, and at 50vh a wide one was
-     height-capped hard enough to leave a third of the measure empty beside
-     it.
-     Off --slide-h rather than off vh, for the reason every other slide-
-     internal size is: the cockpit lays the mirror out at the AUDIENCE window's
-     dimensions and then transforms it into its cell, so a raw vh there is the
-     cockpit window's and the same figure was capped at a different height in
-     the two windows. Print defines no --slide-h and falls back to the number
-     this rule has always had; it overrides the cap anyway (PRINT_CSS). */
-  /* --fig-cap is the tier's share of the slide height (FIG_CAP in build.js):
-     unset on an ordinary chunk, 0.79 on a picture slide, 0.72 on a stacked
-     divider. The fallback is the ordinary chunk's. */
-  max-height: calc(var(--slide-h, 100vh) * var(--fig-cap, 0.62));
-  height: auto;
-}
-@media print {
-  /* How tall a diagram may be on paper is not answered here. This block used
-     to say max-height: none, on the reasoning that a vh cap is a slide
-     proportion and a sheet of paper is not a slide - true, and it left the
-     document with no cap at all, so a portrait diagram resolved to the
-     measure times its ratio and came out taller than the page. The answer
-     now lives beside every other figure kind in PRINT_CSS, under a selector
-     specific enough to beat the cap above in both media. Do not re-add a
-     .psi-diagram max-height here without reading that rule. */
-  /* A diagram is one picture; splitting it across a page break makes it
-     two useless halves. */
-  .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
-}
-.psi-diagram .dg-el { transition: opacity 200ms ease; }
-/* Direct children of an element group, never descendants. A rect or a
-   circle deeper than that belongs to an embedded asset, and this rule would
-   paint it the canvas colour over the file's own answer - CSS beats a
-   presentation attribute, so a style-free line drawing came out white on
-   white. The tone rules below always used the child combinator; this one and
-   the text rule did not, which is why the two of them were the leak. */
-.psi-diagram .dg-el > rect, .psi-diagram .dg-el > circle, .psi-diagram .dg-el > .dg-shape {
-  fill: var(--paper); stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); rx: 4px;
-}
-/* A box whose outline is not a rectangle is a <path>, so every rule below
-   that paints a box has to name it too. They do it through :is(), which is
-   also why those selectors read shorter than they used to: the alternative
-   was a third copy of each one. The join is rounded so a chevron's nose is a
-   point rather than a miter spike. */
-.psi-diagram .dg-shape { stroke-linejoin: round; }
-.psi-diagram .dg-stroke { stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); fill: none; stroke-linejoin: round; }
-.psi-diagram .dg-head { fill: var(--ink); stroke: none; }
-/* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
-   type inside an embedded drawing is the drawing's business. */
-.psi-diagram .dg-lbl text { fill: var(--ink); font-family: var(--dg-sans); font-weight: 400; }
-/* .dg-mono sits on the <text> itself, so this rule is (0,2,0) while the
-   .dg-lbl text rule above it is (0,2,1) - the label rule won and .mono
-   resolved, emitted its class and changed nothing. Measured before the fix:
-   eight i's and eight W's in a .mono label came out 22.8px and 109.1px wide,
-   which is the sans. The family classes are now all written the same way,
-   matching on the wrapper and reaching the text, so they tie with the label
-   rule and win on source order like .serif and .hand always did. */
-.psi-diagram .mono text, .psi-diagram .dg-mono {
-  font-family: var(--dg-mono);
-  /* A .mono label is a token – a header field, a flag, an arrow – so it
-     is spelled out for the same reason a listing is. Only the mono
-     channel: the sans and serif labels keep their fi and fl. */
-  font-variant-ligatures: none;
-}
-/* inline *accent* / ~muted~ inside a label */
-.psi-diagram tspan.dg-em { fill: var(--emph); }
-.psi-diagram tspan.dg-mu { fill: var(--ink-soft); }
-.psi-diagram .dg-off { display: none; }
-
-/* containers are a frame around their members, never a filled panel */
-/* --rule is the hairline between two cells of a table; a container is a
-   trust boundary, a segment, a machine - it has to read as a statement.
-   Dashed at that weight it was barely visible on a shaded ground, which
-   is exactly where these are usually drawn. */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--dg-ground, var(--paper))); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
-.psi-diagram .dg-caption text { fill: var(--ink-soft); }
-
-/* braces have no fill and no head */
-.psi-diagram .dg-brace .dg-stroke { stroke: var(--rule); }
-
-/* ── tones ── four theme-safe fills, mixed from the page's own inks ── */
-/* Over --dg-ground, which is --paper wherever nobody says otherwise - every
-   document, every theme. The one thing that sets it is pitchblack in the
-   live views, where the paper is black and a mix over it would be a few per
-   cent above nothing: there the ground is the dark theme's own paper, so the
-   three tones are the colours they always were. The same holds for every
-   other mix against the paper in this sheet and in dgBarFillCss; .paper and
-   the label on a .tone-4 stay on --paper itself, because they mean the
-   canvas. */
-.psi-diagram .tone-1 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--emph) 13%, var(--dg-ground, var(--paper)));
-  stroke: color-mix(in oklab, var(--emph) 60%, var(--ink));
-}
-.psi-diagram .tone-2 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--ink) 8%, var(--dg-ground, var(--paper))); stroke: var(--ink);
-}
-.psi-diagram .tone-3 > :is(rect, circle, .dg-shape) {
-  fill: color-mix(in oklab, var(--ink) 20%, var(--dg-ground, var(--paper))); stroke: var(--ink);
-}
-.psi-diagram .tone-4 > :is(rect, circle, .dg-shape) {
-  fill: var(--emph); stroke: var(--emph);
-}
-/* .clear is a see-through interior. .bare removes the *stroke*, so without
-   this there was no way to draw a frame you can read through – which is
-   what an outline over an image or another element wants. */
-.psi-diagram .clear > :is(rect, circle, .dg-shape) { fill: none; }
-/* The canvas colour, named. A box already defaults to it, but a box under a
-   tinted default block had no way back, and a free text could not have one at
-   all. A label with a ground is how it knocks out a line running behind it. */
-.psi-diagram .paper > :is(rect, circle, .dg-shape) { fill: var(--paper); }
-
-.psi-diagram .accent > :is(rect, circle, .dg-shape) { stroke: var(--emph); }
-.psi-diagram .accent .dg-stroke { stroke: var(--emph); }
-.psi-diagram .accent .dg-head { fill: var(--emph); }
-.psi-diagram .accent text { fill: var(--emph); }
-/* .muted and .dim answer different questions and were hard to tell apart,
-   because a lighter grey alone reads as "slightly faint" rather than as a
-   different kind of thing. .muted is scaffolding - an axis, a leader, a zone
-   outline - and scaffolding is drawn thinner as well as lighter. .dim is the
-   other axis entirely: full colour at a third of the strength, which is what
-   the dim step operation reaches for when a beat moves on.
-
-   A muted *line* is --ink-soft and a muted *word* is not, and that split is
-   the correction. --ink-soft is picked against the paper, and a caption is
-   very often standing on something else: measured at 1600x900 on the default
-   theme, --ink-soft type reads 3.44:1 on the paper, 2.76:1 on a .tone-1 area
-   and 2.11:1 on a .tone-3 one, against the 3:1 anything on a projector has
-   to clear. A line has no such floor - an axis is followed, not read - so it
-   keeps the token and the 1.05 weight that say scaffolding. The words are
-   mixed straight out of the two inks instead, dark enough to hold on the
-   three light tints and still visibly quieter than --ink.
-
-   Two grounds it cannot answer for, and both are the ground being wrong
-   rather than the type: a .tone-4 area is the accent at full strength, where
-   this mix reads worse than --ink-soft did and only the inverted label two
-   rules down is legible; and a dark theme's paper, where the mix follows
-   --ink and --paper and so inverts with them. */
-.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
-.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
-.psi-diagram .muted .dg-head { fill: var(--ink-soft); }
-.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--dg-ground, var(--paper))); }
-
-/* .tone-4 inverts its own label, and that has to win over .accent text:
-   accent ink on an accent fill is invisible, legal, and would otherwise be
-   decided by which rule was written later. lint.js warns on the pair. */
-.psi-diagram .tone-4 text, .psi-diagram .tone-4 tspan { fill: var(--paper); }
-
-/* A free text element draws a ground only where the author gave it a tone.
-   The rect is always the same drawable; these two rules are what make "a
-   box defaults to paper, a text defaults to see-through" one mechanism rather
-   than two. No stroke either way – a bordered label is a box, and there is
-   a statement for that. */
-.psi-diagram .dg-text:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > :is(rect, circle, .dg-shape) { fill: none; }
-
-/* An edge's label gets the same ground on the same terms: a fill class draws
-   it, no fill class draws nothing. No stroke - a bordered label on a line is
-   a box, and there is a statement for that - and no dash, which the .dashed
-   rule above would otherwise put around the ground of a dashed edge's label.
-   Written after the tone rules on purpose: they set a stroke at the same
-   specificity, so source order is what decides. */
-/* And no fill unless a tone asked for one. An SVG rect with no fill property
-   is black, and this one is emitted in every frame of any edge that is ever
-   given a tone - so without this rule an edge whose label gains a ground in
-   beat 3 draws a black slab across its own line in beats 1 and 2. Exactly the
-   rule the free text's ground already needs, for exactly the same reason. */
-.psi-diagram .dg-edge:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
-
-/* The two stroke patterns, stated as multiples of the line they pattern
-   rather than as pixels. --dg-sw is set beside every stroke-width above, on
-   the same element and by the same selector, so a .thick outline gets a
-   longer dash instead of the same dash on a fatter line - which is what 6 4
-   was: 4.3 line-widths of ink and 2.9 of paper at the normal weight, and a
-   dashed box then drew the eye harder than the solid one beside it. It also
-   stumbled at the corners: on a 13px .round corner a 10px period puts one or
-   two dashes on the whole arc, so a gap landing on the apex reads as a
-   chipped box. 2.2 and 1.5 halve the period, which does not divide a
-   perimeter evenly either - nothing does, in general - but a small dash with
-   a small gap hides the seam instead of announcing it.
-   Butt caps, deliberately: a round cap adds half a line-width of ink at each
-   end and would put the dash back where it started. */
-.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke {
-  stroke-dasharray: calc(var(--dg-sw, 1.4px) * 2.2) calc(var(--dg-sw, 1.4px) * 1.5);
-}
-/* Dots, and they have to be round dots or the word means nothing: a zero-
-   length dash under a round cap draws a disc one line-width across, and the
-   gap is 2.5 of those. It used to be 1.5 3.5 with the round cap on top, which
-   is a 2.9px dash at the normal weight - a fine dashed line under another
-   name - and at .thick a 4.1px dash with 0.9px of paper between, so the
-   dotted box in the class catalogue was very nearly solid. */
-.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke {
-  stroke-dasharray: 0 calc(var(--dg-sw, 1.4px) * 2.5); stroke-linecap: round;
-}
-/* A muted dot is a plain dot in the muted ink, never a smaller one. .muted
-   thins a line to 1.05 so that scaffolding reads as scaffolding, and a dot
-   is one line-width across - so .dotted .muted drew discs of 1.9px at a
-   typical figure scale, anti-aliased below their own colour: the peak pixel
-   reached 2.56:1 on the light themes where a solid muted line reaches 2.76,
-   and a band across the line carried a quarter of a muted line's ink or
-   less on all seven themes. The floor is the plain weight, so the pattern
-   is exactly .dotted's and only the ink is quieter, and the gap is stated
-   against the floored width so the dots keep their 2.5 line-widths of
-   paper. max() rather than a fixed 1.4: a .thick or .emph line keeps the
-   2.6 it set. A plot's grid is this pair, written by the compiler. */
-.psi-diagram .muted.dotted > :is(rect, circle, .dg-shape), .psi-diagram .muted.dotted .dg-stroke {
-  stroke-width: max(var(--dg-sw), 1.4px);
-  stroke-dasharray: 0 calc(max(var(--dg-sw), 1.4px) * 2.5);
-}
-.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
-.psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
-.psi-diagram .round > rect { rx: 13px; }
-.psi-diagram .sharp > rect { rx: 0; }
-.psi-diagram .bold text { font-weight: 600; }
-/* the upright serif, for a label that wants the reading voice rather than
-   the diagram's. .hand is the same family forced italic and accented, which
-   is the annotation voice and a different thing – until .serif existed the
-   family was reachable only through it. */
-.psi-diagram .serif text { font-family: var(--dg-serif); }
-/* no handwriting face is bundled, so the annotation voice is the serif in
-   italic – close enough to read as "written in beside the diagram", and it
-   costs no extra font payload. */
-.psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
-
-/* .ghost and .dim deliberately do NOT set opacity on the group here.
-   Visibility and the two softening classes share one channel, and author CSS
-   beats a presentation attribute – so an element pinned at 0.45 by this
-   stylesheet could never be hidden, and its show step did nothing at all.
-   Both the emitter and the runtime resolve that channel once, in
-   dgOpacity().
-
-   What the two rules below touch is a *child* of the group, which is a
-   different thing and safe for the same reason: the alphas multiply, so a
-   hide still takes the whole element to zero. They exist because one alpha
-   over a whole group fades the words as hard as the box, and a word at 0.3
-   is not quiet but unreadable – 1.95:1 against its own fill on the paper,
-   1.88:1 standing on a .tone-3 area. dgOpacity() now returns the *ink*
-   number and these put the ground back where it was: 0.6 x 0.5 is the 0.3
-   that was there before, 0.75 x 0.6 the 0.45, so every existing figure's
-   outline, fill, stroke, arrowhead and picture are unmoved to the pixel and
-   only the type gains. The factors come from DG_SOFT_GROUND rather than
-   being typed here twice.
-
-   Type is what is deliberately NOT in the selector lists. Everything else a
-   softened element can draw is. */
-.psi-diagram .dim > :is(rect, circle, .dg-shape, image),
-.psi-diagram .dim .dg-stroke,
-.psi-diagram .dim .dg-head { opacity: ${DG_SOFT_GROUND.dim.toFixed(4)}; }
-.psi-diagram .ghost > :is(rect, circle, .dg-shape, image),
-.psi-diagram .ghost .dg-stroke,
-.psi-diagram .ghost .dg-head { opacity: ${DG_SOFT_GROUND.ghost.toFixed(4)}; }
-/* emph / dim are what a step reaches for; both stay inside the palette */
-.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
-.psi-diagram .emph .dg-stroke { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
-.psi-diagram .emph .dg-head { fill: var(--emph); }
-/* A chart's column: what it is filled with, and what emph does to it. A
-   column draws no outline, so paper would make it vanish and there is nothing
-   but its fill to emphasise; the rules come from DG_BAR_FILLS in
-   diagram-core, which is also what the linter reads when it says a column is
-   too pale for a theme - one table, so the warning is about the colour that
-   is drawn. The block sits after the box tones on purpose: a column's tone
-   rule is one class more specific and has to win. */
-${dgBarFillCss()}
-/* Words are the third thing emphasis can act on, and leaving them out left the
-   emph verb on a text accepted and completely inert - the ground rule at the
-   foot of this stylesheet refuses to stroke a label's rect, deliberately and
-   for good reason, so on a text the two rules above have nothing to reach.
-   That is not a corner case: the per-message tag a sequence generates is
-   documented as the way to address one message, and it holds the arrow *and*
-   its number *and* its second line, so the commonest emphasis in a protocol
-   figure is a mixed set by construction. The .accent text rule two blocks up
-   is the same act on the same channel and was already written this way.
-   .tone-4 inverts its own label, and has to keep winning here exactly as it
-   does over .accent text; one class more in the selector settles it rather
-   than source order, which is the guard the stroke case below already uses.
-   (No backticks in here: this whole stylesheet is a template literal.) */
-.psi-diagram .emph text { fill: var(--emph); font-weight: 600; }
-.psi-diagram .tone-4.emph text, .psi-diagram .tone-4.emph tspan { fill: var(--paper); }
-/* .tone-4 fills with the accent, so an emphasis stroke in the accent lands
-   invisibly on it: emph on such a box resolved, set its width and changed
-   nothing on screen - the silent no-op again, arriving through the stylesheet
-   rather than through the grammar. Inverted the way .tone-4's own label
-   already is, and for the same reason. Higher specificity than the rule above,
-   so source order does not decide it. (No backticks in here: this whole
-   stylesheet is a template literal, and one would end it.) */
-.psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
-/* emph acts in the prominence slot and .bare in the stroke-weight slot, so
-   neither may overwrite the other - and until this rule the emphasis stroke
-   two blocks up put the outline back on an element that had just taken it
-   off, at the same specificity and later in source order. On a table of type
-   on the paper (.bare .clear cells are the spelling for that) a lit row came
-   out as a row of red empty rectangles that the room reads as a form. So on
-   a .bare element emph emphasises the *ink* - the accent fill and the weight
-   the .emph text rule above already give a free text - and draws no outline.
-   That is the same correction DG_BAR_FILLS makes one channel along, where
-   emph on a column is a solid accent fill rather than the accent outline it
-   is on every other shape: emphasis has to act on whatever the element
-   actually draws. Three classes in the selector, and written after the
-   .tone-4.emph rule, so it wins where an element carries both. */
-.psi-diagram .bare.emph > :is(rect, circle, .dg-shape) { stroke: none; }
-
-/* A label's ground is never stroked, and this is where that has to be said.
-   It was written up with the two rules that create the ground, above the
-   tone rules that stroke - and .emph and .accent both set a stroke on the
-   same child selector at the very same specificity, so source order decided
-   it and they won. The result was a box drawn around a label the moment a step
-   emphasised it: on a sequence, where every message label now carries a
-   ground, emph @wa-msg-8 framed the words instead of thickening the arrow.
-   A bordered label is a box, and there is a statement for that. */
-.psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
-.psi-diagram .dg-edge > :is(rect, circle, .dg-shape) { stroke: none; }
-
-/* An edge label its own line runs through. The compiler decides it from the
-   routed geometry and writes dg-halo into the beat's class string; this is
-   what the word means. The offset that lifts a label off its line clears it
-   at the *midpoint*, and an elbow's two outer runs, a doubled-back via route
-   and a curve that comes back on itself are all somewhere else on the same
-   path - so a label can be correctly beside the line it labels and still have
-   another stretch of that same line drawn through the middle of it, which the
-   room reads as struck through.
-
-   paint-order and not a rect, because a rect is as wide as the whole run
-   where the crossing is one word long, and on a curve that erases the arc the
-   label belongs to. The stroke is the paper, so it knocks out the glyph
-   shapes and nothing else. Written after every rule that sets a text fill, so
-   a muted or accented label keeps its own colour and only gains the knockout.
-
-   3.2px against a 1.4 line: the stroke is centred on the glyph outline, so
-   half of it is inside the letters and the gap the line sees is about 1.6px
-   each side. Less and a 1.4 stroke still touches the serifs. */
-.psi-diagram .dg-halo text {
-  paint-order: stroke fill;
-  stroke: var(--paper);
-  stroke-width: 3.2px;
-  stroke-linejoin: round;
-}
-
-.dg-hint { display: none; }
-@media (prefers-reduced-motion: reduce) {
-  .psi-diagram .dg-el { transition: none; }
-}
-`;
+//
+// runtime/diagram.css, read as text at build time (PLAN-runtime-extraction.md;
+// DIAGRAM_CSS until it left this file), with three placeholders: the two
+// opacities a dimmed and a ghosted element's ground is taken down by stand in
+// it as __PSI_DG_SOFT_GROUND_DIM__ and __PSI_DG_SOFT_GROUND_GHOST__, and the
+// column fills dgBarFillCss() generates as /*__PSI_BAR_FILL_RULES__*/ - the
+// comment form, because a bare name among rules would be read as the next
+// rule's selector. fillRuntime puts the values there from the table below,
+// once per process, before shipCss strips the sheet on its way into all four
+// views. Filled, its bytes are the old literal's value, so a view built
+// before and after the move is the same file.
+const DIAGRAM_CSS_PATH = new URL('./runtime/diagram.css', import.meta.url);
+const DIAGRAM_CSS_FILL = {
+  DG_SOFT_GROUND_DIM: DG_SOFT_GROUND.dim.toFixed(4),
+  DG_SOFT_GROUND_GHOST: DG_SOFT_GROUND.ghost.toFixed(4),
+  BAR_FILL_RULES: dgBarFillCss(),
+};
+let diagramCssCache = null;
+const diagramCss = () => (diagramCssCache ??= fillRuntime(DIAGRAM_CSS_PATH, fs.readFileSync(DIAGRAM_CSS_PATH, 'utf8'), DIAGRAM_CSS_FILL));
 
 // ── diagram runtime (inlined into the live views) ───────────────────
 // Interpolates the precomputed per-step vectors. There is no layout here
@@ -10145,7 +9803,7 @@ function renderDocument(lecture, opts = {}) {
 ${PRINT_VIEW_EARLY_JS}
 <style>
 ${shipCss(PRINT_CSS)}
-${shipCss(DIAGRAM_CSS)}
+${shipCss(diagramCss())}
 ${hasPulse ? shipCss(pulsePrintCss()) : ''}${docMode ? shipCss(DOCUMENT_PAGE_CSS) : ''}</style>
 ${fontStyleTag(opts.fontEmbed, 'print')}
 ${styleBlockCss(styleOpts)}
@@ -13519,7 +13177,7 @@ function renderAudience(lecture, opts = {}) {
 <title>${escapeHtml(title)} – ${escapeHtml(S['title-lecture'])}</title>
 <style>
 ${shipCss(AUDIENCE_CSS)}
-${shipCss(DIAGRAM_CSS)}
+${shipCss(diagramCss())}
 </style>
 ${fontStyleTag(opts.fontEmbed, 'live')}
 ${styleBlockCss(styleOpts, S)}
@@ -25234,7 +24892,7 @@ function renderSpeaker(lecture, opts = {}) {
 <title>${escapeHtml(title)} – ${escapeHtml(S['title-speaker'])}</title>
 <style>
 ${shipCss(AUDIENCE_CSS)}
-${shipCss(DIAGRAM_CSS)}
+${shipCss(diagramCss())}
 ${shipCss(speakerCss())}${shipCss(souffleuseCss)}
 </style>
 ${styleBlockCss(styleOpts, S)}
@@ -27370,10 +27028,11 @@ function assertStylesheetsWellFormed() {
   // editor.css and runtime/speaker.css are real files rather than constants,
   // and they go through this check for exactly the same reason the constants
   // do: an unterminated comment silently drops every rule to the next one.
-  // DIAGRAM_CSS ships into all four views and was the one inlined
-  // stylesheet this guard did not cover – the exact gap the guard exists
-  // to close.
-  const sheets = { AUDIENCE_CSS, 'runtime/speaker.css': speakerCss(), 'runtime/souffleuse.css': souffleuseSheet(), PRINT_CSS, 'runtime/pulse-print.css': pulsePrintCss(), DIAGRAM_CSS, 'editor.css': editorCss() };
+  // runtime/diagram.css (DIAGRAM_CSS until it left this file) ships into all
+  // four views and was the one inlined stylesheet this guard did not cover –
+  // the exact gap the guard exists to close. It is checked filled, as it
+  // ships.
+  const sheets = { AUDIENCE_CSS, 'runtime/speaker.css': speakerCss(), 'runtime/souffleuse.css': souffleuseSheet(), PRINT_CSS, 'runtime/pulse-print.css': pulsePrintCss(), 'runtime/diagram.css': diagramCss(), 'editor.css': editorCss() };
   for (const [name, css] of Object.entries(sheets)) {
     if (typeof css !== 'string') continue;
     const opens = (css.match(/\/\*/g) || []).length;

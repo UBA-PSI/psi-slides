@@ -117,7 +117,7 @@ const RUNTIME = [['runtime/speaker.css', 'speakerCss'], ['runtime/print.js', 'pr
   ['runtime/souffleuse.css', 'souffleuseSheet', 'souffleuseCss'],
   ['runtime/souffleuse.js', 'souffleuseScript', 'souffleuseRuntime'],
   ['runtime/print-view.js', 'printViewJs'], ['runtime/print-reader.js', 'printReaderJs'],
-  ['runtime/print-highlights.js', 'printHighlightsJs']];
+  ['runtime/print-highlights.js', 'printHighlightsJs'], ['runtime/diagram.css', 'diagramCss']];
 // The ones that ship raw, as their literals did: the failed-build banner,
 // which goes into a watch build's reload script with its comments and
 // nothing else. [file, getter]; held below to reloadScript and kept off ship*.
@@ -209,7 +209,7 @@ export async function run({ report }) {
 
   // ── build.js hands every runtime and stylesheet literal through ship* ──
   const build = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
-  const LITERALS = ['AUDIENCE_JS', 'DIAGRAM_JS', 'AUDIENCE_CSS', 'DIAGRAM_CSS', 'PRINT_CSS'];
+  const LITERALS = ['AUDIENCE_JS', 'DIAGRAM_JS', 'AUDIENCE_CSS', 'PRINT_CSS'];
   for (const lit of LITERALS) {
     const bare = [...build.matchAll(new RegExp('\\$\\{(?:[^}]*\\? )?' + lit + '\\b', 'g'))].length;
     const shipped = [...build.matchAll(new RegExp('ship(?:Js|Css)\\(' + lit + '\\)', 'g'))].length;
