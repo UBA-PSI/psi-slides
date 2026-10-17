@@ -8,13 +8,13 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **10 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+Status: **11 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
 `PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS`,
 `WATCH_BANNER_CSS` and `WATCH_BANNER_JS` (see *Log*): every static CSS and
 JS literal on the list; then `PRINT_VIEW_JS`, the first with substitutions,
-under the scheme decided for it (see *Substitution scheme*), and
-`PRINT_READER_JS`. Next: the rest of step 8 of *Order*,
-`PRINT_HIGHLIGHTS_JS`.
+under the scheme decided for it (see *Substitution scheme*), then
+`PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS`, which close step 8 of *Order*.
+Next: step 9, `DIAGRAM_CSS`.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -843,3 +843,42 @@ included; and the output is byte-identical.
   **For `PRINT_CSS`.** It carries the same expression twice –
   `(max-width: ${READER_WIDE_PX - 0.02}px)`, alone and after a
   `min-width` – and should name it `READER_WIDE_BELOW` when it moves.
+- **`PRINT_HIGHLIGHTS_JS` → `runtime/print-highlights.js`** – done. 79,075
+  bytes, 1,742 lines, written by `--extract … --names READER_NOTES_BELOW`
+  from the value, which differs from the source: the 34 backslashes are
+  seventeen doubled pairs – `\\s`, `\\S`, `\\w`, `\\{` and `\\}` in regexes,
+  `\\n` and `\\u00ad` in strings, and the `\\\\u002d` the export writes into
+  its HTML comments – each pair a single backslash in the file, as the
+  page always got it. No escape resolved to a character; the non-ASCII characters
+  in the file (`…`, `–`, `·`, `×`, …) were characters in build.js too. The
+  one substitution, `READER_NOTES_PX - 0.02` inside the `matchMedia` string
+  under which a note card shows only while opened rather than in the notes
+  column, is `__PSI_READER_NOTES_BELOW__px`. `build.js` lost 1,755 lines and
+  gained 27: `PRINT_HIGHLIGHTS_JS_PATH`, the `PRINT_HIGHLIGHTS_JS_FILL` table
+  where the literal stood, `printHighlightsJs()` through `fillRuntime`, a
+  comment replacing the literal's “same template-literal rules” sentence;
+  the render site is `${shipJs(printHighlightsJs())}` after
+  `printViewJs()`; two Node-side comments that named the literal
+  (`readerStoreKey`'s, on `LEGACY`, and `runtime/print.js`'s, on the
+  lightbox events) now name the file. The three comments inside `PRINT_CSS`
+  that name `PRINT_HIGHLIGHTS_JS` stay (rule 7). Gates: `strip` – the
+  literal leaves `LITERALS` and the file joins `RUNTIME`: 2,192 → 2,197.
+  `id-namespace` – the file joins `FILES`: it emits `psiINT-rd-help` and
+  looks up `psiINT-lightbox` and `psiINT-reader-data`; the counts are as
+  before (123 emitted ids, 570 selectors in 9 stylesheets, 16 allow-list
+  entries, 25 allowed sites), since build.js's scan had found the same ids in
+  the literal. Desktop: `FILES` gained the file, the read count went 16 →
+  17; with the file off `FILES` the test fails by name. Docs:
+  `test/README.md` (`id-namespace`), three places in the appearance skill
+  (what `reader: off` ships, the highlights paragraph, `pack()`). Identity:
+  the same checks as for `PRINT_READER_JS`, against `1f4a323`: tracked views
+  unchanged; python-intro, the `reader: off` fixture and the `bars` fixture
+  `cmp`-equal, plain and under `PSI_KEEP_COMMENTS=1` (whose documents carry
+  the file's comment “highlights listed as not found in the other”); the
+  `reader: off` documents carry no reader script; a staged engine builds
+  python-intro equal. Not run: the browser suite and `test/pdf-export.mjs`.
+
+  **For `PRINT_CSS`.** It carries `(max-width: ${READER_NOTES_PX - 0.02}px)`
+  three times and should name it `READER_NOTES_BELOW`, beside
+  `READER_WIDE_BELOW` (above); its plain `${READER_NOTES_PX}px` /
+  `${READER_WIDE_PX}px` widths keep the derived names.
