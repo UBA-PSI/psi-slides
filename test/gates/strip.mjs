@@ -104,7 +104,7 @@ const MODULES = ['diagram-core.mjs', 'editor.mjs', 'commands.mjs', 'cue-cards.mj
 // The literals that have left build.js for runtime/ (PLAN-runtime-extraction.md),
 // each with the getter build.js reads it through: [file, getter].
 const RUNTIME = [['runtime/speaker.css', 'speakerCss'], ['runtime/print.js', 'printJs'],
-  ['runtime/pulse-print.css', 'pulsePrintCss']];
+  ['runtime/pulse-print.css', 'pulsePrintCss'], ['runtime/speaker.js', 'speakerJs']];
 const asScript = (text) => {
   const names = [...text.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
   return { names, body: text.replace(/^export\s+(function|const|let)\s/gm, '$1 ') };
@@ -192,7 +192,7 @@ export async function run({ report }) {
 
   // ── build.js hands every runtime and stylesheet literal through ship* ──
   const build = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
-  const LITERALS = ['AUDIENCE_JS', 'SPEAKER_JS', 'DIAGRAM_JS', 'PRINT_READER_JS',
+  const LITERALS = ['AUDIENCE_JS', 'DIAGRAM_JS', 'PRINT_READER_JS',
     'PRINT_HIGHLIGHTS_JS', 'AUDIENCE_CSS', 'DIAGRAM_CSS', 'PRINT_CSS'];
   for (const lit of LITERALS) {
     const bare = [...build.matchAll(new RegExp('\\$\\{(?:[^}]*\\? )?' + lit + '\\b', 'g'))].length;

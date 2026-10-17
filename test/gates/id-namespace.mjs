@@ -11,8 +11,9 @@
  * gate). This is the build's half: a new element whose id is a bare word
  * would reopen the hole without anyone noticing, so every site in build.js,
  * editor.mjs, diagram-core.mjs, pdf-core.mjs, cue-cards.mjs and the runtime/
- * scripts that left build.js (runtime/print.js, the documents' lightbox) that
- * writes or names an id is read here and has to be one of two things -
+ * scripts that left build.js (runtime/print.js, the documents' lightbox, and
+ * runtime/speaker.js, the cockpit's runtime) that writes or names an id is
+ * read here and has to be one of two things -
  *
  *   - a literal that starts with psiINT-, or
  *   - a site on ALLOWED below, which says why its id is not the build's to
@@ -60,7 +61,7 @@ export const name = 'every id the build invents starts with psiINT-';
 const P = RESERVED_ID_PREFIX;
 const FILES = ['build.js', 'editor.mjs', 'diagram-core.mjs', 'pdf-core.mjs', 'cue-cards.mjs',
   // the scripts that have left build.js for runtime/ (PLAN-runtime-extraction.md)
-  'runtime/print.js'];
+  'runtime/print.js', 'runtime/speaker.js'];
 
 // file, kind, the id text as the scanner reads it, how often it occurs, why.
 const ALLOWED = [

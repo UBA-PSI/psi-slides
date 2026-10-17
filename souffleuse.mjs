@@ -311,7 +311,7 @@ function noteOf(raw, cards, left) {
  * The whole deck as the prompter reads it: one flat list of slides in the
  * order the cockpit walks them.
  *
- * The numbering is the cockpit's. `flatChunks` in SPEAKER_JS collects every
+ * The numbering is the cockpit's. `flatChunks` in runtime/speaker.js collects every
  * `.chunk` element of every `.column` in document order, and a column with a
  * heading emits a divider slide before its first chunk – so a divider is an
  * entry there, and it is an entry here, and `n - 1` is the `idx` the socket

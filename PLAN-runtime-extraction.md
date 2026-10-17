@@ -8,9 +8,9 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **3 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS` and
-`PULSE_PRINT_CSS` (see *Log*). Next: `SPEAKER_JS`. The inventory's line
-numbers are those of `a49b625`, before the pilot;
+Status: **4 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+`PULSE_PRINT_CSS` and `SPEAKER_JS` (see *Log*). Next: `SOUFFLEUSE_CSS`.
+The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
 ## Inventory
@@ -260,7 +260,8 @@ is byte-identical.
    root `package.json` says `"type": "module"`, so an editor and Node read a
    `runtime/*.js` as ESM. A linter will need `sourceType: script` and a
    globals list for that folder. `.js` plus a linter override, decided with
-   `SPEAKER_JS`.
+   `SPEAKER_JS`. **Decided: `.js`**; the override waits for a JS linter in
+   the repository, which there is none of yet (see *Log*).
 2. **The leading newline.** Each file keeps its literal's first `\n`, so the
    CSS and JS files open with an empty line. Removing it means either
    `'\n' + getter()` at the render site or an output change; neither is worth
@@ -364,3 +365,44 @@ is byte-identical.
   four views `cmp`-equal plain and under `PSI_KEEP_COMMENTS=1`;
   python-intro's four views equal plain, kept and by a staged engine. Not
   run: the browser suite and `test/pdf-export.mjs`.
+- **`SPEAKER_JS` → `runtime/speaker.js`** – done. 76,245 bytes, 1,605
+  lines, written by `--extract` from the value, which differs from the
+  source: the sixteen backslashes are two `\${` browser templates and the
+  four escaped backticks of their two template literals, `\\/` and `\\s` in
+  two regexes, and six
+  `\u…` escapes in strings, which the literal resolved to the characters
+  themselves (`·`, `–`, `−`, `±`) – so the file carries them as UTF-8 where
+  build.js spelled them as escapes, inside JS strings, with the same meaning
+  and the same bytes in the view. **`.js`, as open question 1 proposed**: no
+  JS linter is configured in the repository, so there is no override to
+  write yet; when one is, `runtime/*.js` needs `sourceType: script` and the
+  `AUDIENCE_JS` globals, because the file is a fragment of one script element
+  (the strip gate compiles it with `vm.Script`, never as a module).
+  `build.js` lost 1,620 lines and gained 25: `SPEAKER_JS_PATH`,
+  `speakerJs()`, a comment that says why the file is the value and that
+  `SOUFFLEUSE_JS` follows it in the same element; the render site is
+  `${shipJs(speakerJs())}${shipJs(souffleuseRuntime)}`, the concatenation
+  unchanged; three Node-side comments (in `renderSpeaker` and above
+  `SOUFFLEUSE_CSS`) now name the file. The comments inside `AUDIENCE_JS` and
+  `SOUFFLEUSE_JS` that name `SPEAKER_JS` stay (rule 7). Gates: `strip` (the
+  file joins `RUNTIME`; its ship check and the three script checks – 2,148
+  → 2,152), `id-namespace` (the file joins `FILES`, the emitter scan; 123
+  emitted ids, 16 allow-list entries and 25 allowed sites, as before),
+  **`commands`** (its `S` was `literal(buildJs, 'SPEAKER_JS')`, the source
+  text; it now reads the file, the value – the run-function ids and the
+  `e.key` comparisons it extracts carry no escape, and the gate's output is
+  line for line what it was). Every other reader of build.js as text was
+  checked for a pattern the cockpit's runtime could satisfy; none.
+  Desktop: `FILES` gained the file, the read count went 9 → 10; with the
+  file off `FILES` the test fails by name. Docs: the prompter skill's
+  locations, `test/README.md` (`commands`, `id-namespace`), and a comment
+  each in `docs/site/shoot-prompter.mjs` and `souffleuse.mjs`. Identity:
+  tracked views unchanged; python-intro's four views `cmp`-equal plain,
+  under `PSI_KEEP_COMMENTS=1` (whose `speaker.html` carries the file's
+  comments) and by a staged engine; and a `--watch --prompter
+  --prompter-dry-run` build of python-intro, run by the old and the new
+  `build.js` for 20 seconds each under `perl -e 'alarm 20'`, gives four
+  views equal once the run id, the socket port and the nonce are put back
+  to placeholders – the cockpit there is `runtime/speaker.js` followed by
+  `SOUFFLEUSE_JS` in one script element. Not run: the browser suite and
+  `test/pdf-export.mjs`.
