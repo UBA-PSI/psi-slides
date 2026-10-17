@@ -8,14 +8,15 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **12 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+Status: **13 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
 `PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS`,
 `WATCH_BANNER_CSS` and `WATCH_BANNER_JS` (see *Log*): every static CSS and
 JS literal on the list; then `PRINT_VIEW_JS`, the first with substitutions,
 under the scheme decided for it (see *Substitution scheme*), then
 `PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS`, which close step 8 of *Order*,
-and `DIAGRAM_CSS`, the first with a generated block (step 9). Next: step 10,
-`DIAGRAM_JS`, after open question 5's last half is decided.
+`DIAGRAM_CSS`, the first with a generated block (step 9), and `DIAGRAM_JS`,
+whose four function sources go in by placeholder (step 10). Next: step 11,
+`PRINT_CSS`.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -237,7 +238,9 @@ next rule's selector, so there only a comment keeps the file valid CSS; the
 whole comment is replaced. It is the same token inside comment delimiters,
 so the filler finds it by the same pattern, and a malformed one is still a
 `__PSI_` the strict check refuses – the vanishing comment above cannot
-happen. Use it only where the bare form is invalid.
+happen. Use it only where the bare form is invalid – or, in a script, where
+the substitution is a declaration rather than a value (`DIAGRAM_JS`'s four
+function sources; the reasons are in its *Log* entry).
 
 **Filled in the getter, before `ship*`, once per process.** The getter reads
 the file, fills it and memoises the filled text, and the render site is the
@@ -453,10 +456,12 @@ included; and the output is byte-identical.
    `__PSI_NAME__`, or `/*__PSI_NAME__*/` for a generated block, filled by
    `fillRuntime` from a `NAME_FILL` table before `ship*`, strictly (see
    *Substitution scheme*). Selector position needed nothing of its own: the
-   placeholder is a type selector. Still open: whether `DIAGRAM_JS`'s four
-   function sources go in by placeholder (the comment form) or the runtime
-   reads them from `window.PSI_DG` rather than splicing them twice – an
-   output change, decided when `DIAGRAM_JS` is reached.
+   placeholder is a type selector. **`DIAGRAM_JS`'s four function sources:
+   decided, by placeholder** (the maintainer's variant (a), output
+   byte-identical; see *Log*). Reading them from `window.PSI_DG` instead of
+   splicing them twice would change the output and the load order, and a
+   view under `editor: none` ships no `window.PSI_DG` at all; if it is ever
+   wanted, it is a step of its own, not part of a move.
 6. **The six markup literals** – out of scope? They are HTML, not CSS or JS,
    44 lines in all, and gain little from a file.
 7. **The two tiny literals** (`DOCUMENT_PAGE_CSS`, `READER_EARLY_JS`) –
@@ -952,3 +957,113 @@ included; and the output is byte-identical.
   and no `BAR_FILL_RULES`, and no view anywhere holds `__PSI_`; a staged
   engine builds python-intro equal. Not run: the browser suite and
   `test/pdf-export.mjs`.
+- **`DIAGRAM_JS` → `runtime/diagram.js`** – done, under the maintainer's
+  variant (a) for open question 5: the four function sources go in by
+  placeholder and the output is byte-identical. 20,369 bytes, 426 lines (the
+  first one empty), written by `--extract … --names
+  'DG_SHAPES,/*DG_SHAPE_D*/,/*DG_PATH_D*/,/*DG_SPLINE_D*/,/*DG_FULL_FRAMES*/'`
+  from the value, which differs from the source: the 44 backslashes are
+  doubled escapes in `dgSafeHref`'s and `dgScopedCss`'s regexes and strings
+  (`\\u0000-\\u0020`, `\\/`, `\\s\\S`, `'\\\\'`, `'\\n'`) and the two escaped
+  backticks of a comment, each a single character in the file, as the page
+  always got it. The tool filled the file back to the value before writing
+  it. The outline table stands as `const DG_SHAPES = __PSI_DG_SHAPES__;`, a
+  JSON value in expression position, bare; the four functions lifted out of
+  `diagram-core.mjs` – `dgShapeD`, `dgPathD`, `dgSplineD`, `dgFullFrames` –
+  stand each on a line of its own as `/*__PSI_DG_SHAPE_D__*/` and so on,
+  named after the function they are, as `DG_SHAPES` is after the constant it
+  fills. The values are the literal's own expressions, unchanged, in
+  `DIAGRAM_JS_FILL` where the literal stood (all five names are imports at the
+  top of build.js); `fn.toString()` is a string, and none of the four sources
+  nor the JSON holds `__PSI_` (checked). Note that `fillRuntime` checks the
+  *file* for stray `__PSI_`, not the values it puts in: a value that held one
+  would ship, and the strip gate's check on the shipped text is what would
+  see it.
+
+  **The comment form for the four, not a bare line.** Both compile, so the
+  scheme's rule (“only where the bare form is invalid”) did not decide it;
+  this did:
+  - *What the slot is.* A function declaration is a statement that declares
+    a name, not a value – the JS counterpart of the generated CSS block the
+    comment form exists for. With it the scheme reads the same in both
+    languages: bare where a value goes, comment where a declaration or a
+    block goes.
+  - *What an editor and a future linter see.* Either way the file declares
+    none of the four, so a linter needs them in a globals list (as it needs
+    the `AUDIENCE_JS` globals; open question 1). A bare
+    `__PSI_DG_SHAPE_D__` line adds an expression statement of an undeclared
+    name on top – `no-undef` and `no-unused-expressions` four times, which a
+    globals entry cannot express as a pattern and would need four names or an
+    inline disable to silence. The comment is nothing to a linter, and to a
+    reader it says “text goes here” rather than “this identifier is
+    evaluated”.
+  - *ASI.* A bare line is a statement only by automatic semicolon insertion
+    against the next line; an edit that starts the following line with `(`,
+    `[` or a backtick makes the raw file parse as a call on the placeholder
+    – still compiling, now meaning something else. A comment has no such
+    neighbour.
+  - *The vanishing comment the scheme warns of cannot happen here.* It is the
+    same token, so a malformed one is still a `__PSI_` that `fillRuntime`
+    refuses; and a skipped fill is refused before any build, by the strip
+    gate's per-file check that a file holding a placeholder is read through
+    `fillRuntime` with a table of exactly its names. The bare form's one
+    advantage – an unfilled line throws a `ReferenceError` at load, where the
+    comment would be stripped and `dgShapeD` missing only when a stepped
+    outline moves – is a guard at the far end, behind two that already hold.
+
+  `build.js` lost 431 lines and gained 29: `DIAGRAM_JS_PATH`,
+  `DIAGRAM_JS_FILL`, `diagramJs()` through `fillRuntime`, a comment under
+  the section banner; the two render sites (audience, cockpit) are
+  `${shipJs(diagramJs())}`, still ahead of `AUDIENCE_JS` in the same script
+  element; the Node-side comment under `// ── diagrams (::: draw) ──`, which
+  still said the diagram CSS and the step runtime “stay here”, names the two
+  files. The comment in `diagram-core.mjs` above `dgFullFrames` that names
+  `DIAGRAM_JS` stays: the module ships as text (`window.PSI_DG`) and its
+  comments ship under `PSI_KEEP_COMMENTS=1` (rule 7; one for the final
+  sweep). **No dependency on `window.PSI_DG`**: the file reads nothing from
+  it, and a deck with `editor: none`, whose views carry no `window.PSI_DG`,
+  builds equal.
+
+  Gates: `strip` – the literal leaves `LITERALS` and the file joins
+  `RUNTIME`: its ship check, the four script checks and the per-file fill
+  check (5 placeholders, keys exactly their names), minus the literal's ship
+  check: 2,200 → 2,205; the fill check was shown to fail on a renamed table
+  key, and a build with that key refuses with `runtime/diagram.js:
+  placeholder __PSI_DG_PATH_D__ has no value` and writes no view.
+  `id-namespace` – the file joins `FILES`, the emitter scan: it emits no id
+  but looks up `#psiINT-figure-overlay` in two `querySelector`s (its other
+  lookups are computed – `d.data.p + key`, `sc.dataset.for`); counts as
+  before (123 emitted ids, 570 selectors in 9 stylesheets, 16 allow-list
+  entries, 25 allowed sites). **No other gate read the literal**: with its
+  body emptied in build.js, every gate's output was the same text, line for
+  line, and the gates that hold figures to the runtime (`semantics`,
+  `canvas`, `editor`, `step-classes`; there is no `figures` gate) read
+  `diagram-core.mjs`, `editor.mjs` or built views; `docs/artifact/refresh-figures.mjs` lifts the
+  runtime out of a built view between markers (`const DG_LIST = [];` …),
+  and `--check` says up to date. Desktop: `FILES` gained the file, the read
+  count went 18 → 19; with the file off `FILES` the test fails by name.
+  Docs: `test/README.md` (`id-namespace`), the figures skill's sentence on
+  `dgSwapFigure`.
+
+  Identity: `npm run build:tracked` leaves `lectures/` unchanged
+  (`lectures/diagrams` carries stepped figures in all four views); built by
+  `build.js` at `dddda78` (an archive unpacked in the scratch folder) and by
+  the new one into `<old|new>/<plain|kept>/L/<deck>` – python-intro,
+  network-security, a fixture with an `autoplay 1400 cycle` figure and a
+  hand-stepped one using `.hex` and `.diamond` outlines, and the same fixture
+  with `editor: none` – all 32 views `cmp`-equal, plain and under
+  `PSI_KEEP_COMMENTS=1` (whose live views carry the file's comment
+  “Discrete state – visibility, classes”, the plain ones and the documents
+  not); no view holds `__PSI_`; a staged engine (`FILES` copied into a
+  scratch folder) builds python-intro and the stepped fixture equal. Not
+  run: the browser suite and `test/pdf-export.mjs`.
+
+  **For the three big literals.** Each is read as text by more gates than any
+  move so far; a probe that emptied each literal in build.js and ran the
+  gates found the readers that fail loudly, and the report of this move lists
+  them with what each needs. The ones that would *not* fail: `zoom-scope`
+  drops `PRINT_CSS` silently (no `var(--zoom)` rule in it today; it joins
+  `RUNTIME_SHEETS` in its move), `canvas`'s absence check that nothing but
+  `fitAvail` reads `FULL_FIT_FILL` off the viewport turns vacuous when
+  `AUDIENCE_JS` leaves, and `inlined` keeps scanning only the small literals
+  once the last big one has gone.

@@ -13,8 +13,9 @@
  * editor.mjs, diagram-core.mjs, pdf-core.mjs, cue-cards.mjs and the runtime/
  * scripts that left build.js (runtime/print.js, the documents' lightbox,
  * runtime/speaker.js, the cockpit's runtime, runtime/souffleuse.js, the
- * prompter's half of it, and runtime/watch-banner.js, the failed-build
- * banner) that writes or names an id is read here and has to be one of two
+ * prompter's half of it, runtime/watch-banner.js, the failed-build banner,
+ * the documents' three reader scripts and runtime/diagram.js, the figures'
+ * step runtime) that writes or names an id is read here and has to be one of two
  * things -
  *
  *   - a literal that starts with psiINT-, or
@@ -69,7 +70,8 @@ const P = RESERVED_ID_PREFIX;
 const FILES = ['build.js', 'editor.mjs', 'diagram-core.mjs', 'pdf-core.mjs', 'cue-cards.mjs',
   // the scripts that have left build.js for runtime/ (PLAN-runtime-extraction.md)
   'runtime/print.js', 'runtime/speaker.js', 'runtime/souffleuse.js', 'runtime/watch-banner.js',
-  'runtime/print-view.js', 'runtime/print-reader.js', 'runtime/print-highlights.js'];
+  'runtime/print-view.js', 'runtime/print-reader.js', 'runtime/print-highlights.js',
+  'runtime/diagram.js'];
 
 // file, kind, the id text as the scanner reads it, how often it occurs, why.
 const ALLOWED = [

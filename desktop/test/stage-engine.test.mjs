@@ -51,7 +51,7 @@ test('every file build.js reads at run time is staged', () => {
   const reads = runtimeReads();
   // A scan that silently finds nothing passes every comparison and guards
   // nothing, so the count is asserted before the membership.
-  assert.equal(reads.length, 18, `expected 18 run-time reads, found ${reads.length}: ${reads.join(', ')}`);
+  assert.equal(reads.length, 19, `expected 19 run-time reads, found ${reads.length}: ${reads.join(', ')}`);
   const files = stagedFiles();
   for (const name of reads) {
     assert.ok(files.includes(name),
