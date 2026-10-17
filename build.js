@@ -10140,7 +10140,7 @@ ${PRINT_VIEW_EARLY_JS}
 <style>
 ${shipCss(PRINT_CSS)}
 ${shipCss(DIAGRAM_CSS)}
-${hasPulse ? shipCss(PULSE_PRINT_CSS) : ''}${docMode ? shipCss(DOCUMENT_PAGE_CSS) : ''}</style>
+${hasPulse ? shipCss(pulsePrintCss()) : ''}${docMode ? shipCss(DOCUMENT_PAGE_CSS) : ''}</style>
 ${fontStyleTag(opts.fontEmbed, 'print')}
 ${styleBlockCss(styleOpts)}
 ${codeTag(styleOpts, opts.codeSizing, 'print')}
@@ -12516,29 +12516,15 @@ const DOCUMENT_PAGE_CSS = `
 // these win without !important; the variables are its documented interface.
 // The label is set like the asides' labels, and the summary takes main's
 // measure like a chunk does.
-const PULSE_PRINT_CSS = `
-pulse-question, pulse-deck, pulse-summary {
-  --pulse-accent: var(--emph);
-  --pulse-rule: var(--rule);
-  --pulse-radius: var(--radius-card);
-  --pulse-ui-font: var(--sans);
-  --pulse-muted: var(--ink-soft);
-  --pulse-on-accent: var(--paper);
-  --pulse-bg: color-mix(in oklch, var(--ink) 4%, transparent);
-}
-pulse-question, pulse-deck { margin: 1.4rem 0 0.4rem; }
-pulse-deck pulse-question { margin: 0; }
-pulse-question .pulse-label, pulse-deck .pulse-deck-pos {
-  font-size: 0.72rem;
-  font-variant-caps: all-small-caps;
-  text-transform: none;
-  letter-spacing: 0.14em;
-}
-main > pulse-summary { display: block; margin: 2rem 0; }
-@media print {
-  pulse-deck pulse-question:first-of-type .pulse-label { display: block; }
-}
-`;
+//
+// runtime/pulse-print.css, read as text at build time
+// (PLAN-runtime-extraction.md; PULSE_PRINT_CSS until it left this file), in
+// editor.css's shape: read once per process, the text kept as the source
+// the stylesheet check reads, stripped on its way into a document by
+// shipCss. Its bytes are the old literal's value.
+const PULSE_PRINT_CSS_PATH = new URL('./runtime/pulse-print.css', import.meta.url);
+let pulsePrintCssCache = null;
+const pulsePrintCss = () => (pulsePrintCssCache ??= fs.readFileSync(PULSE_PRINT_CSS_PATH, 'utf8'));
 
 // ── the lightbox for the documents (screen only) ────────────────────
 // The one script the two documents carry. The same gesture the live views'
@@ -32212,7 +32198,7 @@ function assertStylesheetsWellFormed() {
   // DIAGRAM_CSS ships into all four views and was the one inlined
   // stylesheet this guard did not cover – the exact gap the guard exists
   // to close.
-  const sheets = { AUDIENCE_CSS, 'runtime/speaker.css': speakerCss(), SOUFFLEUSE_CSS, PRINT_CSS, PULSE_PRINT_CSS, DIAGRAM_CSS, 'editor.css': editorCss() };
+  const sheets = { AUDIENCE_CSS, 'runtime/speaker.css': speakerCss(), SOUFFLEUSE_CSS, PRINT_CSS, 'runtime/pulse-print.css': pulsePrintCss(), DIAGRAM_CSS, 'editor.css': editorCss() };
   for (const [name, css] of Object.entries(sheets)) {
     if (typeof css !== 'string') continue;
     const opens = (css.match(/\/\*/g) || []).length;

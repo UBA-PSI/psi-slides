@@ -8,10 +8,10 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **2 of 24 moved** – the pilot, `SPEAKER_CSS`, and `PRINT_JS` (see
-*Log*). Next: `PULSE_PRINT_CSS`. The inventory's line numbers are those of
-`a49b625`, before the pilot; `node tools/runtime-literals.mjs` has the
-current ones.
+Status: **3 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS` and
+`PULSE_PRINT_CSS` (see *Log*). Next: `SPEAKER_JS`. The inventory's line
+numbers are those of `a49b625`, before the pilot;
+`node tools/runtime-literals.mjs` has the current ones.
 
 ## Inventory
 
@@ -345,3 +345,22 @@ is byte-identical.
   `cmp`-equal plain and under `PSI_KEEP_COMMENTS=1` (whose two documents
   carry the file's comments), and when built by a staged copy of the engine.
   Not run: the browser suite and `test/pdf-export.mjs`.
+- **`PULSE_PRINT_CSS` → `runtime/pulse-print.css`** – done. 724 bytes, 22
+  lines, written by `--extract` (value equals source; the sheet has no
+  comment, so the kept-comments build cannot show it, only that it ships).
+  `build.js` lost 25 lines and gained 11: `PULSE_PRINT_CSS_PATH`,
+  `pulsePrintCss()`, a comment; the render site is
+  `shipCss(pulsePrintCss())` behind the same `hasPulse` test, the `sheets`
+  entry `'runtime/pulse-print.css'` – so the file is read by every build's
+  stylesheet check, with or without a question in the deck, as
+  `speaker.css` is. Gates: `strip` (the file joins `RUNTIME`; its ship check
+  and its two stylesheet strip checks – 2,146 → 2,148 assertions),
+  `id-namespace` (reads the file whole; still 564 selectors in 8
+  stylesheets, 123 emitted ids). Desktop: `FILES` gained the file, the read
+  count went 8 → 9; with the file off `FILES` the test fails by name.
+  Identity: tracked views unchanged, and `lectures/tutorial` is the tracked
+  deck with a `::: pulse`, so its two documents carry the sheet; the same
+  deck built by the old and the new `build.js` into scratch folders, all
+  four views `cmp`-equal plain and under `PSI_KEEP_COMMENTS=1`;
+  python-intro's four views equal plain, kept and by a staged engine. Not
+  run: the browser suite and `test/pdf-export.mjs`.

@@ -29,10 +29,11 @@
  * an id something else emitted, and that emitter is what is checked.
  *
  * The stylesheets are the third half. Every `#id` that stands in a selector
- * of an inlined stylesheet - the five CSS literals in build.js (DIAGRAM_CSS,
- * PRINT_CSS, PULSE_PRINT_CSS, AUDIENCE_CSS, SOUFFLEUSE_CSS), the cockpit's
- * runtime/speaker.css (SPEAKER_CSS until it left build.js), editor.css and
- * pdf-core.mjs's PDF_CSS - has to start with psiINT- (or be on
+ * of an inlined stylesheet - the four CSS literals in build.js (DIAGRAM_CSS,
+ * PRINT_CSS, AUDIENCE_CSS, SOUFFLEUSE_CSS), the cockpit's runtime/speaker.css
+ * and the documents' runtime/pulse-print.css (SPEAKER_CSS and PULSE_PRINT_CSS
+ * until they left build.js), editor.css and pdf-core.mjs's PDF_CSS - has to
+ * start with psiINT- (or be on
  * CSS_ALLOWED), and has to name an id some site above emits. The second rule
  * is the one that matters: `#toc-panel li` stood in the heading rule's :is
  * list from the day it was written and matched nothing, because the contents
@@ -90,7 +91,7 @@ const ALLOWED = [
 // The stylesheets whose selectors are read: [file, literal name or null for
 // a whole .css file].
 const CSS_SOURCES = [
-  ['build.js', 'DIAGRAM_CSS'], ['build.js', 'PRINT_CSS'], ['build.js', 'PULSE_PRINT_CSS'],
+  ['build.js', 'DIAGRAM_CSS'], ['build.js', 'PRINT_CSS'], ['runtime/pulse-print.css', null],
   ['build.js', 'AUDIENCE_CSS'], ['runtime/speaker.css', null], ['build.js', 'SOUFFLEUSE_CSS'],
   ['pdf-core.mjs', 'PDF_CSS'], ['editor.css', null],
 ];
