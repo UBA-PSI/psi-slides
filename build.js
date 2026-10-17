@@ -3806,6 +3806,48 @@ function shipCss(text) {
   if (out === undefined) shippedCss.set(text, out = stripCss(text));
   return out;
 }
+// A runtime/ file whose literal had substitutions holds a placeholder where
+// each one stood (PLAN-runtime-extraction.md, "Substitution scheme"), and
+// its getter fills them here, before shipJs / shipCss, so the strip and its
+// memo see the same string the literal evaluated to. A placeholder is
+// __PSI_NAME__: capitals, digits and single underscores, with no capital,
+// digit or underscore straight after it, so where a name ends is never a
+// guess. That is an identifier to JavaScript and to CSS, valid in a string,
+// a value, an expression and a selector, and not a comment, so a strip would
+// not make one vanish. Written as a whole comment, /*__PSI_NAME__*/, the
+// comment is what is replaced: the form for a generated block, where only a
+// comment keeps the file valid. The values are a table of name to string or
+// finite number, rendered with String() – what a template literal's
+// coercion did. Strict, because an unfilled placeholder ships a wrong value
+// with exit 0: a placeholder without a value, a value no placeholder uses, a
+// value of another type and any __PSI_ that is not a placeholder all throw.
+// A defect in the build, not the author's to fix, so not userFacing. `where`
+// is the file's URL (or a name); the message names runtime/<file>.
+function fillRuntime(where, text, values) {
+  const file = String(where).replace(/^.*\/(?=runtime\/)/, '');
+  const slot = /\/\*__PSI_([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*)__\*\/|__PSI_([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*)__(?![A-Z0-9_])/g;
+  const starts = new Set();
+  for (const m of text.matchAll(slot)) starts.add(m[1] ? m.index + 2 : m.index);
+  for (let i = text.indexOf('__PSI_'); i >= 0; i = text.indexOf('__PSI_', i + 1)) {
+    if (!starts.has(i)) {
+      throw new Error(`${file}: "${text.slice(i, i + 40).split('\n')[0]}" is not a placeholder – __PSI_, capitals, digits and single underscores, __, and no capital, digit or underscore after it`);
+    }
+  }
+  const used = new Set();
+  const out = text.replace(slot, (m, inComment, bare) => {
+    const name = inComment || bare;
+    if (!Object.hasOwn(values, name)) throw new Error(`${file}: placeholder __PSI_${name}__ has no value`);
+    const v = values[name];
+    if (!(typeof v === 'string' || (typeof v === 'number' && Number.isFinite(v)))) {
+      throw new Error(`${file}: the value for __PSI_${name}__ is ${Array.isArray(v) ? 'an array' : typeof v === 'number' ? v : typeof v}, not a string or a finite number`);
+    }
+    used.add(name);
+    return String(v);
+  });
+  const unused = Object.keys(values).filter(k => !used.has(k));
+  if (unused.length) throw new Error(`${file}: no placeholder for ${unused.map(k => `__PSI_${k}__`).join(', ')}`);
+  return out;
+}
 const DIAGRAM_CORE_PATH = new URL('./diagram-core.mjs', import.meta.url);
 function diagramCoreScript() {
   const text = shipJs(fs.readFileSync(DIAGRAM_CORE_PATH, 'utf8'));

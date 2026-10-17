@@ -11,14 +11,15 @@ built page changes; only where its text comes from.
 Status: **8 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
 `PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS`,
 `WATCH_BANNER_CSS` and `WATCH_BANNER_JS` (see *Log*): every static CSS and
-JS literal on the list. Next: step 8 of *Order*, `PRINT_READER_JS`,
-`PRINT_VIEW_JS` and `PRINT_HIGHLIGHTS_JS`, the first with substitutions.
+JS literal on the list. **The substitution scheme is decided** (see
+*Substitution scheme*). Next: step 8 of *Order*, `PRINT_VIEW_JS` first, then
+`PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS`, the first with substitutions.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
 ## Inventory
 
-**`node tools/runtime-literals.mjs` prints the current inventory** (the literals still in build.js, with lines, substitutions, escaped `\${`, backslashes and whether the value equals the source), and `--extract NAME FILE` writes a static literal's *value* to a file and reads it back – the method below, kept as a tool so every later step uses the same one. The table here is the snapshot the plan was written against.
+**`node tools/runtime-literals.mjs` prints the current inventory** (the literals still in build.js, with lines, substitutions, escaped `\${`, backslashes and whether the value equals the source), and `--extract NAME FILE` writes a literal's *value* to a file and reads it back – the method below, kept as a tool so every later step uses the same one. For a literal with substitutions it writes placeholders where they stood and checks that filling them gives the value back (*Substitution scheme*). The table here is the snapshot the plan was written against.
 
 The 24 multi-line template-literal constants in `build.js` at `a49b625`,
 20,912 lines between them. Found by V8's parser, as `tools/coverage-logic.mjs`
@@ -182,6 +183,171 @@ replaces: `SPEAKER_CSS` → `runtime/speaker.css`, `SOUFFLEUSE_JS` →
    half of byte identity (open question 4). Node-side comments in `build.js`
    may be updated.
 
+## Substitution scheme
+
+Designed on `PRINT_VIEW_JS`, and tried before it was decided on all eight
+literals that have substitutions: `--extract` wrote each one with
+placeholders and filled it back to the literal's value character for
+character – `PRINT_CSS`'s 21 and `AUDIENCE_CSS`'s 15 included, the selector
+lists and the generated blocks among them (the trial files were not kept).
+
+**The placeholder is `__PSI_NAME__`.** `NAME` is a capital followed by
+capitals, digits and single underscores (`[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*`),
+and straight after the closing `__` there may be no capital, digit or
+underscore. Why this shape:
+
+- **It is an identifier in both languages, so the file stays valid where the
+  substitution stood.** In JavaScript it sits in a string
+  (`'__PSI_PRINT_PREF_KEYS_SCHEME__'`) and in expression position
+  (`const THEME_CYCLE = __PSI_THEME_NAMES__;`, where a JSON value will go),
+  and the file still compiles as a script – the `strip` gate's check on the
+  raw file keeps working. In CSS it is an ident: a value
+  (`line-height: __PSI_X__;`), a custom property, a media feature
+  (`(min-width: __PSI_READER_NOTES_PX__px)` is one ident token, a
+  syntactically valid query), and **a selector** – `__PSI_X__ { … }` is a
+  type selector, which answers the case the plan expected to need a second
+  scheme.
+- **Not `${…}`**: a real browser template in a JS file (`SPEAKER_JS` had two,
+  `AUDIENCE_JS` has nine), and it would make each file a template again.
+- **Not a comment as the default form.** Filling happens before the strip
+  (below), so a comment-shaped placeholder would work while every one is
+  found; but one the filler's pattern misses – a typo in its delimiters – is
+  then an ordinary comment, which the strip removes without a trace: the
+  value missing from every plain build, and junk in a `PSI_KEEP_COMMENTS=1`
+  one. An identifier that is not a well-formed placeholder still contains
+  `__PSI_`, which the strict check refuses. And a comment is valid neither
+  in a JS expression nor as a CSS selector.
+- **Not `{{NAME}}`, `%NAME%` or `@@NAME@@`**: none is valid in a JS
+  expression or a CSS selector, and `{{` is legal JavaScript.
+- `__PSI_` occurred nowhere in the repository before this scheme.
+- **The end is never a guess.** `${READER_NOTES_PX}px` becomes
+  `__PSI_READER_NOTES_PX__px`, unambiguous because `px` is lower case;
+  `__PSI_A__B` could be `A` followed by `B` or a malformed name, and is
+  refused.
+
+**The comment form, `/*__PSI_NAME__*/`**, is for a substitution that
+generates a whole block of rules or declarations – `boldLookCss(…)`,
+`printDarkCss(…)`, `tokenDecls(…)`, the `FIGURE_TYPE_STEPS` rules,
+`dgBarFillCss()`. A bare identifier among rules is read as the start of the
+next rule's selector, so there only a comment keeps the file valid CSS; the
+whole comment is replaced. It is the same token inside comment delimiters,
+so the filler finds it by the same pattern, and a malformed one is still a
+`__PSI_` the strict check refuses – the vanishing comment above cannot
+happen. Use it only where the bare form is invalid.
+
+**Filled in the getter, before `ship*`, once per process.** The getter reads
+the file, fills it and memoises the filled text, and the render site is the
+one a static file has:
+
+```js
+const PRINT_VIEW_JS_PATH = new URL('./runtime/print-view.js', import.meta.url);
+const PRINT_VIEW_JS_FILL = {
+  PRINT_PREF_KEYS_SCHEME: PRINT_PREF_KEYS.scheme,
+  PRINT_PREF_KEYS_FACE: PRINT_PREF_KEYS.face,
+};
+let printViewJsCache = null;
+const printViewJs = () => (printViewJsCache ??=
+  fillRuntime(PRINT_VIEW_JS_PATH, fs.readFileSync(PRINT_VIEW_JS_PATH, 'utf8'), PRINT_VIEW_JS_FILL));
+// … and at the render site, as for a static file:
+shipJs(printViewJs())
+```
+
+So `shipJs` / `shipCss`, their memo and `PSI_KEEP_COMMENTS=1` see the string
+the literal evaluated to, and a placeholder may stand anywhere, inside a
+comment too.
+
+**The values are a table beside the path constant**, `NAME_FILL`, one key per
+line, standing where the literal stood. Rejected: a getter that takes the
+values at the render site. The literals were constants – evaluated once,
+where they were declared, the same for every view and every build of a
+`--watch` run. A table in the same place evaluates the same expressions at
+the same point of module load (a name declared further down was as
+unreachable to the literal), the getter keeps the static getters' shape (no
+argument, a memo keyed by nothing), the `strip` gate's ship check reads
+`shipJs(getter())` as before, and the gate can hold the table's keys against
+the file's placeholders as text. Values passed per call would need a memo
+keyed by them and would be a new behaviour, not a move; none of the eight
+needs it.
+
+**A value is a string or a finite number, rendered with `String()`** – the
+ToString a template literal applied, so `READER_WIDE_PX - 0.02` comes out
+`1215.98` as it did. A string goes in as it is, with no quoting: the file
+keeps the quotes the literal had around the substitution
+(`'__PSI_PRINT_PREF_KEYS_SCHEME__'`), and a value that holds `$&` goes in as
+written (the replacement is a function, not a pattern). Anything else – an
+array, an object, a boolean, `undefined`, `NaN` – is refused rather than
+coerced: every substitution in the eight already yields a string or a number
+(the tables go through `JSON.stringify`, the functions through
+`.toString()`), and a table that hands over an array where it meant JSON
+would otherwise ship `a,b`. The conversion is written in the table, where the
+literal wrote it.
+
+**Strict.** `fillRuntime(where, text, values)` in build.js (beside `shipJs`)
+throws a plain `Error` – a defect in the build, so it keeps its stack, never
+`userFacing` – naming `runtime/<file>` and the placeholder, when a
+placeholder has no value (own properties only), a value has no placeholder, a
+value is of another type, or any `__PSI_` in the file is not a well-formed
+placeholder. A name may stand more than once and every occurrence gets the
+same value (`PRINT_CSS` uses `READER_NOTES_PX` four times). It throws
+on the first build that renders the view, in the renderer, as a missing file
+does (open question 11); and before any build, the `strip` gate holds each
+file's placeholders against its table, so a file read only under a flag is
+held too.
+
+**Gates.** `strip` lifts `fillRuntime` out of build.js as text and runs it on
+fixtures – both forms, `String()` of a number, a name used twice, `$&` as
+written, a text with no placeholder left alone, and each refusal; and, per
+runtime file, that a file holding a placeholder is read through
+`fillRuntime` with a table whose keys are exactly its placeholder names, and
+that a file read without it holds no `__PSI_`. Every other gate that reads a
+runtime file reads it raw, placeholders and all. That is harmless for a
+placeholder in a string or a value; for one in selector position,
+`id-namespace`'s selector scan does not see what the generated list names –
+`inlineCodeSel` names classes and attributes today, no `#id`, but the gate
+needs a look when `PRINT_CSS` and `AUDIENCE_CSS` move.
+
+**The tool.** `node tools/runtime-literals.mjs --extract NAME FILE [--names
+A,B,…]` writes the cooked text with a placeholder where each substitution
+stood; the names are given in the order the substitutions stand, or derived
+from each expression's text (`PRINT_PREF_KEYS.scheme` →
+`PRINT_PREF_KEYS_SCHEME`), and a name written inside comment delimiters
+(`'/*BAR_FILL_RULES*/'`) gets the comment form. A name used twice must name
+the same expression text. The check is the round trip the build makes: the
+literal is evaluated for real, with every name its expressions reach resolved
+to its top-level declaration in build.js (a `const`, a `function`, or an
+import from `node:` or one of the zero-dep modules beside it), each
+substitution is evaluated the same way, the file is filled with build.js's
+own `fillRuntime`, lifted as text, and the result must equal the literal's
+value. It prints the `NAME_FILL` table to paste where the literal stood. A
+substitution that needs a package (marked, Shiki) cannot be evaluated by the
+tool, and then the build's byte identity is the only check; none of the
+eight needs one.
+
+**What the later literals need from it** – nothing the scheme does not have:
+
+- `PRINT_READER_JS`, `PRINT_HIGHLIGHTS_JS`: one number each, in a string.
+  Names that say what the value is rather than how it is computed, e.g.
+  `READER_WIDE_BELOW` / `READER_NOTES_BELOW` (the width just under the
+  breakpoint) rather than the derived `READER_WIDE_PX_0_02`; `PRINT_CSS`
+  should use the same names for the same expressions. `PRINT_HIGHLIGHTS_JS`'s
+  file is its value, not its source text (34 backslashes), which the tool
+  already writes.
+- `DIAGRAM_CSS`: two `toFixed(4)` strings, bare, and
+  `/*__PSI_BAR_FILL_RULES__*/` (tried: exact).
+- `DIAGRAM_JS`: one JSON table in expression position, bare, and four
+  function sources in statement position – the comment form, unless open
+  question 5's alternative (the runtime reads them from `window.PSI_DG`)
+  is chosen, which changes the output and is a decision of its own.
+- `PRINT_CSS`: four selector lists bare; `tokenDecls`, `boldLookCss` and the
+  two `printDarkCss` blocks in the comment form (the latter stand straight
+  after an `@media … {` on the same line, and `{/*__PSI_…__*/` gives the same
+  bytes); ten widths and three line heights bare.
+- `AUDIENCE_CSS`: three font stacks and four line heights bare, six selector
+  lists bare, `boldLookCss` and the `FIGURE_TYPE_STEPS` rules in the comment
+  form.
+- `AUDIENCE_JS`: five JSON values in expression position, bare. Its nine
+  `\${` become plain `${` in the file, which the filler never touches.
+
 ## Order
 
 Static first, so the method is proved on literals whose value is fixed, then
@@ -208,14 +374,13 @@ Not on the list unless decided otherwise: `DOCUMENT_PAGE_CSS` (3 lines),
 `READER_EARLY_JS` (2) and the six `*_HTML` markup literals (44 lines) –
 open questions 6 and 7.
 
-**The substitution schemes are designed when each group is reached**, not
-here. What any of them has to satisfy: the substitution happens on the file's
-text *before* `ship*` (so a placeholder may live in a comment, and the strip
-memo still sees one stable string per process); every slot is filled exactly
-once and an unknown slot is a build error; the file stays valid for its own
-tooling (a CSS selector-position slot does not, which is why `AUDIENCE_CSS`
-and `PRINT_CSS` need more thought than a media-query width); and the output
-is byte-identical.
+**The substitution scheme is one for all eight, decided on `PRINT_VIEW_JS`**
+(see *Substitution scheme* above). The requirements it was written against:
+the substitution happens on the file's text *before* `ship*` (so a
+placeholder may live in a comment, and the strip memo still sees one stable
+string per process); every slot is filled and an unknown slot is a build
+error; the file stays valid for its own tooling, a CSS selector-position slot
+included; and the output is byte-identical.
 
 ## Checklist per literal
 
@@ -223,7 +388,9 @@ is byte-identical.
    coverage for this literal. Do not trust this table's line numbers once a
    literal above has moved.
 2. Copy the old `build.js` aside. Generate `runtime/<file>` from the evaluated
-   value; read back; assert equal.
+   value; read back; assert equal. With substitutions, `--extract … --names`
+   writes the placeholders, checks the round trip and prints the
+   `NAME_FILL` table.
 3. Baselines **before** editing: `npm run build:tracked` leaves
    `git diff -- lectures/` empty; build one untracked lecture
    (`lectures/python-intro/source.md --no-optimize-images`) and keep its four
@@ -278,10 +445,14 @@ is byte-identical.
    `a49b625`) and `SOUFFLEUSE_CSS` (30121, 30370) mention `SPEAKER_CSS`. Left
    as they are, for the reason in 3; one sweep at the end, as a kept-comments
    output change.
-5. **The substitution schemes** (see *Order*): named constants for the
-   numbers and strings; something else for selector-position and generated
-   blocks; function sources for `DIAGRAM_JS` – possibly by having the
-   runtime read them from `window.PSI_DG` rather than splicing them twice.
+5. **The substitution schemes.** **Decided: one scheme for all eight** –
+   `__PSI_NAME__`, or `/*__PSI_NAME__*/` for a generated block, filled by
+   `fillRuntime` from a `NAME_FILL` table before `ship*`, strictly (see
+   *Substitution scheme*). Selector position needed nothing of its own: the
+   placeholder is a type selector. Still open: whether `DIAGRAM_JS`'s four
+   function sources go in by placeholder (the comment form) or the runtime
+   reads them from `window.PSI_DG` rather than splicing them twice – an
+   output change, decided when `DIAGRAM_JS` is reached.
 6. **The six markup literals** – out of scope? They are HTML, not CSS or JS,
    44 lines in all, and gain little from a file.
 7. **The two tiny literals** (`DOCUMENT_PAGE_CSS`, `READER_EARLY_JS`) –
@@ -571,3 +742,25 @@ is byte-identical.
   which is shipped through `shipJs` all the same; the move puts all three in
   `RUNTIME`. The appearance skill names `PRINT_HIGHLIGHTS_JS` and several
   Node-side comments in build.js name all three.
+- **The substitution scheme, and the tooling for it** – done, before any
+  literal with substitutions moved. `__PSI_NAME__` (or `/*__PSI_NAME__*/`
+  for a generated block), filled by `fillRuntime(where, text, values)` from a
+  `NAME_FILL` table before `ship*`, strictly; the reasons and the rejected
+  alternatives are in *Substitution scheme*. `build.js` gained
+  `fillRuntime` beside `shipJs` / `shipCss`, called by nothing yet, so every
+  view is as it was (tracked views unchanged). `tools/runtime-literals.mjs
+  --extract` now writes a literal with substitutions – placeholders where
+  they stood, names from `--names` or derived from the expressions – and
+  checks the round trip with the real values and build.js's own
+  `fillRuntime`, lifted as text; tried on all eight such literals, each
+  filled back to its value exactly, with derived names and, for
+  `DIAGRAM_CSS`, with the comment form for `dgBarFillCss()`. Gates: `strip`
+  runs `fillRuntime` on fixtures (both forms, a number as `String()` makes
+  it, a name used twice, `$&` as written, a text with no placeholder; and
+  refused: a placeholder without a value, a value without a placeholder, an
+  array, `NaN`, a malformed placeholder, `__PSI_A__B__`, an inherited name),
+  and holds every runtime file against its getter – a file with a
+  placeholder read through `fillRuntime` with a table whose keys are its
+  placeholder names, one without read as it is (eight files, none with a
+  placeholder yet): 2,163 → 2,181 assertions. Docs: `test/README.md`
+  (`strip`).

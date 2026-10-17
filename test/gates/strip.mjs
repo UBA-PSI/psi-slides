@@ -24,6 +24,12 @@
  *      comments again, which is only bytes, but it is also how the two
  *      paths come to differ.
  *
+ * And the step before the strip for a runtime/ file whose literal had
+ * substitutions: fillRuntime, lifted out of build.js as text, fills its
+ * placeholders and refuses every way one could ship unfilled; and each file's
+ * placeholders are held against the table its getter fills them from
+ * (PLAN-runtime-extraction.md, "Substitution scheme").
+ *
  * During development the strip was also checked against acorn's tokenizer
  * (every script in every view of eight decks, token streams equal, no comment
  * left) and the stylesheets against Chromium's CSSOM (32 views, every rule's
@@ -234,6 +240,63 @@ export async function run({ report }) {
     ok(bare === 0 && shipped > 0, `${file} (${getter}()) reaches a view only through shipJs / shipCss`,
       `${bare} bare, ${shipped} shipped`);
   }
+  // ── a runtime/ file's placeholders, filled before ship* ──
+  // fillRuntime, lifted out of build.js as text and run on fixtures: it fills
+  // both forms with String() of the value, and refuses every way a
+  // placeholder could reach a page unfilled or a value go nowhere.
+  const fStart = build.indexOf('\nfunction fillRuntime(');
+  const fEnd = build.indexOf('\n}\n', fStart);
+  let fill = null;
+  try { fill = new Function(build.slice(fStart, fEnd + 2) + '\nreturn fillRuntime;')(); } catch (e) { /* reported below */ }
+  ok(fStart >= 0 && typeof fill === 'function', 'fillRuntime is found in build.js and compiles');
+  if (fill) {
+    const where = new URL('file:///x/psi/runtime/f.js');
+    const refuses = (what, text, values, want) => {
+      let msg = '';
+      try { fill(where, text, values); } catch (e) { msg = e.message; }
+      ok(msg.startsWith('runtime/f.js: ') && want.test(msg), `fillRuntime refuses ${what}`, msg || 'no error');
+    };
+    const got = fill(where, "a('__PSI_KEY__'); /*__PSI_BLOCK__*/ w(__PSI_W__px) __PSI_W__ $&\n",
+      { KEY: 'psi-reader:scheme', BLOCK: '.x { y: $& }', W: 1216 - 0.02 });
+    ok(got === "a('psi-reader:scheme'); .x { y: $& } w(1215.98px) 1215.98 $&\n",
+      'fillRuntime fills both forms, a name used twice, a number as String() makes it, a $ pattern as written', got);
+    ok(fill(where, 'a /* b */ c\n', {}) === 'a /* b */ c\n', 'fillRuntime leaves a text without placeholders as it is');
+    refuses('a placeholder without a value', 'x(__PSI_KEY__, __PSI_NO__)', { KEY: 'k' }, /__PSI_NO__ has no value/);
+    refuses('a value no placeholder uses', 'x(__PSI_KEY__)', { KEY: 'k', SPARE: 1 }, /no placeholder for __PSI_SPARE__/);
+    refuses('a value that is not a string or a finite number', 'x(__PSI_T__)', { T: ['a', 'b'] }, /__PSI_T__ is an array/);
+    refuses('a value that is not finite', 'x(__PSI_T__)', { T: NaN }, /__PSI_T__ is NaN/);
+    refuses('a malformed placeholder', 'x(__PSI_lower__)', {}, /"__PSI_lower__\)" is not a placeholder/);
+    refuses('a placeholder with a double underscore inside', 'x(__PSI_A__B__)', { A: 1 }, /is not a placeholder/);
+    refuses('an inherited name', 'x(__PSI_TOSTRING__)', Object.create({ TOSTRING: 'x' }), /__PSI_TOSTRING__ has no value/);
+  }
+  // Per file, without a build: a file that holds a placeholder is read
+  // through fillRuntime, from its own path, with a table whose keys (one per
+  // line, read as text) are exactly its placeholder names – so a file read
+  // only under a flag is held as well as one every build reads – and a file
+  // without one is read as it is.
+  for (const [file, getter] of [...RUNTIME, ...RUNTIME_RAW]) {
+    const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const names = new Set([...text.matchAll(/__PSI_([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*)__/g)].map(m => m[1]));
+    const at = build.indexOf(`\nconst ${getter} = `);
+    const def = at < 0 ? '' : build.slice(at, build.indexOf(';\n', at) + 1);
+    const call = def.match(/fillRuntime\((\w+), fs\.readFileSync\((\w+), 'utf8'\), (\w+)\)/);
+    if (!call) {
+      ok(def && !def.includes('fillRuntime') && !text.includes('__PSI_'),
+        `${file}: holds no placeholder and ${getter}() reads it as it is`,
+        def ? `${names.size} placeholder(s), ${def.includes('fillRuntime') ? 'an unreadable fillRuntime call' : 'no fillRuntime'}` : `no const ${getter} in build.js`);
+      continue;
+    }
+    const [, where, read, table] = call;
+    const pathOk = where === read && build.includes(`\nconst ${read} = new URL('./${file}', import.meta.url);`);
+    const tStart = build.indexOf(`\nconst ${table} = {\n`);
+    const tBody = tStart < 0 ? '' : build.slice(tStart, build.indexOf('\n};\n', tStart));
+    const keys = new Set([...tBody.matchAll(/^ {2}([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*):/gm)].map(m => m[1]));
+    const same = keys.size === names.size && [...names].every(n => keys.has(n));
+    ok(pathOk && names.size > 0 && same,
+      `${file}: ${getter}() fills its ${names.size} placeholder(s) from ${table}, whose keys are exactly their names`,
+      `path ${pathOk ? 'ok' : `${where} / ${read} is not new URL('./${file}')`}; file ${[...names].join(', ') || 'none'}; ${table} ${[...keys].join(', ') || 'none'}`);
+  }
+
   // A raw one stays raw, and stays in the reload script: every call of its
   // getter is inside reloadScript, and none goes through ship*, which would
   // change what a watch build ships.
