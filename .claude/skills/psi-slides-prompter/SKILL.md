@@ -48,8 +48,8 @@ into the prompt, that is the thing you are giving up.
 |---|---|
 | `souffleuse.mjs` | everything pure: `KINDS`, `SEVERITIES`, `MAX_WORDS`, `START_QUIET_S`, `CLOCK_JUMP_S`, `PACE_WPM`, `DELIVERY_MIN_SAMPLE_S`, `TOOL_SCHEMA`, `wordCount`, `prefixHash`, `deckPayload`, `flattenMarks`, `cueTargets`, `systemPrefix`, `speechStats`, `paceVerdict`, `tickMessage`, `parseAnswer`, `driftSeconds`, `timeHintAllowed`, `rebaseClock`, `shouldTick`, `createPolicy`, `replayAnswers`, and the debrief's figures: `logNameFacts`, `pickDebriefLog`, `logIsDryRun`, `debriefReport`, `debriefTranscript`. Zero imports, zero Node APIs, and the gate asserts both plus the exact export list |
 | `build.js` § `// ── souffleuse (--prompter) ──` | `createSouffleuse({absIn, opts, sendToCockpit, emitEvent, log})` → `{onBuild, onMessage, say, setEnabled, close, logPath}`, plus `souffleuseLogPath` and the constants. Both modules are imported **dynamically here**, so no other build reads either file |
-| `runtime/souffleuse.css`, and `build.js` § `// ── the live prompter's CSS and runtime (--prompter only) ──` | `runtime/souffleuse.css` (`SOUFFLEUSE_CSS` in build.js until it moved, read by `souffleuseSheet()` in that section) and `SOUFFLEUSE_JS`: the cockpit's Web Speech adapter, switch, strip, badge, history, interim line and cue merge, and the rules that dress them. **Two texts of their own because they are spliced only under the flag**, the way `editorPayload` is – `${shipCss(speakerCss())}${shipCss(souffleuseCss)}` inside the same `<style>`, `${shipJs(speakerJs())}${shipJs(souffleuseRuntime)}` inside the same `<script>` (the cockpit's own two are the files `runtime/speaker.css` and `runtime/speaker.js`, once the literals `SPEAKER_CSS` and `SPEAKER_JS`). The runtime must be in that script element: it reads `flatChunks`, `state`, `viewHooks`, `cueSync`, `cueOn`, `cuePosition`, `souffleuseCues`, `applyCueMode`, `flashMode`, `escText`, `elapsedSeconds`, `tStart` and `PSI_CARDS` out of `runtime/speaker.js`'s scope. Before the split, 36 KB of prompter rode in every `speaker.html` anybody ever built |
-| `runtime/speaker.js` (`SPEAKER_JS` in build.js until it moved) § cue cards | the two pieces a cockpit carries either way: `const souffleuseCues = new Map()` and the merge at the end of `cueCardsFor`. The rail is drawn from them, and drawing it cannot depend on a literal that may not have been spliced; over an empty Map both are free. Everything else the prompter touches in this window is *chained* from `SOUFFLEUSE_JS` – `viewHooks.onActiveChange`, `onStateChange`, and `applyCueMode` (which is how `cuePlaceStrip` gets called without a line inside it) |
+| `runtime/souffleuse.css`, `runtime/souffleuse.js` (`SOUFFLEUSE_CSS` and `SOUFFLEUSE_JS` in build.js until they moved), read by `souffleuseSheet()` and `souffleuseScript()` in `build.js` § `// ── the live prompter's CSS and runtime (--prompter only) ──` | the cockpit's Web Speech adapter, switch, strip, badge, history, interim line and cue merge, and the rules that dress them. **Two files of their own because they are spliced only under the flag**, the way `editorPayload` is – `${shipCss(speakerCss())}${shipCss(souffleuseCss)}` inside the same `<style>`, `${shipJs(speakerJs())}${shipJs(souffleuseRuntime)}` inside the same `<script>` (the cockpit's own two are the files `runtime/speaker.css` and `runtime/speaker.js`, once the literals `SPEAKER_CSS` and `SPEAKER_JS`). The runtime must be in that script element: it reads `flatChunks`, `state`, `viewHooks`, `cueSync`, `cueOn`, `cuePosition`, `souffleuseCues`, `applyCueMode`, `flashMode`, `escText`, `elapsedSeconds`, `tStart` and `PSI_CARDS` out of `runtime/speaker.js`'s scope. Before the split, 36 KB of prompter rode in every `speaker.html` anybody ever built |
+| `runtime/speaker.js` (`SPEAKER_JS` in build.js until it moved) § cue cards | the two pieces a cockpit carries either way: `const souffleuseCues = new Map()` and the merge at the end of `cueCardsFor`. The rail is drawn from them, and drawing it cannot depend on a literal that may not have been spliced; over an empty Map both are free. Everything else the prompter touches in this window is *chained* from `runtime/souffleuse.js` – `viewHooks.onActiveChange`, `onStateChange`, and `applyCueMode` (which is how `cuePlaceStrip` gets called without a line inside it) |
 | `build.js`, `SOUFFLEUSE_SPEC` / `souffleuseSettings` / `talkDuration` | the frontmatter, validated in the `buildOnce` pre-flight so `--print-only` refuses a typo too |
 | `build.js`, `renderSpeaker` | emits the chrome, `const SOUFFLEUSE = {lang, cadence, cues, label}` – `null` without the flag – and the two conditional splices. Without the flag the only trace in `speaker.html` is that null, the cue merge above, and the `onShiftS` / `escapePrompter` hooks in `AUDIENCE_JS`, which the projection carries too because they are the hook contract |
 | `build.js`, `runWatch` | tracks the socket of the last `souffleuse-hello` as `cockpit`, routes the `souffleuse-*` family after the nonce check, and abandons anything in flight on `exit` |
@@ -608,7 +608,7 @@ below the fold.
   positioned over the bottom edge of `#psiINT-stage-cell` in the classic arrangement,
   inside `#psiINT-cue-panel` immediately above `#psiINT-cue-rail` under `K`. `cuePlaceStrip`
   moves it and the interim line together and looks both up by id.
-  `SOUFFLEUSE_JS` **wraps** `applyCueMode` rather than putting a call inside
+  `runtime/souffleuse.js` **wraps** `applyCueMode` rather than putting a call inside
   it, the way it chains the two `viewHooks` – a cockpit without a prompter has
   nothing to move – and then runs `cuePlaceStrip(cueOn())` once itself, because
   the cue section restored the saved arrangement before this text existed.
@@ -934,7 +934,7 @@ those, the log and a rehearsal.
 - **The runtime and its stylesheet used to ride in every `speaker.html`.**
   36 KB of prompter in a file nothing could reach it from, while the comment in
   `renderSpeaker` promised the opposite. They are `runtime/souffleuse.css` and
-  `SOUFFLEUSE_JS` now, spliced only under the flag – but **inside the same
+  `runtime/souffleuse.js` now, spliced only under the flag – but **inside the same
   `<style>` and the same `<script>`**, because the runtime lives in
   `runtime/speaker.js`'s lexical scope and a script element of its own would give it
   nothing but `undefined`.
@@ -942,7 +942,7 @@ those, the log and a rehearsal.
   spec's `OPENROUTER` assertion failed on a comment in `SPEAKER_JS` quoting the
   badge text. Reworded rather than the assertion weakened: a privacy check that
   has to allow exceptions is not one. Do not write the variable's name inside
-  `runtime/speaker.js`, not even in a comment.
+  `runtime/speaker.js` or `runtime/souffleuse.js`, not even in a comment.
 - **The cockpit's clock was the page load, and the page reloads on every save.**
   `tStart` is a `let` in `runtime/speaker.js`, and a `--watch` rebuild reloads the
   cockpit – so a rehearsal's clock went back to 0:00 mid-talk and the sidecar

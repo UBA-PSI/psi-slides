@@ -20,7 +20,8 @@
  *   - **A run function for every command a view answers**, read out of the
  *     literals the view is built from as text: the COMMAND_RUN object in
  *     AUDIENCE_JS, and the COMMAND_RUN['id'] assignments in runtime/speaker.js
- *     (SPEAKER_JS until it left build.js) and SOUFFLEUSE_JS for the cockpit.
+ *     and runtime/souffleuse.js (SPEAKER_JS and SOUFFLEUSE_JS until they left
+ *     build.js) for the cockpit.
  *     A run function for an id the table does not have fails too. The prompter's command is the one exception the
  *     table states itself: it requires the prompter, and its run function
  *     ships only with it.
@@ -38,7 +39,7 @@
  *     before the lookup still answer in code: the overview board's arrows,
  *     the search field's keys, the Alt that starts a selection - every e.key
  *     comparison in AUDIENCE_JS (and, for the cockpit, runtime/speaker.js and
- *     SOUFFLEUSE_JS). The editor's keys are read out of editor.mjs and held
+ *     runtime/souffleuse.js). The editor's keys are read out of editor.mjs and held
  *     against the editor's own section, since its F and the slide's F are
  *     two keys.
  *
@@ -318,10 +319,11 @@ export async function run({ report }) {
   const render = loadRenderer(buildJs);
 
   const A = literal(buildJs, 'AUDIENCE_JS');
-  // The cockpit's runtime left build.js for runtime/speaker.js
-  // (PLAN-runtime-extraction.md); the file is the literal's value.
+  // The cockpit's runtime and the prompter's half of it left build.js for
+  // runtime/speaker.js and runtime/souffleuse.js (PLAN-runtime-extraction.md);
+  // each file is the literal's value.
   const S = fs.readFileSync(path.join(ROOT, 'runtime/speaker.js'), 'utf8');
-  const P = literal(buildJs, 'SOUFFLEUSE_JS');
+  const P = fs.readFileSync(path.join(ROOT, 'runtime/souffleuse.js'), 'utf8');
 
   // ── the table ──
   // A command is an entry with a keys list, empty or not (isCommand). The

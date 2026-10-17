@@ -108,7 +108,8 @@ const MODULES = ['diagram-core.mjs', 'editor.mjs', 'commands.mjs', 'cue-cards.mj
 // and to '' otherwise, and that local is what goes through ship*.
 const RUNTIME = [['runtime/speaker.css', 'speakerCss'], ['runtime/print.js', 'printJs'],
   ['runtime/pulse-print.css', 'pulsePrintCss'], ['runtime/speaker.js', 'speakerJs'],
-  ['runtime/souffleuse.css', 'souffleuseSheet', 'souffleuseCss']];
+  ['runtime/souffleuse.css', 'souffleuseSheet', 'souffleuseCss'],
+  ['runtime/souffleuse.js', 'souffleuseScript', 'souffleuseRuntime']];
 const asScript = (text) => {
   const names = [...text.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
   return { names, body: text.replace(/^export\s+(function|const|let)\s/gm, '$1 ') };

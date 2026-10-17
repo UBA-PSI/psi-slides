@@ -411,9 +411,9 @@ export async function run({ page, report }) {
     // ── and a cockpit built without the flag carries no prompter ────
     // Not this cockpit: an ordinary one, built from the same source in a
     // directory of its own so the watcher's files are not overwritten under
-    // the open page. SOUFFLEUSE_CSS and SOUFFLEUSE_JS are spliced only when
-    // the flag is set, the way editorPayload is - the runtime and its
-    // stylesheet used to ride in every speaker.html ever built.
+    // the open page. runtime/souffleuse.css and runtime/souffleuse.js are
+    // spliced only when the flag is set, the way editorPayload is - the
+    // runtime and its stylesheet used to ride in every speaker.html ever built.
     const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-souff-plain-'));
     fs.writeFileSync(path.join(plainDir, 'source.md'), SOURCE);
     const plainBuild = spawnSync(process.execPath,

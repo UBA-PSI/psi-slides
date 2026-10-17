@@ -8,9 +8,9 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **5 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
-`PULSE_PRINT_CSS`, `SPEAKER_JS` and `SOUFFLEUSE_CSS` (see *Log*). Next:
-`SOUFFLEUSE_JS`.
+Status: **6 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+`PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS` and `SOUFFLEUSE_JS` (see
+*Log*). Next: `WATCH_BANNER_CSS`.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -454,3 +454,36 @@ is byte-identical.
   – but its sentence “`desktop/scripts/stage-engine.mjs`'s file list is
   unchanged” is no longer literally so: the list carries the inert text
   files of the cockpit's half.
+- **`SOUFFLEUSE_JS` → `runtime/souffleuse.js`** – done. 57,550 bytes,
+  1,146 lines, written by `--extract` from the value: the 39 backslashes are
+  `\\uXXXX` escapes in strings (glyphs, dashes, middle dots) that the literal
+  turned into `\uXXXX`, one `\\s` in a regex, and three single `\u` escapes
+  that it resolved to the characters themselves (`–`, `…`, `·`) – the file
+  carries those as UTF-8, with the same meaning and the same bytes in the
+  view. The getter is `souffleuseScript()`: `souffleuseJs` is
+  `renderSpeaker`'s local for the `SOUFFLEUSE` settings and
+  `souffleuseRuntime` its local for the spliced text, which stays as
+  `souffSettings ? souffleuseScript() : ''`. **A build without
+  `--prompter` never reads the file** – checked by building python-intro's
+  cockpit with the file moved away. `build.js` lost 1,164 lines and gained
+  31: `SOUFFLEUSE_JS_PATH`, `souffleuseScript()`, a comment;
+  four Node-side comments name the file now, and the section comment's
+  paragraph on template-literal rules (with its stale “the other twelve”)
+  became a sentence saying the two files no longer carry them. The comment
+  inside `AUDIENCE_JS` that names `SOUFFLEUSE_JS` stays (rule 7). Gates:
+  `strip` (the file joins `RUNTIME` with its local, `souffleuseRuntime`;
+  the flagged ship check and the four script checks – 2,155 → 2,160),
+  `id-namespace` (the file joins `FILES`, the emitter scan; its
+  `psiINT-souffleuse-*` ids are found there, and the counts are as before),
+  `commands` (`P` reads the file, the value, as `S` does; the gate's
+  output is line for line what it was). Desktop: `FILES` gained the file,
+  the read count went 11 → 12; with the file off `FILES` the test fails by
+  name. Docs: the prompter skill (locations, four sentences, and the
+  `OPENROUTER` rule now names this file too), `test/README.md`
+  (`commands`, `id-namespace`), three sentences in `speaker.md` and a
+  comment in `test/souffleuse.mjs`. Identity: tracked views unchanged; the
+  same `--watch --prompter --prompter-dry-run` fixture as for
+  `SOUFFLEUSE_CSS`, against `de63bde`: four views equal after
+  normalisation, plain and under `PSI_KEEP_COMMENTS=1` (whose cockpit
+  carries the file's head comment). Neither cockpit nor the file contains
+  `OPENROUTER`. Not run: the browser suite and `test/pdf-export.mjs`.
