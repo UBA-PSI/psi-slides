@@ -9871,10 +9871,10 @@ function renderToc(columns, S) {
 // The reader's contents sidebar (reader: on). The in-flow nav.toc above is
 // the printed contents page and lists parts; this one lists slides, grouped
 // by part, with the number the document prints beside each chunk, and it is
-// what the scroll-spy in PRINT_READER_JS marks. Emitted at build time rather
-// than assembled by the script: the list is then a function of the source,
-// so a rebuild is the same bytes, and the words it carries come out of
-// STRINGS like every other word the build invents.
+// what the scroll-spy in runtime/print-reader.js marks. Emitted at build
+// time rather than assembled by the script: the list is then a function of
+// the source, so a rebuild is the same bytes, and the words it carries come
+// out of STRINGS like every other word the build invents.
 //
 // It ships with the hidden attribute, and READER_EARLY_JS removes it. A
 // page read without scripts is therefore the document it was before the
@@ -10160,7 +10160,7 @@ ${toc}
 ${pulseTop}${namedHtml}
 ${pulseEnd}</main>
 <script>${shipJs(printJs())}</script>
-${pulseScript}${readerOn ? `${readerData}<script>${shipJs(PRINT_READER_JS)}${shipJs(printViewJs())}${shipJs(PRINT_HIGHLIGHTS_JS)}</script>\n` : ''}</body>
+${pulseScript}${readerOn ? `${readerData}<script>${shipJs(printReaderJs())}${shipJs(printViewJs())}${shipJs(PRINT_HIGHLIGHTS_JS)}</script>\n` : ''}</body>
 </html>
 `;
 }
@@ -10169,9 +10169,9 @@ ${pulseScript}${readerOn ? `${readerData}<script>${shipJs(PRINT_READER_JS)}${shi
 
 // The two widths the reader's layout changes at (reader: on), in px because a
 // media query cannot read the root size - see the note in PRINT_CSS for how
-// they were solved. Interpolated into the stylesheet and into
-// PRINT_READER_JS, which asks the same question when it decides whether the
-// contents lie over the page.
+// they were solved. Interpolated into the stylesheet and filled into
+// runtime/print-reader.js, which asks the same question when it decides
+// whether the contents lie over the page.
 const READER_WIDE_PX = 1216;
 const READER_NOTES_PX = 920;
 
@@ -12591,131 +12591,22 @@ const READER_EARLY_JS = `<script>document.body.classList.add('rd-ready');for (co
 // beside it is spent on closing rather than on whatever it landed on - the
 // lightbox, a link.
 //
-// Emitted only under reader: on. The same template-literal rules as every
-// inlined block: no backticks, and a regex backslash doubled - it has none.
-const PRINT_READER_JS = `
-(() => {
-  const body = document.body;
-  const nav = document.getElementById('psiINT-reader-contents');
-  const main = document.querySelector('main');
-  if (!nav || !main) return;
-  const toggle = document.querySelector('.rd-toggle');
-  const links = [...nav.querySelectorAll('a[data-rd], a.rd-part')];
-  const targets = links.map(a => document.getElementById(a.dataset.rd || (a.getAttribute('href') || '').slice(1)));
-  const groups = [...nav.querySelectorAll('.rd-group')];
-  const handOpen = new Set();
-  let reading = null, handClosed = null;
-  const fold = () => {
-    for (const g of groups) {
-      const b = g.querySelector('.rd-fold');
-      const on = !!b && (handOpen.has(g) || (g === reading && handClosed !== g));
-      g.classList.toggle('is-open', on);
-      if (b) b.setAttribute('aria-expanded', on ? 'true' : 'false');
-    }
-  };
-  const overlay = window.matchMedia('(max-width: ${READER_WIDE_PX - 0.02}px)');
-  let tops = [], current = null, stale = true, queued = false, placed = false;
-
-  const measure = () => {
-    const y = window.scrollY;
-    tops = targets.map(t => t ? t.getBoundingClientRect().top + y : Infinity);
-  };
-  // Keep the marked entry inside the list's own scroll box - near an edge as
-  // the reader scrolls, in the middle when the sidebar is opened over the
-  // page. Adjusts the box and never the page, which scrollIntoView would
-  // also move.
-  const list = nav.querySelector('.rd-list') || nav;
-  const reveal = (a, centre) => {
-    if (!a) return;
-    const n = list.getBoundingClientRect(), r = a.getBoundingClientRect();
-    if (centre) { list.scrollTop += (r.top + r.bottom) / 2 - (n.top + n.bottom) / 2; return; }
-    const pad = 48;
-    if (r.top < n.top + pad) list.scrollTop += r.top - n.top - pad;
-    else if (r.bottom > n.bottom - pad) list.scrollTop += r.bottom - n.bottom + pad;
-  };
-  const mark = () => {
-    const y = window.scrollY, h = window.innerHeight;
-    const atFoot = y + h >= document.documentElement.scrollHeight - 2;
-    const line = atFoot ? y + h - 1 : y + h * 0.3;
-    let idx = -1;
-    for (let i = 0; i < tops.length; i++) if (tops[i] <= line) idx = i;
-    const next = idx >= 0 ? links[idx] : null;
-    if (next === current) return;
-    if (current) current.removeAttribute('aria-current');
-    if (next) next.setAttribute('aria-current', 'location');
-    const g = next && next.closest('.rd-group');
-    if (g !== reading) { reading = g || null; handClosed = null; fold(); }
-    // The first entry marked is centred - a page opened at a #hash or
-    // restored half-way down - and every later one only kept in view.
-    current = next;
-    reveal(current, !placed);
-    if (current) placed = true;
-  };
-  const schedule = (remeasure) => {
-    if (remeasure) stale = true;
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(() => {
-      queued = false;
-      if (stale) { measure(); stale = false; }
-      mark();
-    });
-  };
-  nav.addEventListener('click', (e) => {
-    const b = e.target.closest('.rd-fold');
-    if (!b) return;
-    const g = b.closest('.rd-group');
-    if (g.classList.contains('is-open')) {
-      handOpen.delete(g);
-      if (g === reading) handClosed = g;
-    } else {
-      handOpen.add(g);
-      if (handClosed === g) handClosed = null;
-    }
-    fold();
-  });
-  window.addEventListener('scroll', () => schedule(false), { passive: true });
-  window.addEventListener('resize', () => schedule(true));
-  window.addEventListener('load', () => schedule(true));
-  if (window.ResizeObserver) new ResizeObserver(() => schedule(true)).observe(main);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => schedule(true));
-  schedule(true);
-
-  // ── the sidebar over the page, below the wide layout ──
-  const isOpen = () => body.classList.contains('rd-open');
-  const setOpen = (on, refocus) => {
-    body.classList.toggle('rd-open', on);
-    if (toggle) toggle.setAttribute('aria-expanded', on ? 'true' : 'false');
-    if (on) {
-      // Opened over the page, the part being read is open whatever the
-      // reader did to it the last time.
-      if (handClosed) { handClosed = null; fold(); }
-      reveal(current, true);
-      const first = current || nav.querySelector('a');
-      if (first) first.focus({ preventScroll: true });
-    } else if (refocus && toggle) {
-      toggle.focus({ preventScroll: true });
-    }
-  };
-  if (toggle) toggle.addEventListener('click', () => setOpen(!isOpen(), false));
-  const closer = nav.querySelector('.rd-close');
-  if (closer) closer.addEventListener('click', () => setOpen(false, true));
-  nav.addEventListener('click', (e) => {
-    if (isOpen() && e.target.closest('a')) setOpen(false, false);
-  });
-  document.addEventListener('click', (e) => {
-    if (!isOpen() || e.target.closest('#psiINT-reader-contents, .rd-toggle')) return;
-    e.preventDefault();
-    e.stopPropagation();
-    setOpen(false, true);
-  }, true);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isOpen()) { e.preventDefault(); setOpen(false, true); }
-  });
-  const onWidth = () => { if (!overlay.matches && isOpen()) setOpen(false, false); };
-  if (overlay.addEventListener) overlay.addEventListener('change', onWidth);
-})();
-`;
+// Emitted only under reader: on.
+//
+// runtime/print-reader.js, read as text at build time (PLAN-runtime-extraction.md;
+// PRINT_READER_JS until it left this file): the width the contents start to
+// lie over the page stands in it as __PSI_READER_WIDE_BELOW__, inside the
+// matchMedia string the literal had, and fillRuntime puts READER_WIDE_PX - 0.02
+// there from the table below, once per process, before shipJs strips it on
+// its way into print.html and print-notes.html. Filled, its bytes are the old
+// literal's value, so a document built before and after the move is the same
+// file.
+const PRINT_READER_JS_PATH = new URL('./runtime/print-reader.js', import.meta.url);
+const PRINT_READER_JS_FILL = {
+  READER_WIDE_BELOW: READER_WIDE_PX - 0.02,
+};
+let printReaderJsCache = null;
+const printReaderJs = () => (printReaderJsCache ??= fillRuntime(PRINT_READER_JS_PATH, fs.readFileSync(PRINT_READER_JS_PATH, 'utf8'), PRINT_READER_JS_FILL));
 
 // The reader's two switches (renderReaderView): the scheme - auto, light or
 // dark - and the face of the running text. A press sets the attribute

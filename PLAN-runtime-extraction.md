@@ -8,12 +8,13 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **9 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+Status: **10 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
 `PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS`,
 `WATCH_BANNER_CSS` and `WATCH_BANNER_JS` (see *Log*): every static CSS and
 JS literal on the list; then `PRINT_VIEW_JS`, the first with substitutions,
-under the scheme decided for it (see *Substitution scheme*). Next: the rest
-of step 8 of *Order*, `PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS`.
+under the scheme decided for it (see *Substitution scheme*), and
+`PRINT_READER_JS`. Next: the rest of step 8 of *Order*,
+`PRINT_HIGHLIGHTS_JS`.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -807,3 +808,38 @@ included; and the output is byte-identical.
   `reader: off` documents neither); and a staged engine (`FILES` copied
   into a scratch folder) builds python-intro equal. Not run: the browser
   suite and `test/pdf-export.mjs`.
+- **`PRINT_READER_JS` → `runtime/print-reader.js`** – done. 5,227 bytes,
+  122 lines, written by `--extract … --names READER_WIDE_BELOW`, which filled
+  the file back to the literal's value before writing it; the value equals
+  the source text (no escapes). The one substitution, `READER_WIDE_PX - 0.02`
+  inside the `matchMedia` string that decides whether the contents lie over
+  the page, is `__PSI_READER_WIDE_BELOW__px` in the file: named for what the
+  value is – the width just under the breakpoint – not for how it is
+  computed. `build.js` lost 133 lines and gained 24: `PRINT_READER_JS_PATH`,
+  the `PRINT_READER_JS_FILL` table where the literal stood,
+  `printReaderJs()` through `fillRuntime`, a comment replacing the literal's
+  “same template-literal rules” sentence; the render site is
+  `${shipJs(printReaderJs())}` ahead of `printViewJs()`; two Node-side
+  comments that named the literal (the contents sidebar's, and the one over
+  `READER_WIDE_PX` / `READER_NOTES_PX`) now name the file. Gates: `strip` –
+  the literal leaves `LITERALS` and the file joins `RUNTIME`: its ship check,
+  the four script checks and the per-file fill check, minus the literal's
+  ship check: 2,187 → 2,192. `id-namespace` – the file joins `FILES`, the
+  emitter scan (it looks up `psiINT-reader-contents`); the counts are as
+  before: 123 emitted ids, 570 selectors in 9 stylesheets, 16 allow-list
+  entries and 25 allowed sites. Desktop: `FILES` gained the file, the read
+  count went 15 → 16; with the file off `FILES` the test fails by name.
+  Docs: `test/README.md` (`id-namespace`), the appearance skill's sentence
+  on what `reader: off` ships. Identity: `npm run build:tracked` leaves
+  `lectures/` unchanged; python-intro's four views, a `reader: off` fixture's
+  four and a fixture with a `bars` figure, built by `build.js` at `1f4a323`
+  (an archive unpacked in the scratch folder) and by the new one into
+  `<old|new>/<plain|kept>/L/<deck>`, are `cmp`-equal plain and under
+  `PSI_KEEP_COMMENTS=1` (whose documents carry the file's comment “Keep the
+  marked entry inside the list's own scroll box”, the plain ones not); the
+  `reader: off` documents carry no reader script; a staged engine builds
+  python-intro equal. Not run: the browser suite and `test/pdf-export.mjs`.
+
+  **For `PRINT_CSS`.** It carries the same expression twice –
+  `(max-width: ${READER_WIDE_PX - 0.02}px)`, alone and after a
+  `min-width` – and should name it `READER_WIDE_BELOW` when it moves.
