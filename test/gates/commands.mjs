@@ -383,7 +383,7 @@ export async function run({ report }) {
   const runA = runIds(A);
   const runS = new Set([...runA, ...runIds(S)]);
   const runP = runIds(P);
-  ok(runA.size > 25, 'COMMAND_RUN is found in AUDIENCE_JS', String(runA.size));
+  ok(runA.size > 25, 'COMMAND_RUN is found in runtime/audience.js', String(runA.size));
   const ids = new Set(CMD.COMMANDS.map((c) => c.id));
   const stray = [...runA, ...runIds(S), ...runP].filter((id) => !ids.has(id));
   ok(stray.length === 0, 'every run function is for a command the table has', stray.join(', '));
@@ -417,7 +417,7 @@ export async function run({ report }) {
   // ── rows ──
   const lStart = A.indexOf("\ndocument.addEventListener('keydown', (e) => {\n  if (e.target.matches('.annot-textarea')) return;");
   const lEnd = A.indexOf('\n});\n', lStart);
-  ok(lStart >= 0 && lEnd > lStart, 'the key map\'s listener is found in AUDIENCE_JS');
+  ok(lStart >= 0 && lEnd > lStart, 'the key map\'s listener is found in runtime/audience.js');
   const guards = switchKeys(A.slice(lStart, lEnd));
   ok(guards.size === 4, 'its overview switch answers the four arrows', [...guards].join(', '));
   const shared = withoutFunction(A, 'function gotoKey(e) {');

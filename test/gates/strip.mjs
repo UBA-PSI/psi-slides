@@ -19,10 +19,13 @@
  *      that is not a function (the vocabulary tables, the command table, the
  *      regexes by their source) is equal before and after, which is a check
  *      on strings and regexes that does not go through the tokenizer;
- *   3. build.js hands every runtime and stylesheet literal through shipJs /
- *      shipCss, read as text: a renderer that splices one bare ships its
- *      comments again, which is only bytes, but it is also how the two
- *      paths come to differ.
+ *   3. build.js hands every runtime script and stylesheet – the files in
+ *      runtime/, which were template literals in build.js until they moved
+ *      out, editor.css and the modules – through shipJs / shipCss, read as
+ *      text: a renderer that splices one bare ships its comments again,
+ *      which is only bytes, but it is also how the two paths come to differ.
+ *      The failed-build banner's two files are the exception their literals
+ *      were: they ship raw, and only through reloadScript.
  *
  * And the step before the strip for a runtime/ file whose literal had
  * substitutions: fillRuntime, lifted out of build.js as text, fills its
@@ -209,23 +212,19 @@ export async function run({ report }) {
     }
   }
 
-  // ── build.js hands every runtime and stylesheet literal through ship* ──
+  // ── build.js hands every runtime file, module and stylesheet through ship* ──
+  // (Until AUDIENCE_JS left build.js, a list of the runtime literals still in
+  // it was held here the same way; none is left, and the files below carry
+  // the check.)
   const build = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
-  const LITERALS = [];
-  for (const lit of LITERALS) {
-    const bare = [...build.matchAll(new RegExp('\\$\\{(?:[^}]*\\? )?' + lit + '\\b', 'g'))].length;
-    const shipped = [...build.matchAll(new RegExp('ship(?:Js|Css)\\(' + lit + '\\)', 'g'))].length;
-    ok(bare === 0 && shipped > 0, `${lit} reaches a view only through shipJs / shipCss`,
-      `${bare} bare, ${shipped} shipped`);
-  }
   for (const fn of ['diagramCoreScript', 'cueCardsScript', 'commandsScript']) {
     const body = build.slice(build.indexOf(`function ${fn}()`), build.indexOf(`function ${fn}()`) + 200);
     ok(/shipJs\(fs\.readFileSync/.test(body), `${fn} strips the module it reads`);
   }
   ok(/editorJsCache \?\?= shipJs\(/.test(build), 'editor.mjs is stripped on its way in');
   ok(/shipCss\(editorCss\(\)\)/.test(build), 'editor.css is stripped on its way in');
-  // A literal moved into runtime/ keeps the guarantee it had as a literal:
-  // its text reaches a view only through ship*, never bare.
+  // A file in runtime/ keeps the guarantee its literal had: its text reaches
+  // a view only through ship*, never bare.
   for (const [file, getter, local] of RUNTIME) {
     const bare = [...build.matchAll(new RegExp('\\$\\{(?:[^}]*\\? )?' + getter + '\\(\\)', 'g'))].length;
     if (local) {

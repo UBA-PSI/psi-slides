@@ -18,9 +18,13 @@ under the scheme decided for it (see *Substitution scheme*), then
 whose four function sources go in by placeholder (step 10), `PRINT_CSS`,
 the documents' sheet with 21 substitutions (step 11), `AUDIENCE_CSS`,
 the live views' sheet with 15, six of them in selector position (step 12),
-and `AUDIENCE_JS`, the live views' runtime with 5 (step 13, the last). What
-is left in build.js are the eight small literals the list never named (open
-questions 6 and 7).
+and `AUDIENCE_JS`, the live views' runtime with 5 (step 13, the last); then
+the gates that read build.js's literals were fitted to a build.js that holds
+none of the large ones (`strip` lost its empty literal list, `inlined` gained
+its counterpart for `runtime/*.js`; see *Log*). What is left in build.js are
+the small literals the list never named – six markup constants, two
+one-line `<head>` scripts, `DOCUMENT_PAGE_CSS` and `SANS_STACK_TAIL` – and
+the recommendation is to leave them there (open questions 6 and 7).
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -184,7 +188,9 @@ replaces: `SPEAKER_CSS` → `runtime/speaker.css`, `SOUFFLEUSE_JS` →
    `id-namespace`: its `CSS_SOURCES` entry becomes `['runtime/<file>', null]`
    (read whole); a script joins its `FILES`, the emitter scan, because the
    ids a script writes are what the stylesheets' selectors are checked
-   against (found with `PRINT_JS`). `inlined` scans the literals that remain and needs nothing.
+   against (found with `PRINT_JS`). `inlined` scans the literals that remain and needs nothing
+   (and, since the last move, reads every `runtime/*.js` file for a regex
+   copied back in its doubled form).
    Before each move, `grep -rn NAME` over `test/`, `tools/`, `docs/`,
    `desktop/`, `.github/` and the skills for anything else that reads it.
 7. **Comments inside other literals that name the moved one stay as they
@@ -436,13 +442,16 @@ included; and the output is byte-identical.
 
 ## Open questions
 
-1. **Scripts are fragments, not modules.** `AUDIENCE_JS`, `SPEAKER_JS` and
-   `SOUFFLEUSE_JS` run in one `<script>` and share its lexical scope; the
-   root `package.json` says `"type": "module"`, so an editor and Node read a
-   `runtime/*.js` as ESM. A linter will need `sourceType: script` and a
-   globals list for that folder. `.js` plus a linter override, decided with
-   `SPEAKER_JS`. **Decided: `.js`**; the override waits for a JS linter in
-   the repository, which there is none of yet (see *Log*).
+1. **Scripts are fragments, not modules.** `runtime/audience.js`,
+   `runtime/speaker.js` and `runtime/souffleuse.js` run in one `<script>` and
+   share its lexical scope (`runtime/diagram.js` stands before them in the
+   same element); the root `package.json` says `"type": "module"`, so an
+   editor and Node read a `runtime/*.js` as ESM. A linter will need
+   `sourceType: script` and a globals list for that folder – the top-level
+   names of `runtime/audience.js` for the cockpit's two files, the four
+   function sources `runtime/diagram.js` takes by placeholder, and the
+   `window.PSI_*` payloads. **Decided: `.js`**; the override waits for a JS
+   linter in the repository, which there is none of yet (see *Log*).
 2. **The leading newline.** Each file keeps its literal's first `\n`, so the
    CSS and JS files open with an empty line. Removing it means either
    `'\n' + getter()` at the render site or an output change; neither is worth
@@ -452,10 +461,20 @@ included; and the output is byte-identical.
    identity. Either a deliberate, separate commit that changes only the
    kept-comments output, or the documentation stays beside the path constant
    in `build.js`.
-4. **Old names in shipped comments.** `AUDIENCE_CSS` (line 16371 at
-   `a49b625`) and `SOUFFLEUSE_CSS` (30121, 30370) mention `SPEAKER_CSS`. Left
-   as they are, for the reason in 3; one sweep at the end, as a kept-comments
-   output change.
+4. **Old names in shipped comments.** Every move left the comments inside
+   shipped text that name a literal as they were, for the reason in 3. **Now
+   is the end the plan deferred the sweep to**: 43 lines in `runtime/` (most
+   in `audience.css` and `print.css`, naming `PRINT_CSS`, `AUDIENCE_CSS`,
+   `DIAGRAM_CSS`, `AUDIENCE_JS`, `SPEAKER_JS`, …) and ten in
+   `diagram-core.mjs`, `editor.mjs`, `commands.mjs`, `cue-cards.mjs` and
+   `pdf-core.mjs`'s `PDF_CSS`,
+   and two that give an instruction no longer true (`runtime/print.css` and
+   `runtime/audience.css` each say “no backtick in this comment”, because
+   the sheet was a template literal). `grep -n` for the sixteen moved names
+   over those files finds them. Recommended: one commit that changes only
+   comments, and so only the `PSI_KEEP_COMMENTS=1` output – the plain views
+   must stay byte-identical, which is how the commit shows it touched no
+   code; it can go with question 3's headers or before them.
 5. **The substitution schemes.** **Decided: one scheme for all eight** –
    `__PSI_NAME__`, or `/*__PSI_NAME__*/` for a generated block, filled by
    `fillRuntime` from a `NAME_FILL` table before `ship*`, strictly (see
@@ -466,10 +485,25 @@ included; and the output is byte-identical.
    splicing them twice would change the output and the load order, and a
    view under `editor: none` ships no `window.PSI_DG` at all; if it is ever
    wanted, it is a step of its own, not part of a move.
-6. **The six markup literals** – out of scope? They are HTML, not CSS or JS,
-   44 lines in all, and gain little from a file.
-7. **The two tiny literals** (`DOCUMENT_PAGE_CSS`, `READER_EARLY_JS`) –
-   leave them in `build.js`?
+6. **The six markup literals** (`TOUCH_CONTROLS_HTML`, `OVERVIEW_BADGE_HTML`,
+   `LINK_OVERLAY_HTML`, `DEMO_OVERLAY_HTML`, `SEARCH_PANEL_HTML`,
+   `GOTO_PROMPT_HTML`, 44 lines; and the three one-line ones beside them,
+   `BLANK_BADGE_HTML`, `FULLSCREEN_HINT_HTML`, `DEMO_BADGE_HTML`) – out of
+   scope? **Recommended: leave them in build.js.** They are markup the
+   renderers concatenate, not a stylesheet or a script, so a file buys no
+   tooling; none holds a regex, and the `inlined` gate already finds a raw
+   backtick in them; and `TODO-localisation.md` §3.4 plans to turn them into
+   functions of `S`, which a file would first have to be turned back from.
+7. **The tiny literals** (`DOCUMENT_PAGE_CSS`, 3 lines; `READER_EARLY_JS`, 2;
+   and the one-liners `PRINT_VIEW_EARLY_JS`, with two substitutions, and
+   `SANS_STACK_TAIL`, a font stack) – leave them in `build.js`?
+   **Recommended: yes.** Each would cost a path constant, a getter, a
+   `FILES` entry and a run-time read for one rule or one line of script; the
+   two scripts ship raw in `<head>` before the first paint, and
+   `PRINT_VIEW_EARLY_JS` reads the same `PRINT_PREF_KEYS` as
+   `runtime/print-view.js` from the same table, which is clearest where it
+   stands. The `inlined` gate covers the two scripts' regexes and all four's
+   backticks.
 8. **`--watch` does not re-read `runtime/`.** Files are memoised per
    process, as `editor.css` is; editing one during a watch needs a restart,
    which is what editing the literal in `build.js` needed. Proposed: leave
@@ -480,16 +514,29 @@ included; and the output is byte-identical.
     maintainer: an agent does not edit it.
 11. **A missing runtime file** fails the first build that renders that view
     with an `ENOENT` stack from a renderer, as a missing `editor.css` does.
-    Once there are several, one pre-flight that checks them all and names
-    the file may be worth it.
-12. **Coverage.** `build.js`'s overall line figure falls as literals leave
-    (they read 100 %); the figure outside the literals
-    (`tools/coverage-logic.mjs`, 81.4 % at the review) is the one to watch,
-    and it counts the remaining literals by parser, so it needs no edit.
-13. **A shared reader.** After a few moves, a `runtimeText(url)` memo may
-    replace the per-file getters – but each path must stay a literal
+    There are sixteen now, beside six other run-time reads, and the
+    stage-engine test is what keeps the packaged app from meeting one. One
+    pre-flight in `buildOnce` that reads them all and names the missing
+    file is recommended as a small commit of its own – it would also move
+    the first `fillRuntime` refusal ahead of every renderer.
+12. **Coverage.** Answered: `build.js`'s overall line figure fell as the
+    literals left (they read 100 %), and with about fifty literal lines left
+    of 16,500 the overall figure and the one outside the literals
+    (`tools/coverage-logic.mjs`, 81.4 % at the review) are now nearly the
+    same number; the tool counts the remaining literals by parser and needed
+    no edit, only its header and `test/README.md`'s paragraph, which said
+    the large literals were still there. The runtime files are read as text
+    and run only in a page, so no c8 run counts them – the browser suite is
+    their coverage.
+13. **A shared reader.** Sixteen getters now have one of two shapes (a
+    plain read, or a read through `fillRuntime`), and a `runtimeText(url,
+    fill)` memo could replace them – but each path must stay a literal
     `new URL('./runtime/…', import.meta.url)`, or the stage-engine test
-    stops seeing it.
+    stops seeing it, and the `strip` gate reads each getter's definition as
+    text (`const name = () => (cache ??= fillRuntime(PATH, …, FILL))`), so
+    it would have to learn the new shape in the same commit. Recommended:
+    together with question 11's pre-flight, which needs the list of files
+    anyway, or not at all.
 
 ## Log
 
@@ -1444,3 +1491,57 @@ included; and the output is byte-identical.
   and the first fixture equal. `test/settings.mjs`, `reproducible`,
   `containers`, `cli`, `present` and `large-deck` pass. Not run: the browser
   suite and `test/pdf-export.mjs`.
+
+- **The gates after the last large literal** – done, a commit of its own
+  after `AUDIENCE_JS`'s move, with every view unchanged. `strip`: its
+  `LITERALS` list was empty, so the loop that held each literal to `ship*`
+  and the list went, rather than a check over nothing; every other assertion
+  had a subject (the runtime files, the modules, editor.css, `fillRuntime`)
+  and stays; the header's third point says what is held now. No assertion
+  count moved – the loop asserted nothing once the list was empty.
+  `inlined`: it scans the literals left in build.js – the markup constants,
+  `PRINT_VIEW_EARLY_JS`, `READER_EARLY_JS`, `DOCUMENT_PAGE_CSS`,
+  `SANS_STACK_TAIL` (13 by name, counting the one-line ones) – for a raw
+  backtick and a single regex escape, as before; the header says that
+  instead of “two thirds of build.js is stylesheets and runtime scripts”,
+  and the assertion that build.js still holds its inlined CSS and JS in
+  template literals is gone. In its place, so the gate cannot pass by
+  reading nothing, a self-test holds the literal scanner to four fixture
+  literals. **Its successor for the files: the regex trap the other way
+  round.** A `runtime/*.js` file is the literal's value, so a regex there
+  is written once, and a line copied back from an old build.js brings
+  `\\s` with it – a regex for a backslash and an `s`, shipped silently. The
+  gate reads every regex literal in every `runtime/*.js` (the folder is
+  listed, so a new file is covered) and reports an even run of backslashes
+  before `s`, `d`, `w`, `b` or a capital; an odd run is a class escape.
+  Regex literals are found without a parser: the file goes through
+  `stripJs` first, so no comment is read as code, and a slash opens a regex
+  only at a line's start, after a punctuator that ends no operand or after
+  a keyword that takes an expression – so a division is never read as one.
+  `strip-comments.mjs` tells regex from division itself but exposes no
+  tokens, and adding an export to a module the app stages, for a gate, was
+  not worth it; instead the pattern was measured against that tokenizer's
+  own regex tokens (an instrumented copy in a scratch folder): 38 regex
+  literals in the nine files, the same 38, none missed and none extra. The
+  one shape it cannot see is a regex straight after a closing parenthesis
+  (`if (x) /re/`), which no runtime file writes. A self-test holds it to
+  five lines it must report (after `=`, `(`, a call, `return`, `?`) and
+  eight it must not (a single escape, `'\\n'` and `new RegExp('\\s+')` in
+  strings, a comment, two divisions, an escaped backslash before a class,
+  one inside a class); a line copied from the archive of `3f790c1`,
+  `const re = /[.!?](?=\\s)/g;`, appended to `runtime/audience.js` fails it
+  by file and line. `ALLOWED` takes a regex that really matches a backslash
+  and a class letter, by file and text with a reason, and a stale entry
+  fails; it is empty – the current files have no match. Not checked, and
+  why: a doubled escape in a *string* (`'\\n'` copied back) is as wrong, but
+  a string may hold `\\s` on purpose (`new RegExp('\\s+')`), so no sound
+  check exists without a parser; an escaped `\${` copied back into a
+  template would render as text, and no runtime file holds one today, but
+  that is a check of its own, not part of this commit. 2,216 → 2,221
+  assertions (`inlined` 3 → 8). `commands`: the two assertion messages that
+  still said “found in AUDIENCE_JS” – kept as they were in the move's commit,
+  so its output could be compared line for line – say
+  `runtime/audience.js`. Docs: `test/README.md` (the `inlined` row and
+  paragraph, the `strip` row). Identity: no engine file changed; the
+  tracked views are unchanged and the same 40-view comparison against
+  `3f790c1` passes.
