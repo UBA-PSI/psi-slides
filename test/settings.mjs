@@ -117,7 +117,7 @@ function build(extraFrontmatter) {
   fs.writeFileSync(path.join(dir, 'source.md'),
     SOURCE.replace('FRONTMATTER', extraFrontmatter ? extraFrontmatter + '\n' : ''));
   // Both live and print, because the two stylesheets do not carry the same
-  // rules: `text-wrap: pretty` on prose is PRINT_CSS only, and checking it
+  // rules: `text-wrap: pretty` on prose is runtime/print.css only, and checking it
   // against audience.html is checking for something that was never there.
   const r = spawnSync(process.execPath,
     [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
@@ -150,7 +150,7 @@ console.log('\nlayout generations');
   ok(/body:not\(\[data-wrap=none\]\)[\s\S]{0,220}?text-wrap: balance/.test(print),
      'and so is print\'s, which is a separate stylesheet with its own copy');
   ok(/body:not\(\[data-wrap=none\]\)[\s\S]{0,220}?text-wrap: pretty/.test(print),
-     'and the prose rule, which only PRINT_CSS carries');
+     'and the prose rule, which only runtime/print.css carries');
   ok(/body:not\(\[data-liga=all\]\)[\s\S]{0,220}?font-variant-ligatures: none/.test(html),
      'the code-ligature rule is guarded by data-liga');
   ok(!/data-wrap=/.test(bodyTag(html)) && !/data-liga=/.test(bodyTag(html))
@@ -385,7 +385,7 @@ console.log('\nlayout generations');
      || /body\[data-headings=left\] \.chunk-heading/.test(c.html),
      'and the deck-wide key it outranks is still in the sheet, unchanged');
   ok(!/\.chunk\[data-center\]/.test(c.print),
-     'PRINT_CSS carries none of it: the printed document keeps its left edge');
+     'runtime/print.css carries none of it: the printed document keeps its left edge');
 }
 
 // ── style.neutrals: what hue the greys carry, and the radius ladder ──
@@ -447,7 +447,7 @@ console.log('\nlayout generations');
   // Each stylesheet reads its own attribute, or one view answers the other's
   // key - which is the whole of what a second key buys.
   ok(/body\[data-print-neutrals=warm\]/.test(both.print) && !/body\[data-neutrals=warm\]/.test(both.print),
-     'PRINT_CSS keys on data-print-neutrals and not on the live attribute');
+     'runtime/print.css keys on data-print-neutrals and not on the live attribute');
   ok(/body\[data-neutrals=cool\]/.test(both.html),
      'and AUDIENCE_CSS still keys on the live one');
   // The one accent that measured under 4.5:1 against the paper. 0.58 gave
@@ -1850,7 +1850,7 @@ console.log('\nlayout generations');
   // Print ignores every divider variant - that is what makes the family
   // cheap, and an outline leaking into the document would be a table of
   // contents printed three times.
-  // The markup, not the string: PRINT_CSS carries .section-outline rules for
+  // The markup, not the string: runtime/print.css carries .section-outline rules for
   // the `outline:` chunk, which does print - a divider is what does not.
   ok(!/<ol class="section-outline">/.test(outl.print),
      'and print carries no divider outline, like every other divider variant');
@@ -2927,7 +2927,7 @@ console.log('\nlayout generations');
     ok(/#psiINT-stage \.chunk\[data-wrap=none\][\s\S]{0,260}?text-wrap: wrap/.test(plain.html),
        'the per-chunk wrap override ships in AUDIENCE_CSS, keyed on the attribute');
     ok(/\.chunk\[data-wrap=none\][\s\S]{0,220}?text-wrap: wrap/.test(plain.print),
-       'and in PRINT_CSS, which is a separate copy');
+       'and in runtime/print.css, which is a separate copy');
     ok(/body\[data-blocks=left\] #psiINT-stage \.reveal-segment > pre/.test(plain.html)
        && /#psiINT-stage \.chunk\[data-blocks=center\][\s\S]{0,300}?translateX\(-50%\)/.test(plain.html),
        'and the blocks rules ship in both directions, deck-wide and per chunk');
@@ -3957,7 +3957,7 @@ console.log('\nlayout generations');
   const sidePrint = raw(FM + '## free: A {#a}\n\n::: side {.middle}\nP.\n::: flip\nQ.\n:::\n',
     ['--print-only']);
   ok(sidePrint.code === 0 && !/\.side\.sv-middle/.test(sidePrint.print),
-     'and PRINT_CSS carries no rule for it - on paper the panes stack');
+     'and runtime/print.css carries no rule for it - on paper the panes stack');
 
   // ── closing-image ────────────────────────────────────────────────────
   // The counterpart of cover-image, and it draws through the same function

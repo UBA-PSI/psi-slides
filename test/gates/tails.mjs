@@ -480,8 +480,11 @@ export async function run({ report }) {
       const a = bsrc.search(from); const b = bsrc.indexOf(to, a);
       return flat(bsrc.slice(a, b));
     };
+    // The documents' sheet is runtime/print.css (PRINT_CSS until it left
+    // build.js), read raw: its placeholders are values and selector lists,
+    // with no brace among them, and the generated blocks are comments.
     const sheets = {
-      print: cut(/const PRINT_CSS = `/, 'const AUDIENCE'),
+      print: flat(fs.readFileSync(path.join(ROOT, 'runtime/print.css'), 'utf8')),
       live: cut(/const AUDIENCE_CSS = `/, '// \u2500\u2500 audience runtime JS'),
     };
     const declared = {};

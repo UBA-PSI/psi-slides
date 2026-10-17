@@ -77,13 +77,16 @@ export function sheetZoomSelectors(text, literal) {
 // read as files: every one of them was a *CSS* literal the pattern above
 // matched, so each is scanned as it was. The first four moved before the gate
 // read files and dropped out of it unnoticed; none reads var(--zoom), so
-// nothing was missed, but a rule added to one later would have been.
+// nothing was missed, but a rule added to one later would have been. The
+// documents' sheet (PRINT_CSS) reads none either, and is listed for the same
+// reason.
 const RUNTIME_SHEETS = [
   'runtime/speaker.css',
   'runtime/souffleuse.css',
   'runtime/pulse-print.css',
   'runtime/watch-banner.css',
   'runtime/diagram.css',
+  'runtime/print.css',
 ];
 
 // The selector as compounds, subject last, each with the combinator that

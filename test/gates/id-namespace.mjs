@@ -33,12 +33,12 @@
  * an id something else emitted, and that emitter is what is checked.
  *
  * The stylesheets are the third half. Every `#id` that stands in a selector
- * of an inlined stylesheet - the two CSS literals in build.js (PRINT_CSS,
- * AUDIENCE_CSS), the figures' runtime/diagram.css, the cockpit's
- * runtime/speaker.css and runtime/souffleuse.css, the documents'
+ * of an inlined stylesheet - the CSS literal in build.js (AUDIENCE_CSS),
+ * the figures' runtime/diagram.css, the cockpit's runtime/speaker.css and
+ * runtime/souffleuse.css, the documents' runtime/print.css and
  * runtime/pulse-print.css and the failed-build banner's
  * runtime/watch-banner.css (DIAGRAM_CSS, SPEAKER_CSS, SOUFFLEUSE_CSS,
- * PULSE_PRINT_CSS and WATCH_BANNER_CSS until they left
+ * PRINT_CSS, PULSE_PRINT_CSS and WATCH_BANNER_CSS until they left
  * build.js – the banner's sheet was not read while it was a literal; the id
  * it names is emitted by runtime/watch-banner.js),
  * editor.css and pdf-core.mjs's PDF_CSS - has to
@@ -102,7 +102,7 @@ const ALLOWED = [
 // The stylesheets whose selectors are read: [file, literal name or null for
 // a whole .css file].
 const CSS_SOURCES = [
-  ['runtime/diagram.css', null], ['build.js', 'PRINT_CSS'], ['runtime/pulse-print.css', null],
+  ['runtime/diagram.css', null], ['runtime/print.css', null], ['runtime/pulse-print.css', null],
   ['build.js', 'AUDIENCE_CSS'], ['runtime/speaker.css', null], ['runtime/souffleuse.css', null],
   ['pdf-core.mjs', 'PDF_CSS'], ['editor.css', null], ['runtime/watch-banner.css', null],
 ];

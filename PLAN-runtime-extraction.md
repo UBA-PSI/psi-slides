@@ -8,15 +8,16 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **13 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+Status: **14 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
 `PULSE_PRINT_CSS`, `SPEAKER_JS`, `SOUFFLEUSE_CSS`, `SOUFFLEUSE_JS`,
 `WATCH_BANNER_CSS` and `WATCH_BANNER_JS` (see *Log*): every static CSS and
 JS literal on the list; then `PRINT_VIEW_JS`, the first with substitutions,
 under the scheme decided for it (see *Substitution scheme*), then
 `PRINT_READER_JS` and `PRINT_HIGHLIGHTS_JS`, which close step 8 of *Order*,
-`DIAGRAM_CSS`, the first with a generated block (step 9), and `DIAGRAM_JS`,
-whose four function sources go in by placeholder (step 10). Next: step 11,
-`PRINT_CSS`.
+`DIAGRAM_CSS`, the first with a generated block (step 9), `DIAGRAM_JS`,
+whose four function sources go in by placeholder (step 10), and `PRINT_CSS`,
+the documents' sheet with 21 substitutions (step 11). Next: step 12,
+`AUDIENCE_CSS`.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -1067,3 +1068,101 @@ included; and the output is byte-identical.
   `fitAvail` reads `FULL_FIT_FILL` off the viewport turns vacuous when
   `AUDIENCE_JS` leaves, and `inlined` keeps scanning only the small literals
   once the last big one has gone.
+- **`PRINT_CSS` → `runtime/print.css`** – done, the documents' stylesheet
+  and the first of the three big literals. 103,848 bytes, 2,274 lines (the
+  first one empty), written by `--extract … --names` with fifteen names for
+  its 21 substitutions, which filled the file back to the literal's value
+  before writing it. The value differs from the source in three places:
+  `content: '\\200b'` is the CSS escape `'\200b'` in the file, and a comment
+  over the `.line` rule that spelled `\n` meant the two characters but got a
+  line break from the literal – the file keeps the line break (and the three
+  spaces before it), because that is what a `PSI_KEEP_COMMENTS=1` document
+  always carried. **Every substitution is a build-wide constant**: each is a
+  pure function of tables declared above the literal (`PRINT_LIGHT_TOKENS`,
+  `BOLD_LOOKS` and `DERIVED_STRONG`, `INLINE_CODE_SEL`, `DISPLAY_LH`,
+  `DARK_TOKENS`, `READER_NOTES_PX`, `READER_WIDE_PX`); none reads a
+  lecture, its frontmatter or a call's arguments – what `style:` changes on
+  paper is a body attribute these rules key off, and `codeTag` and
+  `styleBlockCss`, which do depend on the deck, emit their own `<style>`
+  after the sheet. The placeholders:
+
+  | name | form | filled with |
+  |---|---|---|
+  | `PRINT_LIGHT_TOKENS` | comment | `tokenDecls(PRINT_LIGHT_TOKENS)`, the paper palette in `:root` |
+  | `PRINT_BOLD_LOOKS` | comment | `boldLookCss('print-bold', 'bold', '600')` |
+  | `INLINE_CODE_SPACED` | bare, selector | `inlineCodeSel('print', '', ':not(.nb)')` |
+  | `INLINE_CODE_SPACED_LEAD` | bare, selector | `inlineCodeSel('print', '', ':not(.nb).lead')` |
+  | `INLINE_CODE_SPACED_TRAIL` | bare, selector | `inlineCodeSel('print', '', ':not(.nb).trail')` |
+  | `INLINE_CODE_TINT` | bare, selector | `inlineCodeSel('print', 'body[data-code=tint]')` |
+  | `DISPLAY_LH_TITLE` | bare | `displayLh('print', '.chunk-title .title-main')` |
+  | `DISPLAY_LH_EYEBROW_SUBTITLE` | bare | `displayLh('print', 'body[data-headline=eyebrow] .chunk-title .title-subtitle')` |
+  | `DISPLAY_LH_DISPLAY_COVER_TITLE` | bare | `displayLh('print', '.chunk-title[data-cover=display] .title-main')` |
+  | `READER_NOTES_PX` (×4) | bare | `READER_NOTES_PX` |
+  | `READER_NOTES_BELOW` (×3) | bare | `READER_NOTES_PX - 0.02` |
+  | `READER_WIDE_PX` | bare | `READER_WIDE_PX` |
+  | `READER_WIDE_BELOW` (×2) | bare | `READER_WIDE_PX - 0.02` |
+  | `PRINT_DARK_BY_SYSTEM` | comment | `printDarkCss(':root:not([data-scheme=light])')` |
+  | `PRINT_DARK_BY_CHOICE` | comment | `printDarkCss(':root[data-scheme=dark]')` |
+
+  Names chosen by hand: the selector lists after the look whose rule they
+  carry (the unguarded rule is `spaced`, the default, and `:not(.nb)` is a
+  span with a space in it), the line heights after `DISPLAY_LH` and the slot,
+  the two widths just under a breakpoint `READER_NOTES_BELOW` /
+  `READER_WIDE_BELOW` as in the two reader scripts, the plain widths after
+  their constants, the dark blocks after which preference they answer. The
+  two `printDarkCss` blocks stand straight after an `@media … {` on the same
+  line, as `{/*__PSI_…__*/`, which gives the same bytes.
+
+  `build.js` lost 2,302 lines and gained 67: `PRINT_CSS_PATH`, the
+  `PRINT_CSS_FILL` table where the literal stood (every name in it is
+  declared above, so it evaluates where the literal did), `printCss()`
+  through `fillRuntime`, a comment; the render site in `renderDocument` is
+  `${shipCss(printCss())}`, and the stylesheet check's `sheets` entry is
+  `'runtime/print.css': printCss()`, the sheet filled, as it ships. Sixteen
+  Node-side comments that named the literal as where a rule lives now name
+  the file (the list of literals `shipJs` / `shipCss` handle dropped it).
+  The comments inside the file and inside `AUDIENCE_CSS` that name
+  `PRINT_CSS`, `PRINT_HIGHLIGHTS_JS` or `DIAGRAM_CSS` stay (rule 7), as does
+  the one in `diagram-core.mjs`, which ships as text.
+
+  **Readers, found by emptying the literal in build.js and running the
+  gates**: two checks failed loudly and two scopes shrank without a sound.
+  `tails` – `DISPLAY_TRACK is complete` cut the print sheet out of build.js
+  between ``const PRINT_CSS = ` `` and `const AUDIENCE`; it reads the file now,
+  raw (the placeholders are values and selector lists with no brace, the
+  generated blocks comments, which the scan drops as it dropped the `${…}`),
+  and still finds the two tracked title rules. `id-namespace` – its
+  `CSS_SOURCES` entry is `['runtime/print.css', null]`; emptied, the count
+  fell 570 → 547, and read from the file it is 570 again (the four selector
+  placeholders are type selectors and the generated blocks name no `#id`).
+  `strip` – the literal leaves `LITERALS` and the file joins `RUNTIME`: its
+  ship check, the two stylesheet strip checks on the raw file and the
+  per-file fill check (15 names), minus the literal's ship check: 2,205 →
+  2,208; the fill check fails on a renamed table key, and a build with that
+  key refuses with `runtime/print.css: placeholder
+  __PSI_READER_WIDE_BELOW__ has no value`. `zoom-scope` – the file joins
+  `RUNTIME_SHEETS`; it reads no `var(--zoom)` today, and a rule appended to
+  it that does fails the gate. `inlined` scans only the literals left, as
+  planned. No other gate's output moved, and the other readers of
+  `PRINT_CSS`'s name – `test/settings.mjs`, the skills, `docs/` – read built
+  views or are prose; `refresh-figures.mjs --check` says up to date.
+  Desktop: `FILES` gained the file, the read count went 19 → 20; with the
+  file off `FILES` the test fails by name. Docs: `test/README.md`
+  (`id-namespace`, `zoom-scope`), every sentence in the appearance,
+  decoration and media skills that named the literal as a location, and
+  seven comments and assertion messages in `test/settings.mjs`.
+
+  Identity: `npm run build:tracked` leaves `lectures/` unchanged (every
+  tracked deck has a `print.html`, the first two a `print-notes.html`); built
+  by an archive of `43ae70c` and by the new engine into
+  `<old|new>/<plain|kept>/L/<deck>` – python-intro, the tutorial, a `kind:
+  document` fixture (`lang: de`, a `::: marginalia` and a `::: footnote` in
+  the margin, a `###` heading), a fixture with `print-bold: accent-italic`,
+  `print-neutrals: cool`, `code: tint` and `print-body: sans`, one with
+  `print-marginalia: inline`, `code: plain` and `print-bold: plain`, and one
+  with `reader: off` – all 42 views `cmp`-equal, plain and under
+  `PSI_KEEP_COMMENTS=1` (whose documents carry the file's comment “The hue
+  style: {neutrals} moves the greys onto”, the plain ones and the live views
+  not); no view holds `__PSI_`; a staged engine (`FILES` copied into a
+  scratch folder) builds python-intro and the document fixture equal. Not
+  run: the browser suite and `test/pdf-export.mjs`.
