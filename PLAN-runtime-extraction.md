@@ -8,7 +8,10 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **pilot pending** – `SPEAKER_CSS` (see *Log*).
+Status: **1 of 24 moved** – the pilot, `SPEAKER_CSS` (see *Log*). Next:
+`PRINT_JS`. The inventory's line numbers are those of `a49b625`, before the
+pilot; `SPEAKER_JS` now starts 1,127 lines earlier (27360), everything
+from `SOUFFLEUSE_CSS` on 1,126 earlier (a comment above it grew a line).
 
 ## Inventory
 
@@ -298,4 +301,18 @@ is byte-identical.
 
 ## Log
 
-- **`SPEAKER_CSS` → `runtime/speaker.css`** – pending.
+- **`SPEAKER_CSS` → `runtime/speaker.css`** – done. 44,853 bytes, the
+  literal's value exactly (no escapes, so it is also the source text).
+  `build.js` lost 1,136 lines and gained 9: `SPEAKER_CSS_PATH`,
+  `speakerCss()`, a comment; the render site is `shipCss(speakerCss())`, the
+  `sheets` entry `'runtime/speaker.css'`. Gates: `strip` (the literal's
+  ship check moved to the file, plus the file's two strip checks – 2,140 →
+  2,142 assertions), `id-namespace` (reads the file whole; still 564 `#id`
+  selectors in 8 stylesheets). Desktop: `FILES` gained the file and
+  sub-folder creation, the read count went 6 → 7, `desktop.yml` filters on
+  `runtime/**`, and the test accepts a `folder/**` entry; with the file off
+  `FILES` the test fails by name. Identity: tracked views unchanged;
+  python-intro's four views `cmp`-equal plain and under
+  `PSI_KEEP_COMMENTS=1` (whose `speaker.html` carries the file's comments);
+  the same lecture built by a staged copy of the engine, equal. Not run: the
+  browser suite and `test/pdf-export.mjs`.

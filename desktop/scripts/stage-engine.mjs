@@ -4,9 +4,10 @@
 // createRequire for the bundled fonts and the KaTeX stylesheet, a dynamic
 // import() for ws, and a WASM load for Shiki's regex engine.
 //
-// What is copied is what the engine reads about itself: build.js, the six
+// What is copied is what the engine reads about itself: build.js, the seven
 // files it splices in at run time over import.meta.url (diagram-core.mjs,
-// cue-cards.mjs, commands.mjs, pulse-embed.js, editor.mjs, editor.css), the
+// cue-cards.mjs, commands.mjs, pulse-embed.js, editor.mjs, editor.css,
+// runtime/speaker.css – and every runtime/ file after it), the
 // four it only imports statically (tails.mjs, pdf-core.mjs for the PDF
 // option checks, local-files.mjs, the rule for which local files a
 // lecture may reach – which the app's own PDF export loads as well – and
@@ -48,6 +49,7 @@ const FILES = [
   'pulse-embed.js',
   'editor.mjs',
   'editor.css',
+  'runtime/speaker.css',
   'package.json',
   'package-lock.json',
   'LICENSE',
@@ -64,6 +66,9 @@ for (const name of FILES) {
     console.error(`stage-engine: ${name} is missing from the repository root.`);
     process.exit(1);
   }
+  // runtime/ holds the stylesheets and scripts that have left build.js
+  // (PLAN-runtime-extraction.md), so a name may carry a folder.
+  fs.mkdirSync(path.dirname(path.join(engine, name)), { recursive: true });
   fs.copyFileSync(from, path.join(engine, name));
 }
 console.log(`staged ${FILES.length} files into engine/`);

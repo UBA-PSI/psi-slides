@@ -51,7 +51,7 @@ test('every file build.js reads at run time is staged', () => {
   const reads = runtimeReads();
   // A scan that silently finds nothing passes every comparison and guards
   // nothing, so the count is asserted before the membership.
-  assert.equal(reads.length, 6, `expected 6 run-time reads, found ${reads.length}: ${reads.join(', ')}`);
+  assert.equal(reads.length, 7, `expected 7 run-time reads, found ${reads.length}: ${reads.join(', ')}`);
   const files = stagedFiles();
   for (const name of reads) {
     assert.ok(files.includes(name),
@@ -79,8 +79,12 @@ test('desktop.yml runs on every engine file the app stages', () => {
   const yml = readFileSync(new URL('../../.github/workflows/desktop.yml', import.meta.url), 'utf8');
   const filtered = new Set([...yml.matchAll(/^\s*- '([^']+)'$/gm)].map((m) => m[1]));
   assert.ok(filtered.has('desktop/**'), 'the path filter is not in the shape this test reads');
+  // A folder of engine files is filtered as `folder/**` – runtime/, where the
+  // stylesheets and scripts that left build.js live – so a new file there
+  // runs the desktop jobs without a third list to keep.
+  const folders = [...filtered].filter((p) => p.endsWith('/**') && p !== 'desktop/**').map((p) => p.slice(0, -2));
   for (const name of stagedFiles()) {
-    assert.ok(filtered.has(name),
+    assert.ok(filtered.has(name) || folders.some((f) => name.startsWith(f)),
       `stage-engine.mjs stages ${name} but desktop.yml does not run on it – ` +
       'a change to it would ship into the app untested');
   }

@@ -163,15 +163,19 @@ export async function run({ report }) {
       ok(diff.length === 0, `${file}: every exported table, string and regex is equal after the strip`, diff.join(', '));
     }
   }
-  const css = fs.readFileSync(path.join(ROOT, 'editor.css'), 'utf8');
-  const strippedCss = stripCss(css);
-  ok(stripCss(strippedCss) === strippedCss, 'editor.css: a second strip changes nothing');
-  ok(!/\/\*/.test(strippedCss), 'editor.css: no comment is left');
+  // The stylesheets that are real files: editor.css, and the literals that
+  // have moved out of build.js into runtime/ (PLAN-runtime-extraction.md).
+  for (const file of ['editor.css', 'runtime/speaker.css']) {
+    const css = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const strippedCss = stripCss(css);
+    ok(stripCss(strippedCss) === strippedCss, `${file}: a second strip changes nothing`);
+    ok(!/\/\*/.test(strippedCss), `${file}: no comment is left`);
+  }
 
   // ── build.js hands every runtime and stylesheet literal through ship* ──
   const build = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
   const LITERALS = ['AUDIENCE_JS', 'SPEAKER_JS', 'DIAGRAM_JS', 'PRINT_JS', 'PRINT_READER_JS',
-    'PRINT_HIGHLIGHTS_JS', 'AUDIENCE_CSS', 'SPEAKER_CSS', 'DIAGRAM_CSS', 'PRINT_CSS', 'PULSE_PRINT_CSS'];
+    'PRINT_HIGHLIGHTS_JS', 'AUDIENCE_CSS', 'DIAGRAM_CSS', 'PRINT_CSS', 'PULSE_PRINT_CSS'];
   for (const lit of LITERALS) {
     const bare = [...build.matchAll(new RegExp('\\$\\{(?:[^}]*\\? )?' + lit + '\\b', 'g'))].length;
     const shipped = [...build.matchAll(new RegExp('ship(?:Js|Css)\\(' + lit + '\\)', 'g'))].length;
@@ -184,4 +188,12 @@ export async function run({ report }) {
   }
   ok(/editorJsCache \?\?= shipJs\(/.test(build), 'editor.mjs is stripped on its way in');
   ok(/shipCss\(editorCss\(\)\)/.test(build), 'editor.css is stripped on its way in');
+  // A literal moved into runtime/ keeps the guarantee it had as a literal:
+  // its text reaches a view only through ship*, never bare.
+  for (const [file, getter] of [['runtime/speaker.css', 'speakerCss']]) {
+    const bare = [...build.matchAll(new RegExp('\\$\\{(?:[^}]*\\? )?' + getter + '\\(\\)', 'g'))].length;
+    const shipped = [...build.matchAll(new RegExp('ship(?:Js|Css)\\(' + getter + '\\(\\)\\)', 'g'))].length;
+    ok(bare === 0 && shipped > 0, `${file} (${getter}()) reaches a view only through shipJs / shipCss`,
+      `${bare} bare, ${shipped} shipped`);
+  }
 }
