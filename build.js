@@ -27020,10 +27020,10 @@ function renderSpeaker(lecture, opts = {}) {
 
   // The live prompter is chrome that exists only under --prompter, which
   // itself only runs with --watch. Without the flag SOUFFLEUSE is null, none
-  // of the elements below are emitted, and neither SOUFFLEUSE_CSS nor
+  // of the elements below are emitted, and neither runtime/souffleuse.css nor
   // SOUFFLEUSE_JS is spliced - so a cockpit built any other way is the file
   // it was before the feature, apart from the cue-card integration the rail
-  // needs either way. The two literals are conditional exactly the way
+  // needs either way. The two texts are conditional exactly the way
   // editorPayload is, and for the same reason: 36 KB of runtime and
   // stylesheet that nothing in an ordinary cockpit could ever reach.
   // The visible word is `prompter`; `souffleuse` is the codename and survives
@@ -27080,7 +27080,7 @@ function renderSpeaker(lecture, opts = {}) {
   // and JS are in, so the runtime keeps runtime/speaker.js's scope and the
   // rules keep their place in the cascade. Empty strings otherwise, and then
   // every byte of this file is the byte it was.
-  const souffleuseCss = souffSettings ? SOUFFLEUSE_CSS : '';
+  const souffleuseCss = souffSettings ? souffleuseSheet() : '';
   const souffleuseRuntime = souffSettings ? SOUFFLEUSE_JS : '';
 
   return `<!DOCTYPE html>
@@ -27217,12 +27217,13 @@ const speakerJs = () => (speakerJsCache ??= fs.readFileSync(SPEAKER_JS_PATH, 'ut
 
 // ── the live prompter's CSS and runtime (--prompter only) ─────────
 //
-// Two literals that reach a page only when the build carries --prompter:
-// the stylesheet after runtime/speaker.css inside the same style element, the
-// script after runtime/speaker.js inside the same script element. Being
-// separate literals is the whole point of them. The rules used to live in the
-// cockpit's stylesheet (then SPEAKER_CSS, now runtime/speaker.css) and the
-// runtime at the foot of SPEAKER_JS (now runtime/speaker.js), which put
+// Two texts that reach a page only when the build carries --prompter: the
+// stylesheet runtime/souffleuse.css after runtime/speaker.css inside the same
+// style element, the script SOUFFLEUSE_JS after runtime/speaker.js inside the
+// same script element. Being separate texts is the whole point of them. The
+// rules used to live in the cockpit's stylesheet (then SPEAKER_CSS, now
+// runtime/speaker.css) and the runtime at the foot of SPEAKER_JS (now
+// runtime/speaker.js), which put
 // 36 KB of prompter into every cockpit anybody ever built - while the comment
 // in renderSpeaker promised that a build without the flag is the file it was
 // before the feature. It is now, apart from the cue-card integration the
@@ -27236,265 +27237,24 @@ const speakerJs = () => (speakerJsCache ??= fs.readFileSync(SPEAKER_JS_PATH, 'ut
 // and PSI_CARDS. In a script element of its own every one of those is
 // undefined.
 //
-// Template-literal rules apply to both, as everywhere else in this file: no
-// raw backtick even in a comment, every regex class escape doubled, no
-// unterminated block comment. `node test/gates/run.mjs inlined` scans them
-// by name along with the other twelve.
+// Template-literal rules apply to SOUFFLEUSE_JS, as everywhere else in this
+// file: no raw backtick even in a comment, every regex class escape doubled,
+// no unterminated block comment. `node test/gates/run.mjs inlined` scans it
+// with every literal left in this file.
 
-const SOUFFLEUSE_CSS = `
-/* The switch wears the chrome of the other footer buttons, and the rules that
-   dress them are in SPEAKER_CSS - in selector lists this id is deliberately
-   not a member of, because a button that exists in one build out of two
-   cannot be a name in the stylesheet every cockpit carries. So the shape is
-   repeated here for the one selector; the declarations are the same
-   declarations, and they have to stay so. */
-#psiINT-speaker-footer #psiINT-souffleuse-btn {
-  font: inherit;
-  white-space: nowrap;
-  padding: 2px 8px;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  background: oklch(0.97 0 0);
-  color: var(--ink);
-  cursor: pointer;
-}
-#psiINT-speaker-footer #psiINT-souffleuse-btn:hover { background: oklch(0.93 0 0); }
-#psiINT-speaker-footer #psiINT-souffleuse-btn[aria-pressed=true] { border-color: var(--emph); color: var(--emph); }
-body[data-mode=dark] #psiINT-speaker-footer #psiINT-souffleuse-btn {
-  background: var(--paper-warm);
-  color: var(--ink);
-}
-body[data-mode=dark] #psiINT-speaker-footer #psiINT-souffleuse-btn:hover {
-  background: oklch(from var(--paper) calc(l + 0.12) c h);
-}
-/* The prompter's switch says what it is doing with the one glyph in front of
-   the word, because a lecturer glances at this footer and does not read it:
-   a hollow ring is off, a filled red dot is a microphone that is open, and
-   the dot breathing is a call in flight. The word itself stays ink - a
-   coloured label in the corner of the eye reads as an alarm. */
-#psiINT-speaker-footer #psiINT-souffleuse-btn .souffleuse-dot { color: var(--ink-soft); }
-#psiINT-speaker-footer #psiINT-souffleuse-btn[data-state=listening] .souffleuse-dot,
-#psiINT-speaker-footer #psiINT-souffleuse-btn[data-state=thinking] .souffleuse-dot { color: oklch(0.56 0.20 25); }
-#psiINT-speaker-footer #psiINT-souffleuse-btn[data-state=error] .souffleuse-dot { color: oklch(0.63 0.15 70); }
-@media (prefers-reduced-motion: no-preference) {
-  #psiINT-speaker-footer #psiINT-souffleuse-btn[data-state=thinking] .souffleuse-dot {
-    animation: souffleuse-breathe 1.1s ease-in-out infinite;
-  }
-}
-@keyframes souffleuse-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
-/* Degraded states only - server recognition instead of on-device, a refused
-   key, a microphone that was denied. Stacked clear of BLANK and DEMO, which
-   own the two rows below it. */
-body[data-view=speaker] #psiINT-souffleuse-badge { bottom: 5.3rem; }
-body[data-view=speaker].blanked #psiINT-souffleuse-badge { bottom: 7.2rem; }
-
-/* ── the prompter's strip ─────────────────────────────────────────────
-   One line in two homes, like the clock: over the bottom edge of the stage
-   in the classic arrangement, at the head of the card column in cue-card
-   mode. Deliberately not #psiINT-center-toast - that lies over the middle of the
-   stage, is built for 1.8 seconds and cannot be taken away, and a hint a
-   lecturer cannot dismiss is a hint that stands there for the rest of the
-   sentence. In 150ms, out in 400: arriving should be noticed, leaving
-   should not.
-   Both of these set display, so both need the [hidden] rule of their own -
-   an author stylesheet that sets display beats the browser's. */
-#psiINT-souffleuse-strip {
-  position: absolute;
-  left: 50%;
-  bottom: 2.3rem;
-  transform: translateX(-50%);
-  z-index: 12;
-  display: flex;
-  align-items: baseline;
-  gap: 0.6em;
-  max-width: min(46rem, 88%);
-  padding: 0.4em 0.6em 0.45em;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--sans-font);
-  font-size: clamp(15px, 2.2vh, 22px);
-  line-height: 1.25;
-  box-shadow: 0 4px 14px oklch(0 0 0 / 0.14);
-  opacity: 0;
-  transition: opacity 400ms ease;
-}
-#psiINT-souffleuse-strip[hidden] { display: none; }
-#psiINT-souffleuse-strip.visible { opacity: 1; transition-duration: 150ms; }
-/* The red of the warning toast, and for the same reason: high is the one
-   that may interrupt a sentence. */
-#psiINT-souffleuse-strip[data-severity=high] {
-  background: oklch(0.55 0.16 25 / 0.94);
-  border-color: oklch(0.46 0.16 25);
-  color: oklch(0.99 0 0);
-  box-shadow: 0 4px 16px oklch(0.55 0.16 25 / 0.3);
-}
-#psiINT-souffleuse-strip .souffleuse-glyph { flex: 0 0 auto; opacity: 0.7; }
-#psiINT-souffleuse-strip .souffleuse-text { flex: 1 1 auto; min-width: 0; }
-.souffleuse-x {
-  flex: 0 0 auto;
-  font: inherit;
-  line-height: 1;
-  padding: 0 0.15em;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  opacity: 0.45;
-  cursor: pointer;
-}
-.souffleuse-x:hover { opacity: 1; }
-/* What the ear is hearing right now, off by default: reassuring in a
-   rehearsal, one moving line too many in a talk. */
-/* The heartbeat is not something anybody said, so it drops the italic and
-   loses a little more contrast: it is there to be found, not read. */
-#psiINT-souffleuse-heard.beat {
-  font-style: normal;
-  font-family: var(--mono-font, var(--mono));
-  font-size: clamp(10px, 1.25vh, 13px);
-  letter-spacing: 0.04em;
-  color: var(--ink-faint, var(--ink-soft));
-  opacity: 0.75;
-}
-#psiINT-souffleuse-heard {
-  position: absolute;
-  left: 50%;
-  bottom: 0.7rem;
-  transform: translateX(-50%);
-  z-index: 11;
-  max-width: min(46rem, 88%);
-  font-family: var(--sans-font);
-  font-size: clamp(11px, 1.5vh, 15px);
-  font-style: italic;
-  color: var(--ink-soft);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  pointer-events: none;
-}
-#psiINT-souffleuse-heard[hidden] { display: none; }
-/* In the card column both are ordinary block children at the head of it,
-   under the crumb line - the cards are what is being read there, and a
-   floating box over them would cover the current one. */
-body[data-view=speaker].cue-cards #psiINT-souffleuse-strip,
-body[data-view=speaker].cue-cards #psiINT-souffleuse-heard {
-  position: static;
-  transform: none;
-  flex: 0 0 auto;
-  max-width: none;
-  margin: 0.8vh 2.4vw 0;
-}
-body[data-view=speaker].cue-cards #psiINT-souffleuse-heard { margin-top: 0.4vh; white-space: normal; }
-
-/* The history, opened by Shift-clicking the switch. The export modal's
-   shape without its scrim: this one is read beside the talk, not instead
-   of it, so nothing behind it is dimmed and nothing is blocked. */
-#psiINT-souffleuse-log {
-  position: fixed;
-  right: 0.8rem;
-  bottom: 3.2rem;
-  z-index: 50;
-  width: min(30rem, 48vw);
-  max-height: 62vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  box-shadow: 0 10px 30px oklch(0 0 0 / 0.22);
-  font-family: var(--sans-font);
-  font-size: 13px;
-  color: var(--ink);
-}
-#psiINT-souffleuse-log[hidden] { display: none; }
-#psiINT-souffleuse-log header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5em;
-  padding: 0.6em 0.7em 0.4em;
-  border-bottom: 1px solid var(--rule);
-  font-variant-caps: all-small-caps;
-  letter-spacing: 0.08em;
-  color: var(--ink-soft);
-}
-#psiINT-souffleuse-log header .souffleuse-x { margin-left: auto; font-size: 15px; }
-#psiINT-souffleuse-log-list {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  list-style: none;
-  margin: 0;
-  padding: 0.3em 0;
-}
-#psiINT-souffleuse-log-list li {
-  display: grid;
-  grid-template-columns: 3.2em 1.3em 1fr auto;
-  gap: 0.5em;
-  align-items: baseline;
-  padding: 0.35em 0.7em;
-  line-height: 1.3;
-}
-#psiINT-souffleuse-log-list li + li { border-top: 1px solid color-mix(in oklab, var(--rule) 55%, transparent); }
-#psiINT-souffleuse-log-list .souffleuse-log-at { font-family: var(--mono-font); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
-#psiINT-souffleuse-log-list .souffleuse-log-gone { font-size: 0.82em; color: var(--ink-soft); }
-#psiINT-souffleuse-log-list .souffleuse-log-empty { display: block; padding: 1em 0.8em; color: var(--ink-soft); font-style: italic; }
-#psiINT-souffleuse-log footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4em 1.1em;
-  padding: 0.55em 0.7em;
-  border-top: 1px solid var(--rule);
-  color: var(--ink-soft);
-}
-#psiINT-souffleuse-log footer label { display: flex; align-items: center; gap: 0.4em; cursor: pointer; }
-body[data-mode=dark] #psiINT-souffleuse-strip,
-body[data-mode=dark] #psiINT-souffleuse-log { background: var(--paper-warm); }
-body[data-mode=dark] #psiINT-souffleuse-strip[data-severity=high] { background: oklch(0.55 0.16 25 / 0.94); }
-/* A card the prompter laid in rather than one the author wrote: the track
-   goes dashed, the ring goes dashed, and the words are italic behind the
-   same hollow ring the switch wears. Nothing else changes - it is read in
-   its place in the column, on the beat it belongs to. */
-.cue-tick.souffleuse::before { width: 0; background: none; border-left: 1px dashed var(--rule); }
-.cue-tick.souffleuse i { border-style: dashed; }
-.cue-card.souffleuse { font-style: italic; }
-/* The label above such a card. Small, in the chrome's own sans rather than
-   the card's serif, and in the deck's own emphasis colour, because it is the
-   one thing in the rail that arrived from outside the source file. */
-.cue-added {
-  margin: 0 0 0.35em;
-  font-family: var(--sans-font);
-  font-style: normal;
-  font-size: 0.62em;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--emph);
-  opacity: 0.85;
-}
-/* The ring takes the bullet's place rather than standing on a line of its
-   own above it: a card is one or two lines read at a glance, and a glyph
-   with a line to itself doubles the height of the shortest thing in the
-   column. */
-.cue-card.souffleuse li { padding-left: 1.4em; }
-.cue-card.souffleuse li::before,
-.cue-entry.cur .cue-card.souffleuse li::before {
-  content: '\\25cc';
-  top: 0;
-  width: auto;
-  height: auto;
-  background: none;
-  border-radius: 0;
-  color: var(--ink-soft);
-  opacity: 1;
-  font-style: normal;
-}
-/* The rail is the frame its own entries are measured against. cueRender
-   scrolls to curEl.offsetTop, which without this is measured from whatever
-   positioned ancestor happens to be up the tree - so anything growing above
-   the rail moved every card by its own height. The strip is the only thing
-   that ever grows there, which is why the line is here and not in
-   SPEAKER_CSS: a cockpit with no prompter has nothing to correct for. */
-#psiINT-cue-rail { position: relative; }
-`;
+// runtime/souffleuse.css, read as text at build time (PLAN-runtime-extraction.md;
+// SOUFFLEUSE_CSS until it left this file), in editor.css's shape: read once
+// per process, stripped on its way into speaker.html by shipCss. Not named
+// souffleuseCss, which is renderSpeaker's local for the text it splices.
+// renderSpeaker calls this only under --prompter; the stylesheet check in
+// buildOnce reads it on every build, as it read the literal, so a broken
+// sheet fails a build without the flag too. Its bytes are the old literal's
+// *value* – the literal resolved one escape, the doubled backslash of a CSS
+// content escape – so a cockpit built before and after the move is the same
+// file.
+const SOUFFLEUSE_CSS_PATH = new URL('./runtime/souffleuse.css', import.meta.url);
+let souffleuseSheetCache = null;
+const souffleuseSheet = () => (souffleuseSheetCache ??= fs.readFileSync(SOUFFLEUSE_CSS_PATH, 'utf8'));
 
 const SOUFFLEUSE_JS = `
 // ── the live prompter (--prompter) ────────────────────────────────
@@ -30603,7 +30363,7 @@ function assertStylesheetsWellFormed() {
   // DIAGRAM_CSS ships into all four views and was the one inlined
   // stylesheet this guard did not cover – the exact gap the guard exists
   // to close.
-  const sheets = { AUDIENCE_CSS, 'runtime/speaker.css': speakerCss(), SOUFFLEUSE_CSS, PRINT_CSS, 'runtime/pulse-print.css': pulsePrintCss(), DIAGRAM_CSS, 'editor.css': editorCss() };
+  const sheets = { AUDIENCE_CSS, 'runtime/speaker.css': speakerCss(), 'runtime/souffleuse.css': souffleuseSheet(), PRINT_CSS, 'runtime/pulse-print.css': pulsePrintCss(), DIAGRAM_CSS, 'editor.css': editorCss() };
   for (const [name, css] of Object.entries(sheets)) {
     if (typeof css !== 'string') continue;
     const opens = (css.match(/\/\*/g) || []).length;

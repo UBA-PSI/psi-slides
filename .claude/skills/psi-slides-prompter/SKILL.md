@@ -48,7 +48,7 @@ into the prompt, that is the thing you are giving up.
 |---|---|
 | `souffleuse.mjs` | everything pure: `KINDS`, `SEVERITIES`, `MAX_WORDS`, `START_QUIET_S`, `CLOCK_JUMP_S`, `PACE_WPM`, `DELIVERY_MIN_SAMPLE_S`, `TOOL_SCHEMA`, `wordCount`, `prefixHash`, `deckPayload`, `flattenMarks`, `cueTargets`, `systemPrefix`, `speechStats`, `paceVerdict`, `tickMessage`, `parseAnswer`, `driftSeconds`, `timeHintAllowed`, `rebaseClock`, `shouldTick`, `createPolicy`, `replayAnswers`, and the debrief's figures: `logNameFacts`, `pickDebriefLog`, `logIsDryRun`, `debriefReport`, `debriefTranscript`. Zero imports, zero Node APIs, and the gate asserts both plus the exact export list |
 | `build.js` § `// ── souffleuse (--prompter) ──` | `createSouffleuse({absIn, opts, sendToCockpit, emitEvent, log})` → `{onBuild, onMessage, say, setEnabled, close, logPath}`, plus `souffleuseLogPath` and the constants. Both modules are imported **dynamically here**, so no other build reads either file |
-| `build.js` § `// ── the live prompter's CSS and runtime (--prompter only) ──` | `SOUFFLEUSE_CSS` and `SOUFFLEUSE_JS`: the cockpit's Web Speech adapter, switch, strip, badge, history, interim line and cue merge, and the rules that dress them. **Two literals of their own because they are spliced only under the flag**, the way `editorPayload` is – `${shipCss(speakerCss())}${shipCss(souffleuseCss)}` inside the same `<style>`, `${shipJs(speakerJs())}${shipJs(souffleuseRuntime)}` inside the same `<script>` (the cockpit's own two are the files `runtime/speaker.css` and `runtime/speaker.js`, once the literals `SPEAKER_CSS` and `SPEAKER_JS`). The runtime must be in that script element: it reads `flatChunks`, `state`, `viewHooks`, `cueSync`, `cueOn`, `cuePosition`, `souffleuseCues`, `applyCueMode`, `flashMode`, `escText`, `elapsedSeconds`, `tStart` and `PSI_CARDS` out of `runtime/speaker.js`'s scope. Before the split, 36 KB of prompter rode in every `speaker.html` anybody ever built |
+| `runtime/souffleuse.css`, and `build.js` § `// ── the live prompter's CSS and runtime (--prompter only) ──` | `runtime/souffleuse.css` (`SOUFFLEUSE_CSS` in build.js until it moved, read by `souffleuseSheet()` in that section) and `SOUFFLEUSE_JS`: the cockpit's Web Speech adapter, switch, strip, badge, history, interim line and cue merge, and the rules that dress them. **Two texts of their own because they are spliced only under the flag**, the way `editorPayload` is – `${shipCss(speakerCss())}${shipCss(souffleuseCss)}` inside the same `<style>`, `${shipJs(speakerJs())}${shipJs(souffleuseRuntime)}` inside the same `<script>` (the cockpit's own two are the files `runtime/speaker.css` and `runtime/speaker.js`, once the literals `SPEAKER_CSS` and `SPEAKER_JS`). The runtime must be in that script element: it reads `flatChunks`, `state`, `viewHooks`, `cueSync`, `cueOn`, `cuePosition`, `souffleuseCues`, `applyCueMode`, `flashMode`, `escText`, `elapsedSeconds`, `tStart` and `PSI_CARDS` out of `runtime/speaker.js`'s scope. Before the split, 36 KB of prompter rode in every `speaker.html` anybody ever built |
 | `runtime/speaker.js` (`SPEAKER_JS` in build.js until it moved) § cue cards | the two pieces a cockpit carries either way: `const souffleuseCues = new Map()` and the merge at the end of `cueCardsFor`. The rail is drawn from them, and drawing it cannot depend on a literal that may not have been spliced; over an empty Map both are free. Everything else the prompter touches in this window is *chained* from `SOUFFLEUSE_JS` – `viewHooks.onActiveChange`, `onStateChange`, and `applyCueMode` (which is how `cuePlaceStrip` gets called without a line inside it) |
 | `build.js`, `SOUFFLEUSE_SPEC` / `souffleuseSettings` / `talkDuration` | the frontmatter, validated in the `buildOnce` pre-flight so `--print-only` refuses a typo too |
 | `build.js`, `renderSpeaker` | emits the chrome, `const SOUFFLEUSE = {lang, cadence, cues, label}` – `null` without the flag – and the two conditional splices. Without the flag the only trace in `speaker.html` is that null, the cue merge above, and the `onShiftS` / `escapePrompter` hooks in `AUDIENCE_JS`, which the projection carries too because they are the hook contract |
@@ -612,7 +612,7 @@ below the fold.
   it, the way it chains the two `viewHooks` – a cockpit without a prompter has
   nothing to move – and then runs `cuePlaceStrip(cueOn())` once itself, because
   the cue section restored the saved arrangement before this text existed.
-  `#psiINT-cue-rail { position: relative }` lives in `SOUFFLEUSE_CSS` for the same
+  `#psiINT-cue-rail { position: relative }` lives in `runtime/souffleuse.css` for the same
   reason: `cueRender` scrolls to `curEl.offsetTop`, and the strip is the only
   thing that ever grows above the rail.
 - Glyphs: `◷` time, `◇` example, `△` fact, `◌` delivery, `≫` pace, `⋯` skipped, `▤` cue. `high` is red
@@ -766,7 +766,7 @@ words are for the first, mid-talk, when nobody is in the mood to infer
 anything from a border. The label is generated in `cueRender`, which lives in
 the unconditional half of `runtime/speaker.js` beside the `cueCardsFor` merge - one
 line and no stylesheet, since a plain cockpit never has such a card - while
-the rule that paints it sits in `SOUFFLEUSE_CSS` with the rest.
+the rule that paints it sits in `runtime/souffleuse.css` with the rest.
 
 ## The STT adapter
 
@@ -929,10 +929,11 @@ those, the log and a rehearsal.
 - **`#psiINT-cue-rail` is `position: relative` under the flag.** `cueRender` scrolls to
   `curEl.offsetTop`, measured against whatever positioned ancestor happened to be
   up the tree, so the strip growing above the rail moved every card by its own
-  height. The rule is in `SOUFFLEUSE_CSS`, not `SPEAKER_CSS`.
+  height. The rule is in `runtime/souffleuse.css` (then `SOUFFLEUSE_CSS`), not
+  `runtime/speaker.css` (then `SPEAKER_CSS`).
 - **The runtime and its stylesheet used to ride in every `speaker.html`.**
   36 KB of prompter in a file nothing could reach it from, while the comment in
-  `renderSpeaker` promised the opposite. They are `SOUFFLEUSE_CSS` and
+  `renderSpeaker` promised the opposite. They are `runtime/souffleuse.css` and
   `SOUFFLEUSE_JS` now, spliced only under the flag – but **inside the same
   `<style>` and the same `<script>`**, because the runtime lives in
   `runtime/speaker.js`'s lexical scope and a script element of its own would give it

@@ -4,11 +4,12 @@
 // createRequire for the bundled fonts and the KaTeX stylesheet, a dynamic
 // import() for ws, and a WASM load for Shiki's regex engine.
 //
-// What is copied is what the engine reads about itself: build.js, the ten
+// What is copied is what the engine reads about itself: build.js, the eleven
 // files it splices in at run time over import.meta.url (diagram-core.mjs,
 // cue-cards.mjs, commands.mjs, pulse-embed.js, editor.mjs, editor.css,
 // runtime/speaker.css, runtime/print.js, runtime/pulse-print.css,
-// runtime/speaker.js – and every runtime/ file after them), the
+// runtime/speaker.js, runtime/souffleuse.css – and every runtime/ file after
+// them), the
 // four it only imports statically (tails.mjs, pdf-core.mjs for the PDF
 // option checks, local-files.mjs, the rule for which local files a
 // lecture may reach – which the app's own PDF export loads as well – and
@@ -54,6 +55,12 @@ const FILES = [
   'runtime/print.js',
   'runtime/pulse-print.css',
   'runtime/speaker.js',
+  // The cockpit half of the prompter, staged although the app never passes
+  // --prompter: the stylesheet check reads the sheet on every build, and a
+  // run-time read off this list fails every build. souffleuse.mjs, the
+  // prompter itself, is still not staged. (No apostrophe in a comment
+  // here: the stage test reads this list as quoted names.)
+  'runtime/souffleuse.css',
   'package.json',
   'package-lock.json',
   'LICENSE',

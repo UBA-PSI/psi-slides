@@ -8,8 +8,9 @@ condition is the whole method: one literal per commit, gate-protected, and
 every view the build writes is byte-identical before and after.** Nothing in a
 built page changes; only where its text comes from.
 
-Status: **4 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
-`PULSE_PRINT_CSS` and `SPEAKER_JS` (see *Log*). Next: `SOUFFLEUSE_CSS`.
+Status: **5 of 24 moved** – the pilot, `SPEAKER_CSS`, then `PRINT_JS`,
+`PULSE_PRINT_CSS`, `SPEAKER_JS` and `SOUFFLEUSE_CSS` (see *Log*). Next:
+`SOUFFLEUSE_JS`.
 The inventory's line numbers are those of `a49b625`, before the pilot;
 `node tools/runtime-literals.mjs` has the current ones.
 
@@ -406,3 +407,50 @@ is byte-identical.
   to placeholders – the cockpit there is `runtime/speaker.js` followed by
   `SOUFFLEUSE_JS` in one script element. Not run: the browser suite and
   `test/pdf-export.mjs`.
+- **`SOUFFLEUSE_CSS` → `runtime/souffleuse.css`** – done. 10,330 bytes,
+  253 lines, written by `--extract` from the value, which differs from the
+  source in one place: `content: '\\25cc'` in build.js is the CSS escape
+  `'\25cc'` in the file. **The getter is `souffleuseSheet()`, not
+  `souffleuseCss()`**: `renderSpeaker` already has a local `souffleuseCss`
+  (the text it splices, or `''`), and that local stays – the render site is
+  `const souffleuseCss = souffSettings ? souffleuseSheet() : ''` followed by
+  the unchanged `shipCss(souffleuseCss)`, so a cockpit without the flag reads
+  nothing for its page. **The stylesheet check reads the file on every
+  build** (`'runtime/souffleuse.css': souffleuseSheet()` in `sheets`): it is a
+  build-time check, not a page, it checked the literal on every build, and
+  narrowing it to `--prompter` builds would leave a broken sheet to the one
+  browser spec that builds with the flag. `build.js` lost 269 lines and
+  gained 29: `SOUFFLEUSE_CSS_PATH`, `souffleuseSheet()`, a comment, and three
+  Node-side comments (`renderSpeaker`'s and the section's) that said “two
+  literals”. Gates: `strip` – the file joins `RUNTIME` with a third name,
+  the local it is held in; for such an entry the ship check asks that the
+  getter is read into that local once, under `souffSettings`, and that the
+  local reaches the view only through `ship*` (the literal had no ship check
+  at all, because of that indirection) – plus the file's two stylesheet strip
+  checks: 2,152 → 2,155 assertions. `id-namespace`: its `CSS_SOURCES` entry
+  is `['runtime/souffleuse.css', null]`; still 564 selectors in 8
+  stylesheets. **Desktop: the file is staged** (decision below), the read
+  count went 10 → 11; with the file off `FILES` the test fails by name.
+  Docs: `test/README.md` (`id-namespace`, `strip`), the prompter skill's
+  locations and four sentences naming the literal, one in `speaker.md`.
+  Identity: tracked views unchanged; a `--watch --prompter
+  --prompter-dry-run --no-optimize-images` build of a copy of python-intro
+  in `$TMPDIR/<run>/L/python-intro` (the same parent folder name for both),
+  by `build.js` at `de63bde` and by the new one, 20 seconds each under
+  `perl -e 'alarm 20'`: four views equal once run id, socket port, nonce
+  and listen key are placeholders, plain and under `PSI_KEEP_COMMENTS=1`
+  (whose cockpit carries the file's first comment). Not run: the browser
+  suite and `test/pdf-export.mjs`.
+
+  **The desktop decision.** Stage the prompter's files – the sheet now, the
+  script when `SOUFFLEUSE_JS` moves – rather than teach
+  `desktop/test/stage-engine.test.mjs` an exception. The test's rule stays
+  one sentence (every `new URL('./…', import.meta.url)` read is staged), the
+  stylesheet check reads the sheet on every build, so an unstaged sheet would
+  fail every build in the app, and an app that ever passed `--prompter`
+  would not meet `ENOENT` in a renderer. What CLAUDE.md promises stays true
+  in substance – the app never passes the flag, has no network entitlement,
+  and `souffleuse.mjs`, without which no prompter runs, is still not staged
+  – but its sentence “`desktop/scripts/stage-engine.mjs`'s file list is
+  unchanged” is no longer literally so: the list carries the inert text
+  files of the cockpit's half.
