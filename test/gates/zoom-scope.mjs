@@ -73,10 +73,18 @@ export function sheetZoomSelectors(text, literal) {
   return out;
 }
 
-// The stylesheets that left build.js for runtime/ and ship into a live view
-// (PLAN-runtime-extraction.md), read as files: the figures' sheet, which was
-// DIAGRAM_CSS and so one of the literals above.
-const RUNTIME_SHEETS = ['runtime/diagram.css'];
+// The stylesheets that left build.js for runtime/ (PLAN-runtime-extraction.md),
+// read as files: every one of them was a *CSS* literal the pattern above
+// matched, so each is scanned as it was. The first four moved before the gate
+// read files and dropped out of it unnoticed; none reads var(--zoom), so
+// nothing was missed, but a rule added to one later would have been.
+const RUNTIME_SHEETS = [
+  'runtime/speaker.css',
+  'runtime/souffleuse.css',
+  'runtime/pulse-print.css',
+  'runtime/watch-banner.css',
+  'runtime/diagram.css',
+];
 
 // The selector as compounds, subject last, each with the combinator that
 // joins it to the next one. The arguments of :has(), :not(), :is() and
