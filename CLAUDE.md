@@ -327,7 +327,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
 # tail grammar that can, plus the cue-card grammar, the prompter's policy and
-# the PDF export's - twenty-five gates, about three seconds, no browser and no
+# the PDF export's - twenty-six gates, about three seconds, no browser and no
 # `npm install` (diagram-core.mjs, tails.mjs, cue-cards.mjs, souffleuse.mjs,
 # pdf-core.mjs, commands.mjs, strip-comments.mjs and lint.js are all zero-dep).
 # It is also where a hand-mirrored list one file keeps of another's belongs,
@@ -335,7 +335,9 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # against what build.js reads, and `image-refs` holds the two readers of the
 # image-reference set against the one collector both go through, and `cli`
 # holds the command line's flag table against what main() reads and against
-# this block.
+# this block, and `engine-files` holds ENGINE_FILES – the list of the files
+# build.js reads beside itself, which assertEngineComplete checks at the head
+# of every build – equal to every such read in build.js.
 # test/ is the things that only break in a built page - 58 specs, about four
 # minutes: six at a time by default (--jobs N, half the cores, at most six),
 # each in a child process with its own Chromium, and the nine that export
@@ -353,8 +355,9 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # (`> note:`, `> annot:`, `---`, `#`, `##`, a multi-line comment, an unknown
 # `:::`), built and linted, asserting the two agree and nothing leaks onto
 # the projection – about 175 decks, five seconds. And test/cli.mjs, the
-# command line's refusals, --help, a folder for a file and a busy port, by
-# spawning build.js – about five seconds. And test/large-deck.mjs, a generated
+# command line's refusals, --help, a folder for a file and a busy port, and a
+# copy of the engine with one file taken away (the incomplete-install
+# refusal), by spawning build.js – about five seconds. And test/large-deck.mjs, a generated
 # deck of 2,400 chunks in twelve parts (figures, a figure in a pane, code,
 # math, cards, columns, notes) built and linted, every chunk id and figure
 # counted in the output, and the cost above an eight-chunk deck held under
@@ -840,7 +843,7 @@ Image assets are inlined into the single-file outputs by default (auto-inline bu
 
 An asset over the per-file cap **fails the build**. It used to be a warning, and the output then shipped with an external path: correct on the machine that built it, broken figure anywhere the HTML travelled alone. `assertInlinable()` runs as a pre-flight in `buildOnce` before any rendering, so a failed build leaves no half-written artefact, and its message branches on what the author can actually do – convert (PNG, JPEG **or an oversized WebP**, all three of which that verb now handles), install an encoder first (no cwebp/magick), or simplify by hand, which is left for the formats it cannot touch and in practice means an oversized SVG. "Simplify by hand" was written for a diagram and was the wrong advice for a photograph of a room. The escape hatch is `--no-inline-images`, which is an explicit choice to ship external paths. `lint.js` keeps a matching `oversized-asset` warning (pure `fs.statSync`, still zero-dep) so the problem surfaces before the build too.
 
-Errors of this kind set `err.userFacing = true`; the top-level handler prints the message without a stack trace, because a stack only buries the instructions. Reserve the flag for things the author must act on, never for defects in the build. Note what that verb deliberately does **not** do: it does not downscale by default. The offenders measured in the content repo were not oversized in pixels (the worst was 3.03 MB at exactly 1920×1080) and figure focus zooms to `FIG_MAX_SCALE` (8×), so a 3968px-wide diagram is high-resolution on purpose. WebP q92 alone gets those files to 12–18% of their original size. The one exception is the asset the build would otherwise still refuse: when q92 leaves a file over the per-image cap, it is re-encoded once more at `CAP_RESCUE_WIDTH` (2560 px), because the author is running the command precisely because the build refused the deck, and answering with a smaller file that is still refused is the same dead end in fewer megabytes. `--max-width` exists for real outliers and only ever shrinks – `cwebp -resize` would happily enlarge a narrower image, so `imageSize()` (a zero-dep PNG/JPEG header reader) gates it. Raster formats become base64 `data:` URIs in `<img>` tags. **SVG assets are spliced inline as `<svg>` elements** (not `data:` URIs) so they inherit page CSS custom properties – `--ink`, `--paper`, `--ink-soft` – and re-color when the user cycles themes with the `A` hotkey. To keep multiple inlined SVGs from cross-contaminating each other, the inliner gives every instance a unique `psiINT-fig-N-` prefix and rewrites `id="…"`, `url(#…)`, `href="#…"`, and `xlink:href="#…"` accordingly; inline `<style>` blocks are wrapped in `@scope (svg#psiINT-fig-N-root) { … }` (with `@import` and `@font-face` hoisted out so they remain at top level). See `inlineSvg()` in `build.js`.
+Errors of this kind set `err.userFacing = true`; the top-level handler prints the message without a stack trace, because a stack only buries the instructions. Reserve the flag for things the author must act on, never for defects in the build – with one deliberate exception, the incomplete-install refusal of `assertEngineComplete`: the person did not cause it, but its one sentence is the whole fix, and a stack would only point at a renderer that read a correct path. Note what that verb deliberately does **not** do: it does not downscale by default. The offenders measured in the content repo were not oversized in pixels (the worst was 3.03 MB at exactly 1920×1080) and figure focus zooms to `FIG_MAX_SCALE` (8×), so a 3968px-wide diagram is high-resolution on purpose. WebP q92 alone gets those files to 12–18% of their original size. The one exception is the asset the build would otherwise still refuse: when q92 leaves a file over the per-image cap, it is re-encoded once more at `CAP_RESCUE_WIDTH` (2560 px), because the author is running the command precisely because the build refused the deck, and answering with a smaller file that is still refused is the same dead end in fewer megabytes. `--max-width` exists for real outliers and only ever shrinks – `cwebp -resize` would happily enlarge a narrower image, so `imageSize()` (a zero-dep PNG/JPEG header reader) gates it. Raster formats become base64 `data:` URIs in `<img>` tags. **SVG assets are spliced inline as `<svg>` elements** (not `data:` URIs) so they inherit page CSS custom properties – `--ink`, `--paper`, `--ink-soft` – and re-color when the user cycles themes with the `A` hotkey. To keep multiple inlined SVGs from cross-contaminating each other, the inliner gives every instance a unique `psiINT-fig-N-` prefix and rewrites `id="…"`, `url(#…)`, `href="#…"`, and `xlink:href="#…"` accordingly; inline `<style>` blocks are wrapped in `@scope (svg#psiINT-fig-N-root) { … }` (with `@import` and `@font-face` hoisted out so they remain at top level). See `inlineSvg()` in `build.js`.
 
 ### Authoring contract
 
@@ -1159,8 +1162,13 @@ runs is a copy staged by `desktop/scripts/stage-engine.mjs` – `build.js`, the
 twenty-two files it reads relative to itself (`commands.mjs` is read and imported; each `runtime/` file has its own line in `FILES`, while `desktop.yml`'s filter names the folder as `runtime/**`),
 the four more it only imports (`tails.mjs`, `pdf-core.mjs`, `local-files.mjs`, `strip-comments.mjs`), plus a production `npm ci` that omits optional dependencies – so a new runtime file that `build.js` reads via `import.meta.url`
 has to be added to that script's `FILES` or the packaged app fails **every**
-build: the read is a bare `readFileSync` inside a renderer, so it throws
-`ENOENT` before any view reaches disk rather than degrading one view.
+build: `assertEngineComplete`, the first line of every `buildOnce`, refuses in
+one sentence that names the missing file ("The psi-slides installation in …
+is incomplete: runtime/print.js is missing or unreadable"), before any view
+reaches disk rather than degrading one view. It used to be a bare
+`readFileSync` inside a renderer and an `ENOENT` stack. The check walks
+`ENGINE_FILES`, a list of the path constants themselves, and the
+`engine-files` gate fails when a new constant is left off it.
 `desktop/test/stage-engine.test.mjs` holds the list against `build.js` as
 text in both directions, which is what `cue-cards.mjs` cost – it was off the
 list from the day it landed through builder 0.1.1.
@@ -1202,7 +1210,7 @@ plan, its decisions and its build log are `docs/history/PLAN-electron-builder.md
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
 - `SECURITY.md` – **what a deck someone sent can do, what the build refuses from a `source.md` someone else wrote, and what `--watch`, `--serve` and `--prompter` expose** – written for lecturers and evaluators, its claims checked against the code or in a browser. Change it in the same commit as a refusal, a `--serve` rule or a prompter data flow it describes.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-five gates guards, the four browser-spec families, and the twenty-six specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-six gates guards, the four browser-spec families, and the twenty-six specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
