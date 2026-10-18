@@ -7,6 +7,8 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+## [2.1.0]
+
 ### Added
 
 - **`kind: document`: a source that is read and never projected.** A
@@ -344,6 +346,19 @@ from building the same way is a major version.
   upload-pages-artifact and deploy-pages v5), which run on Node.js 24, and
   run on pinned images (`ubuntu-24.04`, `macos-26`, `windows-2025-vs2026`)
   instead of `-latest`.
+
+- **An incomplete installation is named in one sentence.** `build.js` reads
+  22 files beside itself; a copy of the engine that lacks one (a partial
+  checkout, a staging list that missed a new file) used to end in an
+  `ENOENT` stack out of whichever renderer read it first. Every build, a
+  partial one and each rebuild under `--watch` included, now checks them
+  first and stops with "The psi-slides installation in … is incomplete:
+  runtime/print.js is missing or unreadable – reinstall psi-slides, or
+  restore the file from the release it came from", without a stack and
+  before any view is written. The new `engine-files` gate holds the list of
+  files equal to the ones `build.js` reads.
+- The two last em-dashes a user reads, in the cockpit's "Clipboard blocked"
+  and "No live annotations to export" messages, are en-dashes.
 
 ### Fixed
 
@@ -5098,6 +5113,7 @@ Read [When *not* to use this](README.md#when-not-to-use-this) and
 [the comparison](docs/comparison.md) before committing a semester to it.
 There is no test suite, one author, and the format is still moving.
 
-[Unreleased]: https://github.com/UBA-PSI/psi-slides/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/UBA-PSI/psi-slides/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/UBA-PSI/psi-slides/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/UBA-PSI/psi-slides/releases/tag/v2.0.0
 [1.0.0]: https://github.com/UBA-PSI/psi-slides/releases/tag/v1.0.0
