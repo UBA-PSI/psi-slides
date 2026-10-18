@@ -211,7 +211,7 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
   head.className = 'export-modal-head';
   head.textContent = clipboardOk
     ? drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied to clipboard'
-    : 'Clipboard blocked — copy manually below';
+    : 'Clipboard blocked – copy manually below';
   inner.appendChild(head);
 
   const intro = document.createElement('p');
@@ -331,7 +331,7 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
 async function exportAnnotations() {
   const drafts = collectAnnotationDrafts();
   if (!drafts.length) {
-    flashCenter('No live annotations to export — type some with N first.', { warn: true, duration: 2600 });
+    flashCenter('No live annotations to export – type some with N first.', { warn: true, duration: 2600 });
     return;
   }
   const snippet = buildAnnotationSnippet(drafts);
