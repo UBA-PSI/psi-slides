@@ -661,7 +661,7 @@ body[data-marginalia=margin] main .marginalia figure.figure-img :is(img, svg) { 
   body[data-marginalia=margin] main .marginalia figure.figure-img :is(img, svg) { max-width: 100%; }
 }
 @media screen and (min-width: 920px) {
-  body[data-marginalia=margin]:has(main :is(.marginalia, .fn-slot)) { padding: 0 18.5rem 0 1.5rem; }
+  body[data-marginalia=margin]:not(.rd-ready):has(main :is(.marginalia, .fn-slot)) { padding: 0 18.5rem 0 1.5rem; }
   body[data-marginalia=margin] { --mn-w: 14rem; --mn-gap: 2.5rem; }
 }
 @media print {

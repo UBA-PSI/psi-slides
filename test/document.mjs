@@ -11,6 +11,8 @@
  *    and inside the window, level with the block written after it unless the
  *    note above pushed it down, and no two notes overlap - several in one
  *    chunk, a picture in one, two written back to back;
+ *  - just above the wide breakpoint, where a zoomed-in browser lands, the
+ *    text column starts right of the fixed contents sidebar;
  *  - between the reader's breakpoint and the wide layout the same holds in
  *    the narrower column the layout keeps;
  *  - on a phone there is no margin, and the note is the aside in the column
@@ -267,6 +269,21 @@ export async function run({ page, report }) {
            JSON.stringify(clash));
         ok(!clash.missing && !clash.overlap, 'a reader\'s note card steps out of a margin note\'s way', JSON.stringify(clash));
       }
+      await ctx.close();
+    }
+
+    // ── just above the wide breakpoint, where a zoomed-in browser lands: the
+    // text column clears the fixed sidebar. The margin-note rule's :has()
+    // once outweighed the reader's padding, and its 1.5rem on the left put
+    // the text under the contents – at 1440 the centred column hid it. ──
+    {
+      const { p, ctx } = await open({ width: 1240, height: 800 });
+      checkMargin(await geometry(p), ok, '1240px');
+      const clear = await p.evaluate(() => ({
+        side: document.getElementById('psiINT-reader-contents').getBoundingClientRect().right,
+        text: document.querySelector('main').getBoundingClientRect().left,
+      }));
+      ok(clear.text >= clear.side, '1240px: the text column starts right of the contents sidebar', JSON.stringify(clear));
       await ctx.close();
     }
 

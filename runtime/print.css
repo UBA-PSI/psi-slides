@@ -1001,8 +1001,10 @@ body[data-marginalia=margin] main .marginalia figure.figure-img :is(img, svg) { 
 @media screen and (min-width: __PSI_READER_NOTES_PX__px) {
   /* The column is reserved where there is a note to stand in it: a handout
      with none keeps its centred measure (the reader's own notes column,
-     under reader: on, reserves it anyway). */
-  body[data-marginalia=margin]:has(main :is(.marginalia, .fn-slot)) { padding: 0 18.5rem 0 1.5rem; }
+     under reader: on, reserves it anyway). Not once the reader is ready:
+     the :has() outweighs body[data-reader=on].rd-ready, and its 1.5rem
+     on the left put the text under the fixed contents sidebar. */
+  body[data-marginalia=margin]:not(.rd-ready):has(main :is(.marginalia, .fn-slot)) { padding: 0 18.5rem 0 1.5rem; }
   body[data-marginalia=margin] { --mn-w: 14rem; --mn-gap: 2.5rem; }
 }
 @media print {
