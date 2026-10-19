@@ -10,8 +10,10 @@
  * why it builds a fixture and opens the cockpit from the projection with S.
  *
  * The second half is the long note: cut at three lines with nothing to say
- * that more follows, and not scrollable without a click. It now scrolls with
- * the wheel, unfocused, and its last line fades while more is below.
+ * that more follows, and not scrollable without a click. Read-only, it is now
+ * set outside the field: paragraphs part by a third of a line rather than a
+ * blank one, it scrolls with the wheel, and a mark under its last line says
+ * where it ends.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -29,7 +31,7 @@ const LONG = 'If the room is quiet, ask the question again. ' +
   'Point at the figure, not at the screen. ' +
   'If time is short, skip the second example and go straight to the summary. ' +
   'Then the summary: three sentences, one per idea, and a pause after each. ' +
-  'Ask who has used the tool before, and let one of them say what went wrong the first time. ' +
+  'Ask who has used the tool before, and let one of them say what went wrong the first time.\n\n' +
   'The last line of this note is here to be scrolled to.';
 
 const SOURCE = `---
@@ -40,7 +42,7 @@ title: Notes and the remote
 
 A slide with a long note.
 
-> note: ${LONG}
+> note: ${LONG.replace(/\n\n/, '\n>\n> ')}
 
 ## free: Short note {#short}
 
@@ -86,14 +88,25 @@ export async function run({ page, report }) {
     };
     const field = () => spk.evaluate(() => {
       const t = document.getElementById('psiINT-notes-content');
-      const cs = getComputedStyle(t);
+      const r = document.getElementById('psiINT-notes-read');
+      const cs = getComputedStyle(r);
       const lh = parseFloat(cs.lineHeight);
-      const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      const ps = [...r.querySelectorAll('p')];
+      const box = r.getBoundingClientRect();
+      const mark = getComputedStyle(r, '::after');
       return {
         value: t.value, readOnly: t.readOnly, focused: document.activeElement === t,
-        scrollTop: t.scrollTop, scrollHeight: t.scrollHeight, clientHeight: t.clientHeight, lh,
-        lines: (t.clientHeight - pad) / lh,
-        mask: getComputedStyle(t).maskImage || getComputedStyle(t).webkitMaskImage || 'none',
+        fieldShown: getComputedStyle(t).display !== 'none', readShown: cs.display !== 'none',
+        paragraphs: ps.length,
+        gap: ps.length > 1 ? ps[1].getBoundingClientRect().top - ps[0].getBoundingClientRect().bottom : 0,
+        scrollTop: r.scrollTop, scrollHeight: r.scrollHeight, clientHeight: r.clientHeight, lh,
+        mark: mark.content,
+        // The mark sits under the last paragraph, in sight once the bottom
+        // of the scroll is.
+        markInSight: r.scrollTop + r.clientHeight >= r.scrollHeight - 1,
+        mask: cs.maskImage || cs.webkitMaskImage || 'none',
+        fits: r.scrollHeight <= r.clientHeight + 1,
+        height: box.height,
         overrides: Object.keys(localStorage).filter(k => /speakernote:/.test(k)),
       };
     });
@@ -107,29 +120,29 @@ export async function run({ page, report }) {
     ok(f.value === LONG && f.readOnly, 'the cockpit shows the note, read-only until an edit is asked for', JSON.stringify({ readOnly: f.readOnly }));
 
     // ── B2: a long note says so and scrolls without a click ──────────
-    ok(f.scrollHeight > f.clientHeight + f.lh, 'the long note runs past the foot of the field', JSON.stringify(f));
-    ok(Math.abs(f.lines - 3) < 0.05, 'the field stands three lines tall', String(f.lines));
-    ok(f.mask !== 'none' && /gradient/.test(f.mask), 'and its foot fades while more is below', f.mask);
-    const box = await spk.locator('#psiINT-notes-content').boundingBox();
+    ok(!f.fieldShown && f.readShown, 'read-only, the note is set outside the field', JSON.stringify({ field: f.fieldShown, read: f.readShown }));
+    ok(f.paragraphs === 2 && f.gap > 0 && f.gap < f.lh / 2, 'paragraphs part by less than half a line', JSON.stringify({ n: f.paragraphs, gap: f.gap, lh: f.lh }));
+    ok(f.scrollHeight > f.clientHeight + f.lh, 'the long note runs past the foot of the pane', JSON.stringify(f));
+    ok(f.mask === 'none', 'no line fades out', f.mask);
+    ok(/end/.test(f.mark) && !f.markInSight, 'the end mark is below, out of sight', JSON.stringify({ mark: f.mark, inSight: f.markInSight }));
+    const box = await spk.locator('#psiINT-notes-read').boundingBox();
     await spk.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await spk.mouse.wheel(0, 2000);
     // A wheel scroll can be animated; wait for it to land at the end.
     await spk.waitForFunction(() => {
-      const t = document.getElementById('psiINT-notes-content');
-      return t.scrollTop + t.clientHeight >= t.scrollHeight - 1;
+      const r = document.getElementById('psiINT-notes-read');
+      return r.scrollTop + r.clientHeight >= r.scrollHeight - 1;
     }, null, { timeout: 3000 }).catch(() => {});
     await spk.waitForTimeout(100);
     f = await field();
     ok(f.scrollTop > 0 && !f.focused, 'the wheel scrolls it, and the field is not focused for that', JSON.stringify({ scrollTop: f.scrollTop, focused: f.focused }));
-    ok(f.mask === 'none', 'scrolled to the end, the last line stands in full', f.mask);
+    ok(f.markInSight, 'scrolled to the end, the end mark is in sight');
 
     // ── B1: a stray click does not take the remote ───────────────────
     await spk.mouse.click(box.x + 60, box.y + box.height / 2);
     await spk.waitForTimeout(200);
     f = await field();
     ok(!f.focused && f.readOnly, 'one click into the field does not focus it', JSON.stringify({ focused: f.focused, readOnly: f.readOnly }));
-    // Focus it anyway, as Tab would: the read-only field still hands the keys on.
-    await spk.evaluate(() => document.getElementById('psiINT-notes-content').focus());
     await press('b');
     ok(await aud.evaluate(() => document.body.classList.contains('blanked')), 'B blanks the projection rather than typing into the note');
     await press('.');
@@ -144,10 +157,12 @@ export async function run({ page, report }) {
     ok(f.value === LONG && f.overrides.length === 0, 'the note is the source text and nothing was stored', JSON.stringify(f.overrides));
 
     // ── a deliberate edit still works ────────────────────────────────
-    await spk.locator('#psiINT-notes-content').dblclick({ position: { x: 60, y: 12 } });
+    await spk.locator('#psiINT-notes-read').dblclick({ position: { x: 60, y: 30 } });
     await spk.waitForTimeout(200);
     f = await field();
-    ok(f.focused && !f.readOnly, 'a double-click opens the note for editing', JSON.stringify({ focused: f.focused, readOnly: f.readOnly }));
+    ok(f.focused && !f.readOnly && f.fieldShown && !f.readShown, 'a double-click opens the note for editing', JSON.stringify({ focused: f.focused, readOnly: f.readOnly }));
+    const caret = await spk.evaluate(() => document.getElementById('psiINT-notes-content').selectionStart);
+    ok(caret > 0 && caret < 20, 'with the caret where it was clicked', String(caret));
     await spk.evaluate(() => { const t = document.getElementById('psiINT-notes-content'); t.setSelectionRange(t.value.length, t.value.length); });
     await spk.keyboard.type(' b.');
     f = await field();
@@ -160,8 +175,8 @@ export async function run({ page, report }) {
     ok(w.s === 'short' && w.a === 'short' && !f.focused && f.readOnly,
        'PageDown mid-edit leaves the field and turns the page', JSON.stringify({ w, focused: f.focused, readOnly: f.readOnly }));
     f = await field();
-    ok(f.value === 'One line.' && f.scrollHeight <= f.clientHeight + 1 && f.mask === 'none' && Math.abs(f.lines - 1) < 0.05,
-       'a one-line note stands one line tall and does not fade', JSON.stringify({ v: f.value, lines: f.lines, mask: f.mask }));
+    ok(f.value === 'One line.' && f.fits && f.markInSight && f.height < 3.2 * f.lh,
+       'a one-line note stands short, its end mark in sight', JSON.stringify({ v: f.value, height: f.height, lh: f.lh }));
 
     // Shift-N, then Esc: the edit ends and the press is spent on that alone.
     await press('Shift+N');

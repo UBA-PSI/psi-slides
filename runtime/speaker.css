@@ -202,32 +202,55 @@ body[data-view=speaker].notes-sized #psiINT-notes-content {
   outline: 2px solid oklch(0.55 0.12 220);
   outline-offset: -2px;
 }
-/* More below: the last visible line fades out while the note goes on
-   past the foot of the field, and comes back in full once it is scrolled
-   to the end. A scroll timeline needs no script and no layout: the
-   animation holds the fade over the whole scroll range bar its last 2px
-   and fills backwards only, so a field with nothing to scroll (an
-   inactive timeline) and one scrolled to the end both stand unmasked.
-   Where a browser has no scroll timeline, the script sets .notes-more. */
-#psiINT-notes-content.notes-more {
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 0.6rem - 1.35em), rgb(0 0 0 / 0.18) 100%);
+/* Read-only, the note is not shown in the field but set beside it: a
+   textarea can only part paragraphs by the full line of a blank one, and
+   that is scrolling the reader does for nothing. Paragraphs part by a
+   third of a line here, and the note closes with a mark under its last
+   line, so whether more is below is answered by the mark being in sight –
+   no line fades out, no probing scroll. The field comes back for an edit. */
+#psiINT-notes-content[readonly] { display: none; }
+#psiINT-notes-read {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 88px 0.6rem 1rem;
+  color: var(--ink);
+  font-family: var(--sans-font);
+  font-size: var(--notes-font, 1.15rem);
+  line-height: 1.35;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* About three lines and the mark, as the field's one-to-three; a
+     dragged pane takes its own height. */
+  max-height: 4lh;
+  cursor: default;
 }
-@keyframes psi-notes-more {
-  from, to { mask-image: linear-gradient(to bottom, #000 calc(100% - 0.6rem - 1.35em), rgb(0 0 0 / 0.18) 100%); }
+#psiINT-notes-content:not([readonly]) ~ #psiINT-notes-read { display: none; }
+body[data-view=speaker].notes-sized #psiINT-notes-read {
+  height: 100%;
+  max-height: none;
+  box-sizing: border-box;
 }
-@supports (animation-timeline: scroll()) {
-  #psiINT-notes-content {
-    animation: psi-notes-more linear backwards;
-    animation-timeline: scroll(self block);
-    animation-range: 0 calc(100% - 2px);
-  }
+#psiINT-notes-read p {
+  margin: 0 0 0.45em;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+#psiINT-notes-read:empty { display: none; }
+#psiINT-notes-read:not(:empty)::after {
+  content: '\220E  end';
+  display: block;
+  font-size: 0.7em;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  color: var(--ink-soft);
 }
 /* The line that says source.md moved under a local edit of this slide
    (refreshLocalEditHint): one quiet row per kind over the note, in the
    pane's own small type, with its two answers as text buttons. The pane
    stacks while it stands, and a dragged pane gives the note what is left. */
 #psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) { flex-direction: column; }
-body[data-view=speaker].notes-sized #psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) #psiINT-notes-content {
+body[data-view=speaker].notes-sized #psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) #psiINT-notes-content,
+body[data-view=speaker].notes-sized #psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) #psiINT-notes-read {
   height: auto !important;
   flex: 1 1 0;
   min-height: 0;

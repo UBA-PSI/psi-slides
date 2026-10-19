@@ -1,5 +1,6 @@
 
 const notesContent = document.getElementById('psiINT-notes-content');
+const notesRead = document.getElementById('psiINT-notes-read');
 const notesPane = document.getElementById('psiINT-notes-pane');
 const previewStrip = document.getElementById('psiINT-preview-strip');
 const scrubberEl = document.getElementById('psiINT-scrubber');
@@ -517,7 +518,6 @@ COMMAND_RUN['forget-local-edits'] = (e) => { forgetLocalEdits(); if (e) e.preven
 const NOTES_MIN_LINES = 1;
 const NOTES_MAX_LINES = 3;
 const NOTES_CSS_SIZED = !!(window.CSS && CSS.supports && CSS.supports('field-sizing', 'content'));
-const NOTES_CSS_MORE = !!(window.CSS && CSS.supports && CSS.supports('animation-timeline', 'scroll()'));
 let notesFrame = 0;
 let notesTopFrame = 0;
 function autoSizeNotes() {
@@ -531,7 +531,7 @@ function autoSizeNotes() {
   // The line that says the file moved has to be seen, over an emptied note too.
   const stale = !!localEditHint && !localEditHint.hidden;
   document.body.classList.toggle('has-notes', sized || hasText || editing || stale);
-  if (NOTES_CSS_SIZED && NOTES_CSS_MORE) return;
+  if (NOTES_CSS_SIZED) return;
   if (!notesFrame) notesFrame = requestAnimationFrame(measureNotes);
 }
 function measureNotes() {
@@ -545,23 +545,40 @@ function measureNotes() {
       notesContent.style.height = Math.max(lineHeight * NOTES_MIN_LINES, wanted) + 'px';
     }
   }
-  if (!NOTES_CSS_MORE) markNotesMore();
 }
-function markNotesMore() {
-  const t = notesContent;
-  t.classList.toggle('notes-more', t.scrollTop + t.clientHeight < t.scrollHeight - 1);
+// The note as it is read: one paragraph per run of text between blank
+// lines, each remembering where it starts in the field, so a double-click
+// can put the caret where it landed. Runs of blank lines part once.
+function renderNotesRead() {
+  const v = notesContent.value;
+  const frag = document.createDocumentFragment();
+  const gap = /\n(?:[ \t]*\n)+/g;
+  let at = 0;
+  const add = (end) => {
+    const lead = /^\s*/.exec(v.slice(at, end))[0].length;
+    const text = v.slice(at + lead, end).trimEnd();
+    if (!text) return;
+    const p = document.createElement('p');
+    p.textContent = text;
+    p.dataset.at = at + lead;
+    frag.append(p);
+  };
+  for (let m; (m = gap.exec(v)); at = m.index + m[0].length) add(m.index);
+  add(v.length);
+  notesRead.replaceChildren(frag);
 }
-if (!NOTES_CSS_MORE) notesContent.addEventListener('scroll', markNotesMore, { passive: true });
 
 function populateNotesPane() {
   const entry = flatChunks[state.activeIdx];
   notesContent.value = entry ? loadNotesFor(entry.id) : '';
+  renderNotesRead();
   refreshLocalEditHint();
   // Back to the head of the new note a frame later: writing scrollTop inside
   // the press would be a forced layout of its own.
   if (!notesTopFrame) notesTopFrame = requestAnimationFrame(() => {
     notesTopFrame = 0;
     notesContent.scrollTop = 0;
+    notesRead.scrollTop = 0;
   });
 }
 notesContent.addEventListener('input', () => {
@@ -586,16 +603,24 @@ notesContent.addEventListener('input', () => {
 // The field is read-only until an edit is asked for. One click into it used
 // to take the presenter remote: the key map stands back for a text field, so
 // PageDown and PageUp did nothing, and B and . were typed into the note and
-// kept in localStorage as an override of the source. Now a single click does
-// not focus it at all (the wheel scrolls it without), and the key map's
-// text-field guard lets a read-only notes field through. An edit is Shift-N,
-// the + note button, or a double-click, which goes on to place the caret and
-// pick the word the way a double-click in any text does.
+// kept in localStorage as an override of the source. Now the read-only
+// note is not the field at all but its own element (renderNotesRead), which
+// no click focuses and the wheel scrolls; the key map's text-field guard
+// still lets a read-only field through. An edit is Shift-N, the + note
+// button, or a double-click, which swaps the field in with the caret where
+// the pointer was.
 function beginNotesEdit() { notesContent.readOnly = false; }
-notesContent.addEventListener('mousedown', (e) => {
-  if (!notesContent.readOnly) return;
-  if (e.detail >= 2) { beginNotesEdit(); return; }
-  e.preventDefault();
+notesRead.addEventListener('dblclick', (e) => {
+  let caret = notesContent.value.length;
+  const pos = document.caretPositionFromPoint ? document.caretPositionFromPoint(e.clientX, e.clientY) : null;
+  const range = !pos && document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+  const node = pos ? pos.offsetNode : range && range.startContainer;
+  const p = node && (node.nodeType === 1 ? node : node.parentElement).closest('#psiINT-notes-read p');
+  if (p) caret = +p.dataset.at + (node.nodeType === 3 ? (pos ? pos.offset : range.startOffset) : 0);
+  beginNotesEdit();
+  notesContent.focus();
+  notesContent.setSelectionRange(caret, caret);
+  autoSizeNotes();
 });
 notesContent.addEventListener('keydown', (e) => {
   if (notesContent.readOnly) return;
@@ -612,6 +637,7 @@ notesContent.addEventListener('keydown', (e) => {
 });
 notesContent.addEventListener('blur', () => {
   notesContent.readOnly = true;
+  renderNotesRead();
   autoSizeNotes();
 });
 
