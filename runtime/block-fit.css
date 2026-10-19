@@ -1,0 +1,29 @@
+/* runtime/block-fit.css – the two rules runtime/block-fit.js writes its
+   answers through, shipped only into the live views of a deck that uses
+   style.code-fit, style.spacing or one of their chunk classes.
+
+   Both read a custom property the runtime sets inline on the chunk, and both
+   fall back to what the base sheet already does when it is not set, so a
+   chunk the runtime left alone renders exactly as before.
+
+   #psiINT-stage keeps both off the focus overlay, whose clone of a listing is
+   a modal card with a size of its own.
+
+   The listing: its own size in the base sheet times --code-scale. Two rules,
+   because a figure chunk sets its listings at 0.82em rather than 0.78em, and a
+   multiplier has to multiply the size the chunk would have had. The em is
+   .chunk-body's, which already carries the zoom, so the zoom is not here. */
+#psiINT-stage .chunk .chunk-body .reveal-segment > pre,
+#psiINT-stage .chunk .chunk-body .reveal-segment > div > pre {
+  font-size: calc(0.78em * var(--code-scale, 1));
+}
+#psiINT-stage .chunk[data-tag=figure] .chunk-body .reveal-segment > pre,
+#psiINT-stage .chunk[data-tag=figure] .chunk-body .reveal-segment > div > pre {
+  font-size: calc(0.82em * var(--code-scale, 1));
+}
+/* The spacing: a third of the frame's free height under the heading, on top
+   of the flex gap .chunk-content already puts there. The camera centres the
+   content box, which puts the other two thirds above and below it. */
+#psiINT-stage .chunk > .chunk-content > .chunk-heading {
+  margin-block-end: var(--spread-gap, 0px);
+}

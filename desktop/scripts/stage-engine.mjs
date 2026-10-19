@@ -4,7 +4,7 @@
 // createRequire for the bundled fonts and the KaTeX stylesheet, a dynamic
 // import() for ws, and a WASM load for Shiki's regex engine.
 //
-// What is copied is what the engine reads about itself: build.js, the twenty-two
+// What is copied is what the engine reads about itself: build.js, the twenty-four
 // files it splices in at run time over import.meta.url (diagram-core.mjs,
 // cue-cards.mjs, commands.mjs, pulse-embed.js, editor.mjs, editor.css,
 // runtime/speaker.css, runtime/print.js, runtime/pulse-print.css,
@@ -12,7 +12,7 @@
 // runtime/watch-banner.css, runtime/watch-banner.js, runtime/print-view.js,
 // runtime/print-reader.js, runtime/print-highlights.js, runtime/diagram.css,
 // runtime/diagram.js, runtime/print.css, runtime/audience.css,
-// runtime/audience.js
+// runtime/audience.js, runtime/block-fit.css, runtime/block-fit.js
 // – and every runtime/ file after them), the
 // four it only imports statically (tails.mjs, pdf-core.mjs for the PDF
 // option checks, local-files.mjs, the rule for which local files a
@@ -68,6 +68,8 @@ const FILES = [
   // here: the stage test reads this list as quoted names.)
   'runtime/souffleuse.css',
   'runtime/souffleuse.js',
+  'runtime/block-fit.css',
+  'runtime/block-fit.js',
   'runtime/watch-banner.css',
   'runtime/watch-banner.js',
   'runtime/print-view.js',

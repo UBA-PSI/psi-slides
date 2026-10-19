@@ -64,6 +64,25 @@ export const CHUNK_STYLE_CLASSES = {
 export const FIGURE_TYPE_STEPS = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200];
 for (const n of FIGURE_TYPE_STEPS) CHUNK_STYLE_CLASSES['figure-type-' + n] = ['figure-type', String(n)];
 
+// The fourth and fifth, and the two that answer one complaint between them:
+// a slide that is a heading and a short listing, with the listing at the body
+// mono size and half the frame empty under it. `style: {code-fit: N}` lets a
+// top-level listing grow, in steps, until the slide would no longer fit or N
+// times its own size is reached; `style: {spacing: even}` spreads the frame's
+// free height evenly above the heading, between it and the body, and under
+// the body. Two keys because they are two questions - a slide of prose and
+// a listing may well want the listing larger and the heading kept close, and
+// a slide with a short sentence and no code may want the room spread.
+//
+// The code-fit classes are the key's own range in tenths, spelled as per
+// cent for the reason the figure-type ones are; `.code-fit-100` is how one
+// chunk declines a deck-wide value. Neither key reaches print: both are
+// questions about a frame, which a page does not have.
+export const CODE_FIT_STEPS = [100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200];
+for (const n of CODE_FIT_STEPS) CHUNK_STYLE_CLASSES['code-fit-' + n] = ['code-fit', String(n)];
+CHUNK_STYLE_CLASSES['spacing-compact'] = ['spacing', 'compact'];
+CHUNK_STYLE_CLASSES['spacing-even'] = ['spacing', 'even'];
+
 export const CHUNK_SLOTS = {
   // The default is the caller's, not the table's: a chunk's width is
   // `standard` for every type but `outline`, which is `wide`, and the
@@ -80,6 +99,8 @@ export const CHUNK_SLOTS = {
   wrap:   { default: null, words: ['wrap-balance', 'wrap-none'] },
   blocks: { default: null, words: ['blocks-left', 'blocks-center'] },
   'figure-type': { default: null, words: FIGURE_TYPE_STEPS.map(n => 'figure-type-' + n) },
+  'code-fit': { default: null, words: CODE_FIT_STEPS.map(n => 'code-fit-' + n) },
+  spacing: { default: null, words: ['spacing-compact', 'spacing-even'] },
   // `.bare` takes the heading off the slide and leaves it in the TOC, in
   // search and in the printed document; `.center` sets the prose on a centre
   // axis. Flags: a default with no spelling.

@@ -52,6 +52,7 @@ const SPECS = [
   './text-select.mjs',
   './math-focus.mjs',
   './block-align.mjs',
+  './code-fit.mjs',
   './side-anchor.mjs',
   './cards.mjs',
   './beats-nested.mjs',

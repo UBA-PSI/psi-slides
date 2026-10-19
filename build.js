@@ -4442,7 +4442,7 @@ function parseAttributeTail(line, { column = false } = {}) {
   // not a synonym for the second. An unwritten slot leaves `middle`
   // undefined, and flushChunk reads the chunk's shape to answer it.
   if (t.slots.anchor.written) out.middle = t.slots.anchor.value === 'middle';
-  for (const key of ['wrap', 'blocks', 'figure-type']) {
+  for (const key of ['wrap', 'blocks', 'figure-type', 'code-fit', 'spacing']) {
     if (!t.slots[key].written) continue;
     (out.styleOverrides ??= {})[key] = CHUNK_STYLE_CLASSES[t.slots[key].value][1];
   }
@@ -5387,7 +5387,15 @@ function parseLecture(src) {
     // wrote neither `.middle` nor `.top`. Here and not in the renderer,
     // because both live views and --check-fit read the same attribute and a
     // second copy of the rule is how two of them come to disagree.
-    if (currentChunk.middle === null) currentChunk.middle = chunkOpensCentred(currentChunk);
+    if (currentChunk.middle === null) {
+      // Under `style: {spacing: even}` the chunk is laid out against the
+      // frame, and a box as tall as its share of the frame leaves the camera
+      // nothing to centre: framing what beat 0 paints would pull the heading
+      // off the place the spacing gave it. See the note at the key.
+      const sp = (currentChunk.styleOverrides && currentChunk.styleOverrides.spacing)
+        || (frontmatter.style && typeof frontmatter.style === 'object' && String(frontmatter.style.spacing ?? '').trim());
+      currentChunk.middle = sp === 'even' ? false : chunkOpensCentred(currentChunk);
+    }
     currentColumn.chunks.push(currentChunk);
     currentChunk = null;
     bodyLines = [];
@@ -7979,6 +7987,38 @@ const STYLE_SPEC = {
   // other such change in the format. `code: plain` is the way back, and the
   // 1.0.0 recipe in the appearance skill carries it.
   code: { kind: 'enum', values: ['plain', 'tint', 'spaced'], dflt: 'spaced' },
+  // How far a top-level listing may grow on a slide with room to spare, as a
+  // multiple of its own size (0.78 of the body type). A listing of eight lines
+  // under a heading stands at the body mono size with half the frame empty
+  // under it, and auto-fit cannot help: its shrink mode only takes size away,
+  // and its full mode grows the heading and the prose with the code.
+  //
+  // This grows the listing alone, after the zoom is settled, in steps of 0.2
+  // (1.2, 1.4, ... and the ceiling itself) and only while the slide still
+  // passes the test the zoom fit holds it to - its height inside the frame,
+  // no line wider than its box. Steps rather than a solved size, so two
+  // neighbouring slides with listings of a similar length land on the same
+  // size instead of 1.47 and 1.52. A long listing does not grow, because the
+  // first step already fails. 1 is the default and means no growth; 2 is the
+  // top, where a 78-character line budget has become 39.
+  //
+  // The work is runtime/block-fit.js, which the live views carry only when a
+  // deck uses this key, `spacing` or one of their chunk classes, so a deck
+  // that does not builds the bytes it did. Print does not read it.
+  'code-fit': { kind: 'num', min: 1, max: 2, dflt: 1 },
+  // Where a slide's free height goes. `compact` is what the projection has
+  // always done: the heading and the body one block gap apart, and the pair
+  // centred in the frame, so a short slide is a tight cluster with the empty
+  // frame above and below it. `even` gives the free height out in three equal
+  // parts - above the heading, between the heading and the body, under the
+  // body - measured on the box the chunk's reveals will fill, so no beat moves
+  // anything. Not a camera question, though it looks like one: the camera
+  // only places a box in the frame, and the distance between two things
+  // inside the box is the layout's. It does settle the anchor, though: a
+  // chunk laid out against the frame has nothing left for `.middle` to
+  // centre, so under `even` a chunk the parser would have opened centred
+  // opens on its box (an explicit `.middle` still wins).
+  spacing: { kind: 'enum', values: ['compact', 'even'], dflt: 'compact' },
 };
 function styleSettings(frontmatter = {}) {
   const raw = frontmatter.style;
@@ -8176,6 +8216,10 @@ function styleBodyAttrs(st, frontmatter = {}) {
   // back to the rendering before the key existed (emitted by codeTag, which
   // is where it can outrank the sizes) and `tint` an addition on top.
   if (st.code !== 'spaced') parts.push(`data-code="${st.code}"`);
+  // In per cent, the spelling the chunk class uses, so the runtime reads one
+  // form from the chunk and from the body alike.
+  if (st['code-fit'] !== 1) parts.push(`data-code-fit="${Math.round(st['code-fit'] * 100)}"`);
+  if (st.spacing !== 'compact') parts.push(`data-spacing="${st.spacing}"`);
   return parts.join(' ');
 }
 // The same two settings answered on one chunk, from its attribute tail. The
@@ -8201,6 +8245,11 @@ function chunkStyleAttrs(chunk) {
   // without a style attribute on the article - which the cover already uses
   // for its ratio, and two style attributes on one element is one too many.
   if (ov['figure-type']) out += ` data-figure-type="${ov['figure-type']}"`;
+  // The two block-fit answers, in the same shapes: code-fit as the per cent
+  // its class spelled, spacing as its word. Read by runtime/block-fit.js,
+  // which the live views carry only when a deck uses either (usesBlockFit).
+  if (ov['code-fit']) out += ` data-code-fit="${ov['code-fit']}"`;
+  if (ov.spacing) out += ` data-spacing="${ov.spacing}"`;
   return out;
 }
 
@@ -10531,6 +10580,7 @@ function renderAudience(lecture, opts = {}) {
   const titleJson = jsonForScript(title);
   const defaults = viewDefaults(frontmatter);
   const styleOpts = styleSettings(frontmatter);
+  const blockFit = blockFitShipped(lecture, styleOpts);
 
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(lectureLang(frontmatter))}">
@@ -10540,7 +10590,7 @@ function renderAudience(lecture, opts = {}) {
 <title>${escapeHtml(title)} – ${escapeHtml(S['title-lecture'])}</title>
 <style>
 ${shipCss(audienceCss())}
-${shipCss(diagramCss())}
+${shipCss(diagramCss())}${blockFit.css}
 </style>
 ${fontStyleTag(opts.fontEmbed, 'live')}
 ${styleBlockCss(styleOpts, S)}
@@ -10587,7 +10637,7 @@ const LECTURE_TITLE = ${titleJson};
 const VIEW_DEFAULTS = ${jsonForScript(defaults)};
 const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
 ${shipJs(diagramJs())}
-${shipJs(audienceJs())}
+${shipJs(audienceJs())}${blockFit.js}
 </script>
 ${editorPayload(frontmatter, columnsHtml, 'audience', opts.readerKey || opts.lectureKey)}
 </body>
@@ -10789,6 +10839,7 @@ function renderSpeaker(lecture, opts = {}) {
   // every byte of this file is the byte it was.
   const souffleuseCss = souffSettings ? souffleuseSheet() : '';
   const souffleuseRuntime = souffSettings ? souffleuseScript() : '';
+  const blockFit = blockFitShipped(lecture, styleOpts);
 
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(lectureLang(frontmatter))}">
@@ -10799,7 +10850,7 @@ function renderSpeaker(lecture, opts = {}) {
 <style>
 ${shipCss(audienceCss())}
 ${shipCss(diagramCss())}
-${shipCss(speakerCss())}${shipCss(souffleuseCss)}
+${shipCss(speakerCss())}${shipCss(souffleuseCss)}${blockFit.css}
 </style>
 ${styleBlockCss(styleOpts, S)}
 ${fontStyleTag(opts.fontEmbed, 'live')}
@@ -10888,7 +10939,7 @@ const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
 const SOUFFLEUSE = ${souffleuseJs};
 ${shipJs(diagramJs())}
 ${shipJs(audienceJs())}
-${shipJs(speakerJs())}${shipJs(souffleuseRuntime)}
+${shipJs(speakerJs())}${shipJs(souffleuseRuntime)}${blockFit.js}
 </script>
 ${editorPayload(frontmatter, columnsHtml, 'speaker', opts.readerKey || opts.lectureKey)}
 </body>
@@ -10977,6 +11028,33 @@ const souffleuseSheet = () => (souffleuseSheetCache ??= fs.readFileSync(SOUFFLEU
 const SOUFFLEUSE_JS_PATH = new URL('./runtime/souffleuse.js', import.meta.url);
 let souffleuseScriptCache = null;
 const souffleuseScript = () => (souffleuseScriptCache ??= fs.readFileSync(SOUFFLEUSE_JS_PATH, 'utf8'));
+
+// runtime/block-fit.css and runtime/block-fit.js: style.code-fit and
+// style.spacing on the live views. Spliced into both, after the views' own
+// sheet and script and into the same elements, only when usesBlockFit says
+// the deck asks for either - the souffleuse treatment, and for the same
+// reason: a deck that says nothing about them builds the bytes it did. The
+// sheet is read on every build by the stylesheet check all the same.
+const BLOCK_FIT_CSS_PATH = new URL('./runtime/block-fit.css', import.meta.url);
+let blockFitCssCache = null;
+const blockFitCss = () => (blockFitCssCache ??= fs.readFileSync(BLOCK_FIT_CSS_PATH, 'utf8'));
+const BLOCK_FIT_JS_PATH = new URL('./runtime/block-fit.js', import.meta.url);
+let blockFitJsCache = null;
+const blockFitJs = () => (blockFitJsCache ??= fs.readFileSync(BLOCK_FIT_JS_PATH, 'utf8'));
+// Does this deck use either key, deck-wide or on one chunk? The answer the
+// two live renderers splice by, so a `.code-fit-140` on one slide of an
+// otherwise plain deck still gets the runtime that reads it.
+function usesBlockFit(lecture, st) {
+  if (st['code-fit'] !== 1 || st.spacing !== 'compact') return true;
+  return lecture.columns.some(col => col.chunks.some(c => c.styleOverrides
+    && (c.styleOverrides['code-fit'] || c.styleOverrides.spacing)));
+}
+// The two pieces as the renderers splice them: empty strings for a deck that
+// does not use the keys, so not one byte of its views moves.
+function blockFitShipped(lecture, st) {
+  if (!usesBlockFit(lecture, st)) return { css: '', js: '' };
+  return { css: '\n' + shipCss(blockFitCss()), js: '\n' + shipJs(blockFitJs()) };
+}
 
 // ── annotation integration ───────────────────────────────────────────
 
@@ -12955,6 +13033,7 @@ const ENGINE_FILES = [
   DIAGRAM_CSS_PATH, DIAGRAM_JS_PATH, WATCH_BANNER_CSS_PATH, WATCH_BANNER_JS_PATH,
   PRINT_CSS_PATH, PULSE_PRINT_CSS_PATH, PRINT_JS_PATH, PRINT_READER_JS_PATH, PRINT_VIEW_JS_PATH, PRINT_HIGHLIGHTS_JS_PATH,
   AUDIENCE_CSS_PATH, AUDIENCE_JS_PATH, SPEAKER_CSS_PATH, SPEAKER_JS_PATH, SOUFFLEUSE_CSS_PATH, SOUFFLEUSE_JS_PATH,
+  BLOCK_FIT_CSS_PATH, BLOCK_FIT_JS_PATH,
 ];
 // userFacing, although a missing engine file is no mistake of the author's:
 // the flag is for errors whose message is the whole of what the person
@@ -12994,7 +13073,7 @@ function assertStylesheetsWellFormed() {
   // four views and was the one inlined stylesheet this guard did not cover –
   // the exact gap the guard exists to close. It is checked filled, as it
   // ships.
-  const sheets = { 'runtime/audience.css': audienceCss(), 'runtime/speaker.css': speakerCss(), 'runtime/souffleuse.css': souffleuseSheet(), 'runtime/print.css': printCss(), 'runtime/pulse-print.css': pulsePrintCss(), 'runtime/diagram.css': diagramCss(), 'editor.css': editorCss() };
+  const sheets = { 'runtime/audience.css': audienceCss(), 'runtime/speaker.css': speakerCss(), 'runtime/souffleuse.css': souffleuseSheet(), 'runtime/block-fit.css': blockFitCss(), 'runtime/print.css': printCss(), 'runtime/pulse-print.css': pulsePrintCss(), 'runtime/diagram.css': diagramCss(), 'editor.css': editorCss() };
   for (const [name, css] of Object.entries(sheets)) {
     if (typeof css !== 'string') continue;
     const opens = (css.match(/\/\*/g) || []).length;

@@ -287,12 +287,19 @@ const STYLE_NUM_SPEC = {
   // Multiplies the display face's measured size-adjust. See the note at its
   // STYLE_SPEC entry for why the roster normalises width and this key exists.
   'display-scale': [0.6, 1.8],
+  // How far a top-level listing may grow on a slide with room to spare, as a
+  // multiple of its own size. 1 is no growth and the default. See the note at
+  // its STYLE_SPEC entry.
+  'code-fit': [1, 2],
 };
 // Mirrors STYLE_KEYS_REMOVED in build.js.
 const STYLE_KEYS_REMOVED = {
   reveal: 'every reveal reserves its space now, which is what `hold` bought, so delete the key',
 };
 const STYLE_ENUMS = {
+  // Where a slide's free height goes: `compact` (the heading and the body
+  // together, centred) or `even` (a third above, between and below).
+  'spacing': ['compact', 'even'],
   // `off` takes the heading off the *slide* and leaves it in the TOC, in
   // search and in the printed document. Same key as the alignment, because
   // the two are one question - what the projection does with a heading.

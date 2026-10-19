@@ -2938,6 +2938,67 @@ console.log('\nlayout generations');
        'while a deck that names none of it emits no attribute to match them',
        bodyTag(plain.html));
   }
+  // ── code-fit and spacing: a short listing on a slide with room ─────────
+  // The build half of the pair. What a listing grows to and where the free
+  // height goes are measured in the browser (test/code-fit.mjs); here, which
+  // attribute goes where, that the build and the linter refuse the same
+  // values, that a deck which uses neither carries none of the runtime, and
+  // that `even` settles the anchor the parser would otherwise choose.
+  {
+    const speakerOf = (r) => { try { return fs.readFileSync(path.join(r.dir, 'speaker.html'), 'utf8'); } catch { return ''; } };
+    const RUNTIME = /function blockFitSolve\b/;
+    const SHEET = /--code-scale/;
+    for (const [cls, attr] of [
+      ['.code-fit-140', 'data-code-fit="140"'],
+      ['.code-fit-100', 'data-code-fit="100"'],
+      ['.spacing-even', 'data-spacing="even"'],
+      ['.spacing-compact', 'data-spacing="compact"'],
+    ]) {
+      const r = chunkCls(cls, '```c\nint x;\n```');
+      ok(r.code === 0 && /<article[^>]*data-chunk-id="a"/.test(r.html)
+         && new RegExp('<article[^>]*' + attr).test(r.html),
+         `${cls} reaches the chunk as ${attr}`, r.out.split('\n')[0]);
+      ok(RUNTIME.test(r.html) && SHEET.test(r.html) && RUNTIME.test(speakerOf(r)),
+         `and a deck that writes ${cls} on one chunk carries the runtime in both live views`);
+    }
+    const deck = raw('---\ntitle: T\nstyle:\n  code-fit: 1.6\n  spacing: even\n---\n\n## title: {#title}\n\n'
+      + '## free: A {#a}\n\n```c\nint x;\n```\n');
+    ok(deck.code === 0 && /<body [^>]*data-code-fit="160"/.test(deck.html)
+       && /<body [^>]*data-spacing="even"/.test(deck.html),
+       'style.code-fit: 1.6 and spacing: even reach the body, the number in per cent', bodyTag(deck.html || ''));
+    ok(RUNTIME.test(deck.html) && RUNTIME.test(speakerOf(deck)), 'and the deck-wide keys bring the runtime too');
+    const plain = chunkCls('', '```c\nint x;\n```');
+    ok(!RUNTIME.test(plain.html) && !SHEET.test(plain.html) && !RUNTIME.test(speakerOf(plain))
+       && !/data-code-fit=|data-spacing=/.test(plain.html),
+       'a deck that uses neither carries none of it: not the runtime, not the sheet, not an attribute');
+    const dflt = raw('---\ntitle: T\nstyle:\n  code-fit: 1\n  spacing: compact\n---\n\n## title: {#title}\n\n'
+      + '## free: A {#a}\n\nP.\n');
+    ok(dflt.code === 0 && !RUNTIME.test(dflt.html) && !/data-code-fit=|data-spacing=/.test(bodyTag(dflt.html)),
+       'and writing the two defaults is the same deck', bodyTag(dflt.html || ''));
+    for (const [fm, word] of [['code-fit: 2.5', 'code-fit'], ['code-fit: 0.8', 'code-fit'], ['spacing: loose', 'spacing']]) {
+      const src = `---\ntitle: T\nstyle:\n  ${fm}\n---\n\n## title: {#title}\n\n## free: A {#a}\n\nP.\n`;
+      const bad = raw(src, ['--print-only']);
+      ok(bad.code !== 0 && new RegExp(word).test(bad.out),
+         `style.${fm} fails the build, --print-only included`, bad.out.split('\n')[0]);
+      ok(/unknown-style-setting/.test(lintOf(src)), `and lint.js refuses style.${fm} as unknown-style-setting`);
+    }
+    const off = chunkCls('.code-fit-210');
+    ok(off.code !== 0 && /\.code-fit-210/.test(off.out),
+       'a code-fit class off the ladder is refused', off.out.split('\n')[0]);
+    ok(/unknown-class/.test(lintOf(FM + '## free: A {#a .code-fit-210}\n\nP.\n')),
+       'and the linter refuses the same spelling');
+    // The anchor. A statement opens centred on what its first beat paints;
+    // under `even` the chunk is laid out against the frame and opens on its
+    // box, while an explicit .middle still wins.
+    const stmt = (fm, cls) => raw(`---\ntitle: T\n${fm}---\n\n## title: {#title}\n\n`
+      + `## statement: One line {#s${cls}}\n\nTwo.\n\n---\n\nThree.\n`, ['--audience-only']);
+    const art = (r) => ((r.html || '').match(/<article[^>]*data-chunk-id="s"[^>]*>/) || [''])[0];
+    ok(/data-middle/.test(art(stmt('', ''))), 'a statement opens centred by default');
+    ok(!/data-middle/.test(art(stmt('style:\n  spacing: even\n', ''))),
+       'under spacing: even it opens on its box', art(stmt('style:\n  spacing: even\n', '')));
+    ok(!/data-middle/.test(art(stmt('', ' .spacing-even'))), 'and so under .spacing-even');
+    ok(/data-middle/.test(art(stmt('style:\n  spacing: even\n', ' .middle'))), 'while an explicit .middle wins');
+  }
   // ── what a lecture may say about how it opens ────────────────────────────
   // Four settings in one family, and each is asserted where it can go wrong
   // rather than where it is easy to look at.
