@@ -9992,15 +9992,33 @@ function applyFrozenState(payload) {
     setSlideRef(payload.audienceW, payload.audienceH);
   }
 }
-function applyRemoteState(payload) {
+function applyRemoteState(payload, handover) {
   settleFade();
   const changed = remoteActiveIdx(payload) !== state.activeIdx;
   if (changed) landSlide(() => applyRemoteStateNow(payload, true));
   else {
     const cur = flatChunks[state.activeIdx];
-    if (cur && autoplayTimer) { autoplayStoppedOn = cur.id; stopAutoplay(); }
+    if (cur && autoplayTimer && !handover && remoteTakesOver(payload, cur)) {
+      autoplayStoppedOn = cur.id;
+      stopAutoplay();
+    }
     applyRemoteStateNow(payload, false);
   }
+  if (typeof payload.zoom === 'number') lastPeerZoom = payload.zoom;
+}
+let lastPeerZoom = null;
+const TAKE_OVER_FIELDS = ['collapse', 'autoFitMode', 'blanked', 'font', 'theme', 'slideNums',
+  'pitchblack', 'overview', 'openExp', 'annotEditingId', 'panDx', 'panDy'];
+function remoteTakesOver(payload, cur) {
+  const opening = countSegments(cur.el) ? 1 : 0;
+  const beat = (m) => (m && m[cur.id] != null ? m[cur.id] : opening);
+  if (payload.revealed && beat(payload.revealed) !== beat(revealed)) return true;
+  const here = snapshot();
+  for (const k of TAKE_OVER_FIELDS) {
+    if (payload[k] === undefined) continue;
+    if (JSON.stringify(payload[k]) !== JSON.stringify(here[k])) return true;
+  }
+  return typeof payload.zoom === 'number' && lastPeerZoom !== null && payload.zoom !== lastPeerZoom;
 }
 function applyRemoteStateNow(payload, changed) {
   const was = flatChunks[state.activeIdx];
@@ -10104,7 +10122,7 @@ window.addEventListener('message', (ev) => {
   }
   if (m.type === 'state') {
     if (viewHooks.lookingAhead()) { applyFrozenState(m.payload); return; }
-    applyRemoteState(m.payload);
+    applyRemoteState(m.payload, !!m.handover);
     return;
   }
   if (m.type === 'press') { viewHooks.onPress(true); return; }
@@ -10779,7 +10797,8 @@ function fadeSwap(land) {
 }
 function landSlide(land) {
   stopAutoplay();
-  const arrive = () => { land(); restartAutoplay(); };
+  const from = state.activeIdx;
+  const arrive = () => { land(); restartAutoplay(state.activeIdx !== from); };
   if (SLIDE_TRANSITION === 'fade') fadeSwap(arrive);
   else arrive();
 }
@@ -11153,9 +11172,10 @@ let autoplayStoppedOn = null;
 function stopAutoplay() {
   if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; }
 }
-function restartAutoplay() {
+function restartAutoplay(arriving) {
   stopAutoplay();
   if (VIEW !== 'audience') return;
+  if (arriving) autoplayStoppedOn = null;
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
   const fig = entry.el.querySelector('[data-autoplay]');
@@ -11164,8 +11184,15 @@ function restartAutoplay() {
   if (!ms) return;
   const segCount = countSegments(entry.el);
   if (autoplayStoppedOn === entry.id) return;
-  if ((revealed[entry.id] ?? 0) > 1) return;
   const cycle = fig.hasAttribute('data-autoplay-cycle');
+  if ((revealed[entry.id] ?? 0) > 1) {
+    if (!(cycle && arriving)) return;
+    revealed[entry.id] = 1;
+    applyReveal(entry.el, entry.id, true);
+    resettleAfterReveal();
+    updateNavHints();
+    broadcastState();
+  }
   const tick = () => {
     autoplayTimer = 0;
     if (autoplayStoppedOn === entry.id) return;
@@ -13360,7 +13387,7 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
   if (autoFitOn()) fitZoomToChunk(autoFitCeiling());
   else clampZoomToWidth();
   focusCamera(true);
-  restartAutoplay();
+  restartAutoplay(true);
 }));
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(() => {
@@ -13424,7 +13451,7 @@ function openProjection() {
 COMMAND_RUN['projection'] = (e) => { openProjection(); e.preventDefault(); };
 viewHooks.onPeerBoot = (greeted) => {
   if (!frozen) {
-    sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
+    sendToPeer({ type: 'state', source: VIEW, payload: snapshot(), handover: true });
     figureFocusState().forEach(sendToPeer);
   } else if (!greeted) {
     sendToPeer({ type: 'ping', source: VIEW });
