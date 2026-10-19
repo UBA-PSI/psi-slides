@@ -8019,6 +8019,16 @@ const STYLE_SPEC = {
   // centre, so under `even` a chunk the parser would have opened centred
   // opens on its box (an explicit `.middle` still wins).
   spacing: { kind: 'enum', values: ['compact', 'even'], dflt: 'compact' },
+  // Whether the slide's quieter text is quieter. `on` is what the projection
+  // has always done: a question's body, the prose beside a figure, a
+  // subtitle, a kicker and a draw block's `.muted` labels take --ink-soft,
+  // a grey a step down from the ink. In a lit lecture hall on a projector
+  // that grey is the first thing to go, so `off` sets --ink-soft to --ink
+  // inside the slides and every such text reads at full contrast. The
+  // chrome round the slide - the slide number, the `?` circle, the help
+  // sheet, the cockpit's own panels - sits outside .chunk and keeps its
+  // grey. Projection and cockpit only; print does not read it.
+  'soft-ink': { kind: 'enum', values: ['on', 'off'], dflt: 'on' },
 };
 function styleSettings(frontmatter = {}) {
   const raw = frontmatter.style;
@@ -8220,6 +8230,7 @@ function styleBodyAttrs(st, frontmatter = {}) {
   // form from the chunk and from the body alike.
   if (st['code-fit'] !== 1) parts.push(`data-code-fit="${Math.round(st['code-fit'] * 100)}"`);
   if (st.spacing !== 'compact') parts.push(`data-spacing="${st.spacing}"`);
+  if (st['soft-ink'] !== 'on') parts.push('data-soft-ink="off"');
   return parts.join(' ');
 }
 // The same two settings answered on one chunk, from its attribute tail. The

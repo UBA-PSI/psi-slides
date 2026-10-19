@@ -300,6 +300,8 @@ const STYLE_ENUMS = {
   // Where a slide's free height goes: `compact` (the heading and the body
   // together, centred) or `even` (a third above, between and below).
   'spacing': ['compact', 'even'],
+  // Whether the slide's quieter text (--ink-soft) is grey or full ink.
+  'soft-ink': ['on', 'off'],
   // `off` takes the heading off the *slide* and leaves it in the TOC, in
   // search and in the printed document. Same key as the alignment, because
   // the two are one question - what the projection does with a heading.

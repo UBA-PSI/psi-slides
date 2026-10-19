@@ -1710,9 +1710,10 @@ style:
   bold: accent          # plain | bold | italic | accent | accent-bold | accent-italic
                         #   - how a **bold** phrase looks live; plain is the default
   print-bold: italic    # the same six - on paper; bold is the default
+  soft-ink: off         # on | off              - off: the slide's grey text (--ink-soft) at full ink, live only
 ```
 
-Sixteen keys, and that YAML block is all of them – `STYLE_SPEC` in `build.js`,
+The full list is `STYLE_SPEC` in `build.js` (the YAML block shows the common ones; `code-fit` and `spacing` are above),
 mirrored as `STYLE_ENUMS` in `lint.js` for everything but the two scales.
 
 `hyphenate: print` is the default and is what the tool has always done: the two

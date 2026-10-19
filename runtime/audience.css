@@ -5617,3 +5617,13 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
 #psiINT-forget-modal .forget-modal-cancel { background: var(--paper); color: var(--ink); }
 #psiINT-forget-modal .forget-modal-danger { background: oklch(0.55 0.16 25); color: oklch(0.99 0 0); border-color: oklch(0.45 0.16 25); }
 #psiINT-forget-modal .forget-modal-danger:hover { background: oklch(0.48 0.17 25); }
+
+/* style: {soft-ink: off} – the slide's quieter text at full contrast. The
+   token is redefined on the chunk, not on body, so every rule that reads
+   --ink-soft inside a slide follows and the chrome outside .chunk (slide
+   number, ? circle, help sheet, cockpit panels) keeps its grey. See the note
+   at the key in build.js. */
+body[data-soft-ink=off] .chunk { --ink-soft: var(--ink); }
+/* A draw block's .muted label is mixed from --ink rather than read from
+   --ink-soft (diagram.css), so it needs its own line to follow. */
+body[data-soft-ink=off] .chunk .psi-diagram .muted text { fill: var(--ink); }
