@@ -41,6 +41,7 @@ const SPECS = [
   './cockpit-alone.mjs',
   './watch-resume.mjs',
   './clock.mjs',
+  './timer.mjs',
   './souffleuse.mjs',
   './demo.mjs',
   './live-trust.mjs',
