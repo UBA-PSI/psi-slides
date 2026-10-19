@@ -843,7 +843,9 @@ body[data-mode=dark] .export-modal-keep:hover {
   margin: 0;
   padding: 0.5rem 0.7rem;
   border-left: 2pt solid oklch(0.72 0.12 80);
-  background: oklch(0.985 0.014 80);
+  /* A tint of the paper, not a fixed cream: the text is --ink, and on a
+     dark theme light ink stood on a light box. */
+  background: color-mix(in oklch, oklch(0.72 0.12 80) 12%, var(--paper-warm));
   font-size: 12px;
   color: var(--ink);
 }
