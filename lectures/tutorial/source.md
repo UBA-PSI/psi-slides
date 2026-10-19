@@ -502,6 +502,7 @@ speaker view and `print-notes.html` show it, the projection never does.
 - `A` cycles the **theme**: four light ones with different accent colours, a neutral dark one, and two green-and-amber terminal ones.
 - `+` `-` `0` set the **text size**; `#` cycles **auto-fit** through its three modes, which is worth trying right here – this chunk is longer than the screen.
 - `B` **blanks the projection**.
+- `Shift`-`T` sets a **countdown** for an exercise or a break: `5` is five minutes, `2:30` two and a half. A bar runs along the top edge with the time left beside it, in both windows, and three beeps sound at the end unless you click the bell.
 - `D` **puts a live demo on the projection**: a window or a screen of this machine, chosen in a picker. `D` again pauses it, and once more brings the same window back without the picker; `Shift`-`D` picks another one. The very first capture on a Mac fails while macOS asks for screen-recording rights – allow it and press `D` again, so do that once before the talk.
 - `L` cycles the **slide numbers**: in a row (the default), stacked, or off.
 - `M` shows or hides the **`+ note` button** in the slide's left gutter – the hint for `N`, which opens an annotation whether the hint is drawn or not.
