@@ -916,6 +916,7 @@ window.addEventListener('message', (ev) => {
     // the cockpit hands it the slide it was on.
     else if (wasGone) viewHooks.onPeerBoot(true);
     demoAnnounce();
+    countdownAnnounce();
     // Same reasoning as demoAnnounce: a cockpit that has just booted, or the
     // one the projection lost to its own reload, has no idea whether the room
     // is already fullscreen, and its W would then toggle the wrong way.
@@ -1034,6 +1035,9 @@ window.addEventListener('message', (ev) => {
     applyBlankBadge();
     return;
   }
+  // The countdown travels outside the snapshot like blank, past the freeze
+  // gate: it is the window's, not the slide's.
+  if (m.type === 'timer') { countdownReceive(m.timer); return; }
   // A toast the audience handed over because a cockpit is open. Shown
   // directly rather than via flashMode, which would bounce it back.
   if (m.type === 'toast') {
@@ -1274,6 +1278,233 @@ function applyBlankBadge() {
   if (!blankBadge) return;
   blankBadge.classList.toggle('hidden', !(state.blanked && lecturerScreen()));
 }
+// ── countdown countdown (Shift-T) ──
+// The countdown belongs to the window, not to a chunk: a bar along the top edge
+// and the time left, both fixed over everything and out of the layout, so no
+// slide change, reveal, blank or zoom touches them. It is a message family of
+// its own ('countdown'), outside the state snapshot for the reason blank is, and
+// carries the absolute end time, so the two windows (one machine, one clock)
+// cannot drift. Nothing is in the DOM while no countdown is set.
+const COUNTDOWN_KEY = storageKey('timer');
+const COUNTDOWN_MUTED_KEY = storageKey('timer-muted');
+const COUNTDOWN_STALE_MS = 10 * 60 * 1000;   // a reload this long after the end finds no countdown
+const COUNTDOWN_MAX_MIN = 600;
+let countdown = null;          // { end, dur, muted } in epoch ms, or null
+let countdownEl = null, countdownFill = null, countdownRead = null, countdownMute = null;
+let countdownTick = 0;
+let countdownAudio = null;
+let countdownModal = null;
+function countdownDefaultMuted() {
+  try { return localStorage.getItem(COUNTDOWN_MUTED_KEY) === '1'; } catch (e) { return false; }
+}
+// "5" is minutes, "2:30" minutes and seconds, "0:45" seconds. Returns seconds,
+// 0 for an input that clears, or null for one that is not a time.
+function parseCountdownInput(text) {
+  const s = String(text).trim();
+  if (s === '') return 0;
+  const m = /^(\d{1,3})(?::([0-5]?\d))?$/.exec(s);
+  if (!m) return null;
+  const min = Number(m[1]), sec = m[2] === undefined ? 0 : Number(m[2]);
+  if (min > COUNTDOWN_MAX_MIN || (min === COUNTDOWN_MAX_MIN && sec > 0)) return null;
+  return min * 60 + sec;
+}
+function countdownLeft(now) { return countdown ? countdown.end - now : 0; }
+function fmtCountdown(ms) {
+  const t = Math.max(0, Math.ceil(ms / 1000));
+  const s = t % 60;
+  return Math.floor(t / 60) + ':' + (s < 10 ? '0' : '') + s;
+}
+const COUNTDOWN_BELL = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.5 1.5"/><path d="M4.5 5.5 7.5 3M19.5 5.5 16.5 3"/>'
+  + '<path class="countdown-strike" d="M3 21 21 4"/></svg>';
+function countdownBuild() {
+  if (countdownEl) return;
+  countdownEl = document.createElement('div');
+  countdownEl.id = 'psiINT-countdown';
+  countdownEl.setAttribute('role', 'countdown');
+  countdownFill = document.createElement('div');
+  countdownFill.id = 'psiINT-countdown-fill';
+  countdownRead = document.createElement('div');
+  countdownRead.id = 'psiINT-countdown-read';
+  countdownMute = document.createElement('button');
+  countdownMute.type = 'button';
+  countdownMute.id = 'psiINT-countdown-mute';
+  countdownMute.innerHTML = COUNTDOWN_BELL;
+  const num = document.createElement('span');
+  num.id = 'psiINT-countdown-num';
+  countdownRead.append(countdownMute, num);
+  countdownEl.append(countdownFill);
+  document.body.append(countdownEl, countdownRead);
+  countdownMute.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    countdownPrime();
+    countdown.muted = !countdown.muted;
+    try { localStorage.setItem(COUNTDOWN_MUTED_KEY, countdown.muted ? '1' : '0'); } catch (e) {}
+    countdownCommit();
+  });
+  const dismiss = () => { if (countdown && countdownLeft(Date.now()) <= 0) countdownSet(0); };
+  countdownEl.addEventListener('click', dismiss);
+  num.addEventListener('click', dismiss);
+}
+function countdownDestroy() {
+  clearInterval(countdownTick); countdownTick = 0;
+  if (countdownEl) { countdownEl.remove(); countdownRead.remove(); }
+  countdownEl = countdownFill = countdownRead = countdownMute = null;
+}
+function countdownPaint() {
+  if (!countdown) { countdownDestroy(); return; }
+  countdownBuild();
+  const left = countdownLeft(Date.now());
+  const done = left <= 0;
+  const frac = done ? 1 : Math.min(1, Math.max(0, 1 - left / countdown.dur));
+  countdownFill.style.width = (frac * 100) + '%';
+  countdownRead.querySelector('#psiINT-countdown-num').textContent = fmtCountdown(left);
+  for (const el of [countdownEl, countdownRead]) el.classList.toggle('countdown-done', done);
+  countdownMute.classList.toggle('countdown-muted', !!countdown.muted);
+  countdownMute.setAttribute('aria-pressed', countdown.muted ? 'true' : 'false');
+  countdownMute.setAttribute('aria-label', countdown.muted ? 'Sound is off – click to turn it on' : 'Sound is on – click to mute');
+  countdownMute.title = countdown.muted ? 'Sound off' : 'Sound on';
+}
+// One of the two windows beeps: the cockpit when there is one, else the
+// projection. Autoplay rules let a page make sound only after a gesture in
+// it, so the context is made and resumed on the press that sets the countdown,
+// on the mute click and on any later press while a countdown runs; without one
+// the beep is skipped without a word.
+function countdownPrime() {
+  try {
+    if (!countdownAudio) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      countdownAudio = new AC();
+    }
+    if (countdownAudio.state === 'suspended') countdownAudio.resume().catch(() => {});
+  } catch (e) {}
+}
+function countdownBeep() {
+  if (!countdown || countdown.muted) return;
+  if (!(VIEW === 'speaker' || !hasLivePeer())) return;
+  try {
+    countdownPrime();
+    const ac = countdownAudio;
+    if (!ac || ac.state !== 'running') return;
+    const t0 = ac.currentTime + 0.02;
+    for (let i = 0; i < 3; i++) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      const t = t0 + i * 0.28;
+      o.type = 'sine';
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.25, t + 0.015);
+      g.gain.setValueAtTime(0.25, t + 0.15);
+      g.gain.linearRampToValueAtTime(0, t + 0.19);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t); o.stop(t + 0.22);
+    }
+    countdownBeeps++;
+  } catch (e) {}
+}
+let countdownBeeps = 0;   // beeps this page has started, for the spec
+let countdownWasDone = false;
+function countdownStep() {
+  if (!countdown) return;
+  const left = countdownLeft(Date.now());
+  const done = left <= 0;
+  countdownPaint();
+  if (done && !countdownWasDone) {
+    countdownWasDone = true;
+    // Only an expiry seen live sounds: a page reloaded after the end is quiet.
+    if (-left < 2500) countdownBeep();
+  }
+  if (done && countdownTick) { clearInterval(countdownTick); countdownTick = 0; }
+}
+function countdownStart(t) {
+  countdown = t;
+  countdownWasDone = t ? countdownLeft(Date.now()) <= 0 : false;
+  clearInterval(countdownTick); countdownTick = 0;
+  countdownPaint();
+  if (countdown && !countdownWasDone) countdownTick = setInterval(countdownStep, 250);
+}
+function countdownStore() {
+  try {
+    if (countdown) localStorage.setItem(COUNTDOWN_KEY, JSON.stringify(countdown));
+    else localStorage.removeItem(COUNTDOWN_KEY);
+  } catch (e) {}
+}
+function countdownCommit() {
+  countdownStore();
+  countdownPaint();
+  sendToPeer({ type: 'timer', source: VIEW, timer: countdown });
+}
+// Set a countdown of `seconds` from now, or clear it (0).
+function countdownSet(seconds) {
+  if (!seconds) countdownStart(null);
+  else {
+    const dur = seconds * 1000;
+    countdownStart({ end: Date.now() + dur, dur, muted: countdownDefaultMuted() });
+  }
+  countdownCommit();
+}
+function countdownReceive(t) {
+  countdownStart(t && typeof t.end === 'number' && t.dur > 0
+    ? { end: t.end, dur: t.dur, muted: !!t.muted } : null);
+  countdownStore();
+}
+function countdownAnnounce() {
+  if (countdown) sendToPeer({ type: 'timer', source: VIEW, timer: countdown });
+}
+function countdownRestore() {
+  try {
+    const t = JSON.parse(localStorage.getItem(COUNTDOWN_KEY) || 'null');
+    if (t && typeof t.end === 'number' && t.dur > 0 && Date.now() - t.end < COUNTDOWN_STALE_MS) {
+      countdownStart({ end: t.end, dur: t.dur, muted: !!t.muted });
+    }
+  } catch (e) {}
+}
+function closeCountdownModal() {
+  if (!countdownModal) return;
+  countdownModal.remove();
+  countdownModal = null;
+}
+function openCountdownModal() {
+  if (countdownModal) { countdownModal.querySelector('input').focus(); return; }
+  const box = document.createElement('div');
+  box.id = 'psiINT-countdown-modal';
+  box.innerHTML = '<form id="psiINT-countdown-form" autocomplete="off">'
+    + '<label for="psiINT-countdown-input">Countdown</label>'
+    + '<input id="psiINT-countdown-input" type="text" inputmode="numeric" spellcheck="false" placeholder="5 · 2:30 · 0:45">'
+    + '<p id="psiINT-countdown-hint" aria-live="polite">Minutes, or m:ss. Empty clears the countdown.</p>'
+    + '</form>';
+  document.body.append(box);
+  countdownModal = box;
+  const input = box.querySelector('input'), hint = box.querySelector('#psiINT-countdown-hint');
+  box.querySelector('form').addEventListener('submit', (ev) => ev.preventDefault());
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') { closeCountdownModal(); ev.preventDefault(); ev.stopPropagation(); }
+    else if (ev.key === 'Enter') {
+      ev.preventDefault(); ev.stopPropagation();
+      const secs = parseCountdownInput(input.value);
+      if (secs === null) {
+        hint.textContent = 'Not a time – try 5, 2:30 or 0:45.';
+        hint.classList.add('countdown-bad');
+        return;
+      }
+      countdownPrime();
+      closeCountdownModal();
+      countdownSet(secs);
+    }
+  });
+  input.addEventListener('input', () => {
+    hint.classList.remove('countdown-bad');
+    hint.textContent = 'Minutes, or m:ss. Empty clears the countdown.';
+  });
+  box.addEventListener('mousedown', (ev) => { if (ev.target === box) closeCountdownModal(); });
+  input.focus();
+}
+// Any later press in this window keeps the audio context usable.
+for (const evName of ['keydown', 'pointerdown']) {
+  document.addEventListener(evName, () => { if (countdown && !countdownAudio) countdownPrime(); }, true);
+}
+countdownRestore();
 // Live demo (D): the capture this window holds, whether the other window
 // said it holds one, whether the demo is paused, the loopback connection at
 // either end, and the promise that its remote description is in. Declared
@@ -4931,6 +5162,10 @@ const COMMAND_RUN = {
   'zoom-out': (e) => {
     if (focusedFigure) setFigureScale(figureScale / 1.2);
     else stepZoom(-1);
+    e.preventDefault();
+  },
+  'timer': (e) => {
+    openCountdownModal();
     e.preventDefault();
   },
   'zoom-reset': (e) => {

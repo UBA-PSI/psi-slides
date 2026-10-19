@@ -145,6 +145,8 @@ const ADDED = [
   ['<', null, 'clock-back'], ['Shift+<', null, 'clock-back'],
   ['>', null, 'clock-forward'], ['Shift+>', null, 'clock-forward'],
   ['z', null, 'clock-plan'], ['Shift+Z', null, 'clock-plan'],
+  // The countdown timer; Shift-T used to fall back to the table of contents.
+  ['Shift+T', 'timer', 'timer'],
   // Another window for a running live demo; D itself pauses and resumes.
   ['Shift+D', 'demo-switch', 'demo-switch'],
   // S in the cockpit opens the projection; it was a press spent on nothing,

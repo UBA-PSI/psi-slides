@@ -5473,3 +5473,110 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
 }
 #psiINT-toc button:hover { color: var(--emph); }
 #psiINT-toc li.toc-active button { font-weight: 600; color: var(--emph); }
+
+/* Countdown timer (Shift-T). Fixed over everything, out of the layout: the
+   bar is the ink of the theme (light on a dark mode, dark on a light one,
+   which is what the tokens already do) with a hairline of the paper round
+   the fill and one of the ink along the bar's foot, so it stands off a
+   photograph as well as off a plain ground. Nothing exists in the DOM while
+   no timer is set. */
+#psiINT-countdown {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 10px;
+  z-index: 90;
+  box-sizing: border-box;
+  background: color-mix(in oklch, var(--paper) 55%, transparent);
+  border-bottom: 1px solid var(--ink);
+  pointer-events: none;
+}
+#psiINT-countdown.countdown-done { pointer-events: auto; cursor: pointer; }
+#psiINT-countdown-fill {
+  height: 100%;
+  width: 0;
+  background: var(--ink);
+  outline: 1px solid var(--paper);
+  outline-offset: -1px;
+  box-sizing: border-box;
+  border-right: 1px solid var(--paper);
+}
+#psiINT-countdown-read {
+  position: fixed;
+  top: 14px; right: 14px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px 0 2px;
+  min-height: 28px;
+  border: 1px solid var(--ink);
+  border-radius: 14px;
+  background: color-mix(in oklch, var(--paper) 92%, transparent);
+  color: var(--ink);
+  font: 600 16px/1 var(--sans-font, sans-serif);
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 1px var(--paper);
+}
+#psiINT-countdown-mute {
+  all: unset;
+  box-sizing: border-box;
+  width: 28px; height: 28px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: inherit;
+  border-radius: 50%;
+}
+#psiINT-countdown-mute:focus-visible { outline: 2px solid var(--ink); }
+#psiINT-countdown-mute .countdown-strike { display: none; }
+#psiINT-countdown-mute.countdown-muted .countdown-strike { display: inline; }
+#psiINT-countdown-mute.countdown-muted { opacity: 0.8; }
+#psiINT-countdown-read.countdown-done #psiINT-countdown-num { cursor: pointer; }
+#psiINT-countdown.countdown-done #psiINT-countdown-fill {
+  background: oklch(0.58 0.24 27);
+  animation: psiINT-countdown-flash 0.45s ease-in-out 8 both;
+}
+#psiINT-countdown-read.countdown-done {
+  background: oklch(0.58 0.24 27);
+  color: oklch(0.99 0 0);
+  border-color: oklch(0.99 0 0);
+  box-shadow: 0 0 0 1px oklch(0.2 0.05 27);
+  animation: psiINT-countdown-pulse 0.45s ease-in-out 8;
+}
+@keyframes psiINT-countdown-flash { 50% { opacity: 0.25; } }
+@keyframes psiINT-countdown-pulse { 50% { transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) {
+  #psiINT-countdown.countdown-done #psiINT-countdown-fill, #psiINT-countdown-read.countdown-done { animation: none; }
+}
+
+#psiINT-countdown-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: grid;
+  place-items: center;
+  background: oklch(0.14 0 0 / 0.5);
+}
+#psiINT-countdown-form {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  box-shadow: 0 18px 60px oklch(0 0 0 / 0.35);
+  padding: 18px 22px;
+  width: min(320px, 90vw);
+  font: 15px/1.4 var(--sans-font, sans-serif);
+}
+#psiINT-countdown-form label { display: block; font-weight: 600; margin-bottom: 8px; }
+#psiINT-countdown-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: 600 22px/1.2 var(--sans-font, sans-serif);
+  font-variant-numeric: tabular-nums;
+  padding: 6px 10px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+}
+#psiINT-countdown-hint { margin: 8px 0 0; font-size: 13px; color: var(--ink-soft); }
+#psiINT-countdown-hint.countdown-bad { color: oklch(0.55 0.22 27); font-weight: 600; }
