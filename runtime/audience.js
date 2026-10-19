@@ -748,6 +748,13 @@ function notePeer() {
       try { sessionStorage.setItem(PAIRED_KEY, '1'); } catch (e) {}
     }
     viewHooks.onPeerChange(live);
+    // The cockpit runs a figure's clock while no projection answers, and
+    // hands it back when one does: the projection's own arrival starts it
+    // there. A bar the gone window was filling here goes with it.
+    if (VIEW === 'speaker') {
+      if (!live) showAutoplayBar(0);
+      restartAutoplay(false, !live);
+    }
     if (window.psiBuildBannerRefresh) window.psiBuildBannerRefresh();
   }
 }
@@ -1193,6 +1200,12 @@ window.addEventListener('message', (ev) => {
   // but "here" and clears the asker's peerGone like any message.
   if (m.type === 'ping') { if (hadPeer) sendToPeer({ type: 'pong', source: VIEW }); return; }
   if (m.type === 'pong') return;
+  // The other window's autoplay clock: how long until its next step, or 0
+  // when it stopped. A frozen cockpit is on a slide of its own.
+  if (m.type === 'autoplay') {
+    showAutoplayBar(viewHooks.lookingAhead() ? 0 : Number(m.ms) || 0);
+    return;
+  }
   // The other window forgot every local edit of the lecture (the palette's
   // forget-local-edits, confirmed there). Past the freeze gate: it is about
   // what is stored, and a frozen cockpit has to forget too.
@@ -2864,11 +2877,45 @@ function resettleAfterReveal() {
 // one counter, one broadcast, one freeze gate, and the speaker view follows
 // without knowing this exists.
 //
-// The audience is the state root, so only the audience runs the clock -
-// two windows both advancing would take two beats per tick. And the first
-// deliberate act stops it for good: a lecturer who has touched the deck has
-// taken over, and a timer resuming underneath them is worse than no timer.
+// The audience is the state root, so the audience runs the clock - two
+// windows both advancing would take two beats per tick. A cockpit with no
+// projection answering runs it itself (autoplayRunsHere): rehearsing a break
+// slide in the cockpit alone, the figure stood still, and nothing said that
+// it would move on the wall. And the first deliberate act stops it for good:
+// a lecturer who has touched the deck has taken over, and a timer resuming
+// underneath them is worse than no timer.
 let autoplayTimer = 0;
+function autoplayRunsHere() {
+  return VIEW === 'audience' || (VIEW === 'speaker' && !hasLivePeer());
+}
+// While the clock runs, a short bar at the foot of the slide fills up to the
+// next step, in the window that runs it and in its peer: a figure that is
+// about to move by itself should say so, to the lecturer above all. Not the
+// slide's width - it is a hint, not a progress bar of the talk.
+const autoplayBar = document.createElement('div');
+autoplayBar.id = 'psiINT-autoplay-bar';
+autoplayBar.hidden = true;
+autoplayBar.setAttribute('aria-hidden', 'true');
+autoplayBar.append(document.createElement('span'));
+viewport.append(autoplayBar);
+function showAutoplayBar(ms) {
+  if (!ms) { autoplayBar.hidden = true; return; }
+  // A fresh span restarts the fill without a forced layout.
+  const fill = document.createElement('span');
+  fill.style.animationDuration = ms + 'ms';
+  autoplayBar.firstChild.replaceWith(fill);
+  autoplayBar.hidden = false;
+}
+function scheduleAutoplay(tick, ms) {
+  autoplayTimer = setTimeout(tick, ms);
+  showAutoplayBar(ms);
+  sendToPeer({ type: 'autoplay', source: VIEW, ms });
+}
+function autoplayIdle() {
+  if (autoplayBar.hidden) return;
+  showAutoplayBar(0);
+  sendToPeer({ type: 'autoplay', source: VIEW, ms: 0 });
+}
 // The chunk the lecturer took over on, and it is a chunk id rather than a
 // boolean for a reason that made the feature unusable. Taking over is an act
 // on *this slide*; but you reach a slide by pressing a key, and a
@@ -2885,13 +2932,15 @@ let autoplayTimer = 0;
 // cockpit stayed stopped on every later visit of the session.
 let autoplayStoppedOn = null;
 function stopAutoplay() {
-  if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; }
+  if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; autoplayIdle(); }
 }
 // arriving: the slide has just become the live one (landSlide, or the boot).
 // Everything else that restarts the clock is on a slide already up.
-function restartAutoplay(arriving) {
+// resuming: the clock changes windows on the slide that is up (notePeer) and
+// carries on from the beat it is at, as a cycle on its second lap would.
+function restartAutoplay(arriving, resuming) {
   stopAutoplay();
-  if (VIEW !== 'audience') return;
+  if (!autoplayRunsHere()) return;
   if (arriving) autoplayStoppedOn = null;
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
@@ -2914,7 +2963,7 @@ function restartAutoplay(arriving) {
   // nothing on every arrival after the first. So arriving at a cycle
   // rewinds it to the opening beat and starts the clock there, through the
   // same counter and broadcast the walk uses, and the cockpit follows.
-  if ((revealed[entry.id] ?? 0) > 1) {
+  if ((revealed[entry.id] ?? 0) > 1 && !resuming) {
     if (!(cycle && arriving)) return;
     revealed[entry.id] = 1;
     applyReveal(entry.el, entry.id, true);
@@ -2924,11 +2973,11 @@ function restartAutoplay(arriving) {
   }
   const tick = () => {
     autoplayTimer = 0;
+    autoplayIdle();
     if (autoplayStoppedOn === entry.id) return;
     if (flatChunks[state.activeIdx] !== entry) return;
     if (advanceReveal()) {
-      if ((revealed[entry.id] ?? 0) < segCount) autoplayTimer = setTimeout(tick, ms);
-      else if (cycle) autoplayTimer = setTimeout(tick, ms);
+      if ((revealed[entry.id] ?? 0) < segCount || cycle) scheduleAutoplay(tick, ms);
       return;
     }
     // advanceReveal said no, so we are at the last beat. Cycling rewinds
@@ -2943,9 +2992,10 @@ function restartAutoplay(arriving) {
     resettleAfterReveal();
     updateNavHints();
     broadcastState();
-    autoplayTimer = setTimeout(tick, ms);
+    scheduleAutoplay(tick, ms);
   };
-  if (segCount > 1) autoplayTimer = setTimeout(tick, ms);
+  // A walk resumed on its last beat has nothing left to wait for.
+  if (segCount > 1 && (cycle || (revealed[entry.id] ?? 1) < segCount)) scheduleAutoplay(tick, ms);
 }
 // Any deliberate input retires the clock. Capture phase and passive, so it
 // sees the event whatever else handles it and never delays one.
@@ -2954,12 +3004,21 @@ function restartAutoplay(arriving) {
 // still the slide being left, so the take-over is recorded against that one
 // and not against the slide about to arrive. The navigation handler runs in
 // the bubble phase, after this.
+//
+// The cockpit, running the clock with no projection answering, counts only a
+// step forward or back (goForward, goBack): a click there is on its buttons,
+// a wheel scrolls the notes, and S, B or a letter typed into a note are not a
+// hand on the slide either - S, opening the projection, retired the clock
+// the projection was about to take over.
+function takeOverAutoplay() {
+  const cur = flatChunks[state.activeIdx];
+  if (!cur || autoplayStoppedOn === cur.id) return;
+  autoplayStoppedOn = cur.id;
+  stopAutoplay();
+}
 for (const ev of ['keydown', 'pointerdown', 'wheel']) {
   window.addEventListener(ev, () => {
-    const cur = flatChunks[state.activeIdx];
-    if (!cur || autoplayStoppedOn === cur.id) return;
-    autoplayStoppedOn = cur.id;
-    stopAutoplay();
+    if (VIEW === 'audience') takeOverAutoplay();
   }, { capture: true, passive: true });
 }
 
@@ -3010,6 +3069,7 @@ function unfocusAsStage() {
   return true;
 }
 function goForward() {
+  if (VIEW === 'speaker') takeOverAutoplay();
   viewHooks.onPress(false);
   endStartMenu();
   settleFade();
@@ -3018,6 +3078,7 @@ function goForward() {
   nextChunk();
 }
 function goBack() {
+  if (VIEW === 'speaker') takeOverAutoplay();
   viewHooks.onPress(false);
   endStartMenu();
   settleFade();

@@ -5627,3 +5627,33 @@ body[data-soft-ink=off] .chunk { --ink-soft: var(--ink); }
 /* A draw block's .muted label is mixed from --ink rather than read from
    --ink-soft (diagram.css), so it needs its own line to follow. */
 body[data-soft-ink=off] .chunk .psi-diagram .muted text { fill: var(--ink); }
+
+/* ::: draw autoplay: the bar that fills up to the figure's next step, in the
+   window that runs the clock and in its peer (showAutoplayBar). Sized in
+   slide units, so the cockpit's scaled stage shows it to scale; a tenth of
+   the slide's width and quiet, a hint that the picture is about to move. */
+#psiINT-autoplay-bar {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--slide-h) * 0.025);
+  width: calc(var(--slide-w) * 0.1);
+  height: max(3px, calc(var(--slide-h) * 0.006));
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--ink) 14%, transparent);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 20;
+}
+#psiINT-autoplay-bar[hidden],
+body:not([data-view=speaker]).blanked #psiINT-autoplay-bar,
+body.overview-mode #psiINT-autoplay-bar { display: none; }
+#psiINT-autoplay-bar > span {
+  display: block;
+  height: 100%;
+  background: color-mix(in oklch, var(--ink) 50%, transparent);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: psi-autoplay-fill 1s linear forwards;
+}
+@keyframes psi-autoplay-fill { to { transform: scaleX(1); } }

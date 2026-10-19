@@ -229,6 +229,11 @@ export async function run({ page, report }) {
     note('reloaded: ' + JSON.stringify(rl));
     ok(rl.active === 'auto' && rl.timer, 'a reload on the cycle starts its clock', JSON.stringify(rl));
 
+    const bar = (p) => p.evaluate(() => {
+      const b = document.getElementById('psiINT-autoplay-bar');
+      const r = b.getBoundingClientRect(), v = document.getElementById('psiINT-stage-viewport').getBoundingClientRect();
+      return { shown: getComputedStyle(b).display !== 'none' && r.width > 0, part: r.width / v.width };
+    });
     // ── with the cockpit attached ──
     // The cycle on its last step again, by hand, then the cockpit opened from
     // the projection (its opener) on the slide before.
@@ -292,8 +297,56 @@ export async function run({ page, report }) {
       const back2 = await st();
       ok(back2.active === 'auto' && back2.timer,
         'back onto it from the cockpit after a take-over from the cockpit, it plays again', JSON.stringify(back2));
+      const spkTimer = () => spk.evaluate(() => autoplayTimer !== 0);
+      ok(!(await spkTimer()), 'with a projection answering, the cockpit runs no clock of its own');
+      const pb = await bar(page), sb = await bar(spk);
+      ok(pb.shown && sb.shown, 'the bar to the next step stands in the projection and in the cockpit', JSON.stringify({ pb, sb }));
+      ok(pb.part > 0.05 && pb.part < 0.2, 'and it is not the slide\'s width', String(pb.part));
+
     } finally {
       await spk.close();
+    }
+
+    // ── the cockpit alone ──
+    // Rehearsing in the cockpit with no projection open, the figure used to
+    // stand still: only the projection ran the clock. With nobody answering,
+    // the cockpit runs it, and hands it back when a projection opens.
+    const solo = await page.context().newPage();
+    try {
+      await solo.goto(`http://127.0.0.1:${port}/speaker.html`, { waitUntil: 'load' });
+      await settle(solo, 900);
+      const soloTimer = () => solo.evaluate(() => autoplayTimer !== 0);
+      for (let i = 0; i < 8 && await idNow(solo) !== 'auto'; i++) {
+        await solo.keyboard.press('ArrowDown');
+        await solo.waitForTimeout(120);
+      }
+      ok(await idNow(solo) === 'auto' && await soloTimer(), 'reached by key in the cockpit alone, the clock runs there', await idNow(solo));
+      ok((await bar(solo)).shown, 'and the bar stands under the figure');
+      const c0 = await beatOf(solo, 'auto');
+      await solo.waitForFunction((c) => revealed.auto !== c, c0, { timeout: 3000 }).catch(() => {});
+      ok(await beatOf(solo, 'auto') !== c0, 'the figure moves in the cockpit alone', `${c0} -> ${await beatOf(solo, 'auto')}`);
+      // A wheel over the cockpit scrolls its notes and is not a hand on the slide.
+      await solo.mouse.move(200, 200);
+      await solo.mouse.wheel(0, 100);
+      await solo.waitForTimeout(100);
+      ok(await soloTimer(), 'a wheel in the cockpit leaves the clock running');
+
+      // A projection opened from the cockpit takes the clock, and gives it
+      // back when its window closes.
+      const [aud2] = await Promise.all([solo.context().waitForEvent('page'), solo.keyboard.press('s')]);
+      await aud2.waitForLoadState();
+      await settle(aud2, 900);
+      await aud2.waitForFunction(() => (flatChunks[state.activeIdx] || {}).id === 'auto', null, { timeout: 2000 }).catch(() => {});
+      ok(!(await soloTimer()) && await aud2.evaluate(() => autoplayTimer !== 0),
+        'a projection opened from the cockpit runs the clock, the cockpit no longer', JSON.stringify({ solo: await soloTimer() }));
+      await aud2.close();
+      await solo.waitForFunction(() => autoplayTimer !== 0, null, { timeout: 3000 }).catch(() => {});
+      ok(await soloTimer(), 'its window closed, the cockpit takes the clock back');
+      await solo.keyboard.press('Space');
+      await solo.waitForTimeout(100);
+      ok(!(await soloTimer()) && !(await bar(solo)).shown, 'a key in the cockpit takes the figure over, and the bar goes');
+    } finally {
+      await solo.close();
     }
   } finally {
     server.close();
