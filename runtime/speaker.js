@@ -79,7 +79,9 @@ COMMAND_RUN['projection'] = (e) => { openProjection(); e.preventDefault(); };
 // move, and a projection that has not greeted yet is only asked to.
 viewHooks.onPeerBoot = (greeted) => {
   if (!frozen) {
-    sendToPeer({ type: 'state', source: VIEW, payload: snapshot() });
+    // A hand-over, not a hand on the slide: an autoplay figure the
+    // projection has just started on its own boot keeps playing.
+    sendToPeer({ type: 'state', source: VIEW, payload: snapshot(), handover: true });
     figureFocusState().forEach(sendToPeer);
   } else if (!greeted) {
     sendToPeer({ type: 'ping', source: VIEW });

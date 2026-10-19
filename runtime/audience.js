@@ -700,7 +700,7 @@ function applyFrozenState(payload) {
     setSlideRef(payload.audienceW, payload.audienceH);
   }
 }
-function applyRemoteState(payload) {
+function applyRemoteState(payload, handover) {
   // A remote apply that changes which chunk is live is a slide change and
   // wears the deck's transition, exactly as a local one does. The whole
   // apply goes inside the fade rather than only the camera, because it is
@@ -717,15 +717,46 @@ function applyRemoteState(payload) {
   const changed = remoteActiveIdx(payload) !== state.activeIdx;
   if (changed) landSlide(() => applyRemoteStateNow(payload, true));
   else {
-    // A snapshot on the slide already up is the other window's hand on it -
-    // a press, a zoom, a collapse - and that is a take-over of an autoplay
-    // figure, exactly as a key on this window's own keyboard is. The cockpit
+    // A snapshot on the slide already up can be the other window's hand on
+    // it - a press, a zoom, a collapse - and that is a take-over of an
+    // autoplay figure, exactly as a key on this window's own keyboard is.
+    // It used to be taken for one whatever it said, and not every snapshot
+    // is a hand: a cockpit hands its slide to a projection back from a
+    // reload (handover, viewHooks.onPeerBoot), and anything that broadcasts
+    // without changing the slide sends the slide as it already is. Each of
+    // those stopped a break slide's loop that nobody had touched, so the
+    // test is now what the snapshot changes (remoteTakesOver). The cockpit
     // never rebroadcasts what it received, so the projection's own ticks do
     // not come back here.
     const cur = flatChunks[state.activeIdx];
-    if (cur && autoplayTimer) { autoplayStoppedOn = cur.id; stopAutoplay(); }
+    if (cur && autoplayTimer && !handover && remoteTakesOver(payload, cur)) {
+      autoplayStoppedOn = cur.id;
+      stopAutoplay();
+    }
     applyRemoteStateNow(payload, false);
   }
+  if (typeof payload.zoom === 'number') lastPeerZoom = payload.zoom;
+}
+// Whether a snapshot on the slide already up changes anything a hand would:
+// this slide's beat, or one of the settings a key in the other window moves.
+// Compared with what this window shows, because after a full apply the two
+// agree, so a snapshot that repeats the slide is not a change - except the
+// zoom, which each window fits for itself under auto-fit and so is compared
+// with what the other window sent last. A beat the payload does not name is
+// the opening one, as it is everywhere else the counter is read.
+let lastPeerZoom = null;
+const TAKE_OVER_FIELDS = ['collapse', 'autoFitMode', 'blanked', 'font', 'theme', 'slideNums',
+  'pitchblack', 'overview', 'openExp', 'annotEditingId', 'panDx', 'panDy'];
+function remoteTakesOver(payload, cur) {
+  const opening = countSegments(cur.el) ? 1 : 0;
+  const beat = (m) => (m && m[cur.id] != null ? m[cur.id] : opening);
+  if (payload.revealed && beat(payload.revealed) !== beat(revealed)) return true;
+  const here = snapshot();
+  for (const k of TAKE_OVER_FIELDS) {
+    if (payload[k] === undefined) continue;
+    if (JSON.stringify(payload[k]) !== JSON.stringify(here[k])) return true;
+  }
+  return typeof payload.zoom === 'number' && lastPeerZoom !== null && payload.zoom !== lastPeerZoom;
 }
 function applyRemoteStateNow(payload, changed) {
   // The cockpit moving the projection is a move: it ends the start menu
@@ -930,7 +961,7 @@ window.addEventListener('message', (ev) => {
     // still the room's to say: whether it is blanked, and how big it is.
     // Thawing pushes this window's snapshot, which is the re-sync.
     if (viewHooks.lookingAhead()) { applyFrozenState(m.payload); return; }
-    applyRemoteState(m.payload);
+    applyRemoteState(m.payload, !!m.handover);
     return;
   }
   // A press in the other window - the projection's clicker. Not state: the
@@ -2038,9 +2069,15 @@ function fadeSwap(land) {
 // put the old slide back in the cockpit, and the landing that followed runs
 // under isApplyingRemote and sends nothing - the two windows stayed on two
 // different slides until the next press.
+//
+// Only a landing that changes the slide is an arrival for autoplay
+// (restartAutoplay's argument): the overview left on the slide it was
+// opened on, or a jump to the slide already up, lands too, and neither is a
+// way onto the slide.
 function landSlide(land) {
   stopAutoplay();
-  const arrive = () => { land(); restartAutoplay(); };
+  const from = state.activeIdx;
+  const arrive = () => { land(); restartAutoplay(state.activeIdx !== from); };
   if (SLIDE_TRANSITION === 'fade') fadeSwap(arrive);
   else arrive();
 }
@@ -2618,26 +2655,51 @@ let autoplayTimer = 0;
 // the figure, one arrow key anywhere killed it for the rest of the session -
 // so autoplay only ever ran on a slide a deck happened to open on. Scoped to
 // the chunk, the arrival key belongs to the slide being left.
+//
+// It lasts until the slide is left. An arrival clears it (restartAutoplay),
+// because leaving and coming back is how a lecturer asks for the figure
+// again; a key did that already, by charging the slide it left, but a move
+// from the cockpit presses no key here, so a figure taken over once from the
+// cockpit stayed stopped on every later visit of the session.
 let autoplayStoppedOn = null;
 function stopAutoplay() {
   if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; }
 }
-function restartAutoplay() {
+// arriving: the slide has just become the live one (landSlide, or the boot).
+// Everything else that restarts the clock is on a slide already up.
+function restartAutoplay(arriving) {
   stopAutoplay();
   if (VIEW !== 'audience') return;
+  if (arriving) autoplayStoppedOn = null;
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
   const fig = entry.el.querySelector('[data-autoplay]');
   if (!fig) return;
   const ms = Number(fig.dataset.autoplay);
   if (!ms) return;
+  const segCount = countSegments(entry.el);
+  if (autoplayStoppedOn === entry.id) return;
+  const cycle = fig.hasAttribute('data-autoplay-cycle');
   // Only from the opening beat. Arriving at a half-revealed slide means the
   // lecturer left it that way, and finishing it for them is the surprise
   // this feature must not spring.
-  const segCount = countSegments(entry.el);
-  if (autoplayStoppedOn === entry.id) return;
-  if ((revealed[entry.id] ?? 0) > 1) return;
-  const cycle = fig.hasAttribute('data-autoplay-cycle');
+  //
+  // Except for a cycle. A loop has no half-revealed state worth keeping -
+  // it is a break slide, a cover while the room fills - and it is never at
+  // its opening beat on a second visit: clicked through once in rehearsal,
+  // walked off from its last step, or reached backwards, which shows a
+  // slide fully revealed. Measured on a break slide, autoplay then did
+  // nothing on every arrival after the first. So arriving at a cycle
+  // rewinds it to the opening beat and starts the clock there, through the
+  // same counter and broadcast the walk uses, and the cockpit follows.
+  if ((revealed[entry.id] ?? 0) > 1) {
+    if (!(cycle && arriving)) return;
+    revealed[entry.id] = 1;
+    applyReveal(entry.el, entry.id, true);
+    resettleAfterReveal();
+    updateNavHints();
+    broadcastState();
+  }
   const tick = () => {
     autoplayTimer = 0;
     if (autoplayStoppedOn === entry.id) return;
@@ -6240,7 +6302,7 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
   focusCamera(true);
   // Same reasoning for autoplay, and it matters more here: the cover is
   // the slide the feature was asked for, and jumpTo never runs on it.
-  restartAutoplay();
+  restartAutoplay(true);
 }));
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(() => {
