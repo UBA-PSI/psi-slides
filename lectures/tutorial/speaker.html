@@ -2978,6 +2978,37 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
 }
 #psiINT-countdown-hint { margin: 8px 0 0; font-size: 13px; color: var(--ink-soft); }
 #psiINT-countdown-hint.countdown-bad { color: oklch(0.55 0.22 27); font-weight: 600; }
+#psiINT-forget-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: oklch(0.14 0 0 / 0.5);
+}
+#psiINT-forget-modal .forget-modal-inner {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  box-shadow: 0 18px 60px oklch(0 0 0 / 0.35);
+  padding: 18px 22px;
+  width: min(440px, 90vw);
+  font: 15px/1.4 var(--sans-font, sans-serif);
+}
+#psiINT-forget-modal .forget-modal-head { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+#psiINT-forget-modal .forget-modal-body { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+#psiINT-forget-modal .forget-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+#psiINT-forget-modal button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+}
+#psiINT-forget-modal .forget-modal-cancel { background: var(--paper); color: var(--ink); }
+#psiINT-forget-modal .forget-modal-danger { background: oklch(0.55 0.16 25); color: oklch(0.99 0 0); border-color: oklch(0.45 0.16 25); }
+#psiINT-forget-modal .forget-modal-danger:hover { background: oklch(0.48 0.17 25); }
 
 .figure-diagram { margin: 0.7em 0; }
 .psi-diagram {
@@ -3259,6 +3290,33 @@ body[data-view=speaker].notes-sized #psiINT-notes-content {
     animation-range: 0 calc(100% - 2px);
   }
 }
+#psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) { flex-direction: column; }
+body[data-view=speaker].notes-sized #psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) #psiINT-notes-content {
+  height: auto !important;
+  flex: 1 1 0;
+  min-height: 0;
+}
+#psiINT-notes-stale {
+  padding: 0.45rem 88px 0 1rem;
+  font-family: var(--sans-font);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+#psiINT-notes-stale[hidden] { display: none; }
+.notes-stale-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.9em; }
+.notes-stale-row button {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.notes-stale-row button:hover { text-decoration-color: currentColor; }
 #psiINT-notes-content::placeholder {
   color: var(--ink-soft);
   font-style: italic;
@@ -3718,6 +3776,16 @@ body[data-mode=dark] .export-modal-keep:hover {
 .export-modal-keep:hover { background: oklch(0.93 0 0); }
 .export-modal-clear { background: oklch(0.55 0.16 25); color: oklch(0.99 0 0); border-color: oklch(0.45 0.16 25); }
 .export-modal-clear:hover { background: oklch(0.48 0.17 25); }
+.export-modal-actions .export-modal-forget {
+  margin-right: auto;
+  border-color: transparent;
+  background: none;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 2px;
+}
+.export-modal-actions .export-modal-forget:hover { color: oklch(0.5 0.16 25); }
 body[data-view=speaker] .annot-add { display: none !important; }
 #psiINT-add-note-btn {
   position: absolute;
@@ -6051,6 +6119,7 @@ by using it.</p>
 </section>
 <aside id="psiINT-notes-pane">
   <div id="psiINT-notes-resizer" role="separator" aria-orientation="horizontal" title="Drag to resize notes · double-click to reset"></div>
+  <div id="psiINT-notes-stale" role="status" hidden></div>
   <textarea id="psiINT-notes-content" rows="1" spellcheck="false" placeholder="" readonly></textarea>
   <div id="psiINT-notes-zoom">
     <button id="psiINT-notes-zoom-out" type="button" title="Smaller notes text" aria-label="Smaller notes text">&minus;</button>
@@ -6178,7 +6247,8 @@ The last line is the type's quiet register: a definition standing over the claim
       <dl>
         <dt data-row="notes-pane" data-cmd="notes-pane"><kbd>Shift</kbd>-<kbd>N</kbd></dt><dd>private notes for this chunk – never shown to the room</dd>
         <dt data-row="annotate" data-cmd="annotate"><kbd>N</kbd></dt><dd>annotation on the slide itself – it fills the frame while you type and the room reads along; an address in it gets a QR code</dd>
-        <dt data-row="export-annotations" data-cmd="export-annotations"><kbd>Shift</kbd>-<kbd>E</kbd></dt><dd>copy annotations out as Markdown for source.md</dd>
+        <dt data-row="export-annotations" data-cmd="export-annotations"><kbd>Shift</kbd>-<kbd>E</kbd></dt><dd>copy annotations and edited speaker notes out as Markdown for source.md</dd>
+        <dt data-row="forget-local-edits" data-cmd="forget-local-edits"><span class="help-nokey">no key</span></dt><dd>forget every speaker note edited here and every annotation draft of this lecture, in both windows, and show both as source.md has them – it asks first and cannot be undone, so export them with <kbd>Shift</kbd>-<kbd>E</kbd> first</dd>
       </dl>
     </section>
     <section>
@@ -9080,8 +9150,11 @@ const COMMANDS = [
     label: 'Copy the annotations as Markdown', reach: 'local',
     hint: {
       audience: 'copy the annotations typed with <kbd>N</kbd> out as Markdown for source.md',
-      speaker: 'copy annotations out as Markdown for source.md',
+      speaker: 'copy annotations and edited speaker notes out as Markdown for source.md',
     } },
+  { id: 'forget-local-edits', group: { audience: 'knobs', speaker: 'notes' }, views: BOTH, keys: [],
+    label: 'Forget all local edits – cannot be undone', reach: 'ungated',
+    hint: 'forget every speaker note edited here and every annotation draft of this lecture, in both windows, and show both as source.md has them – it asks first and cannot be undone, so export them with <kbd>Shift</kbd>-<kbd>E</kbd> first' },
   { id: 'notes-edit', group: 'notes', views: SPK,
     mouse: 'double-click the notes',
     hint: 'edit the notes here – one click does not, so a remote keeps turning pages; the wheel scrolls a long note, and <kbd>PgDn</kbd> <kbd>PgUp</kbd> leave the field mid-edit' },
@@ -9657,6 +9730,7 @@ const viewHooks = {
   escapePrompter: () => false,
   onPeerChange: (live) => {},
   onPeerBoot: (greeted) => {},
+  onLocalEditsForgotten: () => {},
 };
 const stage = document.getElementById('psiINT-stage');
 const viewport = document.getElementById('psiINT-stage-viewport');
@@ -9735,6 +9809,7 @@ const DARK_THEMES = ["dark","terminal-amber","terminal-green"];
 let openExp = null;
 let annotEditingId = null;
 let annotations = {};
+let annotationBases = {};
 const revealed = {};
 let overview = false;
 let overviewScale = 0.28;
@@ -9799,6 +9874,153 @@ function loadPersisted() {
 }
 function saveAnnotations() {
   try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
+}
+const ANNOT_BASES_KEY = storageKey('annotation-bases');
+function loadAnnotationBases() {
+  try {
+    const raw = localStorage.getItem(ANNOT_BASES_KEY);
+    const v = raw ? JSON.parse(raw) : {};
+    annotationBases = v && typeof v === 'object' ? v : {};
+  } catch (e) { annotationBases = {}; }
+}
+function saveAnnotationBases() {
+  try {
+    if (Object.keys(annotationBases).length) localStorage.setItem(ANNOT_BASES_KEY, JSON.stringify(annotationBases));
+    else localStorage.removeItem(ANNOT_BASES_KEY);
+  } catch (e) {}
+}
+function annotTextareaOf(id) {
+  const entry = flatChunks.find(c => c.id === id);
+  return entry ? entry.el.querySelector('.annot-textarea') : null;
+}
+function annotSourceOf(id) {
+  const ta = annotTextareaOf(id);
+  return ta ? ta.defaultValue : '';
+}
+function annotDraftStale(id) {
+  if (!(id in annotations)) return null;
+  const src = annotSourceOf(id);
+  if (id in annotationBases) return annotationBases[id] === src ? null : 'moved';
+  return src.trim() && (annotations[id] || '').trim() !== src.trim() ? 'unknown' : null;
+}
+function settleAnnotationDrafts() {
+  let drafts = false, bases = false;
+  for (const id of Object.keys(annotations)) {
+    const ta = annotTextareaOf(id);
+    if (!ta) continue;
+    const src = ta.defaultValue;
+    if ((annotations[id] || '').trim() === src.trim()) {
+      delete annotations[id]; drafts = true;
+      if (id in annotationBases) { delete annotationBases[id]; bases = true; }
+    } else if (!(id in annotationBases) && !src.trim()) {
+      annotationBases[id] = ''; bases = true;
+    }
+  }
+  for (const id of Object.keys(annotationBases)) {
+    if (!(id in annotations)) { delete annotationBases[id]; bases = true; }
+  }
+  if (drafts) saveAnnotations();
+  if (bases) saveAnnotationBases();
+}
+function rebaseAnnotationDraft(id) {
+  if (!(id in annotations)) return;
+  annotationBases[id] = annotSourceOf(id);
+  saveAnnotationBases();
+}
+function dropAnnotationDraft(id) {
+  delete annotations[id];
+  delete annotationBases[id];
+  const ta = annotTextareaOf(id);
+  if (ta) {
+    ta.value = ta.defaultValue;
+    const entry = flatChunks.find(c => c.id === id);
+    entry.el.classList.toggle('has-annot', !!ta.value.trim());
+    autosize(ta);
+  }
+}
+const NOTE_OVERRIDE_PREFIX = storageKey('speakernote:');
+const NOTE_BASE_PREFIX = storageKey('speakernote-base:');
+function storedKeysWith(prefix) {
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) out.push(k);
+    }
+  } catch (e) {}
+  return out;
+}
+function localEditCounts() {
+  return { notes: storedKeysWith(NOTE_OVERRIDE_PREFIX).length, annots: Object.keys(annotations).length };
+}
+function forgetLocalEditsHere() {
+  for (const k of storedKeysWith(NOTE_OVERRIDE_PREFIX).concat(storedKeysWith(NOTE_BASE_PREFIX))) {
+    try { localStorage.removeItem(k); } catch (e) {}
+  }
+  for (const id of Object.keys(annotations)) dropAnnotationDraft(id);
+  annotationBases = {};
+  try {
+    localStorage.removeItem(storageKey('annotations'));
+    localStorage.removeItem(ANNOT_BASES_KEY);
+  } catch (e) {}
+  viewHooks.onLocalEditsForgotten();
+}
+function forgetLocalEdits() {
+  const n = localEditCounts();
+  if (!n.notes && !n.annots) {
+    flashMode('nothing to forget – notes and annotations are as source.md has them');
+    return;
+  }
+  showForgetModal(n, () => {
+    forgetLocalEditsHere();
+    sendToPeer({ type: 'forget-local-edits', source: VIEW });
+    broadcastState();
+    flashMode('local edits forgotten – notes and annotations are as source.md has them');
+  });
+}
+const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+function showForgetModal(n, onConfirm) {
+  document.getElementById('psiINT-forget-modal')?.remove();
+  const host = document.createElement('div');
+  host.id = 'psiINT-forget-modal';
+  host.setAttribute('role', 'alertdialog');
+  host.setAttribute('aria-modal', 'true');
+  const inner = document.createElement('div');
+  inner.className = 'forget-modal-inner';
+  const head = document.createElement('h2');
+  head.className = 'forget-modal-head';
+  head.textContent = 'Forget all local edits?';
+  const what = [];
+  if (n.notes) what.push(plural(n.notes, 'edited speaker note', 'edited speaker notes'));
+  if (n.annots) what.push(plural(n.annots, 'annotation draft', 'annotation drafts'));
+  const body = document.createElement('p');
+  body.className = 'forget-modal-body';
+  body.textContent = 'This browser keeps ' + what.join(' and ') + ' for this lecture. '
+    + 'They go from both windows, and the notes and annotations are then exactly what source.md says. '
+    + 'This cannot be undone – to keep them, export them first with Shift-E.';
+  const actions = document.createElement('div');
+  actions.className = 'forget-modal-actions';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'forget-modal-cancel';
+  cancel.textContent = 'Cancel';
+  const go = document.createElement('button');
+  go.type = 'button';
+  go.className = 'forget-modal-danger';
+  go.textContent = 'Forget ' + plural(n.notes + n.annots, 'local edit', 'local edits');
+  const close = () => host.remove();
+  cancel.addEventListener('click', close);
+  go.addEventListener('click', () => { close(); onConfirm(); });
+  actions.append(cancel, go);
+  inner.append(head, body, actions);
+  host.appendChild(inner);
+  host.addEventListener('click', (e) => { if (e.target === host) close(); });
+  host.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { close(); e.preventDefault(); }
+    e.stopPropagation();
+  });
+  document.body.appendChild(host);
+  cancel.focus();
 }
 function saveActive() {
   if (viewHooks.lookingAhead()) return;
@@ -10048,7 +10270,19 @@ function applyRemoteStateNow(payload, changed) {
       setSlideRef(payload.audienceW, payload.audienceH);
     }
     replaceContents(revealed, payload.revealed);
+    const draftsBefore = Object.assign({}, annotations);
     replaceContents(annotations, payload.annotations);
+    {
+      let moved = false;
+      const typing = payload.annotEditingId;
+      if (typing && (typing in annotations) && !(typing in draftsBefore) && !(typing in annotationBases)) {
+        annotationBases[typing] = annotSourceOf(typing); moved = true;
+      }
+      for (const id of Object.keys(annotationBases)) {
+        if (!(id in annotations)) { delete annotationBases[id]; moved = true; }
+      }
+      if (moved) saveAnnotationBases();
+    }
     flatChunks.forEach(c => {
       const ta = c.el.querySelector('.annot-textarea');
       if (!ta) return;
@@ -10134,6 +10368,7 @@ window.addEventListener('message', (ev) => {
   if (m.type === 'press') { viewHooks.onPress(true); return; }
   if (m.type === 'ping') { if (hadPeer) sendToPeer({ type: 'pong', source: VIEW }); return; }
   if (m.type === 'pong') return;
+  if (m.type === 'forget-local-edits') { forgetLocalEditsHere(); return; }
   if (m.type === 'video') { applyRemoteVideo(m); return; }
   if (m.type === 'diagram-edit') {
     if (window.psiApplyDiagramEdit) window.psiApplyDiagramEdit(m);
@@ -11431,6 +11666,8 @@ function blurAnnotation() {
   }
 }
 function wireAnnotations() {
+  loadAnnotationBases();
+  settleAnnotationDrafts();
   flatChunks.forEach(({ el, id }) => {
     const ta = el.querySelector('.annot-textarea');
     if (!ta) return;
@@ -11438,6 +11675,7 @@ function wireAnnotations() {
     if (ta.value.trim()) el.classList.add('has-annot');
     autosize(ta);
     ta.addEventListener('input', () => {
+      if (!(id in annotations)) { annotationBases[id] = ta.defaultValue; saveAnnotationBases(); }
       annotations[id] = ta.value;
       if (el.classList.contains('annot-visible')) fitAnnotation(flatChunks.find(c => c.id === id));
       else autosize(ta);
@@ -12766,6 +13004,7 @@ const COMMAND_RUN = {
   'demo-switch': (e) => { switchDemo(); e.preventDefault(); },
   'demo-end': (e) => { endDemo(); if (e) e.preventDefault(); },
   'export-annotations': (e) => { exportAnnotationsPlain(); e.preventDefault(); },
+  'forget-local-edits': (e) => { forgetLocalEdits(); if (e) e.preventDefault(); },
   'cockpit': (e) => {
     e.preventDefault();
     if (hasLivePeer()) { try { peer.focus(); } catch (err) {} return; }
@@ -13069,7 +13308,7 @@ function fitFocusedMath(card) {
 }
 function collectAnnotationDrafts() {
   const out = [];
-  flatChunks.forEach(({ id, el }) => {
+  flatChunks.forEach(({ id, el }, at) => {
     if (!id) return;
     if (!(id in annotations)) return;
     const text = (annotations[id] || '').trim();
@@ -13077,23 +13316,51 @@ function collectAnnotationDrafts() {
     const sourceDefault = ta ? (ta.defaultValue || '').trim() : '';
     if (!text && !sourceDefault) return;
     if (text === sourceDefault) return;
-    out.push({ id, text });
+    out.push({ id, at, text, base: id in annotationBases ? annotationBases[id] : undefined });
   });
   return out;
 }
-function buildAnnotationSnippet(drafts) {
+function snippetBaseLine(kind, text) {
+  return '<!-- ' + kind + '-base: '
+    + JSON.stringify(String(text)).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') + ' -->';
+}
+function buildAnnotationSnippet(drafts, notes = []) {
+  const byId = new Map();
+  const slot = (item) => {
+    if (!byId.has(item.id)) byId.set(item.id, { id: item.id, at: item.at ?? 0 });
+    return byId.get(item.id);
+  };
+  drafts.forEach(d => { slot(d).annot = d; });
+  notes.forEach(n => { slot(n).note = n; });
+  const sections = [...byId.values()].sort((a, b) => a.at - b.at);
   const lines = ['<!-- annotations:start -->', ''];
-  drafts.forEach(({ id, text }, i) => {
+  sections.forEach(({ id, annot, note }, i) => {
     if (i > 0) lines.push('');
     lines.push('### ' + id);
-    if (text) {
-      text.split('\n').forEach(l => lines.push('> annot: ' + l));
-    } else {
-      lines.push('> annot:');
+    if (annot) {
+      if (annot.base !== undefined) lines.push(snippetBaseLine('annot', annot.base));
+      if (annot.text) {
+        annot.text.split('\n').forEach(l => lines.push('> annot: ' + l));
+      } else {
+        lines.push('> annot:');
+      }
+    }
+    if (note) {
+      if (annot) lines.push('');
+      if (note.base !== undefined) lines.push(snippetBaseLine('note', note.base));
+      const nl = (note.text || '').trim().split('\n');
+      if (!nl[0]) lines.push('> note:');
+      else nl.forEach((l, k) => lines.push(k ? (l ? '> ' + l : '>') : '> note: ' + l));
     }
   });
   lines.push('', '<!-- annotations:end -->', '');
   return lines.join('\n');
+}
+function exportedWhat(annots, notes) {
+  const what = [];
+  if (annots) what.push(plural(annots, 'annotation', 'annotations'));
+  if (notes) what.push(plural(notes, 'speaker note', 'speaker notes'));
+  return what.join(' and ');
 }
 async function copyToClipboardSafe(text) {
   try {
@@ -13119,13 +13386,18 @@ async function copyToClipboardSafe(text) {
 }
 async function exportAnnotationsPlain() {
   const drafts = collectAnnotationDrafts();
-  if (!drafts.length) { showModeBadge('no live annotations to export – type some with N first'); return; }
+  const notesElsewhere = storedKeysWith(NOTE_OVERRIDE_PREFIX).length > 0;
+  const there = ' – edited speaker notes are exported from the cockpit\'s Shift-E';
+  if (!drafts.length) {
+    showModeBadge(notesElsewhere ? 'no live annotations to export' + there : 'no live annotations to export – type some with N first');
+    return;
+  }
   const snippet = buildAnnotationSnippet(drafts);
   const ok = await copyToClipboardSafe(snippet);
   if (!ok) console.log(snippet);
-  showModeBadge(ok
-    ? drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied – paste at the end of source.md, then --integrate-annotations'
-    : 'clipboard blocked – the Markdown is in the console');
+  showModeBadge((ok
+    ? exportedWhat(drafts.length, 0) + ' copied – paste at the end of source.md, then --integrate-annotations'
+    : 'clipboard blocked – the Markdown is in the console') + (notesElsewhere ? there : ''));
 }
 figureOverlay.addEventListener('dragstart', (e) => e.preventDefault());
 figureOverlay.addEventListener('pointerdown', (e) => {
@@ -13520,22 +13792,17 @@ function flashCenter(text, opts = {}) {
     centerToast.classList.remove('visible', 'warn');
   }, opts.duration || 1800);
 }
-function clearExportedDrafts(drafts) {
-  drafts.forEach(({ id }) => {
-    delete annotations[id];
-    const entry = flatChunks.find(c => c.id === id);
-    if (entry) {
-      const ta2 = entry.el.querySelector('.annot-textarea');
-      if (ta2) {
-        ta2.value = ta2.defaultValue;
-        entry.el.classList.toggle('has-annot', !!ta2.value.trim());
-        autosize(ta2);
-      }
-    }
-  });
+function clearExportedDrafts(drafts, notes = []) {
+  drafts.forEach(({ id }) => dropAnnotationDraft(id));
   saveAnnotations();
+  saveAnnotationBases();
   broadcastState();
-  flashCenter('drafts cleared');
+  for (const { id } of notes) {
+    try { localStorage.removeItem(noteOverrideKey(id)); localStorage.removeItem(noteBaseKey(id)); } catch (e) {}
+  }
+  if (notes.length) notesRedraw();
+  else refreshLocalEditHint();
+  flashCenter(notes.length ? 'exported edits cleared' : 'drafts cleared');
 }
 function sourcePathForCommand() {
   try {
@@ -13546,7 +13813,7 @@ function sourcePathForCommand() {
     return '<path-to>/source.md';
   }
 }
-function showExportModal({ drafts, snippet, clipboardOk }) {
+function showExportModal({ drafts, notes = [], snippet, clipboardOk }) {
   let host = document.getElementById('psiINT-export-modal');
   if (host) host.remove();
   host = document.createElement('div');
@@ -13556,7 +13823,7 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
   const head = document.createElement('h2');
   head.className = 'export-modal-head';
   head.textContent = clipboardOk
-    ? drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied to clipboard'
+    ? exportedWhat(drafts.length, notes.length) + ' copied to clipboard'
     : 'Clipboard blocked – copy manually below';
   inner.appendChild(head);
   const intro = document.createElement('p');
@@ -13636,10 +13903,16 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
   inner.appendChild(details);
   const warn = document.createElement('p');
   warn.className = 'export-modal-warn';
-  warn.textContent = 'Clear Drafts removes the annotations from localStorage. Do this only after the notes are safely in source.md.';
+  warn.textContent = 'Clear Drafts removes the exported annotations and speaker notes from this browser. Do this only after they are safely in source.md.';
   inner.appendChild(warn);
   const actions = document.createElement('div');
   actions.className = 'export-modal-actions';
+  const forgetBtn = document.createElement('button');
+  forgetBtn.type = 'button';
+  forgetBtn.className = 'export-modal-forget';
+  forgetBtn.textContent = 'Forget all local edits…';
+  forgetBtn.addEventListener('click', () => { host.remove(); forgetLocalEdits(); });
+  actions.appendChild(forgetBtn);
   const keepBtn = document.createElement('button');
   keepBtn.type = 'button';
   keepBtn.className = 'export-modal-keep';
@@ -13651,7 +13924,7 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
   clearBtn.className = 'export-modal-clear';
   clearBtn.textContent = 'Clear drafts now';
   clearBtn.addEventListener('click', () => {
-    clearExportedDrafts(drafts);
+    clearExportedDrafts(drafts, notes);
     host.remove();
   });
   actions.appendChild(clearBtn);
@@ -13665,18 +13938,20 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
 }
 async function exportAnnotations() {
   const drafts = collectAnnotationDrafts();
-  if (!drafts.length) {
-    flashCenter('No live annotations to export – type some with N first.', { warn: true, duration: 2600 });
+  const notes = collectNoteOverrides();
+  if (!drafts.length && !notes.length) {
+    flashCenter('Nothing to export – no annotation drafts (N) and no edited speaker notes.', { warn: true, duration: 2600 });
     return;
   }
-  const snippet = buildAnnotationSnippet(drafts);
+  const snippet = buildAnnotationSnippet(drafts, notes);
   const copied = await copyToClipboardSafe(snippet);
-  showExportModal({ drafts, snippet, clipboardOk: copied });
+  showExportModal({ drafts, notes, snippet, clipboardOk: copied });
 }
 const exportAnnotBtn = document.getElementById('psiINT-export-annot-btn');
 if (exportAnnotBtn) exportAnnotBtn.addEventListener('click', exportAnnotations);
 document.getElementById('psiINT-speaker-help-btn')?.addEventListener('click', () => toggleHelp(true));
 const noteOverrideKey = (id) => storageKey('speakernote:' + id);
+const noteBaseKey = (id) => storageKey('speakernote-base:' + id);
 function sourceNotesFor(id) {
   const tmpl = document.querySelector(`template[data-notes-for="${id}"]`);
   return tmpl ? tmpl.content.textContent : '';
@@ -13687,6 +13962,110 @@ function loadNotesFor(id) {
     return raw !== null ? raw : sourceNotesFor(id);
   } catch (e) { return sourceNotesFor(id); }
 }
+function storedNote(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+function noteStale(id) {
+  const override = storedNote(noteOverrideKey(id));
+  if (override === null) return null;
+  const src = sourceNotesFor(id);
+  const base = storedNote(noteBaseKey(id));
+  if (base !== null) return base === src ? null : 'moved';
+  return src.trim() && override.trim() !== src.trim() ? 'unknown' : null;
+}
+function settleNoteOverrides() {
+  for (const { id } of flatChunks) {
+    if (!id) continue;
+    const override = storedNote(noteOverrideKey(id));
+    const base = storedNote(noteBaseKey(id));
+    try {
+      if (override === null) {
+        if (base !== null) localStorage.removeItem(noteBaseKey(id));
+        continue;
+      }
+      const src = sourceNotesFor(id);
+      if (override.trim() === src.trim()) {
+        localStorage.removeItem(noteOverrideKey(id));
+        localStorage.removeItem(noteBaseKey(id));
+      } else if (base === null && !src.trim()) {
+        localStorage.setItem(noteBaseKey(id), '');
+      }
+    } catch (e) {}
+  }
+}
+settleNoteOverrides();
+function collectNoteOverrides() {
+  const out = [];
+  flatChunks.forEach(({ id }, at) => {
+    if (!id) return;
+    const override = storedNote(noteOverrideKey(id));
+    if (override === null || override.trim() === sourceNotesFor(id).trim()) return;
+    const base = storedNote(noteBaseKey(id));
+    out.push({ id, at, text: override.trim(), base: base === null ? undefined : base });
+  });
+  return out;
+}
+const localEditHint = document.getElementById('psiINT-notes-stale');
+const STALE_WORDS = {
+  note: { moved: 'source.md changed since you edited these notes', unknown: 'source.md may have changed since you edited these notes' },
+  annot: { moved: 'source.md changed since your annotation draft', unknown: 'source.md may have changed since your annotation draft' },
+};
+function localEditHintRow(kind, how, keep, use) {
+  const row = document.createElement('div');
+  row.className = 'notes-stale-row';
+  row.dataset.kind = kind;
+  const text = document.createElement('span');
+  text.className = 'notes-stale-text';
+  text.textContent = STALE_WORDS[kind][how];
+  const mk = (label, cls, fn) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    return b;
+  };
+  row.append(text, mk('keep mine', 'notes-stale-keep', keep), mk('use source', 'notes-stale-use', use));
+  return row;
+}
+function refreshLocalEditHint() {
+  if (!localEditHint) return;
+  const entry = flatChunks[state.activeIdx];
+  localEditHint.replaceChildren();
+  if (entry && entry.id) {
+    const id = entry.id;
+    const n = noteStale(id);
+    if (n) localEditHint.appendChild(localEditHintRow('note', n, () => {
+      try { localStorage.setItem(noteBaseKey(id), sourceNotesFor(id)); } catch (e) {}
+      refreshLocalEditHint();
+    }, () => {
+      try { localStorage.removeItem(noteOverrideKey(id)); localStorage.removeItem(noteBaseKey(id)); } catch (e) {}
+      notesRedraw();
+    }));
+    const a = annotDraftStale(id);
+    if (a) localEditHint.appendChild(localEditHintRow('annot', a, () => {
+      rebaseAnnotationDraft(id);
+      refreshLocalEditHint();
+    }, () => {
+      dropAnnotationDraft(id);
+      saveAnnotations();
+      saveAnnotationBases();
+      broadcastState();
+      refreshLocalEditHint();
+    }));
+  }
+  localEditHint.hidden = !localEditHint.firstChild;
+  autoSizeNotes();
+}
+function notesRedraw() {
+  populateNotesPane();
+  cueMarks = null;
+  cueSync();
+}
+viewHooks.onLocalEditsForgotten = () => {
+  notesRedraw();
+};
+COMMAND_RUN['forget-local-edits'] = (e) => { forgetLocalEdits(); if (e) e.preventDefault(); };
 const NOTES_MIN_LINES = 1;
 const NOTES_MAX_LINES = 3;
 const NOTES_CSS_SIZED = !!(window.CSS && CSS.supports && CSS.supports('field-sizing', 'content'));
@@ -13697,7 +14076,8 @@ function autoSizeNotes() {
   const hasText = notesContent.value.trim().length > 0;
   const sized = document.body.classList.contains('notes-sized');
   const editing = !notesContent.readOnly || document.activeElement === notesContent;
-  document.body.classList.toggle('has-notes', sized || hasText || editing);
+  const stale = !!localEditHint && !localEditHint.hidden;
+  document.body.classList.toggle('has-notes', sized || hasText || editing || stale);
   if (NOTES_CSS_SIZED && NOTES_CSS_MORE) return;
   if (!notesFrame) notesFrame = requestAnimationFrame(measureNotes);
 }
@@ -13721,7 +14101,7 @@ if (!NOTES_CSS_MORE) notesContent.addEventListener('scroll', markNotesMore, { pa
 function populateNotesPane() {
   const entry = flatChunks[state.activeIdx];
   notesContent.value = entry ? loadNotesFor(entry.id) : '';
-  autoSizeNotes();
+  refreshLocalEditHint();
   if (!notesTopFrame) notesTopFrame = requestAnimationFrame(() => {
     notesTopFrame = 0;
     notesContent.scrollTop = 0;
@@ -13730,7 +14110,12 @@ function populateNotesPane() {
 notesContent.addEventListener('input', () => {
   const entry = flatChunks[state.activeIdx];
   if (entry) {
-    try { localStorage.setItem(noteOverrideKey(entry.id), notesContent.value); } catch (e) {}
+    try {
+      if (localStorage.getItem(noteOverrideKey(entry.id)) === null) {
+        localStorage.setItem(noteBaseKey(entry.id), sourceNotesFor(entry.id));
+      }
+      localStorage.setItem(noteOverrideKey(entry.id), notesContent.value);
+    } catch (e) {}
     cueMarks = null;
     cueSync();
   }
@@ -14482,6 +14867,11 @@ previewResizer?.addEventListener('dblclick', () => {
 updateScrubber();
 populateNotesPane();
 populatePreviewStrip();
+{
+  const stale = flatChunks.filter(c => c.id && (noteStale(c.id) || annotDraftStale(c.id))).length;
+  if (stale) flashCenter('source.md changed under your local edits on ' + plural(stale, 'slide', 'slides')
+    + ' – the line over the notes says so on each', { duration: 4200 });
+}
 let resizeTimer = null;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
