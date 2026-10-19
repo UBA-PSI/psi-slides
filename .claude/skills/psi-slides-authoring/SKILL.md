@@ -275,6 +275,30 @@ the line still fits - never the lecturer's zoom, which is global and comes back
 on the next chunk. So a heavily clamped chunk reads smaller than its neighbours,
 and the fix is to break the line rather than to make the runtime try harder.
 
+**A short listing on a slide of its own can be larger.** A heading and five
+lines of code leave most of the frame empty, with the listing at the body mono
+size. Two `style:` keys answer it, separately, because they are two questions:
+
+```yaml
+style:
+  code-fit: 1.6     # a top-level listing may grow to 1.6x its own size
+  spacing: even     # the free height a third above, between and below
+```
+
+`code-fit` grows a listing in steps of 0.2 only while the slide still fits the
+frame and no line is wider than its box, so a long listing stays as it is and
+the prose around it never changes size; the line budget shrinks with the step
+(about 48 characters at 1.6), so a listing meant to grow wants short lines.
+`spacing: even` moves the heading away from the body – right for a slide that
+is a heading and one block, less so for a slide of prose, where the heading
+belongs with its paragraph. Both have per-chunk classes: `.code-fit-140` (any
+tenth from `.code-fit-100`, which declines a deck-wide value, to
+`.code-fit-200`) and `.spacing-even` / `.spacing-compact`. A slide whose listing
+arrives on a later press gets its size from the start, so nothing jumps. Pair
+it with `.blocks-left` when the listing should start on the heading's edge.
+Projection only: print keeps the listing at its size. The `psi-slides-appearance`
+skill has the mechanics.
+
 The live views do **not** print the type name on screen. Do not write prose that
 depends on the audience seeing the word DEFINITION.
 

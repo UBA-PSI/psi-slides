@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Twenty-six gates, about three seconds,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 58 specs, about 2,110
+- **`test/`** – the things that only break in a built page. 59 specs, about 2,110
   assertions, about four minutes on a twelve-core machine with six specs at a
   time (about eleven minutes one at a time). Three of them, `souffleuse`,
   `live-trust` and `watch-resume`, start an engine of their own beside their
@@ -268,7 +268,7 @@ so a bare `requestFullscreen` there is granted and measures nothing.
 **The geometry the live chrome leaves the slide** – `expansion`, `marginalia`,
 `annotation` (the note typed with `N` fills the frame, sized from its text, with
 a QR code for an address, and in the cockpit fills the stage rather than the
-window), `touch-rail`, `math-focus`, `block-align`, `auto-fit`, `camera-fit`,
+window), `touch-rail`, `math-focus`, `block-align`, `code-fit`, `auto-fit`, `camera-fit`,
 `side-anchor`, `cards`, `dock`, `bleed`, `beats-nested`, `beats-footnote`,
 `squint`, `text-select` (what a pointer gesture means while Alt is held).
 
@@ -390,7 +390,7 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The twenty-six specs that build a deck of their own
+### The twenty-seven specs that build a deck of their own
 
 Four different reasons, and the last is the one to remember.
 
@@ -473,7 +473,13 @@ to its canvas, one well inside it and one with a caption riding it, and a
 lecture that had all three would stop having them at the next edited label)
 and `document` (no lecture is a `kind: document`, and a syllabus's shape - five
 margin notes in one part, one a picture, two written back to back - is the
-fixture's whole point).
+fixture's whole point) and `code-fit` (no lecture sets `style: {code-fit}` or
+`spacing: even`, and the claims are measurements on listings chosen for them: a
+four-line one that grows to the ceiling while its slide keeps its zoom, a
+twenty-line one and one with a 70-character line that do not grow, the free
+height in three equal parts, the same size and place on both beats of a slide
+whose listing arrives on the second press, a chunk declining both with
+`.code-fit-100 .spacing-compact`, and the cockpit's stage agreeing).
 
 `pitchblack` is here too (a card row, a figure with a `.tone-2` box and a
 frontmatter that pins nothing, then one that pins `theme` and `pitchblack`:

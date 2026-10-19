@@ -1,6 +1,6 @@
 ---
 name: psi-slides-appearance
-description: 'How a psi-slides lecture''s look is configured and where it lives in `build.js` – the bundled webfont roster and the `fonts:` block (and author-supplied files in `fonts/`), the `display` role that gives a cover and a section divider a face of their own and its measured `size-adjust`, `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the eleven viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` / `print-neutrals`, `display-scale`, the look of a bold phrase (`bold`, `print-bold`) and of an inline code span (`code`), the chunk classes that answer `wrap`, `blocks` and `figure-type` for one slide, and the recipe for the 1.0.0 look. Use when changing the font roster, `BUNDLED_FONTS`, `FONT_ROLES`, `DISPLAY_LH`, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.'
+description: 'How a psi-slides lecture''s look is configured and where it lives in `build.js` – the bundled webfont roster and the `fonts:` block (and author-supplied files in `fonts/`), the `display` role that gives a cover and a section divider a face of their own and its measured `size-adjust`, `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the eleven viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` / `print-neutrals`, `display-scale`, the look of a bold phrase (`bold`, `print-bold`) and of an inline code span (`code`), the per-chunk classes for `wrap`, `blocks`, `figure-type`, `code-fit` and `spacing`, and the recipe for the 1.0.0 look. Use when changing the font roster, `BUNDLED_FONTS`, `FONT_ROLES`, `DISPLAY_LH`, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.'
 ---
 
 # Type, themes and viewer defaults in psi-slides
@@ -367,7 +367,7 @@ The tag word above a chunk is **two different things wearing one name**, and a s
 
 ## Where the blocks sit (`style.blocks`), and the two keys a chunk can answer
 
-`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` for the words and `STYLE_NUM_SPEC` for the bounded numbers (a value lint.js cannot read as a finite number is not reported at all – the leniency runs in the safe direction, since what it passes and the build refuses fails at the build with the same message). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `print-marginalia` (margin/inline; `margin` in every print view, the footnotes included), `neutrals` and `print-neutrals` (neutral/tinted/warm/cool), `headline` (stacked/eyebrow), `caps` (off/on), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `code` (plain/tint/spaced), `heading-scale` and `body-scale` (0.6–1.8), `figure-type` (0.6–1.6).
+`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` for the words and `STYLE_NUM_SPEC` for the bounded numbers (a value lint.js cannot read as a finite number is not reported at all – the leniency runs in the safe direction, since what it passes and the build refuses fails at the build with the same message). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `print-marginalia` (margin/inline; `margin` in every print view, the footnotes included), `neutrals` and `print-neutrals` (neutral/tinted/warm/cool), `headline` (stacked/eyebrow), `caps` (off/on), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `code` (plain/tint/spaced), `spacing` (compact/even), `heading-scale` and `body-scale` (0.6–1.8), `figure-type` (0.6–2.0), `display-scale` (0.6–1.8), `code-fit` (1–2).
 
 **`blocks` reaches a `::: draw` now, and that is new.** It used to be listed as the one block it could not touch, because the `<svg>` was emitted 2000px wide under `max-width: 100%` and filled the measure at every chunk width – there was no space beside it to align in. Both media size a drawing from its type now, so the box hugs the picture and `left` puts it on the prose's own axis like a code block or a formula.
 
@@ -429,6 +429,82 @@ moves the slide's body type and leaves the labels exactly where they were.
 Turning it down therefore widens a canvas and shrinks an overshoot, and does
 nothing at all for a drawing whose own labels are under 18 px. The build says
 both, separately.
+
+## A short listing on a slide with room (`style.code-fit`, `style.spacing`)
+
+**Two keys for one complaint, because they are two questions.** A `.wide` chunk
+that is a heading and an eight-line listing stands, at 1600×900, with the
+listing at the body mono size (about 25 px), one block gap under the heading,
+and the pair centred – 250 px of empty frame above and below. `auto-fit: shrink`
+cannot help: it only takes size away. `auto-fit: true` grows the heading and
+the prose with the code, which is a different slide.
+
+- **`code-fit: N`** (1–2, default 1, which is no growth) lets a top-level
+  listing grow, after the zoom is settled, to at most N times its own size.
+  In steps of 0.2 – 1.2, 1.4, … and N itself – tried from the largest down, and
+  a step is taken only while the slide still passes the test the zoom fit holds
+  it to: its height inside the frame (`fitAvail`, `flowHeightProbe`) and no line
+  wider than its box (`nowrapProbe`). Steps rather than a solved size, so two
+  neighbouring slides with listings of about the same length come out the same
+  size rather than 1.47 and 1.52. A long listing does not grow because the
+  first step already fails, and neither does one whose longest line would pass
+  the 78-character budget at that step – at 1.6 the budget is about 48.
+  The zoom is decided first and without it, so the prose on the slide is the
+  size it would have been, and growing a listing never moves its slide's zoom.
+- **`spacing: even`** (default `compact`, today's rendering) gives the frame's
+  free height out in three equal parts: above the heading, between the heading
+  and the body, under the body. The camera centres the content box, so the
+  whole of it is one margin under the heading, a third of the free height
+  (`--spread-gap`). No heading on the slide (`.bare`, `headings: off`) is one
+  block, and one block centred is already even.
+
+Order is fixed: the zoom, then the listing, then the spacing out of what is
+left. Measured on `infeinfb/10-c` at 1600×900 under `auto-fit: shrink`, with
+`code-fit: 1.6` and `spacing: even`: `hello.c` (8 lines) went from 24.6 to
+39.4 px with 106 px above the heading, under it and under the body; a 4-line
+`for` loop to 39.4 px with 177 px each; a 12-line `if/else` to 1.4 (34.5 px),
+filling the frame; a 19-line solution did not grow.
+
+**Per chunk:** `.code-fit-100` … `.code-fit-200` in tenths, spelled as per cent
+like the figure-type classes (`.code-fit-100` declines a deck-wide value), and
+`.spacing-even` / `.spacing-compact`. The chunk carries `data-code-fit="140"`
+and `data-spacing="even"`; the deck-wide keys put the same attributes on
+`<body>`, and the runtime reads the chunk's first.
+
+**Not a camera question, though it looks like one.** `chunkOpensCentred`,
+`.middle` / `.top` and `focusCamera` decide where the content *box* sits in the
+frame; the distance between two things inside the box is the layout's, and no
+transform can change it. What spacing does settle is the anchor: a chunk laid
+out against the frame has nothing left for `.middle` to centre, and framing
+what beat 0 paints would pull the heading off the place the spacing gave it.
+So under `even` the parser resolves an unwritten anchor to the box (a
+`statement:` or a picture slide no longer opens centred); an explicit `.middle`
+still wins.
+
+**What it measures is the final box**, because a segment past the current beat
+keeps its box (`visibility: hidden`): a listing that arrives on the second
+press has its size and its place on the first, and the spacing does not move
+per beat. It skips the chunks whose box is not a column of type – the cover,
+the closing slide, a divider, a chunk with a dock or a panel, `.bleed`, an open
+expansion, an annotation being typed.
+
+**Where it lives.** `runtime/block-fit.js` and `runtime/block-fit.css`, spliced
+into both live views after their own script and sheet, and only when
+`usesBlockFit` says the deck writes either key or one of the classes – the
+souffleuse treatment, so a deck that does not builds the bytes it did and the
+tracked views do not move. That is also why the script *wraps*
+`fitZoomToChunk`, `clampZoomToWidth` and `focusCamera` by reassignment rather
+than being called from them: the two fits clear what it wrote before they
+measure (a zoom solved against a grown listing would be another zoom) and solve
+again after, and the camera solves only when the zoom, the frame, the face,
+the theme, the collapse, an expansion or an annotation changed since the last
+solve, because it also runs on every pointermove of a stage drag. The PDF
+export settles through the same two fits and gets the same slides. **Print does
+not read either key**: a page has no frame to fill. The cockpit's stage gives
+the projection's answer (same layout, scaled); its preview thumbnails show the
+listing at its base size, the way they show the deck's zoom rather than a
+slide's fitted one. `test/code-fit.mjs` measures it; `test/settings.mjs` holds
+the attributes, the refusals and the splice.
 
 ## The three figure reports
 

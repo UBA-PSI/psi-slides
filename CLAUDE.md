@@ -338,7 +338,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # this block, and `engine-files` holds ENGINE_FILES – the list of the files
 # build.js reads beside itself, which assertEngineComplete checks at the head
 # of every build – equal to every such read in build.js.
-# test/ is the things that only break in a built page - 58 specs, about four
+# test/ is the things that only break in a built page - 59 specs, about four
 # minutes: six at a time by default (--jobs N, half the cores, at most six),
 # each in a child process with its own Chromium, and the nine that export
 # `serial = true` alone afterwards; --jobs 1 is the old one-browser run. Three
@@ -371,7 +371,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # createSpanTable, or anything that moves a label or an extent. Anything
 # checkable without a browser belongs in lint.js or in test/gates/, never here.
 #
-# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the twenty-six specs that build a
+# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the twenty-seven specs that build a
 # deck of their own rather than hunting shapes in a real one: test/README.md.
 npm run gate                                   # all gates
 npm run test:coverage                          # browser-free suites under c8, a
@@ -861,7 +861,9 @@ and the pair `.middle` / `.top` (audience-only), `.wrap-none` / `.wrap-balance` 
 `.blocks-center` (`CHUNK_STYLE_CLASSES`, a `style:` key answered for one chunk,
 and these four reach print), and `.figure-type-60` … `.figure-type-200`, the
 same idea for a key whose value is a number – fifteen steps spelled as per cent,
-generated from `FIGURE_TYPE_STEPS`, live-only because the key is. The whole tail
+generated from `FIGURE_TYPE_STEPS`, live-only because the key is, and in the
+same two shapes `.code-fit-100` … `.code-fit-200` (`CODE_FIT_STEPS`) and
+`.spacing-compact` / `.spacing-even`, live-only too. The whole tail
 vocabulary is `CHUNK_SLOTS` in
 `tails.mjs`, a slot table like the five directives': width is a slot of four,
 each style key a slot of its own words, `.bare` and `.center` flags with no
@@ -1159,7 +1161,7 @@ section of `build.js` are an interface with one consumer: change one there
 and `desktop/main/builder.js` and its `events.test.mjs` change in the same
 commit. The human log lines are free to move. The engine the packaged app
 runs is a copy staged by `desktop/scripts/stage-engine.mjs` – `build.js`, the
-twenty-two files it reads relative to itself (`commands.mjs` is read and imported; each `runtime/` file has its own line in `FILES`, while `desktop.yml`'s filter names the folder as `runtime/**`),
+twenty-four files it reads relative to itself (`commands.mjs` is read and imported; each `runtime/` file has its own line in `FILES`, while `desktop.yml`'s filter names the folder as `runtime/**`),
 the four more it only imports (`tails.mjs`, `pdf-core.mjs`, `local-files.mjs`, `strip-comments.mjs`), plus a production `npm ci` that omits optional dependencies – so a new runtime file that `build.js` reads via `import.meta.url`
 has to be added to that script's `FILES` or the packaged app fails **every**
 build: `assertEngineComplete`, the first line of every `buildOnce`, refuses in
@@ -1210,14 +1212,14 @@ plan, its decisions and its build log are `docs/history/PLAN-electron-builder.md
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
 - `SECURITY.md` – **what a deck someone sent can do, what the build refuses from a `source.md` someone else wrote, and what `--watch`, `--serve` and `--prompter` expose** – written for lecturers and evaluators, its claims checked against the code or in a browser. Change it in the same commit as a refusal, a `--serve` rule or a prompter data flow it describes.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-six gates guards, the four browser-spec families, and the twenty-six specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-six gates guards, the four browser-spec families, and the twenty-seven specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
 - `.claude/skills/psi-slides-authoring/SKILL.md` – **how to write a lecture `source.md`**: the chunk grammar in practice, the `:::` directive vocabulary, reveal segments, notes, images and math, with worked examples. Invoked as the `psi-slides-authoring` skill.
 - `.claude/skills/psi-slides-figures/SKILL.md` – **the `::: draw` vocabulary and the editor's contract**, lifted out of this file so it loads when figures are the work. Every statement, class, slot table and generated name, plus the three decisions behind the compiler. Invoked as the `psi-slides-figures` skill.
 - `.claude/skills/psi-slides-decoration/SKILL.md` – **the cover, backdrop, overlay, card, row and divider vocabulary**, same reasoning: the slot tables, the refusals, and the CSS traps each construct cost. Invoked as the `psi-slides-decoration` skill.
-- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, `pitchblack` (every dark theme on true black, and the fills it lifts), the twelve viewer-default keys, the whole nineteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `code`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
+- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, `pitchblack` (every dark theme on true black, and the fills it lifts), the twelve viewer-default keys, the whole twenty-two-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `code`, `neutrals` / `print-neutrals`, `headline` / `caps` and `code-fit` / `spacing`, the chunk classes that answer `wrap`, `blocks`, `figure-type`, `code-fit` and `spacing` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
 - `.claude/skills/psi-slides-media/SKILL.md` – **video, hosted embeds and link addresses**: the extension tables, the two sync protocols, clip staging, and the build-time QR codes. Invoked as the `psi-slides-media` skill.
 - `.claude/skills/psi-slides-prompter/SKILL.md` – **the live prompter (`--prompter`)**: the config surface, the socket protocol, the tick scheduler, the request shape, the policy table as coded, the failure modes with their badge texts, the log records, the cockpit ids and the STT adapter. Invoked as the `psi-slides-prompter` skill.
 - `docs/history/PLAN-souffleuse.md` – the live prompter's plan, its seven slices and **§ Decisions along the way**, which is where the code and the plan parted company and why. Read that section before changing `souffleuse.mjs`, the sidecar or the cockpit's prompter runtime; where the two disagree, the code wins.
