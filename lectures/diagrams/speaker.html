@@ -3009,6 +3009,33 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
 #psiINT-forget-modal .forget-modal-cancel { background: var(--paper); color: var(--ink); }
 #psiINT-forget-modal .forget-modal-danger { background: oklch(0.55 0.16 25); color: oklch(0.99 0 0); border-color: oklch(0.45 0.16 25); }
 #psiINT-forget-modal .forget-modal-danger:hover { background: oklch(0.48 0.17 25); }
+body[data-soft-ink=off] .chunk { --ink-soft: var(--ink); }
+body[data-soft-ink=off] .chunk .psi-diagram .muted text { fill: var(--ink); }
+#psiINT-autoplay-bar {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--slide-h) * 0.025);
+  width: calc(var(--slide-w) * 0.1);
+  height: max(3px, calc(var(--slide-h) * 0.006));
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--ink) 14%, transparent);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 20;
+}
+#psiINT-autoplay-bar[hidden],
+body:not([data-view=speaker]).blanked #psiINT-autoplay-bar,
+body.overview-mode #psiINT-autoplay-bar { display: none; }
+#psiINT-autoplay-bar > span {
+  display: block;
+  height: 100%;
+  background: color-mix(in oklch, var(--ink) 50%, transparent);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: psi-autoplay-fill 1s linear forwards;
+}
+@keyframes psi-autoplay-fill { to { transform: scaleX(1); } }
 
 .figure-diagram { margin: 0.7em 0; }
 .psi-diagram {
@@ -3277,21 +3304,43 @@ body[data-view=speaker].notes-sized #psiINT-notes-content {
   outline: 2px solid oklch(0.55 0.12 220);
   outline-offset: -2px;
 }
-#psiINT-notes-content.notes-more {
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 0.6rem - 1.35em), rgb(0 0 0 / 0.18) 100%);
+#psiINT-notes-content[readonly] { display: none; }
+#psiINT-notes-read {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 88px 0.6rem 1rem;
+  color: var(--ink);
+  font-family: var(--sans-font);
+  font-size: var(--notes-font, 1.15rem);
+  line-height: 1.35;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 4lh;
+  cursor: default;
 }
-@keyframes psi-notes-more {
-  from, to { mask-image: linear-gradient(to bottom, #000 calc(100% - 0.6rem - 1.35em), rgb(0 0 0 / 0.18) 100%); }
+#psiINT-notes-content:not([readonly]) ~ #psiINT-notes-read { display: none; }
+body[data-view=speaker].notes-sized #psiINT-notes-read {
+  height: 100%;
+  max-height: none;
+  box-sizing: border-box;
 }
-@supports (animation-timeline: scroll()) {
-  #psiINT-notes-content {
-    animation: psi-notes-more linear backwards;
-    animation-timeline: scroll(self block);
-    animation-range: 0 calc(100% - 2px);
-  }
+#psiINT-notes-read p {
+  margin: 0 0 0.45em;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+#psiINT-notes-read:empty { display: none; }
+#psiINT-notes-read:not(:empty)::after {
+  content: '\220E  end';
+  display: block;
+  font-size: 0.7em;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  color: var(--ink-soft);
 }
 #psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) { flex-direction: column; }
-body[data-view=speaker].notes-sized #psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) #psiINT-notes-content {
+body[data-view=speaker].notes-sized #psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) #psiINT-notes-content,
+body[data-view=speaker].notes-sized #psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) #psiINT-notes-read {
   height: auto !important;
   flex: 1 1 0;
   min-height: 0;
@@ -6174,6 +6223,7 @@ too.</p>
   <div id="psiINT-notes-resizer" role="separator" aria-orientation="horizontal" title="Drag to resize notes · double-click to reset"></div>
   <div id="psiINT-notes-stale" role="status" hidden></div>
   <textarea id="psiINT-notes-content" rows="1" spellcheck="false" placeholder="" readonly></textarea>
+  <div id="psiINT-notes-read"></div>
   <div id="psiINT-notes-zoom">
     <button id="psiINT-notes-zoom-out" type="button" title="Smaller notes text" aria-label="Smaller notes text">&minus;</button>
     <button id="psiINT-notes-zoom-in" type="button" title="Larger notes text" aria-label="Larger notes text">+</button>
@@ -10122,6 +10172,10 @@ function notePeer() {
       try { sessionStorage.setItem(PAIRED_KEY, '1'); } catch (e) {}
     }
     viewHooks.onPeerChange(live);
+    if (VIEW === 'speaker') {
+      if (!live) showAutoplayBar(0);
+      restartAutoplay(false, !live);
+    }
     if (window.psiBuildBannerRefresh) window.psiBuildBannerRefresh();
   }
 }
@@ -10362,6 +10416,10 @@ window.addEventListener('message', (ev) => {
   if (m.type === 'press') { viewHooks.onPress(true); return; }
   if (m.type === 'ping') { if (hadPeer) sendToPeer({ type: 'pong', source: VIEW }); return; }
   if (m.type === 'pong') return;
+  if (m.type === 'autoplay') {
+    showAutoplayBar(viewHooks.lookingAhead() ? 0 : Number(m.ms) || 0);
+    return;
+  }
   if (m.type === 'forget-local-edits') { forgetLocalEditsHere(); return; }
   if (m.type === 'video') { applyRemoteVideo(m); return; }
   if (m.type === 'diagram-edit') {
@@ -11403,13 +11461,39 @@ function resettleAfterReveal() {
   focusCamera(false);
 }
 let autoplayTimer = 0;
+function autoplayRunsHere() {
+  return VIEW === 'audience' || (VIEW === 'speaker' && !hasLivePeer());
+}
+const autoplayBar = document.createElement('div');
+autoplayBar.id = 'psiINT-autoplay-bar';
+autoplayBar.hidden = true;
+autoplayBar.setAttribute('aria-hidden', 'true');
+autoplayBar.append(document.createElement('span'));
+viewport.append(autoplayBar);
+function showAutoplayBar(ms) {
+  if (!ms) { autoplayBar.hidden = true; return; }
+  const fill = document.createElement('span');
+  fill.style.animationDuration = ms + 'ms';
+  autoplayBar.firstChild.replaceWith(fill);
+  autoplayBar.hidden = false;
+}
+function scheduleAutoplay(tick, ms) {
+  autoplayTimer = setTimeout(tick, ms);
+  showAutoplayBar(ms);
+  sendToPeer({ type: 'autoplay', source: VIEW, ms });
+}
+function autoplayIdle() {
+  if (autoplayBar.hidden) return;
+  showAutoplayBar(0);
+  sendToPeer({ type: 'autoplay', source: VIEW, ms: 0 });
+}
 let autoplayStoppedOn = null;
 function stopAutoplay() {
-  if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; }
+  if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; autoplayIdle(); }
 }
-function restartAutoplay(arriving) {
+function restartAutoplay(arriving, resuming) {
   stopAutoplay();
-  if (VIEW !== 'audience') return;
+  if (!autoplayRunsHere()) return;
   if (arriving) autoplayStoppedOn = null;
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
@@ -11420,7 +11504,7 @@ function restartAutoplay(arriving) {
   const segCount = countSegments(entry.el);
   if (autoplayStoppedOn === entry.id) return;
   const cycle = fig.hasAttribute('data-autoplay-cycle');
-  if ((revealed[entry.id] ?? 0) > 1) {
+  if ((revealed[entry.id] ?? 0) > 1 && !resuming) {
     if (!(cycle && arriving)) return;
     revealed[entry.id] = 1;
     applyReveal(entry.el, entry.id, true);
@@ -11430,11 +11514,11 @@ function restartAutoplay(arriving) {
   }
   const tick = () => {
     autoplayTimer = 0;
+    autoplayIdle();
     if (autoplayStoppedOn === entry.id) return;
     if (flatChunks[state.activeIdx] !== entry) return;
     if (advanceReveal()) {
-      if ((revealed[entry.id] ?? 0) < segCount) autoplayTimer = setTimeout(tick, ms);
-      else if (cycle) autoplayTimer = setTimeout(tick, ms);
+      if ((revealed[entry.id] ?? 0) < segCount || cycle) scheduleAutoplay(tick, ms);
       return;
     }
     if (!cycle) return;
@@ -11443,16 +11527,19 @@ function restartAutoplay(arriving) {
     resettleAfterReveal();
     updateNavHints();
     broadcastState();
-    autoplayTimer = setTimeout(tick, ms);
+    scheduleAutoplay(tick, ms);
   };
-  if (segCount > 1) autoplayTimer = setTimeout(tick, ms);
+  if (segCount > 1 && (cycle || (revealed[entry.id] ?? 1) < segCount)) scheduleAutoplay(tick, ms);
+}
+function takeOverAutoplay() {
+  const cur = flatChunks[state.activeIdx];
+  if (!cur || autoplayStoppedOn === cur.id) return;
+  autoplayStoppedOn = cur.id;
+  stopAutoplay();
 }
 for (const ev of ['keydown', 'pointerdown', 'wheel']) {
   window.addEventListener(ev, () => {
-    const cur = flatChunks[state.activeIdx];
-    if (!cur || autoplayStoppedOn === cur.id) return;
-    autoplayStoppedOn = cur.id;
-    stopAutoplay();
+    if (VIEW === 'audience') takeOverAutoplay();
   }, { capture: true, passive: true });
 }
 function retreatReveal() {
@@ -11477,6 +11564,7 @@ function unfocusAsStage() {
   return true;
 }
 function goForward() {
+  if (VIEW === 'speaker') takeOverAutoplay();
   viewHooks.onPress(false);
   endStartMenu();
   settleFade();
@@ -11485,6 +11573,7 @@ function goForward() {
   nextChunk();
 }
 function goBack() {
+  if (VIEW === 'speaker') takeOverAutoplay();
   viewHooks.onPress(false);
   endStartMenu();
   settleFade();
@@ -13680,6 +13769,7 @@ stage.addEventListener('load', (e) => {
 }, true);
 
 const notesContent = document.getElementById('psiINT-notes-content');
+const notesRead = document.getElementById('psiINT-notes-read');
 const notesPane = document.getElementById('psiINT-notes-pane');
 const previewStrip = document.getElementById('psiINT-preview-strip');
 const scrubberEl = document.getElementById('psiINT-scrubber');
@@ -14063,7 +14153,6 @@ COMMAND_RUN['forget-local-edits'] = (e) => { forgetLocalEdits(); if (e) e.preven
 const NOTES_MIN_LINES = 1;
 const NOTES_MAX_LINES = 3;
 const NOTES_CSS_SIZED = !!(window.CSS && CSS.supports && CSS.supports('field-sizing', 'content'));
-const NOTES_CSS_MORE = !!(window.CSS && CSS.supports && CSS.supports('animation-timeline', 'scroll()'));
 let notesFrame = 0;
 let notesTopFrame = 0;
 function autoSizeNotes() {
@@ -14072,7 +14161,7 @@ function autoSizeNotes() {
   const editing = !notesContent.readOnly || document.activeElement === notesContent;
   const stale = !!localEditHint && !localEditHint.hidden;
   document.body.classList.toggle('has-notes', sized || hasText || editing || stale);
-  if (NOTES_CSS_SIZED && NOTES_CSS_MORE) return;
+  if (NOTES_CSS_SIZED) return;
   if (!notesFrame) notesFrame = requestAnimationFrame(measureNotes);
 }
 function measureNotes() {
@@ -14085,20 +14174,34 @@ function measureNotes() {
       notesContent.style.height = Math.max(lineHeight * NOTES_MIN_LINES, wanted) + 'px';
     }
   }
-  if (!NOTES_CSS_MORE) markNotesMore();
 }
-function markNotesMore() {
-  const t = notesContent;
-  t.classList.toggle('notes-more', t.scrollTop + t.clientHeight < t.scrollHeight - 1);
+function renderNotesRead() {
+  const v = notesContent.value;
+  const frag = document.createDocumentFragment();
+  const gap = /\n(?:[ \t]*\n)+/g;
+  let at = 0;
+  const add = (end) => {
+    const lead = /^\s*/.exec(v.slice(at, end))[0].length;
+    const text = v.slice(at + lead, end).trimEnd();
+    if (!text) return;
+    const p = document.createElement('p');
+    p.textContent = text;
+    p.dataset.at = at + lead;
+    frag.append(p);
+  };
+  for (let m; (m = gap.exec(v)); at = m.index + m[0].length) add(m.index);
+  add(v.length);
+  notesRead.replaceChildren(frag);
 }
-if (!NOTES_CSS_MORE) notesContent.addEventListener('scroll', markNotesMore, { passive: true });
 function populateNotesPane() {
   const entry = flatChunks[state.activeIdx];
   notesContent.value = entry ? loadNotesFor(entry.id) : '';
+  renderNotesRead();
   refreshLocalEditHint();
   if (!notesTopFrame) notesTopFrame = requestAnimationFrame(() => {
     notesTopFrame = 0;
     notesContent.scrollTop = 0;
+    notesRead.scrollTop = 0;
   });
 }
 notesContent.addEventListener('input', () => {
@@ -14116,10 +14219,17 @@ notesContent.addEventListener('input', () => {
   autoSizeNotes();
 });
 function beginNotesEdit() { notesContent.readOnly = false; }
-notesContent.addEventListener('mousedown', (e) => {
-  if (!notesContent.readOnly) return;
-  if (e.detail >= 2) { beginNotesEdit(); return; }
-  e.preventDefault();
+notesRead.addEventListener('dblclick', (e) => {
+  let caret = notesContent.value.length;
+  const pos = document.caretPositionFromPoint ? document.caretPositionFromPoint(e.clientX, e.clientY) : null;
+  const range = !pos && document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+  const node = pos ? pos.offsetNode : range && range.startContainer;
+  const p = node && (node.nodeType === 1 ? node : node.parentElement).closest('#psiINT-notes-read p');
+  if (p) caret = +p.dataset.at + (node.nodeType === 3 ? (pos ? pos.offset : range.startOffset) : 0);
+  beginNotesEdit();
+  notesContent.focus();
+  notesContent.setSelectionRange(caret, caret);
+  autoSizeNotes();
 });
 notesContent.addEventListener('keydown', (e) => {
   if (notesContent.readOnly) return;
@@ -14133,6 +14243,7 @@ notesContent.addEventListener('keydown', (e) => {
 });
 notesContent.addEventListener('blur', () => {
   notesContent.readOnly = true;
+  renderNotesRead();
   autoSizeNotes();
 });
 function focusNotesPane() {

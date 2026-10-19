@@ -3009,6 +3009,33 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
 #psiINT-forget-modal .forget-modal-cancel { background: var(--paper); color: var(--ink); }
 #psiINT-forget-modal .forget-modal-danger { background: oklch(0.55 0.16 25); color: oklch(0.99 0 0); border-color: oklch(0.45 0.16 25); }
 #psiINT-forget-modal .forget-modal-danger:hover { background: oklch(0.48 0.17 25); }
+body[data-soft-ink=off] .chunk { --ink-soft: var(--ink); }
+body[data-soft-ink=off] .chunk .psi-diagram .muted text { fill: var(--ink); }
+#psiINT-autoplay-bar {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--slide-h) * 0.025);
+  width: calc(var(--slide-w) * 0.1);
+  height: max(3px, calc(var(--slide-h) * 0.006));
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--ink) 14%, transparent);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 20;
+}
+#psiINT-autoplay-bar[hidden],
+body:not([data-view=speaker]).blanked #psiINT-autoplay-bar,
+body.overview-mode #psiINT-autoplay-bar { display: none; }
+#psiINT-autoplay-bar > span {
+  display: block;
+  height: 100%;
+  background: color-mix(in oklch, var(--ink) 50%, transparent);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: psi-autoplay-fill 1s linear forwards;
+}
+@keyframes psi-autoplay-fill { to { transform: scaleX(1); } }
 
 .figure-diagram { margin: 0.7em 0; }
 .psi-diagram {
@@ -8806,6 +8833,10 @@ function notePeer() {
       try { sessionStorage.setItem(PAIRED_KEY, '1'); } catch (e) {}
     }
     viewHooks.onPeerChange(live);
+    if (VIEW === 'speaker') {
+      if (!live) showAutoplayBar(0);
+      restartAutoplay(false, !live);
+    }
     if (window.psiBuildBannerRefresh) window.psiBuildBannerRefresh();
   }
 }
@@ -9046,6 +9077,10 @@ window.addEventListener('message', (ev) => {
   if (m.type === 'press') { viewHooks.onPress(true); return; }
   if (m.type === 'ping') { if (hadPeer) sendToPeer({ type: 'pong', source: VIEW }); return; }
   if (m.type === 'pong') return;
+  if (m.type === 'autoplay') {
+    showAutoplayBar(viewHooks.lookingAhead() ? 0 : Number(m.ms) || 0);
+    return;
+  }
   if (m.type === 'forget-local-edits') { forgetLocalEditsHere(); return; }
   if (m.type === 'video') { applyRemoteVideo(m); return; }
   if (m.type === 'diagram-edit') {
@@ -10087,13 +10122,39 @@ function resettleAfterReveal() {
   focusCamera(false);
 }
 let autoplayTimer = 0;
+function autoplayRunsHere() {
+  return VIEW === 'audience' || (VIEW === 'speaker' && !hasLivePeer());
+}
+const autoplayBar = document.createElement('div');
+autoplayBar.id = 'psiINT-autoplay-bar';
+autoplayBar.hidden = true;
+autoplayBar.setAttribute('aria-hidden', 'true');
+autoplayBar.append(document.createElement('span'));
+viewport.append(autoplayBar);
+function showAutoplayBar(ms) {
+  if (!ms) { autoplayBar.hidden = true; return; }
+  const fill = document.createElement('span');
+  fill.style.animationDuration = ms + 'ms';
+  autoplayBar.firstChild.replaceWith(fill);
+  autoplayBar.hidden = false;
+}
+function scheduleAutoplay(tick, ms) {
+  autoplayTimer = setTimeout(tick, ms);
+  showAutoplayBar(ms);
+  sendToPeer({ type: 'autoplay', source: VIEW, ms });
+}
+function autoplayIdle() {
+  if (autoplayBar.hidden) return;
+  showAutoplayBar(0);
+  sendToPeer({ type: 'autoplay', source: VIEW, ms: 0 });
+}
 let autoplayStoppedOn = null;
 function stopAutoplay() {
-  if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; }
+  if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = 0; autoplayIdle(); }
 }
-function restartAutoplay(arriving) {
+function restartAutoplay(arriving, resuming) {
   stopAutoplay();
-  if (VIEW !== 'audience') return;
+  if (!autoplayRunsHere()) return;
   if (arriving) autoplayStoppedOn = null;
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
@@ -10104,7 +10165,7 @@ function restartAutoplay(arriving) {
   const segCount = countSegments(entry.el);
   if (autoplayStoppedOn === entry.id) return;
   const cycle = fig.hasAttribute('data-autoplay-cycle');
-  if ((revealed[entry.id] ?? 0) > 1) {
+  if ((revealed[entry.id] ?? 0) > 1 && !resuming) {
     if (!(cycle && arriving)) return;
     revealed[entry.id] = 1;
     applyReveal(entry.el, entry.id, true);
@@ -10114,11 +10175,11 @@ function restartAutoplay(arriving) {
   }
   const tick = () => {
     autoplayTimer = 0;
+    autoplayIdle();
     if (autoplayStoppedOn === entry.id) return;
     if (flatChunks[state.activeIdx] !== entry) return;
     if (advanceReveal()) {
-      if ((revealed[entry.id] ?? 0) < segCount) autoplayTimer = setTimeout(tick, ms);
-      else if (cycle) autoplayTimer = setTimeout(tick, ms);
+      if ((revealed[entry.id] ?? 0) < segCount || cycle) scheduleAutoplay(tick, ms);
       return;
     }
     if (!cycle) return;
@@ -10127,16 +10188,19 @@ function restartAutoplay(arriving) {
     resettleAfterReveal();
     updateNavHints();
     broadcastState();
-    autoplayTimer = setTimeout(tick, ms);
+    scheduleAutoplay(tick, ms);
   };
-  if (segCount > 1) autoplayTimer = setTimeout(tick, ms);
+  if (segCount > 1 && (cycle || (revealed[entry.id] ?? 1) < segCount)) scheduleAutoplay(tick, ms);
+}
+function takeOverAutoplay() {
+  const cur = flatChunks[state.activeIdx];
+  if (!cur || autoplayStoppedOn === cur.id) return;
+  autoplayStoppedOn = cur.id;
+  stopAutoplay();
 }
 for (const ev of ['keydown', 'pointerdown', 'wheel']) {
   window.addEventListener(ev, () => {
-    const cur = flatChunks[state.activeIdx];
-    if (!cur || autoplayStoppedOn === cur.id) return;
-    autoplayStoppedOn = cur.id;
-    stopAutoplay();
+    if (VIEW === 'audience') takeOverAutoplay();
   }, { capture: true, passive: true });
 }
 function retreatReveal() {
@@ -10161,6 +10225,7 @@ function unfocusAsStage() {
   return true;
 }
 function goForward() {
+  if (VIEW === 'speaker') takeOverAutoplay();
   viewHooks.onPress(false);
   endStartMenu();
   settleFade();
@@ -10169,6 +10234,7 @@ function goForward() {
   nextChunk();
 }
 function goBack() {
+  if (VIEW === 'speaker') takeOverAutoplay();
   viewHooks.onPress(false);
   endStartMenu();
   settleFade();
