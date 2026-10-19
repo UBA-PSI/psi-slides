@@ -7,7 +7,8 @@
  * snippets of the old shape – annotation lines alone – with the exact text
  * they have always produced. Then the notes: each rule of the integrator
  * (base moved, none, one, several that split cleanly, several that do not,
- * the delete, an unknown id), the places a `> note:` or a heading is not
+ * the delete, an unknown id) and the same rows for an annotation drafted
+ * over one the source already has, the places a `> note:` or a heading is not
  * structure (a fence, a multi-line comment, a figure's `#` comments), a
  * divider's `x-section` id, CRLF, and the base line itself.
  *
@@ -154,6 +155,28 @@ export async function run({ report }) {
     ok(half.src.includes('> annot: Edited in source.\n\n') && half.src.includes('{#one}\n\n> note: Notes go in.')
        && half.src.includes('### one\n<!-- annot-base: "Old." -->\n> annot: Mine.\n\n<!-- annotations:end -->'),
       'one part of a section parked, the other integrated', JSON.stringify(half.src));
+  }
+
+  // ── an annotation over an annotation: never two ──
+  {
+    const one = FM + '## free: One {#one}\n\n> annot: Was.\n\nText.\n';
+    const r = integ(one + block('### one\n> annot: Now.\n> annot: and a second line'));
+    ok(r.src === FM + '## free: One {#one}\n\n> annot: Now.\n> and a second line\n\nText.\n' && r.annots.replaced === 1,
+      'no base, one > annot: block: replaced in place by the draft, as one block, never beside it', JSON.stringify(r.src));
+    const based = integ(one + block('### one\n<!-- annot-base: "Was." -->\n> annot: Now.'));
+    ok(based.src === FM + '## free: One {#one}\n\n> annot: Now.\n\nText.\n', 'base matching, one block: replaced', JSON.stringify(based.src));
+    const two = FM + '## free: One {#one}\n\n> annot: A.\n\nText.\n\n> annot: B.\n';
+    const nb = integ(two + block('### one\n> annot: A2.\n\n> annot: B2.'));
+    ok(nb.src.startsWith(two) && nb.unresolved[0]?.reason === REASONS.annotSpread,
+      'no base over two blocks: parked, “merge by hand”', JSON.stringify(nb.src));
+    const kb = integ(two + block('### one\n<!-- annot-base: "A.\\n\\nB." -->\n> annot: A2.\n\n> annot: B2.'));
+    ok(kb.src === FM + '## free: One {#one}\n\n> annot: A2.\n\nText.\n\n> annot: B2.\n',
+      'base matching two blocks, the draft in two paragraphs: block by block', JSON.stringify(kb.src));
+    const three = integ(two + block('### one\n<!-- annot-base: "A.\\n\\nB." -->\n> annot: only one now'));
+    ok(three.unresolved[0]?.reason === REASONS.annotSpread, 'base matching two blocks, one paragraph: parked');
+    const del = integ(two + block('### one\n<!-- annot-base: "A.\\n\\nB." -->\n> annot:'));
+    ok(del.src === FM + '## free: One {#one}\n\nText.\n' && del.annots.deleted === 1,
+      'an empty draft removes every > annot: block of the chunk', JSON.stringify(del.src));
   }
 
   // ── CRLF, the base line, a pin-shaped first line ──

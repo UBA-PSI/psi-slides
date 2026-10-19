@@ -11086,14 +11086,12 @@ async function runIntegrate(absIn) {
   }
   rewriteSourceFile(absIn, result.src);
   const plural = (k, one, many) => k + ' ' + (k === 1 ? one : many);
-  console.log('Integrated ' + plural(result.moved, 'annotation', 'annotations') + ' into ' + absIn);
-  if (noteCount) {
-    const how = [];
-    if (n.replaced) how.push(n.replaced + ' replaced');
-    if (n.inserted) how.push(n.inserted + ' added');
-    if (n.deleted) how.push(n.deleted + ' deleted');
-    console.log('Speaker notes on ' + plural(noteCount, 'chunk', 'chunks') + ': ' + how.join(', '));
-  }
+  const how = (c) => [c.replaced && c.replaced + ' replaced', c.inserted && c.inserted + ' added',
+    c.deleted && c.deleted + ' deleted'].filter(Boolean).join(', ');
+  const a = result.annots;
+  const annotHow = a.replaced || a.deleted ? ' (' + how(a) + ')' : '';
+  console.log('Integrated ' + plural(result.moved, 'annotation', 'annotations') + annotHow + ' into ' + absIn);
+  if (noteCount) console.log('Speaker notes on ' + plural(noteCount, 'chunk', 'chunks') + ': ' + how(n));
   for (const w of result.warnings) console.warn('Warning: ' + w);
   if (result.unresolved.length) {
     console.log('Unresolved (parked at EOF in the marker block):');

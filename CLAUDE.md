@@ -146,11 +146,11 @@ node build.js --new my-slug --into ~/Documents/talks
 # source.md – paste the cockpit's Shift-E snippet (marker-wrapped) at the end
 # of source.md, then:
 node build.js <source.md> --integrate-annotations
-# moves each `> annot:` block under the matching chunk and puts each `> note:`
-# part in place of the chunk's own notes (a divider's `x-section` too): one
-# block replaced in place with its `from N` pin, none written under the
-# heading, several only when the edit splits into as many paragraphs, a lone
-# `> note:` deletes them. A part whose `<!-- note-base: … -->` /
+# puts each `> annot:` and `> note:` part in place of the chunk's own (a
+# divider's `x-section` too, for notes): one block replaced in place with its
+# `from N` pin, none written under the heading, several only when the edit
+# splits into as many paragraphs (an annotation only with its base known), a
+# lone `> annot:` / `> note:` deletes them. A part whose `<!-- note-base: … -->` /
 # `<!-- annot-base: … -->` is not what the chunk says now, notes spread over
 # beats it cannot split, and unknown ids are parked with their reason in a
 # trimmed marker block at EOF. The rules are integrate.mjs (zero-dep, imported

@@ -29,7 +29,10 @@
  *
  * The flag and the marker format are source-format interface: a snippet
  * exported before notes existed (annotation lines and nothing else) moves
- * exactly as it always did. Two things are new beside it, and both are
+ * exactly as it always did into a chunk with no `> annot:` of its own. Over
+ * one that has, the draft now takes the source annotation's place instead of
+ * standing beside it - the draft was begun from it, so the old insert wrote
+ * the same words twice. Two things are new in the snippet, and both are
  * invisible if the block is pasted and never integrated:
  *
  * - `> note:` lines are the whole of the chunk's notes as the lecturer left
@@ -39,7 +42,7 @@
  *   written as \u003c and \u003e – so no base can open or close a comment, or
  *   be read as the block's own end marker. JSON rather than base64 so that
  *   the line can be read in a diff. Absent when the cockpit does not know
- *   the base; an edit with no base is integrated as one always was.
+ *   the base; an edit with no base is placed by the rules that need none.
  *
  * A base that is not what the chunk says now means source.md moved under the
  * edit, and the edit is parked rather than written over the newer text.
@@ -75,6 +78,14 @@ export function noteBlockLines(text, from = null) {
   if (from != null) return ['> note: from ' + from, ...lines.map(cont)];
   if (/^from\s+\d+$/i.test(lines[0].trim())) return ['> note:', ...lines.map(cont)];
   return ['> note: ' + lines[0], ...lines.slice(1).map(cont)];
+}
+
+// The lines of one annotation block: a draft's lines as one block, which
+// is what the textarea showed (the snippet writes each line as an
+// `> annot:` line of its own, which the parser would join with blank lines).
+export function annotBlockLines(text) {
+  const lines = String(text).split('\n');
+  return ['> annot: ' + lines[0], ...lines.slice(1).map(l => (l ? '> ' + l : '>'))];
 }
 
 // ── reading the source ───────────────────────────────────────────────
@@ -248,11 +259,22 @@ function readSection(sec, warnings) {
     const text = body.join('\n').trim();
     note = note ? { text: [note.text, text].filter(Boolean).join('\n\n') } : { text };
   }
+  // The draft's text: its `> annot:` lines (and any `>` lines under them)
+  // joined line by line, a blank line between groups kept as a paragraph.
+  const groups = [];
+  let g = null;
+  for (const line of sec.lines) {
+    const m = line.match(ANNOT_OPEN);
+    if (m) { if (!g) groups.push(g = []); g.push(m[1]); continue; }
+    if (g && /^>/.test(line) && !NOTE_OPEN.test(line)) { g.push(line.match(QUOTE_CONT)[1]); continue; }
+    g = null;
+  }
+  const annotText = groups.map(x => x.join('\n').trim()).filter(Boolean).join('\n\n');
   const raw = {
     annot: [baseLines.annot, ...annotLines].filter(l => l !== undefined),
     note: [baseLines.note, ...noteLines].filter(l => l !== undefined),
   };
-  return { annotLines, note, bases, raw };
+  return { annotLines, annotText, note, bases, raw };
 }
 
 // ── the integrator ───────────────────────────────────────────────────
@@ -263,10 +285,11 @@ export const REASONS = {
   annotMoved: 'source annotation changed since the draft',
   notesMoved: 'source notes changed since the edit',
   notesSpread: 'notes spread over several beats – merge by hand',
+  annotSpread: 'annotation spread over several blocks – merge by hand',
 };
 
 export function integrateAnnotations(input) {
-  const empty = { moved: 0, notes: { replaced: 0, inserted: 0, deleted: 0 }, unresolved: [], warnings: [] };
+  const empty = { moved: 0, annots: { replaced: 0, inserted: 0, deleted: 0 }, notes: { replaced: 0, inserted: 0, deleted: 0 }, unresolved: [], warnings: [] };
   // A source written with CRLF is read as LF and written back with CRLF, so
   // that the moved lines do not come out with endings of their own.
   const crlf = input.includes('\r\n');
@@ -323,10 +346,65 @@ export function integrateAnnotations(input) {
   const unresolved = [];
   const parked = [];   // [id, lines]
   const notes = { replaced: 0, inserted: 0, deleted: 0 };
+  const annots = { replaced: 0, inserted: 0, deleted: 0 };
   let moved = 0;
   const park = (id, kind, reason, partLines) => {
     unresolved.push({ id, kind, reason });
     parked.push([id, partLines]);
+  };
+
+  // One part over the chunk's blocks of its kind - the same rules for a note
+  // and for an annotation, so an edit never stands beside the text it was
+  // begun from:
+  //   a base that is not what the blocks say now   park, the source moved
+  //   an empty edit                                every block goes
+  //   no block                                     a new one under the heading
+  //   one block                                    replaced in place (pin kept)
+  //   k blocks, the edit in k paragraphs, no
+  //     block with a blank line of its own, and
+  //     the base known (a note's always counts)    replaced block by block
+  //   otherwise                                    park, merge by hand
+  // An annotation without a base over several blocks is parked: nothing
+  // says the draft was begun from them. `insertLines` is the annotation's
+  // old insert, kept line for line so a chunk with no `> annot:` gets what
+  // it always got.
+  const place = (kind, text, blocks, bases, headAt, insertLines) => {
+    const write = kind === 'note' ? noteBlockLines : annotBlockLines;
+    const filled = blocks.filter(b => b.text);
+    if (kind in bases && bases[kind].trim() !== joined(blocks)) {
+      return { park: kind === 'note' ? REASONS.notesMoved : REASONS.annotMoved };
+    }
+    if (!text) {
+      // Deleted: every block goes, with one blank line beside it - the one
+      // after, else the one before.
+      const taken = new Set();
+      for (const b of blocks) {
+        let st = b.start, e = b.end;
+        if (e < lines.length && !lines[e].trim() && !taken.has(e)) e++;
+        else if (st > 0 && !lines[st - 1].trim() && !taken.has(st - 1)) st--;
+        for (let k = st; k < e; k++) taken.add(k);
+        edits.push({ at: st, remove: e - st, insert: [], rank: 3 });
+      }
+      return { how: blocks.length ? 'deleted' : null };
+    }
+    if (!filled.length) {
+      edits.push({ at: headAt + 1, remove: 0, insert: ['', ...(insertLines || write(text))], rank: kind === 'note' ? 2 : 1 });
+      return { how: 'inserted' };
+    }
+    if (filled.length === 1) {
+      const b = filled[0];
+      edits.push({ at: b.start, remove: b.end - b.start, insert: write(text, b.from), rank: 3 });
+      return { how: 'replaced' };
+    }
+    const parts = text.split(/\n[ \t]*\n/).map(x => x.trim()).filter(Boolean);
+    const clean = filled.every(b => !/\n[ \t]*\n/.test(b.text));
+    if ((kind === 'note' || kind in bases) && clean && parts.length === filled.length) {
+      filled.forEach((b, k) => {
+        edits.push({ at: b.start, remove: b.end - b.start, insert: write(parts[k], b.from), rank: 3 });
+      });
+      return { how: 'replaced' };
+    }
+    return { park: kind === 'note' ? REASONS.notesSpread : REASONS.annotSpread };
   };
 
   for (const sec of sections.values()) {
@@ -349,53 +427,19 @@ export function integrateAnnotations(input) {
     if (hasAnnot) {
       if (!chunk) {
         park(sec.id, 'annot', REASONS.notFound, part.raw.annot);
-      } else if ('annot' in part.bases
-                 && part.bases.annot.trim() !== joined(blocksIn(lines, marks, chunk.at + 1, chunk.end, 'annot'))) {
-        park(sec.id, 'annot', REASONS.annotMoved, part.raw.annot);
       } else {
-        edits.push({ at: chunk.at + 1, remove: 0, insert: ['', ...part.annotLines], rank: 1 });
-        moved++;
+        const blocks = blocksIn(lines, marks, chunk.at + 1, chunk.end, 'annot');
+        const done = place('annot', part.annotText, blocks, part.bases, chunk.at, part.annotLines);
+        if (done.park) park(sec.id, 'annot', done.park, part.raw.annot);
+        else if (done.how) { annots[done.how]++; moved++; }
       }
     }
 
     if (hasNote) {
-      const { at, end } = noteChunk;
-      const blocks = blocksIn(lines, marks, at + 1, end, 'note');
-      const filled = blocks.filter(b => b.text);
-      const text = part.note.text;
-      if ('note' in part.bases && part.bases.note.trim() !== joined(blocks)) {
-        park(sec.id, 'note', REASONS.notesMoved, part.raw.note);
-      } else if (!text) {
-        // The lecturer deleted the notes: every block goes, with one blank
-        // line beside it - the one after, else the one before.
-        const taken = new Set();
-        for (const b of blocks) {
-          let s = b.start, e = b.end;
-          if (e < lines.length && !lines[e].trim() && !taken.has(e)) e++;
-          else if (s > 0 && !lines[s - 1].trim() && !taken.has(s - 1)) s--;
-          for (let k = s; k < e; k++) taken.add(k);
-          edits.push({ at: s, remove: e - s, insert: [], rank: 3 });
-        }
-        if (blocks.length) notes.deleted++;
-      } else if (!filled.length) {
-        edits.push({ at: at + 1, remove: 0, insert: ['', ...noteBlockLines(text)], rank: 2 });
-        notes.inserted++;
-      } else if (filled.length === 1) {
-        const b = filled[0];
-        edits.push({ at: b.start, remove: b.end - b.start, insert: noteBlockLines(text, b.from), rank: 3 });
-        notes.replaced++;
-      } else {
-        const parts = text.split(/\n[ \t]*\n/).map(s => s.trim()).filter(Boolean);
-        const clean = filled.every(b => !/\n[ \t]*\n/.test(b.text));
-        if (clean && parts.length === filled.length) {
-          filled.forEach((b, k) => {
-            edits.push({ at: b.start, remove: b.end - b.start, insert: noteBlockLines(parts[k], b.from), rank: 3 });
-          });
-          notes.replaced++;
-        } else {
-          park(sec.id, 'note', REASONS.notesSpread, part.raw.note);
-        }
-      }
+      const blocks = blocksIn(lines, marks, noteChunk.at + 1, noteChunk.end, 'note');
+      const done = place('note', part.note.text, blocks, part.bases, noteChunk.at, null);
+      if (done.park) park(sec.id, 'note', done.park, part.raw.note);
+      else if (done.how) notes[done.how]++;
     }
   }
 
@@ -415,5 +459,5 @@ export function integrateAnnotations(input) {
     working += '\n' + ANNOT_MARKER_START + '\n\n' + text + '\n\n' + ANNOT_MARKER_END + '\n';
   }
 
-  return { src: back(working), moved, notes, unresolved, warnings, hadMarker: true };
+  return { src: back(working), moved, annots, notes, unresolved, warnings, hadMarker: true };
 }

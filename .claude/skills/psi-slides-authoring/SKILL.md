@@ -591,8 +591,8 @@ anything you say aloud but would not project.
 rewrites a note in the cockpit's notes pane (or types a `> annot:` live with
 `N`) changes only the browser's copy. `Shift`-`E` copies those edits as a
 marker block; pasted at the end of `source.md`,
-`node build.js source.md --integrate-annotations` puts each edited note in
-place of the chunk's own – one block replaced with its `from N` pin kept,
+`node build.js source.md --integrate-annotations` puts each edited note (and
+annotation) in place of the chunk's own – one block replaced with its `from N` pin kept,
 several only when the edit has as many paragraphs – and parks, with a reason,
 an edit whose source notes changed since or that spreads over beats it cannot
 split. Merge a parked one by hand and delete the leftover marker block. The
