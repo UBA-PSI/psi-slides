@@ -7,7 +7,9 @@
  * the source text it was begun from, and the cockpit puts a line over the
  * notes when the file has moved since, with keep mine and use source. The
  * palette's forget-local-edits removes every one of them from both windows,
- * and only after a question that counts what goes.
+ * and only after a question that counts what goes. Shift-E exports the note
+ * overrides beside the drafts, with their bases, and the spec runs the
+ * snippet through --integrate-annotations and a rebuild.
  *
  * Builds a fixture twice into one folder, served on one port so both windows
  * and both builds share one store, the way a lecturer's browser does across
@@ -237,6 +239,80 @@ export async function run({ page, report }) {
     await aud.waitForTimeout(400);
     ok(await spk.evaluate(() => Object.keys(annotations).length) === 0 && Object.keys(await store(aud)).length === 0,
       'and forgetting there clears the cockpit as well');
+
+    // ── Shift-E exports the notes too, and --integrate-annotations takes them ──
+    await spk.bringToFront();
+    ok(await goTo('first'), 'the cockpit is on #first for the export');
+    await press('Shift+N');
+    await spk.evaluate(() => { const t = document.getElementById('psiINT-notes-content'); t.setSelectionRange(t.value.length, t.value.length); });
+    await spk.keyboard.type(' TODO: a second example.');
+    await press('Escape');
+    ok(await goTo('second'), 'and on #second');
+    await press('Shift+N');
+    await spk.evaluate(() => { const t = document.getElementById('psiINT-notes-content'); t.select(); });
+    await press('Backspace');
+    await press('Escape');
+    await press('n', 300);
+    await spk.keyboard.type(' Ask the room.');
+    await press('Escape', 400);
+    s = await store(spk);
+    ok(s['speakernote:first'] === 'New note. TODO: a second example.' && s['speakernote:second'] === ''
+      && s['speakernote-base:second'] === 'B rewritten.',
+      'two note overrides, one of them emptied, each with its base', JSON.stringify(s));
+
+    // The projection's Shift-E copies the draft and names where the notes go out.
+    await aud.bringToFront();
+    await aud.keyboard.press('Shift+E');
+    await aud.waitForTimeout(300);
+    const badge = await aud.evaluate(() => document.getElementById('psiINT-mode-badge').textContent);
+    ok(/edited speaker notes are exported from the cockpit's Shift-E/.test(badge),
+      'the projection exports the draft alone and says the notes are the cockpit\'s', badge);
+
+    await spk.bringToFront();
+    await press('Shift+E', 500);
+    const exp = await spk.evaluate(() => {
+      const m = document.getElementById('psiINT-export-modal');
+      return m ? { head: m.querySelector('.export-modal-head').textContent, snippet: m.querySelector('.export-modal-raw textarea').value } : null;
+    });
+    ok(exp && (/^1 annotation and 2 speaker notes copied/.test(exp.head) || /^Clipboard blocked/.test(exp.head)),
+      'the cockpit\'s modal counts both kinds', exp && exp.head);
+    ok(exp && exp.snippet.includes('### first\n<!-- note-base: "New note." -->\n> note: New note. TODO: a second example.\n')
+      && /### second\n<!-- annot-base: "" -->\n> annot: Ask the room\.\n\n<!-- note-base: "B rewritten\." -->\n> note:\n/.test(exp.snippet)
+      && !exp.snippet.includes('### third'),
+      'the snippet carries the notes with their bases, the deletion as a lone > note:, and nothing unedited', exp && JSON.stringify(exp.snippet));
+
+    // Paste, integrate with the command line, rebuild: the views say it.
+    const srcPath = path.join(dir, 'source.md');
+    fs.appendFileSync(srcPath, '\n' + exp.snippet);
+    const ig = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), srcPath, '--integrate-annotations'],
+      { cwd: ROOT, encoding: 'utf8' });
+    const merged = fs.readFileSync(srcPath, 'utf8');
+    ok(ig.status === 0 && /1 replaced, 1 deleted/.test(ig.stdout) && !merged.includes('annotations:start')
+      && merged.includes('> note: New note. TODO: a second example.') && !merged.includes('B rewritten.')
+      && /\{#second\}\n\n> annot: Ask the room\.\n/.test(merged),
+      'the integrator replaces one note, deletes the other and moves the annotation', ig.stdout + ig.stderr);
+
+    // Clear drafts takes the exported notes and their bases as well.
+    await spk.locator('#psiINT-export-modal .export-modal-clear').click();
+    await spk.waitForTimeout(400);
+    s = await store(spk);
+    ok(Object.keys(s).every(k => k === 'annotations') && !Object.keys(JSON.parse(s.annotations || '{}')).length,
+      'Clear drafts now leaves no override, base or draft behind', JSON.stringify(s));
+    h = await hint();
+    ok(h.notes === 'B rewritten.', 'and the notes pane shows the source again', JSON.stringify(h));
+    const rb = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), srcPath, '--no-optimize-images'],
+      { cwd: ROOT, encoding: 'utf8' });
+    if (rb.status !== 0) throw new Error('rebuild failed:\n' + rb.stdout + rb.stderr);
+    await spk.reload({ waitUntil: 'load' });
+    await spk.waitForTimeout(1000);
+    ok(await goTo('first'), 'after the integrated rebuild the cockpit is on #first');
+    h = await hint();
+    ok(h.notes === 'New note. TODO: a second example.' && h.hidden, 'the edited note is now the source\'s own', JSON.stringify(h));
+    ok(await goTo('second'), 'and on #second');
+    h = await hint();
+    const aSec = await annotIn(spk, 'second');
+    ok(h.notes === '' && aSec.value === 'Ask the room.' && aSec.draft === null,
+      'its notes are gone and its annotation comes from the source', JSON.stringify({ h, aSec }));
 
     ok(errors.length === 0, 'no page errors', errors.join(' | '));
     await spk.close();

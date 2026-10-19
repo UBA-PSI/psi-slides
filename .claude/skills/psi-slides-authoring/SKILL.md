@@ -587,6 +587,17 @@ carries a `---`.
 Notes are the right home for reminders, caveats, timing, demo fallbacks, and
 anything you say aloud but would not project.
 
+**Notes edited in the cockpit come back through `Shift`-`E`.** A lecturer who
+rewrites a note in the cockpit's notes pane (or types a `> annot:` live with
+`N`) changes only the browser's copy. `Shift`-`E` copies those edits as a
+marker block; pasted at the end of `source.md`,
+`node build.js source.md --integrate-annotations` puts each edited note in
+place of the chunk's own – one block replaced with its `from N` pin kept,
+several only when the edit has as many paragraphs – and parks, with a reason,
+an edit whose source notes changed since or that spreads over beats it cannot
+split. Merge a parked one by hand and delete the leftover marker block. The
+format and every rule are in `speaker.md` §5.3.
+
 ### Notes as cue cards
 
 The cockpit can show the notes as **cue cards** (`K`): a column of cards for

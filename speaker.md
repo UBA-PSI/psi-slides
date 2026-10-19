@@ -334,7 +334,7 @@ Speaker inherits audience nav bindings, plus:
 | `P` | Open print.html in new tab |
 | `S` | **Open the projection**, or bring it forward – **local**. `audience.html` opens in a window named `psi-slides-audience` whose `opener` is this cockpit, so it attaches here and is handed this window's slide (§3). The way back from a projection closed by mistake; a click on `○ no projection` does the same. `Shift`-`S` is the prompter's, and never falls back to this |
 | `V` | **Freeze / thaw the projection.** Thawing resyncs the room to the speaker |
-| `Shift`-`E` | **Export annotation drafts**: copy every live `annotations[id]` as a marker-wrapped `> annot:` block to the clipboard, then ask before clearing the drafts from localStorage. A declined confirm or blocked clipboard leaves drafts untouched, so the raw notes can always be rescued on a second try. The pasted block is consumed by `node build.js <source.md> --integrate-annotations`, which moves each `> annot:` under its chunk and removes the marker block. |
+| `Shift`-`E` | **Export annotation drafts and edited notes**: copy every live `annotations[id]` and every note override that is not what the source says as one marker-wrapped block to the clipboard (§5.3), then ask before clearing both from localStorage. A declined confirm or blocked clipboard leaves them untouched, so the raw text can always be rescued on a second try. The pasted block is consumed by `node build.js <source.md> --integrate-annotations`, which moves each `> annot:` under its chunk, puts each `> note:` in place of the chunk's own notes, and removes the marker block. |
 | `Shift`-`S` | **The live prompter on or off** (`--prompter` only) – the same switch as the footer's `◌ prompter`, and **local**: it starts and stops the microphone in this window and tells the sidecar, and the projection is never told. `Shift` rather than a bare letter for the reason `Shift`-`N` and `Shift`-`V` carry one: a bare `S` fires mid-sentence, and `S` one window over means “open the cockpit”. `runtime/souffleuse.js` assigns its run function into `COMMAND_RUN`, so without the flag the key is bound and does nothing. It is in the footer's key crib under the flag, and nowhere without it. Switching on names the language it is about to listen in and where the recognition runs (`prompter listening · Deutsch (de-DE) · on-device`), and the switch's own tooltip keeps saying it after the toast is gone: the tag is the one the availability check settled on, which may carry a region the deck never wrote |
 | `?` | Toggle the help overlay (§4.1a) – **local** |
 | `Cmd`-`K` / `Ctrl`-`K` | The help overlay as a command palette, field focused (§4.1a) – **local**; a row run from it does what its key does, broadcast or not |
@@ -404,6 +404,48 @@ The storage, per lecture (`storageKey(s)` is `psi-slides:<title>:<s>`):
 **The hint** (`#psiINT-notes-stale`, `refreshLocalEditHint`) is one quiet line per kind over the notes of the active slide, drawn whenever the notes pane is: `source.md changed since you edited these notes` when the base is known and differs from the source, `… may have changed …` when the base is unknown and the source has text the edit is not, and the same pair for the annotation draft. Each row has **keep mine**, which writes the current source as the base so the line goes (and comes back only if the file moves again), and **use source**, which drops the edit and its base – for an annotation also in the projection, through the snapshot. A line standing keeps the pane open over an empty override. On load, a toast in the cockpit counts the slides with such an edit. The projection draws none of it.
 
 **Forget all local edits** (`forget-local-edits` in `commands.mjs`, both views, `keys: []`, so only the palette runs it – a press made by mistake must not reach something that cannot be undone; `NO_KEY_COMMANDS` gives the reason). It counts the stored note overrides and annotation drafts; with none it says so and asks nothing. Otherwise `#psiINT-forget-modal` – in the page, never `window.confirm` – names the count, says it cannot be undone and points at `Shift`-`E`; `Cancel` has the focus, `Esc` and a click outside take it away, and the red button forgets: every `speakernote:` and `speakernote-base:` key of the lecture, `annotations` and `annotation-bases` go, every textarea goes back to its `defaultValue`, the window sends `forget-local-edits` (§2) and a snapshot, and the cockpit redraws the notes and its cue cards from the templates. The modal stops every key it sees from reaching the key map. The projection runs it too, behind the same question: a projection running alone can hold drafts, and its palette is already the lecturer's. The `Shift`-`E` modal carries a quiet `Forget all local edits…` on its far side, which opens the same question.
+
+### 5.3 Shift-E and the way back into source.md
+
+`Shift`-`E` in the cockpit copies everything typed in this browser that `source.md` does not say yet, as one block for the end of the file: the annotation drafts (`collectAnnotationDrafts`, both views) and the note overrides that differ from the chunk's `<template data-notes-for>` text (`collectNoteOverrides`, cockpit only). `buildAnnotationSnippet` writes one `### <chunk-id>` section per chunk, in deck order, the annotation first:
+
+```
+<!-- annotations:start -->
+
+### first
+<!-- note-base: "Old note." -->
+> note: Old note. TODO: a second example.
+
+### second
+<!-- annot-base: "" -->
+> annot: Ask the room.
+
+<!-- note-base: "B rewritten." -->
+> note:
+
+<!-- annotations:end -->
+```
+
+- **`> note:` lines are the whole of the chunk's notes**, a blank line inside as `>`; a lone `> note:` says the lecturer emptied them.
+- **A base line rides above its part when the base is known** (§5.2): an HTML comment holding a JSON string, with `<` and `>` written as `\u003c` and `\u003e`, so a base can neither close the comment nor read as the end marker, and a block pasted and never integrated shows nowhere. JSON rather than base64, so the line reads in a diff.
+- **Without notes or bases it is the snippet `Shift`-`E` always wrote**, and an old snippet integrates as it always did.
+
+The modal's head counts both kinds (“1 annotation and 2 speaker notes copied to clipboard”), and **Clear drafts now** drops the exported drafts, the exported note overrides and the bases of both, and redraws the notes pane and the cue cards from the source.
+
+**The projection's `Shift`-`E` exports the annotation drafts alone.** The overrides may well be in its store – one store under `--serve` and in Chrome from `file://` – but a projection carries no speaker notes, so it cannot tell an override that differs from the source from one that does not; its badge says the notes are exported from the cockpit's `Shift`-`E` whenever it finds one.
+
+**`--integrate-annotations`** (`integrate.mjs`, imported by `build.js` under the flag alone) places each part, fence-, comment- and figure-aware, against the source as it stood before any part moved. A chunk is its `## … {#id}` heading up to the next `#` or `##`; a note for `x-section` finds the divider `# … {#x}` (`sectionChunkId`). A note block is a `> note:` line and the `>` lines under it, its text read as `flushNoteBlock` reads it, and the chunk's notes are the non-empty blocks joined by a blank line – the template's text.
+
+| The chunk has | The integrator |
+|---|---|
+| a base that is not its notes now | changes nothing, parks the part: *source notes changed since the edit* |
+| no note block | writes one directly under the heading – under the annotation, when the same section brings one |
+| one block | replaces it in place, its `from N` pin kept |
+| several, and the override has as many paragraphs, and no block has a blank line of its own | replaces them one by one, pins kept |
+| several otherwise | parks the part: *notes spread over several beats – merge by hand* |
+| any, and the export is a lone `> note:` | removes every block and the blank line beside each |
+
+An annotation goes under the heading as before; with a base that is not the chunk's `> annot:` text now it is parked too (*source annotation changed since the draft*). An unknown id parks the section. What is parked stands in a trimmed marker block at the end of the file with its base line, and the command lists each part with its reason. A source written with CRLF comes back CRLF. `test/gates/integrate.mjs` holds every row, and lifts the snippet builder out of `runtime/audience.js` to send what it writes through the integrator.
 
 ## 6. Build pipeline changes
 

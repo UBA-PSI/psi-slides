@@ -11,6 +11,10 @@ from building the same way is a major version.
 
 - **A countdown timer in both live views.** `Shift`-`T` opens a field for the time – `5` is five minutes, `2:30` two and a half, `0:45` forty-five seconds; empty or `0` clears it. A 10 px bar grows along the top edge and the time left stands beside it, in the projection and the cockpit alike, over the slide and out of its layout. At the end the bar turns red and flashes a few times and three beeps sound in the window it was set in; the bell beside the number mutes them. The timer belongs to the window: slides, blank and theme do not touch it, it survives a reload, and it travels between the two windows as a message of its own that passes the freeze gate.
 
+### Changed
+
+- **`Shift`-`E` in the cockpit exports the edited speaker notes too, and `--integrate-annotations` writes them back.** Every note override that is not what `source.md` says goes into the same marker block as the annotation drafts, as `> note:` lines under the chunk's `### <id>` (a lone `> note:` when the notes were emptied), with the source text the edit was begun from as an invisible `<!-- note-base: … -->` line (and `<!-- annot-base: … -->` for a draft). The integrator replaces a chunk's one note block in place, keeping its `from N` pin, writes a new one under a heading that had none, replaces several block by block when the edit splits into as many paragraphs, deletes on a lone `> note:`, and finds a divider's notes by its `x-section` id. It parks, with the reason, an edit whose source notes or annotation changed since it was begun and notes it cannot split across beats. A snippet of the old shape integrates as before. *Clear drafts now* clears the exported notes as well. The projection's `Shift`-`E` still exports the drafts alone, and says where the notes are exported from.
+
 ## [2.1.0]
 
 ### Added

@@ -530,7 +530,7 @@ function showForgetModal(n, onConfirm) {
   body.className = 'forget-modal-body';
   body.textContent = 'This browser keeps ' + what.join(' and ') + ' for this lecture. '
     + 'They go from both windows, and the notes and annotations are then exactly what source.md says. '
-    + 'This cannot be undone – to keep the annotations, export them first with Shift-E.';
+    + 'This cannot be undone – to keep them, export them first with Shift-E.';
   const actions = document.createElement('div');
   actions.className = 'forget-modal-actions';
   const cancel = document.createElement('button');
@@ -6067,7 +6067,7 @@ function fitFocusedMath(card) {
 // through the paste-back; the projection running alone copies and says so.
 function collectAnnotationDrafts() {
   const out = [];
-  flatChunks.forEach(({ id, el }) => {
+  flatChunks.forEach(({ id, el }, at) => {
     if (!id) return;
     if (!(id in annotations)) return;
     const text = (annotations[id] || '').trim();
@@ -6075,24 +6075,66 @@ function collectAnnotationDrafts() {
     const sourceDefault = ta ? (ta.defaultValue || '').trim() : '';
     if (!text && !sourceDefault) return;
     if (text === sourceDefault) return;
-    out.push({ id, text });
+    // The base goes along when it is known, so the integrator can tell that
+    // source.md moved under the draft (annotationBases, settleAnnotationDrafts).
+    out.push({ id, at, text, base: id in annotationBases ? annotationBases[id] : undefined });
   });
   return out;
 }
 
-function buildAnnotationSnippet(drafts) {
+// The snippet --integrate-annotations reads (integrate.mjs has the format
+// and its reasons): one `### <chunk-id>` section per chunk, in deck order,
+// the annotation draft first and the edited speaker notes under it, a blank
+// line between. `notes` is the cockpit's (collectNoteOverrides); an empty
+// text there is the lecturer deleting the notes and goes out as a lone
+// `> note:`. A known base rides on the line above its part as an HTML
+// comment holding a JSON string, `<` and `>` written as escapes so the base
+// can neither end the comment nor read as the block's end marker - pasted
+// and never integrated, it is a comment and shows nowhere. Without notes or
+// bases the snippet is the one Shift-E always wrote.
+function snippetBaseLine(kind, text) {
+  return '<!-- ' + kind + '-base: '
+    + JSON.stringify(String(text)).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') + ' -->';
+}
+function buildAnnotationSnippet(drafts, notes = []) {
+  const byId = new Map();
+  const slot = (item) => {
+    if (!byId.has(item.id)) byId.set(item.id, { id: item.id, at: item.at ?? 0 });
+    return byId.get(item.id);
+  };
+  drafts.forEach(d => { slot(d).annot = d; });
+  notes.forEach(n => { slot(n).note = n; });
+  const sections = [...byId.values()].sort((a, b) => a.at - b.at);
   const lines = ['<!-- annotations:start -->', ''];
-  drafts.forEach(({ id, text }, i) => {
+  sections.forEach(({ id, annot, note }, i) => {
     if (i > 0) lines.push('');
     lines.push('### ' + id);
-    if (text) {
-      text.split('\n').forEach(l => lines.push('> annot: ' + l));
-    } else {
-      lines.push('> annot:');
+    if (annot) {
+      if (annot.base !== undefined) lines.push(snippetBaseLine('annot', annot.base));
+      if (annot.text) {
+        annot.text.split('\n').forEach(l => lines.push('> annot: ' + l));
+      } else {
+        lines.push('> annot:');
+      }
+    }
+    if (note) {
+      if (annot) lines.push('');
+      if (note.base !== undefined) lines.push(snippetBaseLine('note', note.base));
+      const nl = (note.text || '').trim().split('\n');
+      if (!nl[0]) lines.push('> note:');
+      else nl.forEach((l, k) => lines.push(k ? (l ? '> ' + l : '>') : '> note: ' + l));
     }
   });
   lines.push('', '<!-- annotations:end -->', '');
   return lines.join('\n');
+}
+
+// "2 annotations and 1 speaker note", for the export's two messages.
+function exportedWhat(annots, notes) {
+  const what = [];
+  if (annots) what.push(plural(annots, 'annotation', 'annotations'));
+  if (notes) what.push(plural(notes, 'speaker note', 'speaker notes'));
+  return what.join(' and ');
 }
 
 async function copyToClipboardSafe(text) {
@@ -6118,15 +6160,26 @@ async function copyToClipboardSafe(text) {
   }
 }
 
+// The projection exports annotation drafts only. The note overrides are the
+// cockpit's: they may well be in this window's store (one store under
+// --serve and in Chrome from file://), but the source notes they would be
+// compared with are not in this page - a projection carries no speaker
+// notes - so it cannot tell an override that differs from one that does
+// not, and says where they are exported from instead.
 async function exportAnnotationsPlain() {
   const drafts = collectAnnotationDrafts();
-  if (!drafts.length) { showModeBadge('no live annotations to export – type some with N first'); return; }
+  const notesElsewhere = storedKeysWith(NOTE_OVERRIDE_PREFIX).length > 0;
+  const there = ' – edited speaker notes are exported from the cockpit\'s Shift-E';
+  if (!drafts.length) {
+    showModeBadge(notesElsewhere ? 'no live annotations to export' + there : 'no live annotations to export – type some with N first');
+    return;
+  }
   const snippet = buildAnnotationSnippet(drafts);
   const ok = await copyToClipboardSafe(snippet);
   if (!ok) console.log(snippet);
-  showModeBadge(ok
-    ? drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied – paste at the end of source.md, then --integrate-annotations'
-    : 'clipboard blocked – the Markdown is in the console');
+  showModeBadge((ok
+    ? exportedWhat(drafts.length, 0) + ' copied – paste at the end of source.md, then --integrate-annotations'
+    : 'clipboard blocked – the Markdown is in the console') + (notesElsewhere ? there : ''));
 }
 
 // A focused raster is an <img>, and a browser answers a drag on one by

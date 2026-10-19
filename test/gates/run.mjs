@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Twenty-six gates, and they prove twenty-six different things – which is
+ * Twenty-seven gates, and they prove twenty-seven different things – which is
  * worth stating because a green run summarised as one number hid a wrong
  * drawing behind a passing parse:
  *
@@ -96,6 +96,10 @@
  *   engine-files  every file build.js reads beside itself is on the list
  *              its pre-flight checks before a build, and the check runs
  *              first in buildOnce
+ *   integrate  --integrate-annotations rule by rule: old annotation-only
+ *              snippets byte for byte, every rule for the edited notes, the
+ *              lines that are not structure, and the runtime's snippet
+ *              builder sent through the integrator
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -133,6 +137,7 @@ const GATES = [
   './cli.mjs',
   './strip.mjs',
   './engine-files.mjs',
+  './integrate.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

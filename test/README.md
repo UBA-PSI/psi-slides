@@ -4,7 +4,7 @@ Two suites, split by one question: **can this be decided without a browser?**
 
 - **`test/gates/`** – everything that can, which is no longer only the figure
   language and the `{…}` tail grammar: a gate is the right home for any
-  hand-mirrored list one file keeps of another's. Twenty-six gates, about three seconds,
+  hand-mirrored list one file keeps of another's. Twenty-seven gates, about three seconds,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
 - **`test/`** – the things that only break in a built page. 59 specs, about 2,110
@@ -115,11 +115,11 @@ npm run containers                  # every container × every line type, build 
 npm run cli                         # the command line: refusals, help, folders, ports
 ```
 
-## The gates: twenty-six contracts
+## The gates: twenty-seven contracts
 
 `diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`, `souffleuse.mjs`, `pdf-core.mjs`,
-`commands.mjs`, `strip-comments.mjs` and `lint.js` are all zero-dependency, which is what makes this suite runnable
-with nothing installed. Twenty-six gates, about 1,800 assertions, about three
+`commands.mjs`, `strip-comments.mjs`, `integrate.mjs` and `lint.js` are all zero-dependency, which is what makes this suite runnable
+with nothing installed. Twenty-seven gates, about 1,800 assertions, about three
 seconds.
 
 | gate | the contract |
@@ -150,6 +150,7 @@ seconds.
 | `zoom-scope` | every CSS rule that reads `var(--zoom)` – in build.js's CSS literals and the stylesheets that left it for `runtime/` (`RUNTIME_SHEETS`: `speaker.css`, `souffleuse.css`, `pulse-print.css`, `watch-banner.css`, `diagram.css`, `print.css`, `audience.css`) – sits on a slide: its selector names `.chunk` / `.chunk-…`, or its subject is on `IN_CHUNK`, the reviewed list of classes the renderers only emit inside a chunk article. The auto-fit walk writes its trial zooms on the chunk it measures rather than on `<html>` (a change there restyles every slide, 90 ms a step on `lectures/diagrams`), which is exact only while nothing outside the chunk reads the property. The same holds for `showZoom`, which puts a new zoom inline on the slides that can be on screen and on `<html>` only at the catch-up: a reader outside a chunk would lag behind the slide. That the live slide shows the zoom at once, and that after the catch-up no chunk keeps a zoom of its own, is `test/auto-fit.mjs` |
 | `strip` | the comments `strip-comments.mjs` takes out of what a view is handed, and nothing else. Hand-written cases for each place a regex strip goes wrong – `//` and `/*` in a string, a template literal with `${…}` nested in `${…}`, a regex holding `/*`, division against regex after `)`, `if (…)`, `]`, `a++` and a keyword, a comment that is the only thing between two tokens, a comment spanning lines (automatic semicolon insertion), the load-bearing `/*!`, `@license` and `//# sourceURL=` – plus snippets evaluated before and after. Then the modules spliced in as text: each stripped one compiles, a second strip changes nothing, and every exported value that is not a function (the vocabulary tables, the command table, regexes by source) is equal before and after – a check on strings and regexes that does not go through the tokenizer. Last, build.js read as text: every file in `runtime/` – the runtime scripts and stylesheets, which were template literals in build.js until they moved out – reaches a view only through `shipJs` / `shipCss` (`PLAN-runtime-extraction.md`; the prompter's through the local `renderSpeaker` sets to its text under `--prompter` and to an empty string otherwise), whose strip is held like editor.css's – idempotent, and for a stylesheet no comment left, for a script compiling as a script before and after. The failed-build banner's two files are the exception they always were: they reach a page raw, only through `reloadScript` and never through `ship*`. For a file whose literal had substitutions, the step before the strip: `fillRuntime`, lifted out of build.js as text, fills both placeholder forms with `String()` of each value and refuses a placeholder without a value, a value without a placeholder, a value that is not a string or a finite number, and any `__PSI_` that is not a placeholder; and per file, without a build, a file holding a placeholder is read through `fillRuntime` with a table whose keys are exactly its placeholder names, and a file without one is read as it is. During development the strip was held against acorn's tokenizer and Chromium's CSSOM over eight decks; neither is a dependency |
 | `engine-files` | the files build.js reads beside itself at run time – the sixteen in `runtime/`, `editor.css` and the modules it splices into a view as text – against `ENGINE_FILES`, the list of their path constants that `assertEngineComplete` checks at the head of `buildOnce`. Every `new URL('./…', import.meta.url)` in build.js (the pattern `desktop/test/stage-engine.test.mjs` reads) is a path constant of the documented shape, every path constant is on the list and nothing else is, each file is in the repository, and `buildOnce` calls the check first, ahead of the stylesheet check that reads six of the files. A file left off the list is a file the pre-flight misses, which then fails in a renderer with an ENOENT stack again; `test/cli.mjs` runs the refusal itself |
+| `integrate` | `--integrate-annotations` without a build: a snippet of the old shape (annotation lines alone) gives the text it always gave, then each rule for the edited speaker notes – base moved, no block, one block with its pin, several that split into as many paragraphs, several that do not, the lone `> note:` that deletes, an unknown id – plus a fence, a multi-line comment, a figure's `#` comments and a one-line backdrop that are not structure, a divider's `x-section`, an annotation that honours its base, CRLF, and the base line's escaping. The snippet builder is lifted out of `runtime/audience.js` as text and what it writes is integrated, because the two halves of the format live in two files that cannot import one another |
 
 **`frontmatter` is the one gate that is not about figures**, and it is here
 because the shape is the one this suite exists for: a closed list in one file
@@ -437,7 +438,13 @@ base says the file *may* have changed, and one equal to the source goes
 silently; and the palette's “Forget all local edits” asks first, with a count
 and the focus on Cancel, forgets nothing on `Esc`, clears both kinds from both
 windows and the store on the red button, asks nothing when nothing is stored,
-and does the same run from the projection.
+and does the same run from the projection. Then `Shift`-`E`: the projection's
+copies the draft alone and says the notes are the cockpit's; the cockpit's
+modal counts both kinds, and its snippet carries an edited and an emptied note
+with their bases and an annotation; pasted into the fixture, the command line
+replaces the one note, deletes the other and moves the annotation; Clear drafts
+leaves nothing stored, and after the rebuild the notes and the annotation are
+the source's own.
 `cockpit-alone` is the pair the other way round, from `file://` on a fixture of
 four slides: `speaker.html` opened on its own says `○ no projection` and not
 “live”, and its `B` and `W` say there is no projection rather than claiming

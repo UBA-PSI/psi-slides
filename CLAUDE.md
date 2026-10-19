@@ -142,11 +142,19 @@ node build.js <source.md> --optimize-images --max-width 2600   # cap every width
 node build.js --new my-slug
 node build.js --new my-slug --into ~/Documents/talks
 
-# integrate exported live annotations back into source.md – paste the
-# speaker's Shift-E snippet (marker-wrapped) at the end of source.md, then:
+# integrate exported live annotations and edited speaker notes back into
+# source.md – paste the cockpit's Shift-E snippet (marker-wrapped) at the end
+# of source.md, then:
 node build.js <source.md> --integrate-annotations
-# moves each `> annot:` block under the matching chunk, removes the marker;
-# unresolved ids are parked in a trimmed marker block at EOF.
+# moves each `> annot:` block under the matching chunk and puts each `> note:`
+# part in place of the chunk's own notes (a divider's `x-section` too): one
+# block replaced in place with its `from N` pin, none written under the
+# heading, several only when the edit splits into as many paragraphs, a lone
+# `> note:` deletes them. A part whose `<!-- note-base: … -->` /
+# `<!-- annot-base: … -->` is not what the chunk says now, notes spread over
+# beats it cannot split, and unknown ids are parked with their reason in a
+# trimmed marker block at EOF. The rules are integrate.mjs (zero-dep, imported
+# under the flag alone, so not staged for the desktop app); speaker.md §5.3.
 
 # serve the built lecture over http on loopback. Everything works from
 # file:// except third-party embeds: a file:// page has the origin `null`
@@ -327,9 +335,10 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
 # tail grammar that can, plus the cue-card grammar, the prompter's policy and
-# the PDF export's - twenty-six gates, about three seconds, no browser and no
+# the PDF export's - twenty-seven gates, about three seconds, no browser and no
 # `npm install` (diagram-core.mjs, tails.mjs, cue-cards.mjs, souffleuse.mjs,
-# pdf-core.mjs, commands.mjs, strip-comments.mjs and lint.js are all zero-dep).
+# pdf-core.mjs, commands.mjs, strip-comments.mjs, integrate.mjs and lint.js
+# are all zero-dep).
 # It is also where a hand-mirrored list one file keeps of another's belongs,
 # figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
 # against what build.js reads, and `image-refs` holds the two readers of the
@@ -1212,7 +1221,7 @@ plan, its decisions and its build log are `docs/history/PLAN-electron-builder.md
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
 - `SECURITY.md` – **what a deck someone sent can do, what the build refuses from a `source.md` someone else wrote, and what `--watch`, `--serve` and `--prompter` expose** – written for lecturers and evaluators, its claims checked against the code or in a browser. Change it in the same commit as a refusal, a `--serve` rule or a prompter data flow it describes.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-six gates guards, the four browser-spec families, and the twenty-seven specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty-seven gates guards, the four browser-spec families, and the twenty-seven specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.

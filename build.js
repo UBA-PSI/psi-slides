@@ -11059,111 +11059,13 @@ function blockFitShipped(lecture, st) {
 
 // ── annotation integration ───────────────────────────────────────────
 
-// Move `> annot:` blocks from a trailing `<!-- annotations:start --> … end`
-// marker block (pasted in from the speaker's Shift-E export) into their
-// target chunks. Each inner `### <chunk-id>` section is matched against a
-// `## … {#<chunk-id>}` heading elsewhere in the source; the `> annot:`
-// blockquote is inserted directly under that heading. Unresolved sections
-// (unknown id) are kept in a trimmed marker block at EOF so nothing is lost.
-//
-// Pure string patch, no AST — the source round-trips verbatim aside from
-// the moved annotations and the removed marker block.
-const ANNOT_MARKER_START = '<!-- annotations:start -->';
-const ANNOT_MARKER_END = '<!-- annotations:end -->';
-
-function escapeRegex(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function extractAnnotLines(lines) {
-  const out = [];
-  let inAnnot = false;
-  for (const line of lines) {
-    if (/^>\s*annot:/i.test(line)) {
-      if (inAnnot) out.push('');
-      out.push(line);
-      inAnnot = true;
-      continue;
-    }
-    if (inAnnot && /^>/.test(line)) { out.push(line); continue; }
-    if (inAnnot && !line.trim()) { inAnnot = false; continue; }
-    inAnnot = false;
-  }
-  return out;
-}
-
-function integrateAnnotations(src) {
-  const startIdx = src.indexOf(ANNOT_MARKER_START);
-  if (startIdx < 0) return { src, moved: 0, unresolved: [], warnings: [], hadMarker: false };
-  const endMarkerIdx = src.indexOf(ANNOT_MARKER_END, startIdx + ANNOT_MARKER_START.length);
-  // No end marker is refused, never read as "to the end of the file": the
-  // block is removed from the source, so that reading deleted every slide
-  // written after a pasted snippet whose last line had not come along.
-  if (endMarkerIdx < 0) return { src, moved: 0, unresolved: [], warnings: [], hadMarker: true, noEnd: true };
-  const blockEnd = endMarkerIdx + ANNOT_MARKER_END.length;
-  const blockInner = src.slice(startIdx + ANNOT_MARKER_START.length, endMarkerIdx);
-
-  const warnings = [];
-  const orphanLines = [];
-  const sections = new Map();
-  let cur = null;
-  for (const line of blockInner.split('\n')) {
-    const h3 = line.match(/^###\s+([A-Za-z0-9_-]+)\s*$/);
-    if (h3) {
-      cur = sections.get(h3[1]) || { id: h3[1], lines: [] };
-      sections.set(h3[1], cur);
-      continue;
-    }
-    if (cur) cur.lines.push(line);
-    else orphanLines.push(line);
-  }
-  if (orphanLines.some(l => /^>\s*annot:/i.test(l))) {
-    warnings.push('`> annot:` lines before the first `### <id>` header were ignored — prefix them with `### some-chunk-id` so the integrator knows where to put them.');
-  }
-
-  let before = src.slice(0, startIdx).replace(/\n+$/, '\n');
-  let after = src.slice(blockEnd).replace(/^\n+/, '');
-  const baseSrc = before + (after ? '\n' + after : '');
-
-  // Compute target positions against the unmutated source so injected
-  // annotation text can never be misread as a chunk heading by a later
-  // section's regex scan. Apply injections in descending order so earlier
-  // indices stay valid.
-  const plans = [];
-  const unresolved = [];
-  for (const sec of sections.values()) {
-    const annotLines = extractAnnotLines(sec.lines);
-    if (!annotLines.length) { unresolved.push({ id: sec.id, reason: 'no > annot: lines' }); continue; }
-    const headingRe = new RegExp(
-      '^##[^\\n]*\\{[^}\\n]*#' + escapeRegex(sec.id) + '(?=[\\s}])[^}\\n]*\\}[^\\n]*$',
-      'm',
-    );
-    const m = baseSrc.match(headingRe);
-    if (!m) { unresolved.push({ id: sec.id, reason: 'chunk id not found' }); continue; }
-    plans.push({ insertAt: m.index + m[0].length, annotLines });
-  }
-  plans.sort((a, b) => b.insertAt - a.insertAt);
-
-  let working = baseSrc;
-  for (const { insertAt, annotLines } of plans) {
-    working = working.slice(0, insertAt) + '\n\n' + annotLines.join('\n') + working.slice(insertAt);
-  }
-
-  if (unresolved.length) {
-    const parked = unresolved
-      .map(u => {
-        const sec = sections.get(u.id);
-        return '### ' + u.id + '\n' + sec.lines.join('\n').replace(/^\n+|\n+$/g, '');
-      })
-      .join('\n\n');
-    if (!working.endsWith('\n')) working += '\n';
-    working += '\n' + ANNOT_MARKER_START + '\n\n' + parked + '\n\n' + ANNOT_MARKER_END + '\n';
-  }
-
-  return { src: working, moved: plans.length, unresolved, warnings, hadMarker: true };
-}
-
-function runIntegrate(absIn) {
+// Move the parts of a trailing `<!-- annotations:start --> … end` marker
+// block (pasted in from the cockpit's Shift-E export) into their chunks:
+// `> annot:` blocks under the chunk heading, `> note:` blocks in place of the
+// chunk's own notes. The rules are integrate.mjs, which is pure string work
+// and is imported here under the flag alone; what is left here is the file.
+async function runIntegrate(absIn) {
+  const { integrateAnnotations } = await import('./integrate.mjs');
   const src = fs.readFileSync(absIn, 'utf8');
   const result = integrateAnnotations(src);
   if (!result.hadMarker) {
@@ -11176,17 +11078,28 @@ function runIntegrate(absIn) {
     console.error('Add the end marker under the last `> annot:` block, then run --integrate-annotations again.');
     process.exit(1);
   }
-  if (result.moved === 0 && result.unresolved.length === 0 && !result.warnings.length) {
+  const n = result.notes;
+  const noteCount = n.replaced + n.inserted + n.deleted;
+  if (result.moved === 0 && noteCount === 0 && result.unresolved.length === 0 && !result.warnings.length) {
     console.log('Marker block was empty — nothing to integrate. Source unchanged.');
     return;
   }
   rewriteSourceFile(absIn, result.src);
-  console.log('Integrated ' + result.moved + ' annotation' + (result.moved === 1 ? '' : 's') + ' into ' + absIn);
+  const plural = (k, one, many) => k + ' ' + (k === 1 ? one : many);
+  console.log('Integrated ' + plural(result.moved, 'annotation', 'annotations') + ' into ' + absIn);
+  if (noteCount) {
+    const how = [];
+    if (n.replaced) how.push(n.replaced + ' replaced');
+    if (n.inserted) how.push(n.inserted + ' added');
+    if (n.deleted) how.push(n.deleted + ' deleted');
+    console.log('Speaker notes on ' + plural(noteCount, 'chunk', 'chunks') + ': ' + how.join(', '));
+  }
   for (const w of result.warnings) console.warn('Warning: ' + w);
   if (result.unresolved.length) {
     console.log('Unresolved (parked at EOF in the marker block):');
     for (const u of result.unresolved) {
-      console.log('  - ' + u.id + ': ' + u.reason);
+      const what = u.kind === 'note' ? ' (notes)' : u.kind === 'annot' ? ' (annotation)' : '';
+      console.log('  - ' + u.id + what + ': ' + u.reason);
     }
   }
   console.log('Review with `git diff`, then rebuild the lecture to render the new Presentation Notes.');
@@ -16434,7 +16347,7 @@ async function main() {
   }
 
   if (flags.has('--integrate-annotations')) {
-    runIntegrate(resolveSourceArg(inputPath));
+    await runIntegrate(resolveSourceArg(inputPath));
     return;
   }
 

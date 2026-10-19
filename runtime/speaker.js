@@ -169,14 +169,19 @@ function flashCenter(text, opts = {}) {
   }, opts.duration || 1800);
 }
 
-function clearExportedDrafts(drafts) {
-  // A cleared draft takes its base with it (dropAnnotationDraft).
+function clearExportedDrafts(drafts, notes = []) {
+  // A cleared draft takes its base with it (dropAnnotationDraft), and so
+  // does a cleared note override; the notes pane then shows the source.
   drafts.forEach(({ id }) => dropAnnotationDraft(id));
   saveAnnotations();
   saveAnnotationBases();
   broadcastState();
-  refreshLocalEditHint();
-  flashCenter('drafts cleared');
+  for (const { id } of notes) {
+    try { localStorage.removeItem(noteOverrideKey(id)); localStorage.removeItem(noteBaseKey(id)); } catch (e) {}
+  }
+  if (notes.length) notesRedraw();
+  else refreshLocalEditHint();
+  flashCenter(notes.length ? 'exported edits cleared' : 'drafts cleared');
 }
 
 // Derive the source.md path from the current page location so the modal
@@ -192,7 +197,7 @@ function sourcePathForCommand() {
   }
 }
 
-function showExportModal({ drafts, snippet, clipboardOk }) {
+function showExportModal({ drafts, notes = [], snippet, clipboardOk }) {
   let host = document.getElementById('psiINT-export-modal');
   if (host) host.remove();
   host = document.createElement('div');
@@ -204,7 +209,7 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
   const head = document.createElement('h2');
   head.className = 'export-modal-head';
   head.textContent = clipboardOk
-    ? drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied to clipboard'
+    ? exportedWhat(drafts.length, notes.length) + ' copied to clipboard'
     : 'Clipboard blocked – copy manually below';
   inner.appendChild(head);
 
@@ -292,7 +297,7 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
 
   const warn = document.createElement('p');
   warn.className = 'export-modal-warn';
-  warn.textContent = 'Clear Drafts removes the annotations from localStorage. Do this only after the notes are safely in source.md.';
+  warn.textContent = 'Clear Drafts removes the exported annotations and speaker notes from this browser. Do this only after they are safely in source.md.';
   inner.appendChild(warn);
 
   const actions = document.createElement('div');
@@ -317,7 +322,7 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
   clearBtn.className = 'export-modal-clear';
   clearBtn.textContent = 'Clear drafts now';
   clearBtn.addEventListener('click', () => {
-    clearExportedDrafts(drafts);
+    clearExportedDrafts(drafts, notes);
     host.remove();
   });
   actions.appendChild(clearBtn);
@@ -333,13 +338,14 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
 
 async function exportAnnotations() {
   const drafts = collectAnnotationDrafts();
-  if (!drafts.length) {
-    flashCenter('No live annotations to export – type some with N first.', { warn: true, duration: 2600 });
+  const notes = collectNoteOverrides();
+  if (!drafts.length && !notes.length) {
+    flashCenter('Nothing to export – no annotation drafts (N) and no edited speaker notes.', { warn: true, duration: 2600 });
     return;
   }
-  const snippet = buildAnnotationSnippet(drafts);
+  const snippet = buildAnnotationSnippet(drafts, notes);
   const copied = await copyToClipboardSafe(snippet);
-  showExportModal({ drafts, snippet, clipboardOk: copied });
+  showExportModal({ drafts, notes, snippet, clipboardOk: copied });
 }
 
 const exportAnnotBtn = document.getElementById('psiINT-export-annot-btn');
@@ -412,6 +418,22 @@ function settleNoteOverrides() {
   }
 }
 settleNoteOverrides();
+
+// The note overrides Shift-E exports: every one that is not what the source
+// says now, in deck order, with its base when the base is known. An override
+// emptied by the lecturer is exported as an empty text, which the
+// integrator reads as "delete these notes".
+function collectNoteOverrides() {
+  const out = [];
+  flatChunks.forEach(({ id }, at) => {
+    if (!id) return;
+    const override = storedNote(noteOverrideKey(id));
+    if (override === null || override.trim() === sourceNotesFor(id).trim()) return;
+    const base = storedNote(noteBaseKey(id));
+    out.push({ id, at, text: override.trim(), base: base === null ? undefined : base });
+  });
+  return out;
+}
 
 // The line over the notes that says the file moved under a local edit of
 // this slide - a note override, an annotation draft, or both, one row each -
