@@ -127,8 +127,12 @@ export async function run({ page, report }) {
 
     // ── it reaches the cockpit ──
     ok(await until(spk, () => !!document.getElementById('psiINT-countdown-num')), 'the timer shows in the cockpit too');
-    const sBox = await spk.evaluate(() => getComputedStyle(document.getElementById('psiINT-countdown')).position);
-    ok(sBox === 'fixed', 'and is an overlay there as well', sBox);
+    // There it stands over the cockpit's picture of the slide, not over the column bar.
+    const sBox = await spk.evaluate(() => {
+      const el = document.getElementById('psiINT-countdown');
+      return getComputedStyle(el).position + ' ' + el.parentElement.id;
+    });
+    ok(sBox === 'absolute psiINT-stage-cell', 'and is an overlay over the slide picture there', sBox);
 
     // ── a slide change leaves it alone ──
     const endBefore = await aud.evaluate(() => countdown.end);
@@ -176,6 +180,9 @@ export async function run({ page, report }) {
     ok(await until(spk, () => document.getElementById('psiINT-countdown').classList.contains('countdown-done')), 'in the cockpit too');
     const done = await aud.evaluate(() => ({ num: document.getElementById('psiINT-countdown-num').textContent, w: document.getElementById('psiINT-countdown-fill').style.width }));
     ok(done.num === '0:00' && done.w === '100%', 'it reads 0:00 with the bar full', JSON.stringify(done));
+    // The window it was set in beeps, the other stays quiet: one laptop, one output.
+    const beeps = { aud: await aud.evaluate(() => countdownBeeps), spk: await spk.evaluate(() => countdownBeeps) };
+    ok(beeps.aud === 1 && beeps.spk === 0, 'only the window that set it beeps', JSON.stringify(beeps));
     await aud.click('#psiINT-countdown');
     ok(!(await present(aud)).bar, 'a click on the bar dismisses it');
     ok(await until(spk, () => !document.getElementById('psiINT-countdown')), 'and in the other window');

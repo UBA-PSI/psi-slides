@@ -1133,3 +1133,10 @@ body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-preview-resizer::a
   top: 8px; left: 10px;
   transform: none;
 }
+
+/* The countdown (Shift-T) stands over the cockpit's picture of the slide, as
+   it does over the slide in the room, and leaves the column bar alone. */
+#psiINT-stage-cell > #psiINT-countdown,
+#psiINT-stage-cell > #psiINT-countdown-read { position: absolute; }
+/* Its number goes to the left, because the clock box holds the right. */
+#psiINT-stage-cell > #psiINT-countdown-read { right: auto; left: 14px; }

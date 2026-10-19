@@ -1278,11 +1278,11 @@ function applyBlankBadge() {
   if (!blankBadge) return;
   blankBadge.classList.toggle('hidden', !(state.blanked && lecturerScreen()));
 }
-// ── countdown countdown (Shift-T) ──
+// ── countdown timer (Shift-T) ──
 // The countdown belongs to the window, not to a chunk: a bar along the top edge
 // and the time left, both fixed over everything and out of the layout, so no
 // slide change, reveal, blank or zoom touches them. It is a message family of
-// its own ('countdown'), outside the state snapshot for the reason blank is, and
+// its own ('timer'), outside the state snapshot for the reason blank is, and
 // carries the absolute end time, so the two windows (one machine, one clock)
 // cannot drift. Nothing is in the DOM while no countdown is set.
 const COUNTDOWN_KEY = storageKey('timer');
@@ -1321,7 +1321,7 @@ function countdownBuild() {
   if (countdownEl) return;
   countdownEl = document.createElement('div');
   countdownEl.id = 'psiINT-countdown';
-  countdownEl.setAttribute('role', 'countdown');
+  countdownEl.setAttribute('role', 'timer');
   countdownFill = document.createElement('div');
   countdownFill.id = 'psiINT-countdown-fill';
   countdownRead = document.createElement('div');
@@ -1334,7 +1334,10 @@ function countdownBuild() {
   num.id = 'psiINT-countdown-num';
   countdownRead.append(countdownMute, num);
   countdownEl.append(countdownFill);
-  document.body.append(countdownEl, countdownRead);
+  // The cockpit draws it over its picture of the slide, where the room sees
+  // it, rather than over the column bar at the window's top.
+  (VIEW === 'speaker' && document.getElementById('psiINT-stage-cell') || document.body)
+    .append(countdownEl, countdownRead);
   countdownMute.addEventListener('click', (ev) => {
     ev.stopPropagation();
     countdownPrime();
@@ -1365,8 +1368,8 @@ function countdownPaint() {
   countdownMute.setAttribute('aria-label', countdown.muted ? 'Sound is off – click to turn it on' : 'Sound is on – click to mute');
   countdownMute.title = countdown.muted ? 'Sound off' : 'Sound on';
 }
-// One of the two windows beeps: the cockpit when there is one, else the
-// projection. Autoplay rules let a page make sound only after a gesture in
+// One of the two windows beeps: the one the countdown was set in, which has
+// had the gesture, or the other when that one is gone. Autoplay rules let a page make sound only after a gesture in
 // it, so the context is made and resumed on the press that sets the countdown,
 // on the mute click and on any later press while a countdown runs; without one
 // the beep is skipped without a word.
@@ -1382,7 +1385,7 @@ function countdownPrime() {
 }
 function countdownBeep() {
   if (!countdown || countdown.muted) return;
-  if (!(VIEW === 'speaker' || !hasLivePeer())) return;
+  if (countdown.by && countdown.by !== VIEW && hasLivePeer()) return;
   try {
     countdownPrime();
     const ac = countdownAudio;
@@ -1440,13 +1443,13 @@ function countdownSet(seconds) {
   if (!seconds) countdownStart(null);
   else {
     const dur = seconds * 1000;
-    countdownStart({ end: Date.now() + dur, dur, muted: countdownDefaultMuted() });
+    countdownStart({ end: Date.now() + dur, dur, muted: countdownDefaultMuted(), by: VIEW });
   }
   countdownCommit();
 }
 function countdownReceive(t) {
   countdownStart(t && typeof t.end === 'number' && t.dur > 0
-    ? { end: t.end, dur: t.dur, muted: !!t.muted } : null);
+    ? { end: t.end, dur: t.dur, muted: !!t.muted, by: t.by } : null);
   countdownStore();
 }
 function countdownAnnounce() {
@@ -1456,7 +1459,7 @@ function countdownRestore() {
   try {
     const t = JSON.parse(localStorage.getItem(COUNTDOWN_KEY) || 'null');
     if (t && typeof t.end === 'number' && t.dur > 0 && Date.now() - t.end < COUNTDOWN_STALE_MS) {
-      countdownStart({ end: t.end, dur: t.dur, muted: !!t.muted });
+      countdownStart({ end: t.end, dur: t.dur, muted: !!t.muted, by: t.by });
     }
   } catch (e) {}
 }

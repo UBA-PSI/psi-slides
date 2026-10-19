@@ -5476,9 +5476,10 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
 
 /* Countdown timer (Shift-T). Fixed over everything, out of the layout: the
    bar is the ink of the theme (light on a dark mode, dark on a light one,
-   which is what the tokens already do) with a hairline of the paper round
-   the fill and one of the ink along the bar's foot, so it stands off a
-   photograph as well as off a plain ground. Nothing exists in the DOM while
+   which is what the tokens already do) on a track of ink mixed into paper,
+   so the part still to run is visible too, with a hairline of the paper
+   along the foot, so it stands off a photograph as well as off a plain
+   ground. Nothing exists in the DOM while
    no timer is set. */
 #psiINT-countdown {
   position: fixed;
@@ -5486,8 +5487,8 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
   height: 10px;
   z-index: 90;
   box-sizing: border-box;
-  background: color-mix(in oklch, var(--paper) 55%, transparent);
-  border-bottom: 1px solid var(--ink);
+  background: color-mix(in oklch, var(--ink) 30%, var(--paper));
+  border-bottom: 1px solid var(--paper);
   pointer-events: none;
 }
 #psiINT-countdown.countdown-done { pointer-events: auto; cursor: pointer; }
