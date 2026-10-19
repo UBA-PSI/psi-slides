@@ -2879,6 +2879,105 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
 }
 #psiINT-toc button:hover { color: var(--emph); }
 #psiINT-toc li.toc-active button { font-weight: 600; color: var(--emph); }
+#psiINT-countdown {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 10px;
+  z-index: 90;
+  box-sizing: border-box;
+  background: color-mix(in oklch, var(--ink) 30%, var(--paper));
+  border-bottom: 1px solid var(--paper);
+  pointer-events: none;
+}
+#psiINT-countdown.countdown-done { pointer-events: auto; cursor: pointer; }
+#psiINT-countdown-fill {
+  height: 100%;
+  width: 0;
+  background: var(--ink);
+  outline: 1px solid var(--paper);
+  outline-offset: -1px;
+  box-sizing: border-box;
+  border-right: 1px solid var(--paper);
+}
+#psiINT-countdown-read {
+  position: fixed;
+  top: 14px; right: 14px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px 0 2px;
+  min-height: 28px;
+  border: 1px solid var(--ink);
+  border-radius: 14px;
+  background: color-mix(in oklch, var(--paper) 92%, transparent);
+  color: var(--ink);
+  font: 600 16px/1 var(--sans-font, sans-serif);
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 1px var(--paper);
+}
+#psiINT-countdown-mute {
+  all: unset;
+  box-sizing: border-box;
+  width: 28px; height: 28px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: inherit;
+  border-radius: 50%;
+}
+#psiINT-countdown-mute:focus-visible { outline: 2px solid var(--ink); }
+#psiINT-countdown-mute .countdown-strike { display: none; }
+#psiINT-countdown-mute.countdown-muted .countdown-strike { display: inline; }
+#psiINT-countdown-mute.countdown-muted { opacity: 0.8; }
+#psiINT-countdown-read.countdown-done #psiINT-countdown-num { cursor: pointer; }
+#psiINT-countdown.countdown-done #psiINT-countdown-fill {
+  background: oklch(0.58 0.24 27);
+  animation: psiINT-countdown-flash 0.45s ease-in-out 8 both;
+}
+#psiINT-countdown-read.countdown-done {
+  background: oklch(0.58 0.24 27);
+  color: oklch(0.99 0 0);
+  border-color: oklch(0.99 0 0);
+  box-shadow: 0 0 0 1px oklch(0.2 0.05 27);
+  animation: psiINT-countdown-pulse 0.45s ease-in-out 8;
+}
+@keyframes psiINT-countdown-flash { 50% { opacity: 0.25; } }
+@keyframes psiINT-countdown-pulse { 50% { transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) {
+  #psiINT-countdown.countdown-done #psiINT-countdown-fill, #psiINT-countdown-read.countdown-done { animation: none; }
+}
+#psiINT-countdown-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: grid;
+  place-items: center;
+  background: oklch(0.14 0 0 / 0.5);
+}
+#psiINT-countdown-form {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  box-shadow: 0 18px 60px oklch(0 0 0 / 0.35);
+  padding: 18px 22px;
+  width: min(320px, 90vw);
+  font: 15px/1.4 var(--sans-font, sans-serif);
+}
+#psiINT-countdown-form label { display: block; font-weight: 600; margin-bottom: 8px; }
+#psiINT-countdown-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: 600 22px/1.2 var(--sans-font, sans-serif);
+  font-variant-numeric: tabular-nums;
+  padding: 6px 10px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+}
+#psiINT-countdown-hint { margin: 8px 0 0; font-size: 13px; color: var(--ink-soft); }
+#psiINT-countdown-hint.countdown-bad { color: oklch(0.55 0.22 27); font-weight: 600; }
 
 .figure-diagram { margin: 0.7em 0; }
 .psi-diagram {
@@ -3875,6 +3974,9 @@ body[data-view=speaker].preview-right:not(.cue-cards) #psiINT-preview-resizer::a
   top: 8px; left: 10px;
   transform: none;
 }
+#psiINT-stage-cell > #psiINT-countdown,
+#psiINT-stage-cell > #psiINT-countdown-read { position: absolute; }
+#psiINT-stage-cell > #psiINT-countdown-read { right: auto; left: 14px; }
 
 </style>
 
@@ -6125,6 +6227,7 @@ too.</p>
         <dt data-row="fullscreen" data-cmd="fullscreen"><kbd>W</kbd></dt><dd>fullscreen on the projection – nothing of the browser round the slide. The browser only grants this to a press in the window itself, so the projection puts up a line to click once, and <kbd>Esc</kbd> leaves</dd>
         <dt data-row="fullscreen-window" data-cmd="fullscreen-window"><kbd>Shift</kbd>-<kbd>W</kbd></dt><dd>fullscreen for this window instead of the projection</dd>
         <dt data-row="blank" data-cmd="blank"><kbd>B</kbd> · <kbd>.</kbd></dt><dd>blank the projection – the speaker window keeps working, frozen or not</dd>
+        <dt data-row="timer" data-cmd="timer"><kbd>Shift</kbd>-<kbd>T</kbd></dt><dd>a bar along the top edge and the time left, in both windows: <kbd>5</kbd> is five minutes, <kbd>2:30</kbd> two and a half, <kbd>0:45</kbd> forty-five seconds; empty or <kbd>0</kbd> clears it. At the end the bar turns red and three beeps sound in the window it was set in, and a click on the bar or the number dismisses it. The bell beside the number mutes the sound</dd>
         <dt data-row="demo" data-cmd="demo"><kbd>D</kbd></dt><dd>live demo: a window or a screen of this machine on the projection – pressed in the cockpit, the picker opens on the laptop. <kbd>D</kbd> again pauses it and the room is back on the slides; <kbd>D</kbd> once more shows the same window again, without the picker. The very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk</dd>
         <dt data-row="demo-switch" data-cmd="demo-switch"><kbd>Shift</kbd>-<kbd>D</kbd></dt><dd>the picker again, for another window or screen in place of the one shared – cancelled, the demo keeps the one it had</dd>
         <dt data-row="demo-end" data-cmd="demo-end"><span class="help-nokey">no key</span></dt><dd>end the live demo: the capture stops, and the next <kbd>D</kbd> opens the picker again – closing the shared window or the browser's “stop sharing” does the same</dd>
@@ -8991,6 +9094,9 @@ const COMMANDS = [
   { id: 'blank', group: 'knobs', views: BOTH, keys: ['b', '.'],
     label: 'Blank the projection', reach: 'ungated', state: 'blanked',
     hint: 'blank the projection – the speaker window keeps working, frozen or not' },
+  { id: 'timer', group: 'knobs', views: BOTH, keys: ['shift+t'],
+    label: 'Set a countdown timer', reach: 'ungated', state: null,
+    hint: 'a bar along the top edge and the time left, in both windows: <kbd>5</kbd> is five minutes, <kbd>2:30</kbd> two and a half, <kbd>0:45</kbd> forty-five seconds; empty or <kbd>0</kbd> clears it. At the end the bar turns red and three beeps sound in the window it was set in, and a click on the bar or the number dismisses it. The bell beside the number mutes the sound' },
   { id: 'demo', group: 'knobs', views: BOTH, keys: ['d'],
     label: 'Show or pause the live demo', reach: 'ungated', state: 'demo',
     hint: 'live demo: a window or a screen of this machine on the projection – pressed in the cockpit, the picker opens on the laptop. <kbd>D</kbd> again pauses it and the room is back on the slides; <kbd>D</kbd> once more shows the same window again, without the picker. The very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk' },
@@ -9992,6 +10098,7 @@ window.addEventListener('message', (ev) => {
     if (VIEW === 'audience') sendToPeer({ type: 'state', source: 'audience', payload: snapshot() });
     else if (wasGone) viewHooks.onPeerBoot(true);
     demoAnnounce();
+    countdownAnnounce();
     announceFullscreen();
     return;
   }
@@ -10058,6 +10165,7 @@ window.addEventListener('message', (ev) => {
     applyBlankBadge();
     return;
   }
+  if (m.type === 'timer') { countdownReceive(m.timer); return; }
   if (m.type === 'toast') {
     showModeBadge(m.text);
     return;
@@ -10222,6 +10330,217 @@ function applyBlankBadge() {
   if (!blankBadge) return;
   blankBadge.classList.toggle('hidden', !(state.blanked && lecturerScreen()));
 }
+const COUNTDOWN_KEY = storageKey('timer');
+const COUNTDOWN_MUTED_KEY = storageKey('timer-muted');
+const COUNTDOWN_STALE_MS = 10 * 60 * 1000;
+const COUNTDOWN_MAX_MIN = 600;
+let countdown = null;
+let countdownEl = null, countdownFill = null, countdownRead = null, countdownMute = null;
+let countdownTick = 0;
+let countdownAudio = null;
+let countdownModal = null;
+function countdownDefaultMuted() {
+  try { return localStorage.getItem(COUNTDOWN_MUTED_KEY) === '1'; } catch (e) { return false; }
+}
+function parseCountdownInput(text) {
+  const s = String(text).trim();
+  if (s === '') return 0;
+  const m = /^(\d{1,3})(?::([0-5]?\d))?$/.exec(s);
+  if (!m) return null;
+  const min = Number(m[1]), sec = m[2] === undefined ? 0 : Number(m[2]);
+  if (min > COUNTDOWN_MAX_MIN || (min === COUNTDOWN_MAX_MIN && sec > 0)) return null;
+  return min * 60 + sec;
+}
+function countdownLeft(now) { return countdown ? countdown.end - now : 0; }
+function fmtCountdown(ms) {
+  const t = Math.max(0, Math.ceil(ms / 1000));
+  const s = t % 60;
+  return Math.floor(t / 60) + ':' + (s < 10 ? '0' : '') + s;
+}
+const COUNTDOWN_BELL = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.5 1.5"/><path d="M4.5 5.5 7.5 3M19.5 5.5 16.5 3"/>'
+  + '<path class="countdown-strike" d="M3 21 21 4"/></svg>';
+function countdownBuild() {
+  if (countdownEl) return;
+  countdownEl = document.createElement('div');
+  countdownEl.id = 'psiINT-countdown';
+  countdownEl.setAttribute('role', 'timer');
+  countdownFill = document.createElement('div');
+  countdownFill.id = 'psiINT-countdown-fill';
+  countdownRead = document.createElement('div');
+  countdownRead.id = 'psiINT-countdown-read';
+  countdownMute = document.createElement('button');
+  countdownMute.type = 'button';
+  countdownMute.id = 'psiINT-countdown-mute';
+  countdownMute.innerHTML = COUNTDOWN_BELL;
+  const num = document.createElement('span');
+  num.id = 'psiINT-countdown-num';
+  countdownRead.append(countdownMute, num);
+  countdownEl.append(countdownFill);
+  (VIEW === 'speaker' && document.getElementById('psiINT-stage-cell') || document.body)
+    .append(countdownEl, countdownRead);
+  countdownMute.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    countdownPrime();
+    countdown.muted = !countdown.muted;
+    try { localStorage.setItem(COUNTDOWN_MUTED_KEY, countdown.muted ? '1' : '0'); } catch (e) {}
+    countdownCommit();
+  });
+  const dismiss = () => { if (countdown && countdownLeft(Date.now()) <= 0) countdownSet(0); };
+  countdownEl.addEventListener('click', dismiss);
+  num.addEventListener('click', dismiss);
+}
+function countdownDestroy() {
+  clearInterval(countdownTick); countdownTick = 0;
+  if (countdownEl) { countdownEl.remove(); countdownRead.remove(); }
+  countdownEl = countdownFill = countdownRead = countdownMute = null;
+}
+function countdownPaint() {
+  if (!countdown) { countdownDestroy(); return; }
+  countdownBuild();
+  const left = countdownLeft(Date.now());
+  const done = left <= 0;
+  const frac = done ? 1 : Math.min(1, Math.max(0, 1 - left / countdown.dur));
+  countdownFill.style.width = (frac * 100) + '%';
+  countdownRead.querySelector('#psiINT-countdown-num').textContent = fmtCountdown(left);
+  for (const el of [countdownEl, countdownRead]) el.classList.toggle('countdown-done', done);
+  countdownMute.classList.toggle('countdown-muted', !!countdown.muted);
+  countdownMute.setAttribute('aria-pressed', countdown.muted ? 'true' : 'false');
+  countdownMute.setAttribute('aria-label', countdown.muted ? 'Sound is off – click to turn it on' : 'Sound is on – click to mute');
+  countdownMute.title = countdown.muted ? 'Sound off' : 'Sound on';
+}
+function countdownPrime() {
+  try {
+    if (!countdownAudio) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      countdownAudio = new AC();
+    }
+    if (countdownAudio.state === 'suspended') countdownAudio.resume().catch(() => {});
+  } catch (e) {}
+}
+function countdownBeep() {
+  if (!countdown || countdown.muted) return;
+  if (countdown.by && countdown.by !== VIEW && hasLivePeer()) return;
+  try {
+    countdownPrime();
+    const ac = countdownAudio;
+    if (!ac || ac.state !== 'running') return;
+    const t0 = ac.currentTime + 0.02;
+    for (let i = 0; i < 3; i++) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      const t = t0 + i * 0.28;
+      o.type = 'sine';
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.25, t + 0.015);
+      g.gain.setValueAtTime(0.25, t + 0.15);
+      g.gain.linearRampToValueAtTime(0, t + 0.19);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t); o.stop(t + 0.22);
+    }
+    countdownBeeps++;
+  } catch (e) {}
+}
+let countdownBeeps = 0;
+let countdownWasDone = false;
+function countdownStep() {
+  if (!countdown) return;
+  const left = countdownLeft(Date.now());
+  const done = left <= 0;
+  countdownPaint();
+  if (done && !countdownWasDone) {
+    countdownWasDone = true;
+    if (-left < 2500) countdownBeep();
+  }
+  if (done && countdownTick) { clearInterval(countdownTick); countdownTick = 0; }
+}
+function countdownStart(t) {
+  countdown = t;
+  countdownWasDone = t ? countdownLeft(Date.now()) <= 0 : false;
+  clearInterval(countdownTick); countdownTick = 0;
+  countdownPaint();
+  if (countdown && !countdownWasDone) countdownTick = setInterval(countdownStep, 250);
+}
+function countdownStore() {
+  try {
+    if (countdown) localStorage.setItem(COUNTDOWN_KEY, JSON.stringify(countdown));
+    else localStorage.removeItem(COUNTDOWN_KEY);
+  } catch (e) {}
+}
+function countdownCommit() {
+  countdownStore();
+  countdownPaint();
+  sendToPeer({ type: 'timer', source: VIEW, timer: countdown });
+}
+function countdownSet(seconds) {
+  if (!seconds) countdownStart(null);
+  else {
+    const dur = seconds * 1000;
+    countdownStart({ end: Date.now() + dur, dur, muted: countdownDefaultMuted(), by: VIEW });
+  }
+  countdownCommit();
+}
+function countdownReceive(t) {
+  countdownStart(t && typeof t.end === 'number' && t.dur > 0
+    ? { end: t.end, dur: t.dur, muted: !!t.muted, by: t.by } : null);
+  countdownStore();
+}
+function countdownAnnounce() {
+  if (countdown) sendToPeer({ type: 'timer', source: VIEW, timer: countdown });
+}
+function countdownRestore() {
+  try {
+    const t = JSON.parse(localStorage.getItem(COUNTDOWN_KEY) || 'null');
+    if (t && typeof t.end === 'number' && t.dur > 0 && Date.now() - t.end < COUNTDOWN_STALE_MS) {
+      countdownStart({ end: t.end, dur: t.dur, muted: !!t.muted, by: t.by });
+    }
+  } catch (e) {}
+}
+function closeCountdownModal() {
+  if (!countdownModal) return;
+  countdownModal.remove();
+  countdownModal = null;
+}
+function openCountdownModal() {
+  if (countdownModal) { countdownModal.querySelector('input').focus(); return; }
+  const box = document.createElement('div');
+  box.id = 'psiINT-countdown-modal';
+  box.innerHTML = '<form id="psiINT-countdown-form" autocomplete="off">'
+    + '<label for="psiINT-countdown-input">Countdown</label>'
+    + '<input id="psiINT-countdown-input" type="text" inputmode="numeric" spellcheck="false" placeholder="5 · 2:30 · 0:45">'
+    + '<p id="psiINT-countdown-hint" aria-live="polite">Minutes, or m:ss. Empty clears the countdown.</p>'
+    + '</form>';
+  document.body.append(box);
+  countdownModal = box;
+  const input = box.querySelector('input'), hint = box.querySelector('#psiINT-countdown-hint');
+  box.querySelector('form').addEventListener('submit', (ev) => ev.preventDefault());
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') { closeCountdownModal(); ev.preventDefault(); ev.stopPropagation(); }
+    else if (ev.key === 'Enter') {
+      ev.preventDefault(); ev.stopPropagation();
+      const secs = parseCountdownInput(input.value);
+      if (secs === null) {
+        hint.textContent = 'Not a time – try 5, 2:30 or 0:45.';
+        hint.classList.add('countdown-bad');
+        return;
+      }
+      countdownPrime();
+      closeCountdownModal();
+      countdownSet(secs);
+    }
+  });
+  input.addEventListener('input', () => {
+    hint.classList.remove('countdown-bad');
+    hint.textContent = 'Minutes, or m:ss. Empty clears the countdown.';
+  });
+  box.addEventListener('mousedown', (ev) => { if (ev.target === box) closeCountdownModal(); });
+  input.focus();
+}
+for (const evName of ['keydown', 'pointerdown']) {
+  document.addEventListener(evName, () => { if (countdown && !countdownAudio) countdownPrime(); }, true);
+}
+countdownRestore();
 let demoStream = null;
 let demoPending = false;
 let demoRemoteLive = false;
@@ -12375,6 +12694,10 @@ const COMMAND_RUN = {
   'zoom-out': (e) => {
     if (focusedFigure) setFigureScale(figureScale / 1.2);
     else stepZoom(-1);
+    e.preventDefault();
+  },
+  'timer': (e) => {
+    openCountdownModal();
     e.preventDefault();
   },
   'zoom-reset': (e) => {
