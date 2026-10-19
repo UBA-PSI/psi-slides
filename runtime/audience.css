@@ -5581,3 +5581,39 @@ body.toc-visible #psiINT-toc { transform: translateX(0); }
 }
 #psiINT-countdown-hint { margin: 8px 0 0; font-size: 13px; color: var(--ink-soft); }
 #psiINT-countdown-hint.countdown-bad { color: oklch(0.55 0.22 27); font-weight: 600; }
+
+/* The question before every local edit of the lecture is forgotten
+   (forgetLocalEdits): the countdown's frame, a count of what goes, and the
+   one red button in either view - the only thing here that cannot be
+   undone. Over the export modal and the ? panel it is run from. */
+#psiINT-forget-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: oklch(0.14 0 0 / 0.5);
+}
+#psiINT-forget-modal .forget-modal-inner {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  box-shadow: 0 18px 60px oklch(0 0 0 / 0.35);
+  padding: 18px 22px;
+  width: min(440px, 90vw);
+  font: 15px/1.4 var(--sans-font, sans-serif);
+}
+#psiINT-forget-modal .forget-modal-head { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+#psiINT-forget-modal .forget-modal-body { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+#psiINT-forget-modal .forget-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+#psiINT-forget-modal button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+}
+#psiINT-forget-modal .forget-modal-cancel { background: var(--paper); color: var(--ink); }
+#psiINT-forget-modal .forget-modal-danger { background: oklch(0.55 0.16 25); color: oklch(0.99 0 0); border-color: oklch(0.45 0.16 25); }
+#psiINT-forget-modal .forget-modal-danger:hover { background: oklch(0.48 0.17 25); }

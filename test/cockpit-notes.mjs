@@ -94,7 +94,7 @@ export async function run({ page, report }) {
         scrollTop: t.scrollTop, scrollHeight: t.scrollHeight, clientHeight: t.clientHeight, lh,
         lines: (t.clientHeight - pad) / lh,
         mask: getComputedStyle(t).maskImage || getComputedStyle(t).webkitMaskImage || 'none',
-        overrides: Object.keys(localStorage).filter(k => /speakernote/.test(k)),
+        overrides: Object.keys(localStorage).filter(k => /speakernote:/.test(k)),
       };
     });
     const press = async (k, wait = 280) => { await spk.keyboard.press(k); await spk.waitForTimeout(wait); };

@@ -98,6 +98,7 @@ const NOT_A_ROW = {
 const NO_KEY_COMMANDS = {
   pitchblack: 'a switch for the room, set once per projector from the palette or the frontmatter; a free letter is worth more to something pressed mid-talk',
   'demo-end': 'D already takes a demo off the wall and the browser\'s sharing bar stops a capture; ending it for good is rare enough for the palette',
+  'forget-local-edits': 'it removes every edited note and annotation draft at once and cannot be undone, so no press made by mistake may reach it; the palette runs it and it asks first',
 };
 
 // Every press the switch in AUDIENCE_JS answered when the table replaced it,

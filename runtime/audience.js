@@ -46,6 +46,10 @@ const viewHooks = {
   // back from a reload (greeted: it has already adopted this window). Only
   // the cockpit answers.
   onPeerBoot: (greeted) => {},
+  // Every local edit of this lecture has just been forgotten, here or in the
+  // other window (forgetLocalEditsHere). The cockpit redraws its notes pane
+  // and its cue cards from the source.
+  onLocalEditsForgotten: () => {},
 };
 
 const stage = document.getElementById('psiINT-stage');
@@ -240,6 +244,7 @@ const DARK_THEMES = __PSI_DARK_THEME_NAMES__;
 let openExp = null;            // { chunkIdx, expIdx } | null
 let annotEditingId = null;
 let annotations = {};          // chunkId -> text
+let annotationBases = {};      // chunkId -> the source annotation a draft was begun from
 const revealed = {};           // chunkId -> count of visible segments
 
 // overview / TOC / search (PRD §5)
@@ -355,6 +360,203 @@ function loadPersisted() {
 }
 function saveAnnotations() {
   try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
+}
+
+// ── local edits against the source ───────────────────────────────────
+//
+// A draft (an annotation typed with N) and a cockpit note override both
+// stand in for what source.md says, and both used to win over it forever:
+// a source edited after the draft was typed never reached the screen, and
+// nothing said so. So each one now remembers the source text it was begun
+// from - its base - and the cockpit says when the file has moved since.
+//
+// The bases are a key of their own, never a field of the annotations
+// object: annotations travel in every state snapshot and an older peer
+// stores what it receives as drafts, so a base riding along would come
+// back to this window as an annotation. The value is a JSON object, chunk
+// id to the textarea's defaultValue at the moment the draft was begun. An
+// id with a draft and no base is a draft from before this key existed, or
+// one begun in another window this one did not see being typed: its base
+// is unknown. The note overrides keep theirs beside each override in the
+// cockpit (speakernote-base:, runtime/speaker.js).
+const ANNOT_BASES_KEY = storageKey('annotation-bases');
+function loadAnnotationBases() {
+  try {
+    const raw = localStorage.getItem(ANNOT_BASES_KEY);
+    const v = raw ? JSON.parse(raw) : {};
+    annotationBases = v && typeof v === 'object' ? v : {};
+  } catch (e) { annotationBases = {}; }
+}
+function saveAnnotationBases() {
+  try {
+    if (Object.keys(annotationBases).length) localStorage.setItem(ANNOT_BASES_KEY, JSON.stringify(annotationBases));
+    else localStorage.removeItem(ANNOT_BASES_KEY);
+  } catch (e) {}
+}
+function annotTextareaOf(id) {
+  const entry = flatChunks.find(c => c.id === id);
+  return entry ? entry.el.querySelector('.annot-textarea') : null;
+}
+// What source.md says for this chunk's annotation in this build.
+function annotSourceOf(id) {
+  const ta = annotTextareaOf(id);
+  return ta ? ta.defaultValue : '';
+}
+// Whether the source moved under a draft: null when it did not (or there is
+// no draft), 'moved' when the base is known and differs from the source,
+// 'unknown' when there is no base and the source has an annotation the
+// draft is not. A draft with no base over a chunk the source annotates not
+// at all hides nothing, and settleAnnotationDrafts has given it '' as base.
+function annotDraftStale(id) {
+  if (!(id in annotations)) return null;
+  const src = annotSourceOf(id);
+  if (id in annotationBases) return annotationBases[id] === src ? null : 'moved';
+  return src.trim() && (annotations[id] || '').trim() !== src.trim() ? 'unknown' : null;
+}
+// Once at boot, before the textareas are filled: a draft that says what the
+// source says is not a draft any more and goes, silently, base and all; a
+// draft with no base over an unannotated chunk takes '' as its base, which
+// is what it was begun from as far as anyone can tell now, and lets a later
+// annotation in source.md show up as a move. A base with no draft is
+// dropped. Writes only when something changed.
+function settleAnnotationDrafts() {
+  let drafts = false, bases = false;
+  for (const id of Object.keys(annotations)) {
+    const ta = annotTextareaOf(id);
+    if (!ta) continue;
+    const src = ta.defaultValue;
+    if ((annotations[id] || '').trim() === src.trim()) {
+      delete annotations[id]; drafts = true;
+      if (id in annotationBases) { delete annotationBases[id]; bases = true; }
+    } else if (!(id in annotationBases) && !src.trim()) {
+      annotationBases[id] = ''; bases = true;
+    }
+  }
+  for (const id of Object.keys(annotationBases)) {
+    if (!(id in annotations)) { delete annotationBases[id]; bases = true; }
+  }
+  if (drafts) saveAnnotations();
+  if (bases) saveAnnotationBases();
+}
+// Keep a draft, and take the source as it now stands as what it was begun
+// from: the cockpit's "keep mine".
+function rebaseAnnotationDraft(id) {
+  if (!(id in annotations)) return;
+  annotationBases[id] = annotSourceOf(id);
+  saveAnnotationBases();
+}
+// Drop one draft and show the source's annotation again. Saves and leaves
+// the broadcast to the caller, which may drop several.
+function dropAnnotationDraft(id) {
+  delete annotations[id];
+  delete annotationBases[id];
+  const ta = annotTextareaOf(id);
+  if (ta) {
+    ta.value = ta.defaultValue;
+    const entry = flatChunks.find(c => c.id === id);
+    entry.el.classList.toggle('has-annot', !!ta.value.trim());
+    autosize(ta);
+  }
+}
+
+// The note overrides of this lecture in this browser, as storage keys. They
+// are the cockpit's, but the store is one per origin, so the projection can
+// count and forget them too.
+const NOTE_OVERRIDE_PREFIX = storageKey('speakernote:');
+const NOTE_BASE_PREFIX = storageKey('speakernote-base:');
+function storedKeysWith(prefix) {
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) out.push(k);
+    }
+  } catch (e) {}
+  return out;
+}
+function localEditCounts() {
+  return { notes: storedKeysWith(NOTE_OVERRIDE_PREFIX).length, annots: Object.keys(annotations).length };
+}
+// Everything this window keeps of the lecture's local edits goes, and both
+// kinds show what the file says. No broadcast: the command sends one, and a
+// window obeying the other's forget-local-edits has nothing to tell it.
+function forgetLocalEditsHere() {
+  for (const k of storedKeysWith(NOTE_OVERRIDE_PREFIX).concat(storedKeysWith(NOTE_BASE_PREFIX))) {
+    try { localStorage.removeItem(k); } catch (e) {}
+  }
+  for (const id of Object.keys(annotations)) dropAnnotationDraft(id);
+  annotationBases = {};
+  try {
+    localStorage.removeItem(storageKey('annotations'));
+    localStorage.removeItem(ANNOT_BASES_KEY);
+  } catch (e) {}
+  viewHooks.onLocalEditsForgotten();
+}
+// The palette's "forget all local edits". Never a key, and never without the
+// confirmation, which counts what goes. Run in either window; the other is
+// told with a message of its own, past the freeze gate, because a frozen
+// cockpit has to forget too and a snapshot would move its slide. Its
+// localStorage is cleared by that message as well - one store under --serve
+// and in Chrome from file://, one per file in Firefox.
+function forgetLocalEdits() {
+  const n = localEditCounts();
+  if (!n.notes && !n.annots) {
+    flashMode('nothing to forget – notes and annotations are as source.md has them');
+    return;
+  }
+  showForgetModal(n, () => {
+    forgetLocalEditsHere();
+    sendToPeer({ type: 'forget-local-edits', source: VIEW });
+    broadcastState();
+    flashMode('local edits forgotten – notes and annotations are as source.md has them');
+  });
+}
+const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+function showForgetModal(n, onConfirm) {
+  document.getElementById('psiINT-forget-modal')?.remove();
+  const host = document.createElement('div');
+  host.id = 'psiINT-forget-modal';
+  host.setAttribute('role', 'alertdialog');
+  host.setAttribute('aria-modal', 'true');
+  const inner = document.createElement('div');
+  inner.className = 'forget-modal-inner';
+  const head = document.createElement('h2');
+  head.className = 'forget-modal-head';
+  head.textContent = 'Forget all local edits?';
+  const what = [];
+  if (n.notes) what.push(plural(n.notes, 'edited speaker note', 'edited speaker notes'));
+  if (n.annots) what.push(plural(n.annots, 'annotation draft', 'annotation drafts'));
+  const body = document.createElement('p');
+  body.className = 'forget-modal-body';
+  body.textContent = 'This browser keeps ' + what.join(' and ') + ' for this lecture. '
+    + 'They go from both windows, and the notes and annotations are then exactly what source.md says. '
+    + 'This cannot be undone – to keep the annotations, export them first with Shift-E.';
+  const actions = document.createElement('div');
+  actions.className = 'forget-modal-actions';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'forget-modal-cancel';
+  cancel.textContent = 'Cancel';
+  const go = document.createElement('button');
+  go.type = 'button';
+  go.className = 'forget-modal-danger';
+  go.textContent = 'Forget ' + plural(n.notes + n.annots, 'local edit', 'local edits');
+  const close = () => host.remove();
+  cancel.addEventListener('click', close);
+  go.addEventListener('click', () => { close(); onConfirm(); });
+  actions.append(cancel, go);
+  inner.append(head, body, actions);
+  host.appendChild(inner);
+  host.addEventListener('click', (e) => { if (e.target === host) close(); });
+  // Modal over the key map: a Space or an arrow here must press a button or
+  // nothing, never turn the page behind the question.
+  host.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { close(); e.preventDefault(); }
+    e.stopPropagation();
+  });
+  document.body.appendChild(host);
+  // Cancel has the focus: Enter alone must not be the way to lose them.
+  cancel.focus();
 }
 function saveActive() {
   // One key for both windows, so a cockpit looking ahead must not write it:
@@ -799,7 +1001,23 @@ function applyRemoteStateNow(payload, changed) {
       setSlideRef(payload.audienceW, payload.audienceH);
     }
     replaceContents(revealed, payload.revealed);
+    const draftsBefore = Object.assign({}, annotations);
     replaceContents(annotations, payload.annotations);
+    // A draft the other window is typing right now was begun from the source
+    // in this build too: its base is recorded here as well, so a window with
+    // a store of its own (Firefox, file://) knows it. A draft the peer let go
+    // takes its base with it.
+    {
+      let moved = false;
+      const typing = payload.annotEditingId;
+      if (typing && (typing in annotations) && !(typing in draftsBefore) && !(typing in annotationBases)) {
+        annotationBases[typing] = annotSourceOf(typing); moved = true;
+      }
+      for (const id of Object.keys(annotationBases)) {
+        if (!(id in annotations)) { delete annotationBases[id]; moved = true; }
+      }
+      if (moved) saveAnnotationBases();
+    }
     // Reflect annotation text into the textareas so the other view sees
     // keystrokes landing in real time. A draft (annotations[id]) wins
     // over the source-prefilled defaultValue; if the draft is gone (e.g.
@@ -975,6 +1193,10 @@ window.addEventListener('message', (ev) => {
   // but "here" and clears the asker's peerGone like any message.
   if (m.type === 'ping') { if (hadPeer) sendToPeer({ type: 'pong', source: VIEW }); return; }
   if (m.type === 'pong') return;
+  // The other window forgot every local edit of the lecture (the palette's
+  // forget-local-edits, confirmed there). Past the freeze gate: it is about
+  // what is stored, and a frozen cockpit has to forget too.
+  if (m.type === 'forget-local-edits') { forgetLocalEditsHere(); return; }
   if (m.type === 'video') { applyRemoteVideo(m); return; }
   // A diagram the other window edited. Its own message rather than a field
   // of the snapshot, following the video precedent and for the same reason:
@@ -3041,6 +3263,8 @@ function blurAnnotation() {
   }
 }
 function wireAnnotations() {
+  loadAnnotationBases();
+  settleAnnotationDrafts();
   flatChunks.forEach(({ el, id }) => {
     const ta = el.querySelector('.annot-textarea');
     if (!ta) return;
@@ -3051,6 +3275,10 @@ function wireAnnotations() {
     if (ta.value.trim()) el.classList.add('has-annot');
     autosize(ta);
     ta.addEventListener('input', () => {
+      // The first keystroke of a draft records what it was begun from. Later
+      // ones leave the base alone, so typing on under a hint does not
+      // silently answer it.
+      if (!(id in annotations)) { annotationBases[id] = ta.defaultValue; saveAnnotationBases(); }
       annotations[id] = ta.value;
       // Under the layer the height is fitAnnotation's; autosize would force
       // a layout only to be overwritten.
@@ -5295,6 +5523,8 @@ const COMMAND_RUN = {
   // into source.md. Plain E is unbound; the cockpit replaces this entry with
   // its own export.
   'export-annotations': (e) => { exportAnnotationsPlain(); e.preventDefault(); },
+  // No key: it cannot be undone. The palette runs it, and it asks first.
+  'forget-local-edits': (e) => { forgetLocalEdits(); if (e) e.preventDefault(); },
   // Only in audience: open the speaker window and remember it as our peer.
   // A cockpit that is already open is brought forward, never opened again
   // (openViewWindow); one this window cannot reach is named rather than

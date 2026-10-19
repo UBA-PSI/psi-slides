@@ -222,6 +222,37 @@ body[data-view=speaker].notes-sized #psiINT-notes-content {
     animation-range: 0 calc(100% - 2px);
   }
 }
+/* The line that says source.md moved under a local edit of this slide
+   (refreshLocalEditHint): one quiet row per kind over the note, in the
+   pane's own small type, with its two answers as text buttons. The pane
+   stacks while it stands, and a dragged pane gives the note what is left. */
+#psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) { flex-direction: column; }
+body[data-view=speaker].notes-sized #psiINT-notes-pane:has(> #psiINT-notes-stale:not([hidden])) #psiINT-notes-content {
+  height: auto !important;
+  flex: 1 1 0;
+  min-height: 0;
+}
+#psiINT-notes-stale {
+  padding: 0.45rem 88px 0 1rem;
+  font-family: var(--sans-font);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+#psiINT-notes-stale[hidden] { display: none; }
+.notes-stale-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.9em; }
+.notes-stale-row button {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.notes-stale-row button:hover { text-decoration-color: currentColor; }
 #psiINT-notes-content::placeholder {
   color: var(--ink-soft);
   font-style: italic;
@@ -809,6 +840,18 @@ body[data-mode=dark] .export-modal-keep:hover {
 .export-modal-keep:hover { background: oklch(0.93 0 0); }
 .export-modal-clear { background: oklch(0.55 0.16 25); color: oklch(0.99 0 0); border-color: oklch(0.45 0.16 25); }
 .export-modal-clear:hover { background: oklch(0.48 0.17 25); }
+/* Forget-all sits apart on the far side, as quiet text: it asks again
+   before it does anything. */
+.export-modal-actions .export-modal-forget {
+  margin-right: auto;
+  border-color: transparent;
+  background: none;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 2px;
+}
+.export-modal-actions .export-modal-forget:hover { color: oklch(0.5 0.16 25); }
 
 /* Hide the annotation "+ note" affordance in speaker – speaker has the
    notes pane for author-written notes. */

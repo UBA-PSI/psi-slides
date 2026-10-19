@@ -170,20 +170,12 @@ function flashCenter(text, opts = {}) {
 }
 
 function clearExportedDrafts(drafts) {
-  drafts.forEach(({ id }) => {
-    delete annotations[id];
-    const entry = flatChunks.find(c => c.id === id);
-    if (entry) {
-      const ta2 = entry.el.querySelector('.annot-textarea');
-      if (ta2) {
-        ta2.value = ta2.defaultValue;
-        entry.el.classList.toggle('has-annot', !!ta2.value.trim());
-        autosize(ta2);
-      }
-    }
-  });
+  // A cleared draft takes its base with it (dropAnnotationDraft).
+  drafts.forEach(({ id }) => dropAnnotationDraft(id));
   saveAnnotations();
+  saveAnnotationBases();
   broadcastState();
+  refreshLocalEditHint();
   flashCenter('drafts cleared');
 }
 
@@ -305,6 +297,15 @@ function showExportModal({ drafts, snippet, clipboardOk }) {
 
   const actions = document.createElement('div');
   actions.className = 'export-modal-actions';
+  // The way out of every local edit at once, beside the way out of the
+  // exported ones. Quiet and on the far side: it asks again before it does
+  // anything (forgetLocalEdits).
+  const forgetBtn = document.createElement('button');
+  forgetBtn.type = 'button';
+  forgetBtn.className = 'export-modal-forget';
+  forgetBtn.textContent = 'Forget all local edits…';
+  forgetBtn.addEventListener('click', () => { host.remove(); forgetLocalEdits(); });
+  actions.appendChild(forgetBtn);
   const keepBtn = document.createElement('button');
   keepBtn.type = 'button';
   keepBtn.className = 'export-modal-keep';
@@ -358,6 +359,10 @@ document.getElementById('psiINT-speaker-help-btn')?.addEventListener('click', ()
 // in localStorage. An empty string is a valid override (the speaker
 // intentionally cleared the source notes for this chunk).
 const noteOverrideKey = (id) => storageKey('speakernote:' + id);
+// The source text an override was begun from, a plain string beside it
+// (speakernote-base:<id>). Absent beside an override: the override is older
+// than the key, and its base is unknown. See settleNoteOverrides.
+const noteBaseKey = (id) => storageKey('speakernote-base:' + id);
 function sourceNotesFor(id) {
   const tmpl = document.querySelector(`template[data-notes-for="${id}"]`);
   // Template body was escapeHtml'd at build time; parsed back into text via .textContent.
@@ -369,6 +374,114 @@ function loadNotesFor(id) {
     return raw !== null ? raw : sourceNotesFor(id);
   } catch (e) { return sourceNotesFor(id); }
 }
+function storedNote(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+// Whether source.md moved under an override, in annotDraftStale's terms:
+// null, 'moved' (the base is known and is not the source any more) or
+// 'unknown' (no base, and the source has notes the override is not).
+function noteStale(id) {
+  const override = storedNote(noteOverrideKey(id));
+  if (override === null) return null;
+  const src = sourceNotesFor(id);
+  const base = storedNote(noteBaseKey(id));
+  if (base !== null) return base === src ? null : 'moved';
+  return src.trim() && override.trim() !== src.trim() ? 'unknown' : null;
+}
+// Once at load, the notes' half of settleAnnotationDrafts: an override that
+// says what the source says goes, silently; one with no base over a chunk
+// without notes takes '' as its base; a base with no override is dropped.
+function settleNoteOverrides() {
+  for (const { id } of flatChunks) {
+    if (!id) continue;
+    const override = storedNote(noteOverrideKey(id));
+    const base = storedNote(noteBaseKey(id));
+    try {
+      if (override === null) {
+        if (base !== null) localStorage.removeItem(noteBaseKey(id));
+        continue;
+      }
+      const src = sourceNotesFor(id);
+      if (override.trim() === src.trim()) {
+        localStorage.removeItem(noteOverrideKey(id));
+        localStorage.removeItem(noteBaseKey(id));
+      } else if (base === null && !src.trim()) {
+        localStorage.setItem(noteBaseKey(id), '');
+      }
+    } catch (e) {}
+  }
+}
+settleNoteOverrides();
+
+// The line over the notes that says the file moved under a local edit of
+// this slide - a note override, an annotation draft, or both, one row each -
+// with the two answers: keep mine takes the source as it now stands for the
+// base, so the line goes and comes back only if the file moves again; use
+// source drops the edit. Cockpit only: the projection never shows it, and
+// the room never learns there was a question.
+const localEditHint = document.getElementById('psiINT-notes-stale');
+const STALE_WORDS = {
+  note: { moved: 'source.md changed since you edited these notes', unknown: 'source.md may have changed since you edited these notes' },
+  annot: { moved: 'source.md changed since your annotation draft', unknown: 'source.md may have changed since your annotation draft' },
+};
+function localEditHintRow(kind, how, keep, use) {
+  const row = document.createElement('div');
+  row.className = 'notes-stale-row';
+  row.dataset.kind = kind;
+  const text = document.createElement('span');
+  text.className = 'notes-stale-text';
+  text.textContent = STALE_WORDS[kind][how];
+  const mk = (label, cls, fn) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    return b;
+  };
+  row.append(text, mk('keep mine', 'notes-stale-keep', keep), mk('use source', 'notes-stale-use', use));
+  return row;
+}
+function refreshLocalEditHint() {
+  if (!localEditHint) return;
+  const entry = flatChunks[state.activeIdx];
+  localEditHint.replaceChildren();
+  if (entry && entry.id) {
+    const id = entry.id;
+    const n = noteStale(id);
+    if (n) localEditHint.appendChild(localEditHintRow('note', n, () => {
+      try { localStorage.setItem(noteBaseKey(id), sourceNotesFor(id)); } catch (e) {}
+      refreshLocalEditHint();
+    }, () => {
+      try { localStorage.removeItem(noteOverrideKey(id)); localStorage.removeItem(noteBaseKey(id)); } catch (e) {}
+      notesRedraw();
+    }));
+    const a = annotDraftStale(id);
+    if (a) localEditHint.appendChild(localEditHintRow('annot', a, () => {
+      rebaseAnnotationDraft(id);
+      refreshLocalEditHint();
+    }, () => {
+      dropAnnotationDraft(id);
+      saveAnnotations();
+      saveAnnotationBases();
+      broadcastState();
+      refreshLocalEditHint();
+    }));
+  }
+  localEditHint.hidden = !localEditHint.firstChild;
+  autoSizeNotes();
+}
+// The notes pane and the cue cards from what is stored now, after an
+// override went.
+function notesRedraw() {
+  populateNotesPane();
+  cueMarks = null;
+  cueSync();
+}
+viewHooks.onLocalEditsForgotten = () => {
+  notesRedraw();
+};
+COMMAND_RUN['forget-local-edits'] = (e) => { forgetLocalEdits(); if (e) e.preventDefault(); };
 // Auto-size the notes textarea: 1 line minimum, up to 3 lines, scroll
 // beyond. Also toggles body.has-notes so CSS can collapse the row
 // entirely when there are no notes – reclaims vertical space for the
@@ -393,7 +506,9 @@ function autoSizeNotes() {
   // A manually-sized pane stays open unconditionally.
   const sized = document.body.classList.contains('notes-sized');
   const editing = !notesContent.readOnly || document.activeElement === notesContent;
-  document.body.classList.toggle('has-notes', sized || hasText || editing);
+  // The line that says the file moved has to be seen, over an emptied note too.
+  const stale = !!localEditHint && !localEditHint.hidden;
+  document.body.classList.toggle('has-notes', sized || hasText || editing || stale);
   if (NOTES_CSS_SIZED && NOTES_CSS_MORE) return;
   if (!notesFrame) notesFrame = requestAnimationFrame(measureNotes);
 }
@@ -419,7 +534,7 @@ if (!NOTES_CSS_MORE) notesContent.addEventListener('scroll', markNotesMore, { pa
 function populateNotesPane() {
   const entry = flatChunks[state.activeIdx];
   notesContent.value = entry ? loadNotesFor(entry.id) : '';
-  autoSizeNotes();
+  refreshLocalEditHint();
   // Back to the head of the new note a frame later: writing scrollTop inside
   // the press would be a forced layout of its own.
   if (!notesTopFrame) notesTopFrame = requestAnimationFrame(() => {
@@ -430,7 +545,14 @@ function populateNotesPane() {
 notesContent.addEventListener('input', () => {
   const entry = flatChunks[state.activeIdx];
   if (entry) {
-    try { localStorage.setItem(noteOverrideKey(entry.id), notesContent.value); } catch (e) {}
+    try {
+      // The first keystroke of an override records the source it was begun
+      // from; later ones leave the base alone, as annotations do.
+      if (localStorage.getItem(noteOverrideKey(entry.id)) === null) {
+        localStorage.setItem(noteBaseKey(entry.id), sourceNotesFor(entry.id));
+      }
+      localStorage.setItem(noteOverrideKey(entry.id), notesContent.value);
+    } catch (e) {}
     // The override replaces this chunk's cards, marks and all, and a mark
     // typed here moves the drift beside the clock at once.
     cueMarks = null;
@@ -1538,6 +1660,13 @@ previewResizer?.addEventListener('dblclick', () => {
 updateScrubber();
 populateNotesPane();
 populatePreviewStrip();
+// Once, on load: how many slides have a local edit the file moved under.
+// The line over the notes says which, slide by slide, as each is reached.
+{
+  const stale = flatChunks.filter(c => c.id && (noteStale(c.id) || annotDraftStale(c.id))).length;
+  if (stale) flashCenter('source.md changed under your local edits on ' + plural(stale, 'slide', 'slides')
+    + ' – the line over the notes says so on each', { duration: 4200 });
+}
 
 // Resize fires at ~60 Hz during a drag; rebuilding every tick clones
 // N chunks and schedules N rAFs per event. Debounce to the trailing

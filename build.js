@@ -10889,6 +10889,7 @@ ${columnsHtml}
 </section>
 <aside id="psiINT-notes-pane">
   <div id="psiINT-notes-resizer" role="separator" aria-orientation="horizontal" title="Drag to resize notes · double-click to reset"></div>
+  <div id="psiINT-notes-stale" role="status" hidden></div>
   <textarea id="psiINT-notes-content" rows="1" spellcheck="false" placeholder="" readonly></textarea>
   <div id="psiINT-notes-zoom">
     <button id="psiINT-notes-zoom-out" type="button" title="Smaller notes text" aria-label="Smaller notes text">&minus;</button>

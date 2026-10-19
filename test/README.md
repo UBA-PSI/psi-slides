@@ -218,7 +218,7 @@ fixture is compiled *and* linted.
 ## The browser suite: four families
 
 **Navigation** – `nav`, `nav-cockpit`, `nav-goto`, `nav-fullscreen`, `help-search`, `palette`, `transition`, `pitchblack`,
-`cue-cards`, `cockpit-notes`, `cockpit-alone`, `watch-resume`, `clock`, `autoplay`, `live-sync`. The navigation
+`cue-cards`, `cockpit-notes`, `local-edits`, `cockpit-alone`, `watch-resume`, `clock`, `autoplay`, `live-sync`. The navigation
 model, and what a slide change looks like under `transition: pan | cut | fade` –
 the one spec here that samples per animation frame rather than after a settle,
 because its whole subject is what happens between two states.
@@ -427,6 +427,17 @@ reach the projection and nothing is stored; a double-click and `Shift`-`N`
 still open an edit, `PageDown` mid-edit leaves it and turns the page, `Esc`
 leaves it and does nothing else; and the long note fades at its foot, scrolls
 with the wheel unfocused, and stands in full once scrolled to the end.
+`local-edits` builds one fixture twice into one served folder, so both windows
+and both builds share a store the way a lecturer's browser does across a
+rebuild: a note override and an annotation draft keep the source they were
+begun from (the annotation's in a key of its own, never in the snapshot); after
+the rebuild the cockpit's line over the notes names both, keep mine rebases
+and use source drops – in both windows for the annotation; an override with no
+base says the file *may* have changed, and one equal to the source goes
+silently; and the palette's “Forget all local edits” asks first, with a count
+and the focus on Cancel, forgets nothing on `Esc`, clears both kinds from both
+windows and the store on the red button, asks nothing when nothing is stored,
+and does the same run from the projection.
 `cockpit-alone` is the pair the other way round, from `file://` on a fixture of
 four slides: `speaker.html` opened on its own says `○ no projection` and not
 “live”, and its `B` and `W` say there is no projection rather than claiming

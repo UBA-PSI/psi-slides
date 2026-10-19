@@ -350,6 +350,11 @@ export const COMMANDS = [
       audience: 'copy the annotations typed with <kbd>N</kbd> out as Markdown for source.md',
       speaker: 'copy annotations out as Markdown for source.md',
     } },
+  // No key, and a question before it runs: it cannot be undone, and a free
+  // letter pressed by mistake mid-talk would cost every draft at once.
+  { id: 'forget-local-edits', group: { audience: 'knobs', speaker: 'notes' }, views: BOTH, keys: [],
+    label: 'Forget all local edits – cannot be undone', reach: 'ungated',
+    hint: 'forget every speaker note edited here and every annotation draft of this lecture, in both windows, and show both as source.md has them – it asks first and cannot be undone, so export the annotations with <kbd>Shift</kbd>-<kbd>E</kbd> first' },
   { id: 'notes-edit', group: 'notes', views: SPK,
     mouse: 'double-click the notes',
     hint: 'edit the notes here – one click does not, so a remote keeps turning pages; the wheel scrolls a long note, and <kbd>PgDn</kbd> <kbd>PgUp</kbd> leave the field mid-edit' },
