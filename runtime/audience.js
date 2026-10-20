@@ -709,9 +709,35 @@ function isPeerWindow(w) {
   if (w === peer || w === window.opener) return true;
   try { return w.opener === window; } catch (e) { return false; }
 }
+// The peer greets as another build (BUILD_STAMP): a hello is what a window
+// says when its page has just loaded or has just found this one again, so
+// its file is the one on disk now and this window is most likely showing the
+// build before - the cockpit reloaded after a rebuild, or opened anew with S.
+// Not on a projection's here, which comes before it holds this window: a
+// reload then would leave two windows that know nothing of each other, and
+// the hello its adoption sends a moment later carries the build. It reloads too,
+// keeping its slide, beats and freeze through the --watch stash. Not the
+// goodbye: Chrome hands it over with no source once the page is gone, and
+// isPeerWindow drops it. Once per build it has seen, so a peer this window's
+// own file cannot catch up with - a --speaker-only build beside an older
+// audience.html - costs one reload and not a loop. Under --watch the socket
+// reloads both windows already. A message without the field is from a build
+// before it.
+const PEER_RELOAD_KEY = 'psi-slides:peer-reload:' + DECK_ID;
+function peerReloaded(build) {
+  if (typeof build !== 'string' || !build || !BUILD_STAMP || build === BUILD_STAMP) return false;
+  if (window.psiWatchReloads) return false;
+  try {
+    if (sessionStorage.getItem(PEER_RELOAD_KEY) === build) return false;
+    sessionStorage.setItem(PEER_RELOAD_KEY, build);
+    window.psiWatchResumeSave();
+  } catch (e) { return false; }
+  location.reload();
+  return true;
+}
 function sendToPeer(msg) {
   if (!peer || peer.closed) { peer = null; return; }
-  try { peer.postMessage(Object.assign({ deck: DECK_ID }, msg), '*'); } catch (e) { peer = null; }
+  try { peer.postMessage(Object.assign({ deck: DECK_ID, build: BUILD_STAMP }, msg), '*'); } catch (e) { peer = null; }
 }
 // The peer said goodbye: its page went away (pagehide), which is a reload, a
 // navigation or a window closing. The handle is kept - a reload keeps the
@@ -1130,6 +1156,16 @@ window.addEventListener('message', (ev) => {
     }
     return;
   }
+  // A goodbye from a page that is already gone: Chrome delivers what a page
+  // posted on pagehide with no source once the next document is loading, so
+  // a reloaded peer's goodbye could never pass isPeerWindow, and a cockpit
+  // went on counting a reloaded projection as there without asking. Taken
+  // as the peer's while there is one: all it can make this window do is ask
+  // the peer with a ping, which a window answers only when it is the peer.
+  if (m.type === 'bye' && ev.source === null && peer && m.deck === DECK_ID && m.source !== VIEW) {
+    peerGone = true; peerPings = 0; notePeer(); setTimeout(peerTick, 400);
+    return;
+  }
   // And the origin is not enough: a sandboxed frame is "null" too. See
   // isPeerWindow.
   if (!isPeerWindow(ev.source)) return;
@@ -1157,6 +1193,7 @@ window.addEventListener('message', (ev) => {
   // greeting already, and not on a here, which the cockpit answers itself.
   const hadPeer = hasLivePeer();
   const wasGone = peerGone && ev.source === peer;
+  if (m.type === 'hello' && peerReloaded(m.build)) return;
   setPeer(ev.source);
   peerGone = false;
   if (!hadPeer && hasLivePeer() && m.type !== 'hello' && m.type !== 'here') {

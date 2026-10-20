@@ -3805,7 +3805,7 @@ body[data-mode=dark] .export-modal-keep:hover {
   margin: 0;
   padding: 0.5rem 0.7rem;
   border-left: 2pt solid oklch(0.72 0.12 80);
-  background: oklch(0.985 0.014 80);
+  background: color-mix(in oklch, oklch(0.72 0.12 80) 12%, var(--paper-warm));
   font-size: 12px;
   color: var(--ink);
 }
@@ -9384,6 +9384,7 @@ return { VIEWS, REQUIRES, REACH, WHEN, CONTEXTS, GROUPS, COMMANDS, START_MENU, c
 </script>
 <script>
 const LECTURE_TITLE = "Animated Infographics";
+const BUILD_STAMP = "dfa90ccf6b1a";
 const VIEW_DEFAULTS = {"theme":"dark","collapse":"none","autoFit":"full"};
 const LINK_QR = {};
 const SOUFFLEUSE = null;
@@ -10152,9 +10153,21 @@ function isPeerWindow(w) {
   if (w === peer || w === window.opener) return true;
   try { return w.opener === window; } catch (e) { return false; }
 }
+const PEER_RELOAD_KEY = 'psi-slides:peer-reload:' + DECK_ID;
+function peerReloaded(build) {
+  if (typeof build !== 'string' || !build || !BUILD_STAMP || build === BUILD_STAMP) return false;
+  if (window.psiWatchReloads) return false;
+  try {
+    if (sessionStorage.getItem(PEER_RELOAD_KEY) === build) return false;
+    sessionStorage.setItem(PEER_RELOAD_KEY, build);
+    window.psiWatchResumeSave();
+  } catch (e) { return false; }
+  location.reload();
+  return true;
+}
 function sendToPeer(msg) {
   if (!peer || peer.closed) { peer = null; return; }
-  try { peer.postMessage(Object.assign({ deck: DECK_ID }, msg), '*'); } catch (e) { peer = null; }
+  try { peer.postMessage(Object.assign({ deck: DECK_ID, build: BUILD_STAMP }, msg), '*'); } catch (e) { peer = null; }
 }
 let peerGone = false;
 function hasLivePeer() {
@@ -10384,6 +10397,10 @@ window.addEventListener('message', (ev) => {
     }
     return;
   }
+  if (m.type === 'bye' && ev.source === null && peer && m.deck === DECK_ID && m.source !== VIEW) {
+    peerGone = true; peerPings = 0; notePeer(); setTimeout(peerTick, 400);
+    return;
+  }
   if (!isPeerWindow(ev.source)) return;
   if (m.deck !== undefined && m.deck !== DECK_ID) return;
   if (m.source === VIEW) return;
@@ -10393,6 +10410,7 @@ window.addEventListener('message', (ev) => {
   }
   const hadPeer = hasLivePeer();
   const wasGone = peerGone && ev.source === peer;
+  if (m.type === 'hello' && peerReloaded(m.build)) return;
   setPeer(ev.source);
   peerGone = false;
   if (!hadPeer && hasLivePeer() && m.type !== 'hello' && m.type !== 'here') {

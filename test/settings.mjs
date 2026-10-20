@@ -3552,7 +3552,10 @@ console.log('\nlayout generations');
     const none = raw(LSRC(''), []);
     const en = raw(LSRC('lang: en\n'), []);
     ok(none.code === 0 && en.code === 0, 'both the no-lang and the lang: en deck build', none.out + en.out);
-    ok(none.html === en.html, 'lang: en and no lang: emit byte-identical audience HTML');
+    // BUILD_STAMP names the build a live view is (a hash of source.md, see
+    // liveBuildStamp), so it differs between two sources by construction.
+    const unstamp = (h) => h && h.replace(/const BUILD_STAMP = "[0-9a-f]*";/, 'const BUILD_STAMP = "";');
+    ok(unstamp(none.html) === unstamp(en.html), 'lang: en and no lang: emit byte-identical audience HTML');
     // The documents' reader tools key their storage by the source folder's
     // name (and a hash of the folder above), and raw() builds each deck in a
     // temporary folder of its own, so those two fields differ by

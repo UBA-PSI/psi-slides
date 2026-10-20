@@ -15,7 +15,9 @@
  * rather than opening a second one.
  *
  * From file://, where every file is an origin of its own and the opener
- * relationship is the only channel there is. A fixture deck, because the
+ * relationship is the only channel there is. And after a rebuild, a reload
+ * of either window reloads the other, which still shows the build before.
+ * A fixture deck, because the
  * assertions are about the windows and not about any slide.
  */
 import fs from 'node:fs';
@@ -48,13 +50,16 @@ The third slide.
 The last slide.
 `;
 
-function buildFixture() {
-  const dir = tmpDir('psi-alone-');
-  fs.writeFileSync(path.join(dir, 'source.md'), SOURCE);
+function rebuild(dir, source) {
+  fs.writeFileSync(path.join(dir, 'source.md'), source);
   const r = spawnSync(process.execPath,
     [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--no-optimize-images'],
     { cwd: ROOT, encoding: 'utf8' });
   if (r.status !== 0) throw new Error('fixture build failed:\n' + r.stdout + r.stderr);
+}
+function buildFixture() {
+  const dir = tmpDir('psi-alone-');
+  rebuild(dir, SOURCE);
   return dir;
 }
 
@@ -159,6 +164,27 @@ export async function run({ page, report }) {
     ok(/speaker\.html$/.test(spk2.url()), 'S once more opens one anyway', spk2.url());
     await spk2.close();
     await hand.close();
+
+    // ── 6. a rebuild, and one of the two windows reloaded ──
+    // The other one follows: the reloaded window greets as another build,
+    // and the window still showing the old one reloads itself, on its slide.
+    const says = (p, word) => until(p, (w) => document.body.textContent.includes(w), word);
+    rebuild(dir, SOURCE.replace('The last slide.', 'The last slide, rebuilt.'));
+    await aud2.evaluate(() => { window.__marker = 'old'; });
+    await spk.reload({ waitUntil: 'load' });
+    ok(await says(aud2, 'rebuilt'), 'a cockpit reloaded after a rebuild reloads the projection with it');
+    ok(await aud2.evaluate(() => window.__marker) === undefined, 'which is a reload, not a patch');
+    ok(await onSlide(aud2, 'four'), 'and the projection stays on its slide', await idOf(aud2));
+    rebuild(dir, SOURCE.replace('The last slide.', 'The last slide, twice.'));
+    await spk.evaluate(() => { window.__marker = 'old'; });
+    await aud2.reload({ waitUntil: 'load' });
+    ok(await says(spk, 'twice'), 'a projection reloaded after a rebuild reloads the cockpit with it');
+    ok(await onSlide(spk, 'four'), 'and the cockpit stays on its slide', await idOf(spk));
+    await aud2.evaluate(() => { window.__marker = 'kept'; });
+    await spk.reload({ waitUntil: 'load' });
+    ok(await isLive(spk), 'a reload with nothing rebuilt finds the projection again', (await light(spk)).text);
+    await aud2.waitForTimeout(500);
+    ok(await aud2.evaluate(() => window.__marker) === 'kept', 'and does not reload it');
   } finally {
     await ctx.close();
   }

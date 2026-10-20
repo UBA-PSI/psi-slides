@@ -6856,6 +6856,7 @@ const watchBannerJs = () => (watchBannerJsCache ??= fs.readFileSync(WATCH_BANNER
 // port every 500 ms for as long as the tab was open.
 function watchRunJs(run) {
   return `
+  window.psiWatchReloads = true;
   const psiRun = ${JSON.stringify(run || '')};
   let retryMs = 500;
   const retryLater = (fn) => { setTimeout(fn, retryMs); retryMs = Math.min(retryMs * 2, 5000); };
@@ -10525,6 +10526,19 @@ function siblingViewsAbsent(outDir, targetNames) {
 // its P is the projection's run function and asks the same way, and without
 // the list a cockpit that could not ask (no file: or http(s): address, a
 // probe with no answer) opened print.html however the build had found it.
+// Which build a live view is, the same in audience.html and speaker.html of
+// one build: a window whose peer reloads and comes back as another build
+// reloads itself once (peerReloaded in runtime/audience.js), so a cockpit
+// reloaded after a rebuild brings the projection with it. A function of the
+// source and the two runtimes alone, never of the clock, so a rebuild of an
+// unchanged deck is the same bytes and a partial build stamps what a full one
+// does.
+function liveBuildStamp(src) {
+  return crypto.createHash('sha256')
+    .update(src).update('\0').update(audienceJs()).update('\0').update(speakerJs())
+    .digest('hex').slice(0, 12);
+}
+
 function absentViewsScript(absentViews) {
   if (!absentViews || !absentViews.length) return '';
   return `<script>window.PSI_ABSENT_VIEWS = ${jsonForScript(absentViews)};</script>\n`;
@@ -10645,6 +10659,7 @@ ${commandsJs()}
 </script>
 <script>
 const LECTURE_TITLE = ${titleJson};
+const BUILD_STAMP = ${jsonForScript(opts.buildStamp || '')};
 const VIEW_DEFAULTS = ${jsonForScript(defaults)};
 const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
 ${shipJs(diagramJs())}
@@ -10947,6 +10962,7 @@ ${commandsJs()}
 </script>
 <script>
 const LECTURE_TITLE = ${titleJson};
+const BUILD_STAMP = ${jsonForScript(opts.buildStamp || '')};
 const VIEW_DEFAULTS = ${jsonForScript(defaults)};
 const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
 const SOUFFLEUSE = ${souffleuseJs};
@@ -13260,6 +13276,7 @@ function buildOnce(absIn, only, opts = {}) {
   const renderOpts = {
     ...opts, fontEmbed, strings, codeSizing,
     lectureKey: path.basename(outDir), readerKey: readerStoreKey(outDir),
+    buildStamp: liveBuildStamp(src),
   };
 
   const targets = [

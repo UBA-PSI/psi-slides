@@ -85,16 +85,18 @@ export async function run({ page, report, press }) {
   ok(s.badge && s.stream, 'the cockpit shows the DEMO badge', JSON.stringify(s));
 
   // ── the projection reloads: the cockpit hands the demo over again ──
+  // Without a press: the cockpit hears the goodbye, asks the window with a
+  // ping, and the reloaded projection's hello is answered with the demo.
   await aud.bringToFront();
   await aud.reload({ waitUntil: 'load' });
-  await aud.waitForTimeout(700);
+  await aud.waitForTimeout(1500);
   a = await showing(aud);
-  ok(!a.overlay, 'a reloaded projection starts without the picture');
+  ok(a.overlay && a.width === 640, 'a reloaded projection gets the demo back without a press', JSON.stringify(a));
   await spk.bringToFront();
   await spk.keyboard.press('ArrowDown');
   await aud.waitForTimeout(900);
   a = await showing(aud);
-  ok(a.overlay && a.width === 640, 'the next cockpit push brings the demo back', JSON.stringify(a));
+  ok(a.overlay && a.width === 640, 'and keeps it on the next cockpit push', JSON.stringify(a));
 
   // ── D in overview pauses it; D again shows the same capture, no picker ──
   await spk.keyboard.press('o');
