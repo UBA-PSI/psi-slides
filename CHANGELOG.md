@@ -7,13 +7,28 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+## [2.2.0]
+
 ### Added
 
 - **A countdown timer in both live views.** `Shift`-`T` opens a field for the time – `5` is five minutes, `2:30` two and a half, `0:45` forty-five seconds; empty or `0` clears it. A 10 px bar grows along the top edge and the time left stands beside it, in the projection and the cockpit alike, over the slide and out of its layout. At the end the bar turns red and flashes a few times and three beeps sound in the window it was set in; the bell beside the number mutes them. The timer belongs to the window: slides, blank and theme do not touch it, it survives a reload, and it travels between the two windows as a message of its own that passes the freeze gate.
+- **`style: {code-fit}` and `style: {spacing}`.** A `.wide` chunk that is a heading and a short listing stood at the body size with most of the frame empty. `code-fit: N` (1–2, default 1) grows top-level listings in steps of 0.2 up to N while the slide still passes the zoom fit's test; long listings and over-long lines do not grow. `spacing: even` (default `compact`) gives the frame's free height out in three: above the heading, under it, under the body. One chunk says it with `.code-fit-100` … `.code-fit-200` and `.spacing-even` / `.spacing-compact`. Live views only; print reads neither, and a deck that uses neither builds the same bytes as before.
+- **`style: {soft-ink: off}`.** A question's body, the prose beside a figure, subtitles, kickers and a figure's `.muted` labels are set in the soft grey, which washes out on a projector in a lit hall. `soft-ink: off` sets the slide's grey text in full ink; the chrome round the slide keeps its grey.
+- **Local edits remember the source they were begun from.** When `source.md` has moved since, a quiet line over the cockpit's notes says so, with *keep mine* and *use source*. The palette's *Forget all local edits* clears every note override, draft and base from both windows after a confirmation.
+- **A running cockpit shows the next autoplay step.** A short bar at the foot of the slide fills up to the next step, in the window running the clock and in its peer.
 
 ### Changed
 
 - **`Shift`-`E` in the cockpit exports the edited speaker notes too, and `--integrate-annotations` writes them back.** Every note override that is not what `source.md` says goes into the same marker block as the annotation drafts, as `> note:` lines under the chunk's `### <id>` (a lone `> note:` when the notes were emptied), with the source text the edit was begun from as an invisible `<!-- note-base: … -->` line (and `<!-- annot-base: … -->` for a draft). The integrator replaces a chunk's one note block in place, keeping its `from N` pin, writes a new one under a heading that had none, replaces several block by block when the edit splits into as many paragraphs, deletes on a lone `> note:`, and finds a divider's notes by its `x-section` id. An annotation draft follows the same rules, so it no longer lands beside the source annotation it was begun from: one block is replaced, an empty draft removes it, several are replaced only with the base known; without a base it replaces a single block. It parks, with the reason, an edit whose source changed since it was begun and one it cannot split across blocks. A snippet of the old shape over a chunk with no `> annot:` integrates as before. *Clear drafts now* clears the exported notes as well. The projection's `Shift`-`E` still exports the drafts alone, and says where the notes are exported from.
+- **Cockpit notes are set apart from the field.** A read-only note is shown in an element of its own beside the field, its paragraphs part by a third of a line, and a mark closes every note under its last line; whether more follows is answered by the mark being in sight. A double-click still swaps the field in, with the caret where the pointer was.
+- **Autoplay runs in a cockpit with no projection.** A break slide can be rehearsed in the cockpit alone; a projection that opens takes the clock over and hands it back when that window closes.
+- **A reload after a rebuild brings the other live window along.** A window that hears its peer greet as another build reloads itself and keeps its slide, beats and freeze. Once per build, never under `--watch`.
+
+### Fixed
+
+- **A cycle figure autoplays on every visit,** not only the first: arriving at it rewinds it to its opening beat and starts the clock. A snapshot from the cockpit on the slide already up no longer stops the clock unless it changes the slide's beat or a setting a key moves.
+- **The export modal's *Clear drafts* warning follows the theme.** On a dark theme light ink stood on a light box.
+- **A cockpit notices a projection that reloads** without waiting for the next press.
 
 ## [2.1.0]
 
@@ -5121,7 +5136,8 @@ Read [When *not* to use this](README.md#when-not-to-use-this) and
 [the comparison](docs/comparison.md) before committing a semester to it.
 There is no test suite, one author, and the format is still moving.
 
-[Unreleased]: https://github.com/UBA-PSI/psi-slides/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/UBA-PSI/psi-slides/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/UBA-PSI/psi-slides/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/UBA-PSI/psi-slides/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/UBA-PSI/psi-slides/releases/tag/v2.0.0
 [1.0.0]: https://github.com/UBA-PSI/psi-slides/releases/tag/v1.0.0
