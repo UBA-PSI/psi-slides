@@ -7,6 +7,10 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Changed
+
+- **The prompter's default model is `anthropic/claude-sonnet-5.5`** (was `anthropic/claude-sonnet-5`). A deck's `prompter: {model}` and `--prompter-model` still override it.
+
 ## [2.2.0]
 
 ### Added
