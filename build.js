@@ -8090,7 +8090,7 @@ function styleSettings(frontmatter = {}) {
 // one call per ten seconds, the cadence's own floor, so a talk at any legal
 // cadence stays under it. docs/history/PLAN-souffleuse.md has the reasoning.
 const SOUFFLEUSE_SPEC = {
-  'model':    { kind: 'text', dflt: 'anthropic/claude-sonnet-5.5' },
+  'model':    { kind: 'text', dflt: 'anthropic/claude-sonnet-5' },
   'language': { kind: 'lang', dflt: null },
   'cadence':  { kind: 'number', min: 10, max: 120, dflt: 25, unit: 'seconds' },
   'cooldown': { kind: 'number', min: 10, max: 600, dflt: 20, unit: 'seconds' },
@@ -8105,7 +8105,7 @@ function souffleuseSettings(frontmatter = {}) {
   if (typeof raw !== 'object' || Array.isArray(raw)) {
     const err = new Error(
       'Frontmatter: "prompter:" is a block of keys, not a single value.\n' +
-      '  prompter:\n    model: anthropic/claude-sonnet-5.5\n    cadence: 25');
+      '  prompter:\n    model: anthropic/claude-sonnet-5\n    cadence: 25');
     err.userFacing = true;
     throw err;
   }
@@ -15703,7 +15703,7 @@ const CLI_FLAGS = [
   { name: '--prompter', group: 'prompter',
     doc: [null, 'run the prompter sidecar beside the watch build.'] },
   { name: '--prompter-model', group: 'prompter', value: 'next', arg: 'ID',
-    need: 'an OpenRouter model id, e.g. anthropic/claude-sonnet-5.5.',
+    need: 'an OpenRouter model id, e.g. anthropic/claude-sonnet-5.',
     doc: [null, 'an OpenRouter model id, overriding the deck\'s',
       '`prompter: model:` and the default.'] },
   { name: '--prompter-dry-run', group: 'prompter',

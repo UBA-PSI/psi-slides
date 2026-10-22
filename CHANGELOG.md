@@ -9,7 +9,7 @@ from building the same way is a major version.
 
 ### Changed
 
-- **The prompter's default model is `anthropic/claude-sonnet-5.5`** (was `anthropic/claude-sonnet-5`). A deck's `prompter: {model}` and `--prompter-model` still override it.
+- **The prompter's default model stays `anthropic/claude-sonnet-5`.** Switching it to `anthropic/claude-sonnet-5.5` was undone the same day: that model refuses the forced tool call the prompter makes (`tool_choice` naming `advise`), and every request came back with HTTP 400 from every provider. A deck's `prompter: {model}` and `--prompter-model` still override the default.
 
 ## [2.2.0]
 

@@ -441,7 +441,7 @@ export async function run({ page, report }) {
     // everywhere else. Checked without --watch, which would not return.
     const lonely = spawnSync(process.execPath,
       [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'),
-        '--prompter-model', 'anthropic/claude-sonnet-5.5'],
+        '--prompter-model', 'anthropic/claude-sonnet-5'],
       { cwd: ROOT, encoding: 'utf8' });
     ok(lonely.status !== 0 && /--prompter-model without --prompter/.test(String(lonely.stderr)),
        '--prompter-model without --prompter is refused, with instructions',

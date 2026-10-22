@@ -82,7 +82,7 @@ are the build's:
 
 | key | kind | default | bounds |
 |---|---|---|---|
-| `model` | any OpenRouter model id | `anthropic/claude-sonnet-5.5` | non-empty |
+| `model` | any OpenRouter model id | `anthropic/claude-sonnet-5` | non-empty |
 | `language` | BCP-47 tag | falls back to `lang:` | `en`, `de`, `de-DE`, … |
 | `cadence` | seconds of new speech that earn a call | 25 | 10 … 120 |
 | `cooldown` | seconds a shown hint buys, across every kind | 20 | 10 … 600 |
