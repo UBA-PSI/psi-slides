@@ -7,9 +7,9 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
-### Changed
+### Fixed
 
-- **The prompter's default model stays `anthropic/claude-sonnet-5`.** Switching it to `anthropic/claude-sonnet-5.5` was undone the same day: that model refuses the forced tool call the prompter makes (`tool_choice` naming `advise`), and every request came back with HTTP 400 from every provider. A deck's `prompter: {model}` and `--prompter-model` still override the default.
+- **The cockpit's preview of the next step reaches `::: rows` and `::: cards`.** In a rows block the next row stood in the speaker view at full strength and without its dashed frame, so it looked like what the room already saw; a card showed its frame but at full strength. Both are now hatched at half strength like every other next step.
 
 ## [2.2.0]
 
