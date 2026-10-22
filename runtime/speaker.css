@@ -668,7 +668,19 @@ body[data-view=speaker] .chunk [data-beat-hidden][data-next] {
 body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next] { position: static; outline: 0; }
 body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next]::before,
 body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next]::after { content: none; }
-body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next] > li { outline: 2px dashed var(--emph); outline-offset: 3px; }
+/* The list is display: contents there, so its half strength never reached
+   the cards either; they carry that too. */
+body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next] > li { opacity: 0.5; outline: 2px dashed var(--emph); outline-offset: 3px; }
+/* A row goes one step further: list and item are both display: contents,
+   so neither the opacity nor the outline above has a box to land on, and
+   only the inherited visibility arrives - the next row stood in the cockpit
+   at full strength and unframed, indistinguishable from the current one.
+   The term and the body are the boxes a row paints; they carry the ghost. */
+body[data-view=speaker] .cards.rows > :is(ul, ol)[data-beat-hidden][data-next] > li > :is(:is(strong, b):first-child, .row-body) {
+  opacity: 0.5;
+  outline: 2px dashed var(--emph);
+  outline-offset: 3px;
+}
 
 /* A diagram step has no block to hatch the way a hidden reveal segment
    does, so the cockpit gets the next step's name in words instead. Same
