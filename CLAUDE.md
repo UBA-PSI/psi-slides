@@ -10,6 +10,11 @@ psi-slides is a **lecture medium**: one Markdown `source.md` per lecture produce
 
 Status: released, 2.0.0, one maintainer. **From 1.0.0 the source format is the interface** – a change that stops an existing `source.md` from building the same way is a major version. The internals carry no such promise. The `lectures/` folder holds the canonical examples of what the tool supports; the design rationale is in `PRD.md`. A separate content repo `../psi-slides-mylectures/` consumes this engine via `node ../psi-slides/build.js` and holds the lectures actively being authored.
 
+With `reading-parts: script-only`, parts headed `# Reading: …` stay in both
+handouts and are omitted from the projection, cockpit and prompter. This is
+opt-in; older sources retain their output. `::: script` instead separates
+prose within one slide. See the authoring skill for the distinction.
+
 ## Commands
 
 ```bash

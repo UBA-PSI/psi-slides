@@ -31,7 +31,7 @@
     "cli": "node test/cli.mjs",
     "large-deck": "node test/large-deck.mjs",
     "pdf": "node test/pdf-export.mjs",
-    "test": "node test/gates/run.mjs && node test/settings.mjs && node test/containers.mjs && node test/cli.mjs && node test/large-deck.mjs && node test/present.mjs && node test/reproducible.mjs && node test/pdf-export.mjs && node test/run.mjs",
+    "test": "node test/gates/run.mjs && node test/settings.mjs && node test/containers.mjs && node test/cli.mjs && node test/large-deck.mjs && node test/present.mjs && node test/reproducible.mjs && node test/reading-parts.mjs && node test/pdf-export.mjs && node test/run.mjs",
     "test:coverage": "c8 --all --reporter=text --reporter=lcov --include=build.js --include=lint.js --include='*.mjs' --exclude=editor.mjs sh -c 'node test/gates/run.mjs && node test/settings.mjs && node test/containers.mjs && node test/cli.mjs && node test/large-deck.mjs && node test/present.mjs && node test/reproducible.mjs'; s=$?; rm -rf coverage/tmp; node tools/coverage-logic.mjs; exit $s"
   },
   "dependencies": {

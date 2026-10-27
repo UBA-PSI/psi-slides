@@ -90,7 +90,7 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
   'closing-image', 'closing-credits',
   // dividers, identity, type and language
   'section', 'section-mark', 'lecture', 'course', 'lang', 'labels', 'style',
-  'fonts', 'font', 'ligatures', 'draw-defaults',
+  'fonts', 'font', 'ligatures', 'draw-defaults', 'reading-parts',
   // viewer defaults
   'theme', 'collapse', 'auto-fit', 'slide-numbers', 'print-slide-numbers',
   'editor', 'note-button', 'neighbours', 'transition', 'reader', 'pitchblack',
@@ -3074,6 +3074,14 @@ function lintFile(filePath) {
         `'${m[1]}:' is not a key any renderer reads – it is stored and never `
         + 'looked at, so nothing on any slide changes when you edit it. Delete '
         + 'it, or check the spelling.');
+      return;
+    }
+    if (m[1] === 'reading-parts') {
+      const value = m[2].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+      if (!['all-views', 'script-only'].includes(value)) {
+        addFm(i + 2, 'error', 'bad-reading-parts',
+          'reading-parts accepts all-views or script-only');
+      }
       return;
     }
     if (m[1] === 'kind') {

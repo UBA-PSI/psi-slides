@@ -81,6 +81,18 @@ value with `: ` in it (`title: Security: an intro` – quote it,
 of the live deck. A chunk may appear before the first `#`; that is how the
 `title` chunk is normally authored.
 
+### Reading parts in the script only
+
+Set `reading-parts: script-only` in the frontmatter to keep parts whose `#`
+heading starts with `Reading:` in `print.html` and `print-notes.html` only.
+Their dividers, slides and notes are omitted from the audience, speaker,
+outline and prompter sequence. Pre-reading and post-reading use the same
+prefix. The source and its IDs stay intact, including diagram edit ranges.
+This applies to local builds, `--present`, partial builds and PDF exports.
+Omitting the setting, or using `reading-parts: all-views`, keeps the existing
+behaviour. `::: script` remains the way to add reading prose within a room
+slide; it does not remove a whole part from presentation navigation.
+
 ### Chunks
 
 ```

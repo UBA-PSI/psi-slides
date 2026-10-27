@@ -4770,6 +4770,20 @@ const TALK_START_LINE_RE = /^start:[ \t]*([\d:]+)[ \t]*(?:#.*)?$/m;
 // so the two cannot come apart.
 const SLIDE_EXPLICIT_OPEN = '<div class="slide-explicit">';
 
+// Reading parts remain in both documents; the live views and prompter share
+// the same selection. Opt-in so existing lecture sources keep their output.
+function presentationLecture(lecture) {
+  const { frontmatter, columns } = lecture;
+  const mode = frontmatter['reading-parts'];
+  if (mode === undefined || mode === 'all-views') return lecture;
+  if (mode !== 'script-only') {
+    const err = new Error('Frontmatter: "reading-parts" accepts all-views or script-only.');
+    err.userFacing = true;
+    throw err;
+  }
+  return { ...lecture, columns: columns.filter(col => !/^Reading:/.test(col.heading || '')) };
+}
+
 function parseLecture(src) {
   // Windows line endings. Every matcher below anchors on `$`, and a `\r`
   // before it made every heading and every directive miss - a CRLF source
@@ -13125,6 +13139,7 @@ function buildOnce(absIn, only, opts = {}) {
   // parseLecture, so a reset further down wiped the very thing it collects.
   embedsThisBuild = [];
   const lecture = parseLecture(src);
+  const liveLecture = presentationLecture(lecture);
   assertDistinctIds(lecture, src);
   assertCoverBody(lecture);
   // Pre-flight, beside assertInlinable and assertCoverBody: a viewer default
@@ -13309,7 +13324,7 @@ function buildOnce(absIn, only, opts = {}) {
   const svgIdFloor = inlineSvgCounter;
   const rendered = targets.map(([name, render]) => {
     inlineSvgCounter = svgIdFloor;
-    return [name, render(lecture, renderOpts)];
+    return [name, render(name === 'audience' || name === 'speaker' ? liveLecture : lecture, renderOpts)];
   });
   // A file outside the asset root was met while parsing or rendering and not
   // read. Refused here, after every renderer and before any view is written,
@@ -13393,7 +13408,7 @@ function buildOnce(absIn, only, opts = {}) {
   // `lecture` rides along for the one caller that wants the parsed deck
   // rather than the files: the souffleuse sidecar in runWatch builds its
   // prompt from it on every successful build.
-  return { written, shape, stats, sourceModifiedMs: sourceModifiedAt(absIn), lecture };
+  return { written, shape, stats, sourceModifiedMs: sourceModifiedAt(absIn), lecture: liveLecture };
 }
 
 // Watch mode: build once, start a WS server on the lecture's own port
@@ -16187,7 +16202,7 @@ function printDebrief(absIn, logFile, souff, cards, { transcript = false, replay
 
   const fm = safeMatter(fs.readFileSync(absIn, 'utf8')).data || {};
   const settings = souffleuseSettings(fm);
-  const deck = souff.deckPayload(parseLecture(fs.readFileSync(absIn, 'utf8')), {
+  const deck = souff.deckPayload(presentationLecture(parseLecture(fs.readFileSync(absIn, 'utf8'))), {
     notesToCards, durationS: talkDuration(fm), lang: settings.language || lectureLang(fm),
   });
   const rep = souff.debriefReport(lines, { deck });
