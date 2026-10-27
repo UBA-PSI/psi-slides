@@ -612,7 +612,7 @@ body[data-view=speaker] .reveal-segment[data-hidden][data-next] {
      the other direction. */
   visibility: visible;
   opacity: 0.5;
-  /* The hatch and the "next" label below are position: absolute; inset: -5px,
+  /* The hatch and the "next" label below are position: absolute;
      so they need a positioned box to resolve against. Without it they reach
      .chunk-content and stripe the whole slide - measured, a 28px segment's
      hatch over a 263px chunk. The nested beat's ghost carries this for the
@@ -624,7 +624,11 @@ body[data-view=speaker] .reveal-segment[data-hidden][data-next] {
 body[data-view=speaker] :is(.reveal-segment[data-hidden], .chunk [data-beat-hidden])[data-next]::before {
   content: '';
   position: absolute;
-  inset: -5px;
+  /* Keep decoration inside the measured box. An outward inset contributes
+     five pixels to a code block's scrollWidth at every zoom, so width-fit
+     shrinks a perfectly fitting listing to its floor. The outline already
+     supplies the frame outside the box without affecting scroll metrics. */
+  inset: 0;
   pointer-events: none;
   background: repeating-linear-gradient(
     45deg,

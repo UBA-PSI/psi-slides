@@ -79,6 +79,27 @@ ${WIDE}
 \`\`\`c
 ${SHORT}
 \`\`\`
+
+## exercise: A prepared debugger capture {.full .blocks-left .code-fit-200 .spacing-compact #ghost-listing}
+
+::: slide
+Predict the instruction pointer after the return.
+
+\`\`\`c
+char buf[100]; gets(buf);
+\`\`\`
+
+---
+
+\`\`\`text
+(gdb) run < in_long.txt
+eip 0x41414141
+\`\`\`
+
+---
+
+**The return address came from the input.**
+:::
 `;
 
 function buildDeck() {
@@ -186,6 +207,23 @@ export async function run({ page, report, walkTo, press }) {
       ok(s.scale === m.short.scale && near(parseFloat(s.gap), parseFloat(m.short.gap), 2),
          'the cockpit gives the same answer as the projection',
          JSON.stringify({ cockpit: [s.scale, s.gap], projection: [m.short.scale, m.short.gap] }));
+      // The speaker-only hatch is decoration, not overflowing code. Check
+      // every beat: the next item moves from a code block to full-width prose.
+      ok(await walkTo('ghost-listing'), 'projection reaches the debugger capture');
+      ok(await cockpit.walkTo('ghost-listing'), 'cockpit reaches the debugger capture');
+      const initial = await measure(page, 'ghost-listing');
+      for (let beat = 0; beat < 3; beat++) {
+        const a = await measure(page, 'ghost-listing');
+        const c = await measure(cockpit.page, 'ghost-listing');
+        const overflow = await cockpit.page.evaluate(() =>
+          [...document.getElementById('ghost-listing').querySelectorAll('pre')]
+            .some(p => p.scrollWidth > p.clientWidth + 1));
+        ok(c.zoom === a.zoom && c.zoom === initial.zoom && near(c.fs, a.fs, 0.5)
+           && near(c.fs, initial.fs, 0.5) && !overflow,
+           `speaker hatch keeps code readable and stable on beat ${beat}`,
+           JSON.stringify({ audience: a, cockpit: c, overflow }));
+        if (beat < 2) { await press('ArrowRight', 400); await cockpit.press('ArrowRight', 400); }
+      }
     } finally {
       await cockpit.close();
     }
