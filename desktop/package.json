@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "dotenv-cli": "^8.0.0",
-    "electron": "^44.8.0",
+    "electron": "^44.10.0",
     "electron-builder": "^26.0.0",
     "playwright-core": "^1.61.1"
   },
