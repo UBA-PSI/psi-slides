@@ -57,6 +57,10 @@ body[data-view=speaker]:not(.has-notes) #psiINT-notes-pane { display: none; }
    aspect is narrower than the cell. */
 #psiINT-stage-cell {
   grid-row: 2;
+  /* Named, not left to auto-placement: on a touchscreen the touch controls
+     take row 2 / column 1 explicitly, and a row-only item is then pushed into
+     an implicit second column 0px wide - the stage went blank on an iPad. */
+  grid-column: 1;
   position: relative;
   min-width: 0;
   min-height: 0;
