@@ -3192,6 +3192,7 @@ body[data-view=speaker]:not(.has-notes) #psiINT-notes-pane { display: none; }
 .dot.active { background: var(--emph); }
 #psiINT-stage-cell {
   grid-row: 2;
+  grid-column: 1;
   position: relative;
   min-width: 0;
   min-height: 0;
@@ -9389,7 +9390,7 @@ return { VIEWS, REQUIRES, REACH, WHEN, CONTEXTS, GROUPS, COMMANDS, START_MENU, c
 </script>
 <script>
 const LECTURE_TITLE = "Animated Infographics";
-const BUILD_STAMP = "dfa90ccf6b1a";
+const BUILD_STAMP = "61a5b3294b8d";
 const VIEW_DEFAULTS = {"theme":"dark","collapse":"none","autoFit":"full"};
 const LINK_QR = {};
 const SOUFFLEUSE = null;
@@ -14198,6 +14199,23 @@ function measureNotes() {
     }
   }
 }
+const NOTES_INLINE = /\*\*(?=\S)([\s\S]+?)\*\*|__(?=\S)([\s\S]+?)__|\*(?=[^\s*])([^*]+?)\*/g;
+function notesInline(p, text, base) {
+  const run = (tag, s, from) => {
+    const el = document.createElement(tag);
+    el.textContent = s;
+    el.dataset.at = base + from;
+    p.append(el);
+  };
+  let at = 0;
+  NOTES_INLINE.lastIndex = 0;
+  for (let m; (m = NOTES_INLINE.exec(text)); at = m.index + m[0].length) {
+    if (m.index > at) run('span', text.slice(at, m.index), at);
+    const em = m[3] != null;
+    run(em ? 'em' : 'strong', em ? m[3] : (m[1] != null ? m[1] : m[2]), m.index + (em ? 1 : 2));
+  }
+  if (at < text.length) run('span', text.slice(at), at);
+}
 function renderNotesRead() {
   const v = notesContent.value;
   const frag = document.createDocumentFragment();
@@ -14208,7 +14226,7 @@ function renderNotesRead() {
     const text = v.slice(at + lead, end).trimEnd();
     if (!text) return;
     const p = document.createElement('p');
-    p.textContent = text;
+    notesInline(p, text, at + lead);
     p.dataset.at = at + lead;
     frag.append(p);
   };
@@ -14247,8 +14265,8 @@ notesRead.addEventListener('dblclick', (e) => {
   const pos = document.caretPositionFromPoint ? document.caretPositionFromPoint(e.clientX, e.clientY) : null;
   const range = !pos && document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
   const node = pos ? pos.offsetNode : range && range.startContainer;
-  const p = node && (node.nodeType === 1 ? node : node.parentElement).closest('#psiINT-notes-read p');
-  if (p) caret = +p.dataset.at + (node.nodeType === 3 ? (pos ? pos.offset : range.startOffset) : 0);
+  const el = node && (node.nodeType === 1 ? node : node.parentElement).closest('#psiINT-notes-read [data-at]');
+  if (el) caret = +el.dataset.at + (node.nodeType === 3 ? (pos ? pos.offset : range.startOffset) : 0);
   beginNotesEdit();
   notesContent.focus();
   notesContent.setSelectionRange(caret, caret);

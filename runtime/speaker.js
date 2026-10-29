@@ -546,6 +546,26 @@ function measureNotes() {
     }
   }
 }
+// A bold or an emphasis reads as one, and its markers come back with the
+// field. Each run remembers where its own text starts in the field, the
+// markers outside it, so the double-click's caret lands as it did.
+const NOTES_INLINE = /\*\*(?=\S)([\s\S]+?)\*\*|__(?=\S)([\s\S]+?)__|\*(?=[^\s*])([^*]+?)\*/g;
+function notesInline(p, text, base) {
+  const run = (tag, s, from) => {
+    const el = document.createElement(tag);
+    el.textContent = s;
+    el.dataset.at = base + from;
+    p.append(el);
+  };
+  let at = 0;
+  NOTES_INLINE.lastIndex = 0;
+  for (let m; (m = NOTES_INLINE.exec(text)); at = m.index + m[0].length) {
+    if (m.index > at) run('span', text.slice(at, m.index), at);
+    const em = m[3] != null;
+    run(em ? 'em' : 'strong', em ? m[3] : (m[1] != null ? m[1] : m[2]), m.index + (em ? 1 : 2));
+  }
+  if (at < text.length) run('span', text.slice(at), at);
+}
 // The note as it is read: one paragraph per run of text between blank
 // lines, each remembering where it starts in the field, so a double-click
 // can put the caret where it landed. Runs of blank lines part once.
@@ -559,7 +579,7 @@ function renderNotesRead() {
     const text = v.slice(at + lead, end).trimEnd();
     if (!text) return;
     const p = document.createElement('p');
-    p.textContent = text;
+    notesInline(p, text, at + lead);
     p.dataset.at = at + lead;
     frag.append(p);
   };
@@ -615,8 +635,8 @@ notesRead.addEventListener('dblclick', (e) => {
   const pos = document.caretPositionFromPoint ? document.caretPositionFromPoint(e.clientX, e.clientY) : null;
   const range = !pos && document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
   const node = pos ? pos.offsetNode : range && range.startContainer;
-  const p = node && (node.nodeType === 1 ? node : node.parentElement).closest('#psiINT-notes-read p');
-  if (p) caret = +p.dataset.at + (node.nodeType === 3 ? (pos ? pos.offset : range.startOffset) : 0);
+  const el = node && (node.nodeType === 1 ? node : node.parentElement).closest('#psiINT-notes-read [data-at]');
+  if (el) caret = +el.dataset.at + (node.nodeType === 3 ? (pos ? pos.offset : range.startOffset) : 0);
   beginNotesEdit();
   notesContent.focus();
   notesContent.setSelectionRange(caret, caret);

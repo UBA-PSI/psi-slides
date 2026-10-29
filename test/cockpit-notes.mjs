@@ -48,7 +48,7 @@ A slide with a long note.
 
 A slide with a short note.
 
-> note: One line.
+> note: One **line** and *one* aside.
 
 ## free: Third {#third}
 
@@ -175,8 +175,20 @@ export async function run({ page, report }) {
     ok(w.s === 'short' && w.a === 'short' && !f.focused && f.readOnly,
        'PageDown mid-edit leaves the field and turns the page', JSON.stringify({ w, focused: f.focused, readOnly: f.readOnly }));
     f = await field();
-    ok(f.value === 'One line.' && f.fits && f.markInSight && f.height < 3.2 * f.lh,
+    ok(f.value === 'One **line** and *one* aside.' && f.fits && f.markInSight && f.height < 3.2 * f.lh,
        'a one-line note stands short, its end mark in sight', JSON.stringify({ v: f.value, height: f.height, lh: f.lh }));
+    const read = await spk.evaluate(() => {
+      const r = document.getElementById('psiINT-notes-read');
+      return { text: r.textContent, strong: [...r.querySelectorAll('strong')].map(e => e.textContent), em: [...r.querySelectorAll('em')].map(e => e.textContent) };
+    });
+    ok(read.text === 'One line and one aside.' && read.strong.join() === 'line' && read.em.join() === 'one',
+       'read, a bold is bold and an emphasis emphasised, without their markers', JSON.stringify(read));
+    // A double-click on the bold word puts the caret inside it in the field.
+    await spk.locator('#psiINT-notes-read strong').dblclick();
+    await spk.waitForTimeout(200);
+    const boldCaret = await spk.evaluate(() => document.getElementById('psiINT-notes-content').selectionStart);
+    ok(boldCaret >= 6 && boldCaret <= 10, 'a double-click on it opens the field with the caret in the word', String(boldCaret));
+    await press('Escape');
 
     // Shift-N, then Esc: the edit ends and the press is spent on that alone.
     await press('Shift+N');
