@@ -8629,10 +8629,17 @@ function renderClosingBlock(chunk, bodyHtml, frontmatter = {}, cover = {}) {
       ? `<div class="title-info">${infoLines.map(l => `<p>${escapeHtml(l)}</p>`).join('')}</div>`
       : '',
   });
+  // A closing slide has no credits row to anchor the foot, so on masthead
+  // the body takes the anchor (margin-top: auto in audience.css) and is the
+  // foot band flowHeightProbe keeps out of its span, as the presenter is on
+  // the cover. Unmarked, the span ran from the heading to the pinned body -
+  // the frame's height at every type size - and auto-fit walked the slide to
+  // its 0.6 floor.
+  const bodyFoot = bodyHtml && FOOT_BAND_COVERS.has(cover.variant) ? ' data-foot=""' : '';
   return `
     <h1 class="title-main"${capsAttr(chunk.heading)}>${renderInlineMd(chunk.heading || '')}</h1>
     ${chunk.headingSub ? `<p class="title-subtitle">${renderInlineMd(chunk.headingSub)}</p>` : ''}
-    ${bodyHtml ? `<div class="closing-body">${bodyHtml}</div>` : ''}
+    ${bodyHtml ? `<div class="closing-body"${bodyFoot}>${bodyHtml}</div>` : ''}
     ${credits}
   `.trim();
 }

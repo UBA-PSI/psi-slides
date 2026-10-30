@@ -3692,16 +3692,39 @@ function flowHeightProbe(el) {
       padB: parseFloat(cs.paddingBottom) || 0,
     };
   };
+  // A cover's lede field takes the slack between the bands: masthead sets
+  // .title-field to flex: 1 with min-height: 0 and overflow: hidden, so its
+  // box is the frame less everything else on the slide at every type size,
+  // and the words in it are centred and clipped rather than pushing it. Its
+  // box is then the same trap as a pinned foot - the span from the nameplate
+  // to the end of the field never shrinks, and both on-modes walked every
+  // masthead cover with a lede to the 0.6 floor (measured on a real deck:
+  // 0.6 where the slide after it was at 1.75). So the field counts at the
+  // height of its own words plus its paddings: the box's slack comes off the
+  // span, and words overflowing the box go on. Only a growing .title-field
+  // is read this way; every other box keeps the height it has. The words'
+  // extent is a difference of offsets, so it does not matter which box they
+  // are offset against.
+  const fieldSlack = (c) => {
+    if (!c.classList || !c.classList.contains('title-field')) return 0;
+    const cs = getComputedStyle(c);
+    if (!(parseFloat(cs.flexGrow) > 0)) return 0;
+    const s = span({ flow: flowKids(c) });
+    if (!s) return 0;
+    const own = (s.bottom - s.top) + (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    return c.offsetHeight - own;
+  };
   // Returns the top and bottom of what the level holds, in that level's own
   // offset coordinates, or null when nothing in it has a box.
   const span = (lvl) => {
-    let top = Infinity, bottom = -Infinity;
+    let top = Infinity, bottom = -Infinity, slack = 0;
     for (const c of lvl.flow) {
       if (!c.offsetHeight && !c.offsetWidth) continue;    // display:none has no box
       if (c.offsetTop < top) top = c.offsetTop;
       if (c.offsetTop + c.offsetHeight > bottom) bottom = c.offsetTop + c.offsetHeight;
+      slack += fieldSlack(c);
     }
-    return bottom < top ? null : { top, bottom };
+    return bottom < top ? null : { top, bottom: bottom - slack };
   };
 
   const outer = levelOf(el);

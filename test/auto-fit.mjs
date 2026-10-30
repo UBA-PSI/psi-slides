@@ -88,6 +88,44 @@ presenter: P
 One line, and nothing else on the slide.
 `;
 
+// The third fixture: the same cover with a lede in its field, and a closing
+// slide with a body, which is the shape a real lecture has (measured on
+// 38-softsec-defences before the fix: both at 0.6 under full and under
+// shrink, where the slide after the cover was at 1.75).
+//
+// Two more boxes the frame sizes rather than the type. The lede field takes
+// the slack between the nameplate and the credits (flex: 1, overflow:
+// hidden), so its box is never smaller whatever the zoom; and on a closing
+// slide, which has no credits, the body takes the bottom anchor with
+// margin-top: auto. Either one made the span the frame's height and the fit
+// walk to the floor - on the cover even though the lede is the presenter's
+// own words and the credits were already kept out.
+const LEDE_SOURCE = `---
+title: T
+subtitle: S
+cover: masthead
+auto-fit: true
+presenter: P
+info: |
+  Course · Session 4
+  University
+---
+
+## title: {#title}
+
+Last week one careless read handed an attacker the return address. This week
+the defences that make that hard, and the attacks that answer each one.
+
+## free: F {#f}
+
+One line, and nothing else on the slide.
+
+## closing: Next: Accounts | who you are and how you prove it {#end}
+
+We leave memory behind. Next: how systems decide who you are, passwords and
+the factors.
+`;
+
 // The zoom the runtime settled on, and whether the slide is inside the frame.
 const measure = (page) => page.evaluate(() => {
   const el = document.querySelector('.chunk.active');
@@ -271,5 +309,56 @@ export async function run({ page, report, walkTo }) {
     note(`masthead cover under full: zoom ${cover.zoom}, ${cover.h}px in ${cover.frame}px`);
   } finally {
     cserver.close();
+  }
+
+  // ── a cover with a lede, and a closing slide with a body ──
+  const ldir = tmpDir('psi-autofit-lede-');
+  fs.writeFileSync(path.join(ldir, 'source.md'), LEDE_SOURCE);
+  const lbuilt = spawnSync(process.execPath,
+    [path.join(ROOT, 'build.js'), path.join(ldir, 'source.md'), '--audience-only'],
+    { cwd: ROOT, encoding: 'utf8' });
+  ok(lbuilt.status === 0, 'the lede fixture builds', (lbuilt.stdout || '') + (lbuilt.stderr || ''));
+  if (lbuilt.status !== 0) return;
+  const { server: lserver, port: lport } = await serve(ldir);
+  try {
+    await page.goto(`http://127.0.0.1:${lport}/audience.html`, { waitUntil: 'load' });
+    await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* private window */ } });
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForTimeout(900);
+    const lede = await measure(page);
+    ok(lede.zoom > DEFAULT_ZOOM,
+       'a masthead cover with a lede is grown under full, not walked to the floor',
+       `${lede.zoom} vs ${DEFAULT_ZOOM}`);
+    ok(lede.h <= lede.frame + 1,
+       'and stays inside the frame', `${lede.h}px in ${lede.frame}px`);
+    // The field clips what does not fit it, so "inside the frame" alone would
+    // pass a lede cut in half.
+    const clipped = await page.evaluate(() => {
+      const f = document.querySelector('.chunk.active .title-field');
+      return f ? f.scrollHeight - f.clientHeight : -1;
+    });
+    ok(clipped === 0, 'with none of the lede clipped by its field', String(clipped));
+
+    await walkTo('end');
+    const closing = await measure(page);
+    ok(closing.zoom > DEFAULT_ZOOM,
+       'a masthead closing slide with a body is grown under full, not walked to the floor',
+       `${closing.zoom} vs ${DEFAULT_ZOOM}`);
+    ok(closing.h <= closing.frame + 1,
+       'and stays inside the frame', `${closing.h}px in ${closing.frame}px`);
+
+    // # from full is off, and again is shrink. The closing slide fits at the
+    // lecturer's zoom, so shrink has nothing to take away from it.
+    await page.keyboard.press('#');
+    await page.waitForTimeout(500);
+    await page.keyboard.press('#');
+    await page.waitForTimeout(500);
+    const shrunk = await measure(page);
+    ok(Math.abs(shrunk.zoom - DEFAULT_ZOOM) < 0.001,
+       'and shrink leaves it at the zoom that was set, as on any slide that fits',
+       String(shrunk.zoom));
+    note(`masthead with lede under full: cover ${lede.zoom}, closing ${closing.zoom}; closing under shrink ${shrunk.zoom}`);
+  } finally {
+    lserver.close();
   }
 }

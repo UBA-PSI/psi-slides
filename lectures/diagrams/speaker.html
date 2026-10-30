@@ -9390,7 +9390,7 @@ return { VIEWS, REQUIRES, REACH, WHEN, CONTEXTS, GROUPS, COMMANDS, START_MENU, c
 </script>
 <script>
 const LECTURE_TITLE = "Animated Infographics";
-const BUILD_STAMP = "61a5b3294b8d";
+const BUILD_STAMP = "38b0cbab78aa";
 const VIEW_DEFAULTS = {"theme":"dark","collapse":"none","autoFit":"full"};
 const LINK_QR = {};
 const SOUFFLEUSE = null;
@@ -11920,14 +11920,24 @@ function flowHeightProbe(el) {
       padB: parseFloat(cs.paddingBottom) || 0,
     };
   };
+  const fieldSlack = (c) => {
+    if (!c.classList || !c.classList.contains('title-field')) return 0;
+    const cs = getComputedStyle(c);
+    if (!(parseFloat(cs.flexGrow) > 0)) return 0;
+    const s = span({ flow: flowKids(c) });
+    if (!s) return 0;
+    const own = (s.bottom - s.top) + (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    return c.offsetHeight - own;
+  };
   const span = (lvl) => {
-    let top = Infinity, bottom = -Infinity;
+    let top = Infinity, bottom = -Infinity, slack = 0;
     for (const c of lvl.flow) {
       if (!c.offsetHeight && !c.offsetWidth) continue;
       if (c.offsetTop < top) top = c.offsetTop;
       if (c.offsetTop + c.offsetHeight > bottom) bottom = c.offsetTop + c.offsetHeight;
+      slack += fieldSlack(c);
     }
-    return bottom < top ? null : { top, bottom };
+    return bottom < top ? null : { top, bottom: bottom - slack };
   };
   const outer = levelOf(el);
   const panelLevel = (layer) => {

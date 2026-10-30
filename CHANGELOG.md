@@ -7,6 +7,10 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Fixed
+
+- **auto-fit sizes a masthead cover with a lede and a masthead closing slide with a body to the screen.** Under `auto-fit: true` and under `shrink` alike, both came out at the smallest zoom, 0.6, while the slide after the cover stood at 1.75. The lede field takes the room between the title and the credits, and the closing body is pinned to the foot of the slide, so the fit read either slide as the full height of the frame at every type size. The fit now measures the lede by its words and leaves the closing body out of the height it fits, as it already did for the cover's credits. On a real lecture at 1920×1080 the cover now comes out at 1.6 and the closing slide at 2.2 under full; under shrink both keep the lecturer's zoom.
+
 ## [2.3.0]
 
 ### Added
