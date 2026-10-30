@@ -1,6 +1,6 @@
 {
   "name": "psi-slides",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "description": "Write a lecture once in Markdown; build the projection, the presenter cockpit and two handouts as self-contained HTML.",
   "license": "MIT",

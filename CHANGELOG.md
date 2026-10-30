@@ -7,9 +7,23 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+## [2.3.0]
+
+### Added
+
+- **`reading-parts: script-only` keeps reading parts out of the live views.** With the key set, a part whose heading reads `# Reading: …` stays in `print.html` and `print-notes.html` and is left out of the projection, the cockpit and the prompter's deck. It is opt-in: without the key, or with `reading-parts: all-views`, every part is in every view as before. `::: script` is still the way to keep prose of one slide off the screen.
+
 ### Fixed
 
 - **The cockpit's preview of the next step reaches `::: rows` and `::: cards`.** In a rows block the next row stood in the speaker view at full strength and without its dashed frame, so it looked like what the room already saw; a card showed its frame but at full strength. Both are now hatched at half strength like every other next step.
+- **The cockpit's hatching of the next step no longer shrinks a code slide.** The hatch stood five pixels outside its box, which widened a listing's measured width at every zoom and drove the fit to its smallest step; the cockpit now sets a code slide at the size the projection does.
+- **The cockpit's stage shows on an iPad or iPhone.** On a touchscreen the stage was placed in a column of zero width and stayed blank.
+- **A read-only note in the cockpit sets `**bold**` and `*emphasis*`** instead of showing the asterisks. The markers come back with the field for an edit, and a double-click still puts the caret where it landed.
+
+### Security
+
+- **The desktop builder runs on Electron 44.10.0**, which bundles Node 24.22.1 with the fix for the out-of-bounds write in the Brotli decoder (CVE-2026-111497), plus Chromium 152.0.7977.169. 2.2.0 shipped Electron 44.8.0 with Node 24.22.0, before that fix.
+- **The engine's `engines` field asks for Node 22.23.4 or newer**, the 22.x release with the same Brotli fix. The engine decodes Brotli only in the prompter's requests to OpenRouter, so a build without `--prompter` is not affected; npm warns on an older Node and still installs.
 
 ## [2.2.0]
 
@@ -5140,7 +5154,8 @@ Read [When *not* to use this](README.md#when-not-to-use-this) and
 [the comparison](docs/comparison.md) before committing a semester to it.
 There is no test suite, one author, and the format is still moving.
 
-[Unreleased]: https://github.com/UBA-PSI/psi-slides/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/UBA-PSI/psi-slides/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/UBA-PSI/psi-slides/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/UBA-PSI/psi-slides/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/UBA-PSI/psi-slides/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/UBA-PSI/psi-slides/releases/tag/v2.0.0
