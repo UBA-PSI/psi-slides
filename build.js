@@ -3322,11 +3322,12 @@ function markAddresses(text) {
 // codespan renderer marks .nb: .lead drops the left margin, .trail the
 // right. Only a bare span is looked at (a .nb span carries no margin), and a
 // code span's text is escaped and holds no tag, so [^<]* is the whole of it;
-// a listing is preceded by its pre and never by one of these openers. A tag
+// a listing is preceded by its pre and never by one of these openers. Bold or
+// italics around the span (`<li><strong><code>`) do not hide the opener. A tag
 // next to the span is not a character (</strong>: stays as it is), and a
 // no-break space is a space, though it arrives as an entity like a glued
 // quote does.
-const CODE_SPAN_RE = /(<(?:p|li|td|th|dd)(?:\s[^>]*)?>|<span class="row-body">|<br\s*\/?>)?(\s*)<code>([^<]*)<\/code>/g;
+const CODE_SPAN_RE = /(<(?:p|li|td|th|dd)(?:\s[^>]*)?>|<span class="row-body">|<br\s*\/?>)?((?:<(?:strong|em|b|i)>)*)(\s*)<code>([^<]*)<\/code>/g;
 const CODE_SEP = String.raw`[\s<>]|&(?:nbsp|#160|#x0*a0);`;
 const CODE_SEP_BEFORE = new RegExp(`(?:^|${CODE_SEP})$`, 'i');
 const CODE_SEP_AFTER = new RegExp(`^(?:$|${CODE_SEP})`, 'i');
@@ -3336,12 +3337,12 @@ marked.use({
   hooks: {
     postprocess(html) {
       if (!html.includes('<code>')) return html;
-      return html.replace(CODE_SPAN_RE, (m, opener = '', ws, body, at, s) => {
+      return html.replace(CODE_SPAN_RE, (m, opener = '', wrap, ws, body, at, s) => {
         const lead = opener || (!ws && gluedBefore(s, at));
         const trail = gluedAfter(s, at + m.length);
         if (!lead && !trail) return m;
         const cls = [lead && 'lead', trail && 'trail'].filter(Boolean).join(' ');
-        return `${opener}${ws}<code class="${cls}">${body}</code>`;
+        return `${opener}${wrap}${ws}<code class="${cls}">${body}</code>`;
       });
     },
   },

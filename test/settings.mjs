@@ -3454,7 +3454,8 @@ console.log('\nlayout generations');
   // character has nothing to be separated from on that side.
   const CDECK = (fm) => DECK(fm,
     '## free: A {#a}\n\nProse with `async def` in it, and `await` too.\n\n'
-    + 'Mit `inf upload`: und (`make hello`) und `a b`&nbsp;x und **`c d`**: und `e f` frei.\n');
+    + 'Mit `inf upload`: und (`make hello`) und `a b`&nbsp;x und **`c d`**: und `e f` frei.\n\n'
+    + '- **`-z execstack`** opens a list item\n- plain item\n');
   // The live half of every selector list below, as the build spells it.
   const LIVE_CODE = String.raw`\.chunk code:not\(pre code\):not\(\.chunk-heading code\):not\(\.embed-blocked code\)`;
   {
@@ -3478,6 +3479,9 @@ console.log('\nlayout generations');
        (dflt.html.match(/<p>Mit[\s\S]*?<\/p>/) || [''])[0]);
     ok(both(/:not\(\.nb\)\.trail \{ margin-right: 0; \}/),
        'and the marked side drops its margin, in both stylesheets');
+    ok(both(/<li><strong><code class="lead">-z execstack<\/code><\/strong> opens/),
+       'a span that opens a list item inside bold is still marked lead, so the item does not start indented',
+       (dflt.html.match(/<li><strong>[\s\S]*?<\/li>/) || [''])[0]);
     ok(new RegExp(String.raw`body\[data-code=tint\] ` + LIVE_CODE + String.raw`[\s\S]{0,220}?padding: 0 0\.28em`).test(dflt.html)
        && /body\[data-code=tint\][\s\S]{0,600}?background: color-mix\(in oklch, var\(--ink\) 7%, transparent\)/.test(dflt.html),
        'and tint is the addition on top of it, behind the attribute');

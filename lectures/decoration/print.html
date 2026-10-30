@@ -1913,7 +1913,7 @@ without one fails the build.</p>
   <span class="chunk-num" aria-hidden="true"><i>8</i></span>
   
   <h2 class="chunk-heading">The last slide closes the arc</h2>
-  <p><strong><code>## closing:</code> draws the last slide in whatever composition <code class="nb">cover:</code> names</strong>,
+  <p><strong><code class="lead">## closing:</code> draws the last slide in whatever composition <code class="nb">cover:</code> names</strong>,
 so the lecture ends in the shape it opened with.</p>
 <p>What it carries is different: your own heading, sub-heading and text. The
 presenter line and the <code class="nb">info</code> block stay off it by default, because the audience
@@ -2066,7 +2066,7 @@ the quotation divider in Part 1 comes out.</p>
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></span>
   
   <h2 class="chunk-heading">…unless the figure is the point of the part</h2>
-  <p><strong><code># Heading {.stack}</code> puts the content under the heading at the full measure</strong>
+  <p><strong><code class="lead"># Heading {.stack}</code> puts the content under the heading at the full measure</strong>
 and sets the heading above it, a step smaller than on a plain divider. Beside the heading a
 figure gets about half the frame, which is right for a drawing that balances a
 part title and unreadable for one with six cells and a label in each. Part 7&#39;s
@@ -2100,7 +2100,7 @@ is refused.</p>
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></span>
   
   <h2 class="chunk-heading"><code>::: cards</code> makes boxes, not columns</h2>
-  <p><strong><code>::: cards 3</code> puts three boxes side by side</strong>, and an item is whole or it is
+  <p><strong><code class="lead">::: cards 3</code> puts three boxes side by side</strong>, and an item is whole or it is
 nowhere. <code>::: cols 3</code> is the other thing: one flow of text the browser
 balances across three columns, so a paragraph can spill from the foot of one
 into the head of the next. Use cards for three things, columns for one long
@@ -2203,7 +2203,7 @@ its top</li>
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></span>
   
   <h2 class="chunk-heading">The row size reads the longest item</h2>
-  <p><strong><code>size: auto</code> counts the words in the longest card</strong>: three or fewer sets the
+  <p><strong><code class="lead">size: auto</code> counts the words in the longest card</strong>: three or fewer sets the
 row large, twelve or fewer medium, more than twelve small. One size for the
 whole row, never one per card.</p>
 <div class="cards cards-4 cs-large ca-center cv-top cd-fold cg-panel ck-round cx-veil">
@@ -2232,7 +2232,7 @@ so the heads do not jump when the reader presses <code class="nb">C</code>.</p>
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></span>
   
   <h2 class="chunk-heading">One row serves two views</h2>
-  <p><strong><code>detail: fold</code> is the default</strong>, so the levels under the first are in the
+  <p><strong><code class="lead">detail: fold</code> is the default</strong>, so the levels under the first are in the
 printed hand-out and off the projection, and <code class="nb">C</code> switches between the two. This
 deck opens with everything showing, because its frontmatter says
 <code class="trail">collapse: none</code>; press <code class="nb">C</code> once here and the second level folds away.</p>
@@ -2312,7 +2312,7 @@ slide however long the terms are.</p>
   <h2 class="chunk-heading"><code>::: side</code> takes a ratio</h2>
   <div class="side" style="--side-a:2fr;--side-b:1fr"><div class="side-a">
 
-<p><strong><code>::: side 2:1</code> splits the slide into two panes</strong>, two parts to one. Write
+<p><strong><code class="lead">::: side 2:1</code> splits the slide into two panes</strong>, two parts to one. Write
 <code>::: side</code> on its own for equal panes, and <code>::: flip</code> between them to start the
 second one. Any two numbers work.</p>
 <p>On paper the panes stack one after the other and the ratio is ignored.</p>
@@ -2375,7 +2375,7 @@ second one. Any two numbers work.</p>
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></span>
   
   <h2 class="chunk-heading">The window walks the beats, and the picture stands still</h2>
-  <p><strong><code>::: backdrop dusk {.cover} reveal full, right 52%</code></strong> gives the picture one
+  <p><strong><code class="lead">::: backdrop dusk {.cover} reveal full, right 52%</code></strong> gives the picture one
 place per beat – one press of Space – and the last place stays. Two moves come
 out of it: a picture that retreats to free the space the words need, and one
 that grows over the words and covers them.</p>
@@ -2410,7 +2410,7 @@ or slides about while it is being revealed.</p>
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></span>
   
   <h2 class="chunk-heading"><code class="nb">from</code> holds an overlay back until a beat</h2>
-  <p><strong><code>::: overlay {…} from 1</code> keeps the block off the slide</strong> until the first press
+  <p><strong><code class="lead">::: overlay {…} from 1</code> keeps the block off the slide</strong> until the first press
 of Space. One number, not a list: an overlay is either on the slide or it is
 not, where the backdrop&#39;s list says where the picture is at each beat.</p>
 <p>An overlay and a reveal segment both fade in, and neither moves anything: the
@@ -2520,7 +2520,7 @@ compositions – and <code class="nb">third</code> / <code class="nb">half</code
   
   <div class="overlay-layer">
 <div class="overlay-card ov-left ov-glass ov-w-standard ov-panel"><h2>The picture stays sharp beside the words</h2>
-<p><strong><code>{.left .glass .panel .standard}</code> is a column, not a card.</strong> It reaches the
+<p><strong><code class="lead">{.left .glass .panel .standard}</code> is a column, not a card.</strong> It reaches the
 top and the foot of the frame, its width is a share of the slide, and the glass
 blurs only what is behind the words.</p>
 <p>The backdrop is <code class="trail">{.cover .clear}</code>: no veil, because the panel sets the words
@@ -2540,7 +2540,7 @@ the linter&#39;s <code class="nb">text-on-picture</code>.</p>
   
   
   <div class="overlay-layer">
-<div class="overlay-card ov-bottom ov-ink ov-w-wide ov-panel ov-h-third"><p><strong><code>{.bottom .ink .panel .wide .third}</code> is a band the whole width and a third
+<div class="overlay-card ov-bottom ov-ink ov-w-wide ov-panel ov-h-third"><p><strong><code class="lead">{.bottom .ink .panel .wide .third}</code> is a band the whole width and a third
 of the height,</strong> the words centred in it and capped at the wide measure.</p>
 <div class="beat-mark"></div>
 
@@ -2562,7 +2562,7 @@ the band was this tall from the start.</p>
   
   <div class="overlay-layer">
 <div class="overlay-card ov-center ov-glass ov-w-standard ov-panel"><h2>Words in the middle of a veiled picture</h2>
-<p><strong><code>{.center .glass .panel}</code> covers the frame.</strong> A corner with <code class="nb">.panel</code> is
+<p><strong><code class="lead">{.center .glass .panel}</code> covers the frame.</strong> A corner with <code class="nb">.panel</code> is
 refused: a panel runs along one edge, or takes them all.</p>
 </div>
 <div class="overlay-card ov-bottom-right ov-ink ov-w-narrow"><p><strong>A card lies on top of a panel.</strong></p>
@@ -2656,7 +2656,7 @@ inherits again.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
   
   <h2 class="chunk-heading">A band at the head, and the chrome moves to the foot</h2>
-  <p><strong><code>::: dock {.top .accent}</code> is a line above the words,</strong> as wide as the slide
+  <p><strong><code class="lead">::: dock {.top .accent}</code> is a line above the words,</strong> as wide as the slide
 and as tall as its own text. The slide number and the note button, which live
 at the head, move to the foot under it.</p>
 
@@ -2673,7 +2673,7 @@ where it is a box before the text.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
   
   <h2 class="chunk-heading">A dock held to a beat arrives into a track kept free</h2>
-  <p><strong><code>from 2</code> holds this remark back until the second beat.</strong> The text column
+  <p><strong><code class="lead">from 2</code> holds this remark back until the second beat.</strong> The text column
 has been narrow from the start, so nothing moves when the dock slides in – the
 same rule an overlay card follows.</p>
 <p>The first beat shows this line.</p>

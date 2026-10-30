@@ -4788,8 +4788,8 @@ by using it.</p>
 
 
 <ul>
-<li><strong><code>::: slide</code></strong> marks the block that is the screen. Everything else in the chunk is what you say.</li>
-<li><strong><code>::: script</code></strong> does the reverse: the chunk is the screen, and only the marked block is what you say.</li>
+<li><strong><code class="lead">::: slide</code></strong> marks the block that is the screen. Everything else in the chunk is what you say.</li>
+<li><strong><code class="lead">::: script</code></strong> does the reverse: the chunk is the screen, and only the marked block is what you say.</li>
 <li>Neither marked block is ever shortened, however long it runs.</li>
 </ul>
 </div>
@@ -5339,7 +5339,7 @@ by using it.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Text across two columns</span> <span class="hd-sub"><code>::: cols 2</code> and <code>::: cols 3</code></span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: cols 2</code> (or <code class="trail">cols 3</code>) flows the body across that many columns, the way a newspaper page does.</strong> Use it when several short paragraphs read better side by side than stacked – a list of features, a brief comparison, two or three parallel definitions.</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code class="lead">::: cols 2</code> (or <code class="trail">cols 3</code>) flows the body across that many columns, the way a newspaper page does.</strong> Use it when several short paragraphs read better side by side than stacked – a list of features, a brief comparison, two or three parallel definitions.</p>
 <div class="cols cols-2">
 
 
@@ -5370,7 +5370,7 @@ by using it.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Two panes you fill yourself</span> <span class="hd-sub"><code>::: side</code> and <code>::: flip</code></span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: side</code> makes two panes side by side, and <code>::: flip</code> marks where one ends and the other begins.</strong> Unlike <code class="nb">cols</code>, you decide what goes where: everything before <code>::: flip</code> is the left pane, everything after it the right. Use it for a figure with its commentary, or for a before-and-after pair.</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code class="lead">::: side</code> makes two panes side by side, and <code>::: flip</code> marks where one ends and the other begins.</strong> Unlike <code class="nb">cols</code>, you decide what goes where: everything before <code>::: flip</code> is the left pane, everything after it the right. Use it for a figure with its commentary, or for a before-and-after pair.</p>
 <div class="side"><div class="side-a">
 
 
@@ -5403,7 +5403,7 @@ by using it.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Marginalia</span> <span class="hd-sub"><code>::: marginalia</code> puts an aside in the slide margin</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: marginalia</code> sets an aside out to the right of the chunk</strong>, past the edge of the text column and into the slide&#39;s margin.</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code class="lead">::: marginalia</code> sets an aside out to the right of the chunk</strong>, past the edge of the text column and into the slide&#39;s margin.</p>
 <aside class="marginalia">
 
 
@@ -5434,7 +5434,7 @@ by using it.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">Footnotes</span> <span class="hd-sub"><code>::: footnote</code> is a small note under the chunk</span></h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: footnote</code> puts a small grey note under the chunk, labelled and always visible</strong> – down in the flow of the text rather than out at the side. No button, no separate panel, nothing to click.</p>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code class="lead">::: footnote</code> puts a small grey note under the chunk, labelled and always visible</strong> – down in the flow of the text rather than out at the side. No button, no separate panel, nothing to click.</p>
 <p><strong>A marginalia goes out into the margin and can be brought to the centre with a click; a footnote stays under the chunk and is read where it stands.</strong> Use <code>::: footnote</code> when the extra material is short and you want it on the page every time, and for <code class="trail">::: expand &lt;label&gt;</code>, the chevron button from earlier, when it should stay behind a button until somebody asks.</p>
 </div></div>
     <aside class="margin-note" data-label="note"><p>This is a footnote. The label above it reads NOTE in English (<code class="nb">labels:</code> or another <code class="nb">lang:</code> changes the word), and the note sits in grey under a dotted rule. Unlike a marginalia it stays in the middle column, under the body it was written beneath.</p>
@@ -5524,7 +5524,7 @@ by using it.</p>
   <aside class="exp-body" data-exp-body="0">
       <div class="tag-label">When a picture is too big</div>
       <p><strong>The limits are 2 MB for one picture and 10 MB for all of them together.</strong> Under those, every picture is embedded without your asking. Over them the build stops, rather than quietly leaving the file outside – where it would show as a broken figure the moment the HTML arrived somewhere without its <code class="nb">assets/</code> folder.</p>
-<p><strong><code>node build.js &lt;source.md&gt; --optimize-images</code> converts the files over the limit to WebP in place</strong>, which on real lecture assets comes out at 12 to 18 percent of the original with no visible loss. <code class="nb">--no-inline-images</code> is there if you do want the files kept outside.</p>
+<p><strong><code class="lead">node build.js &lt;source.md&gt; --optimize-images</code> converts the files over the limit to WebP in place</strong>, which on real lecture assets comes out at 12 to 18 percent of the original with no visible loss. <code class="nb">--no-inline-images</code> is there if you do want the files kept outside.</p>
 <p>It keeps the picture&#39;s dimensions, unless WebP alone leaves it over 2 MB: then it scales the picture down to 2560 pixels wide. <code class="nb">--max-width</code> caps the width of every picture it converts, for a file that is still too large after that.</p>
 
     </aside>
@@ -5755,7 +5755,7 @@ by using it.</p>
     
     <h2 class="chunk-heading has-sub"><span class="hd-main">A document can test its reader</span> <span class="hd-sub">the question stands under the chunk it asks about</span></h2>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong>Reading a hand-out a second time feels like knowing it, and a question is the quickest way to find out whether it is.</strong> Trying to answer from memory also tends to keep the material longer than rereading it does.</p>
-<p><strong><code>::: pulse</code> writes such a question into the lecture source, under the chunk it belongs to.</strong> <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> show it to the reader; the projection and the speaker view leave it out, so the room sees your slides and not a quiz.</p>
+<p><strong><code class="lead">::: pulse</code> writes such a question into the lecture source, under the chunk it belongs to.</strong> <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> show it to the reader; the projection and the speaker view leave it out, so the room sees your slides and not a quiz.</p>
 <p><strong>This tour carries a few of them already.</strong> Open <code class="nb">print.html</code> and you will find one under several chunks, this one and the next included.</p>
 </div></div>
     
@@ -5938,7 +5938,7 @@ by using it.</p>
 <span class="line"></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">This block is an overlay, set in one of nine places over it.</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#E6EDF3">:::</span></span></code></pre>
-<p><strong><code>::: backdrop</code> puts a picture behind the whole slide, edge to edge, and <code>::: overlay</code> sets a block of text on top of it.</strong> Those are the lines that draw the next slide.</p>
+<p><strong><code class="lead">::: backdrop</code> puts a picture behind the whole slide, edge to edge, and <code>::: overlay</code> sets a block of text on top of it.</strong> Those are the lines that draw the next slide.</p>
 <p><strong><a href="../decoration/audience.html">The decoration lecture</a> shows the rest, one construction per slide</strong>: the ten covers and the closing slide, part dividers, rows of cards, docks and panels, and the type and colour of a whole lecture – the <code class="nb">style:</code> block and the typefaces.</p>
 </div></div>
     
@@ -6127,7 +6127,7 @@ by using it.</p>
 <p><strong>A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.</strong> So in a lecture that sets none of them, font, theme and slide numbers follow the reader from lecture to lecture.</p>
 <p><code class="nb">slide-numbers</code> applies to <code class="nb">print.html</code> and <code class="nb">print-notes.html</code> too, and <code class="nb">print-slide-numbers:</code> overrides it there when the printed document wants different numbering from the projection. A value the tool does not know stops the build and lists the ones it does.</p>
 <p><strong><code class="nb">neighbours</code>, <code class="nb">note-button</code> and <code class="nb">transition</code> are the ones a keynote sets and a lecture does not.</strong> <code>transition: cut</code> lands on the next slide without the camera glide, and <code class="nb">fade</code> dips through the paper; both hide the neighbours unless you also write <code class="trail">neighbours: dim</code>. <code>neighbours: hidden</code> takes off the projection the faint slides above and below, which otherwise show where you are in the column. <code>note-button: off</code> hides the <code>+ note</code> hint in the slide&#39;s left gutter; <code class="nb">N</code> still opens an annotation, and <code class="nb">M</code> shows or hides the hint at any time, in either window.</p>
-<p><strong><code>pitchblack: on</code> is for a projector, which cannot show a dark grey as black.</strong> The three dark themes then stand on a true black ground instead of their own dark paper, and a light theme is left as it is. It has no key: <code class="nb">Ctrl/Cmd</code>-<code class="nb">K</code>, type <code class="nb">pitch</code>, <code class="nb">Enter</code> switches it in either window, and the choice follows you from lecture to lecture like the theme.</p>
+<p><strong><code class="lead">pitchblack: on</code> is for a projector, which cannot show a dark grey as black.</strong> The three dark themes then stand on a true black ground instead of their own dark paper, and a light theme is left as it is. It has no key: <code class="nb">Ctrl/Cmd</code>-<code class="nb">K</code>, type <code class="nb">pitch</code>, <code class="nb">Enter</code> switches it in either window, and the choice follows you from lecture to lecture like the theme.</p>
 <p><code class="lead">reader: off</code> ships the two documents without the contents sidebar and highlights.</p>
 </div></div>
     
