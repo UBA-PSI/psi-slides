@@ -145,3 +145,41 @@
     e.preventDefault();
   });
 })();
+
+// The labels of a bar chart on a narrow screen (print.css, "A bar chart on a
+// phone"): --dg-lbl-k is the factor that brings the chart's smallest free
+// text to MIN_PX where the figure is drawn smaller than that, and
+// data-lbl-grow says the figure has one; a figure drawn large enough has
+// neither.
+// Measured, not computed in CSS, because it is the label size divided by the
+// figure's drawn width, and a stylesheet cannot divide by a length. A
+// ResizeObserver hears every width change - a rotated phone, a reading part
+// unfolded, the reader's Text switch - and once at the start.
+(() => {
+  const MIN_PX = 11, MAX_K = 1.6;
+  if (typeof ResizeObserver !== 'function') return;
+  const fit = (svg) => {
+    const fig = svg.closest('figure');
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const w = svg.getBoundingClientRect().width;
+    if (!fig || !vb || !vb.width || !w) return;
+    let fs = Infinity;
+    for (const t of svg.querySelectorAll('.dg-text .dg-lbl text')) {
+      const v = parseFloat(t.getAttribute('font-size'));
+      if (v > 0 && v < fs) fs = v;
+    }
+    if (fs === Infinity) return;
+    const k = Math.min(MAX_K, MIN_PX / (fs * w / vb.width));
+    if (k > 1.01) {
+      fig.style.setProperty('--dg-lbl-k', k.toFixed(3));
+      fig.setAttribute('data-lbl-grow', '');
+    } else {
+      fig.style.removeProperty('--dg-lbl-k');
+      fig.removeAttribute('data-lbl-grow');
+    }
+  };
+  const ro = new ResizeObserver((entries) => { for (const e of entries) fit(e.target); });
+  for (const svg of document.querySelectorAll('main figure.figure-diagram svg.psi-diagram')) {
+    if (svg.querySelector('.dg-bar')) ro.observe(svg);
+  }
+})();

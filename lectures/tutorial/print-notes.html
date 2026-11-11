@@ -43,6 +43,15 @@ body:is([data-print-neutrals=tinted], [data-print-neutrals=warm], [data-print-ne
 * { box-sizing: border-box; }
 html { font-family: var(--serif); font-size: 10pt; color: var(--ink); line-height: 1.6; background: var(--paper); text-rendering: optimizeLegibility; }
 body { margin: 0; }
+sup:not(.rd-pn), sub {
+  font-size: 0.68em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+  font-variant-numeric: lining-nums;
+}
+sup:not(.rd-pn) { top: -0.5em; }
+sub { bottom: -0.22em; }
 body[data-print-body=sans] { font-family: var(--sans); }
 main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
 h1, h2, h3 { font-weight: 500; letter-spacing: -0.01em; break-after: avoid; page-break-after: avoid; }
@@ -123,6 +132,9 @@ th, td {
   vertical-align: top;
 }
 th { font-weight: 600; color: var(--emph); border-bottom-width: 1pt; }
+@media screen {
+  main table { display: block; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+}
 a { color: inherit; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 0.15em; }
 a:hover { text-decoration-color: var(--ink); }
 .toc {
@@ -777,6 +789,13 @@ body[data-blocks=left] main .psi-diagram,
   margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
 }
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+@media screen {
+  main figure.figure-diagram[data-lbl-grow] .dg-text .dg-lbl {
+    transform-box: fill-box;
+    transform-origin: center top;
+    transform: scale(var(--dg-lbl-k, 1));
+  }
+}
 @media print {
   figure.figure-img,
   figure.figure-video,
@@ -3435,6 +3454,34 @@ and answer. A rule inside either half is written <code class="nb">***</code>.</p
     else return;
     e.preventDefault();
   });
+})();
+(() => {
+  const MIN_PX = 11, MAX_K = 1.6;
+  if (typeof ResizeObserver !== 'function') return;
+  const fit = (svg) => {
+    const fig = svg.closest('figure');
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const w = svg.getBoundingClientRect().width;
+    if (!fig || !vb || !vb.width || !w) return;
+    let fs = Infinity;
+    for (const t of svg.querySelectorAll('.dg-text .dg-lbl text')) {
+      const v = parseFloat(t.getAttribute('font-size'));
+      if (v > 0 && v < fs) fs = v;
+    }
+    if (fs === Infinity) return;
+    const k = Math.min(MAX_K, MIN_PX / (fs * w / vb.width));
+    if (k > 1.01) {
+      fig.style.setProperty('--dg-lbl-k', k.toFixed(3));
+      fig.setAttribute('data-lbl-grow', '');
+    } else {
+      fig.style.removeProperty('--dg-lbl-k');
+      fig.removeAttribute('data-lbl-grow');
+    }
+  };
+  const ro = new ResizeObserver((entries) => { for (const e of entries) fit(e.target); });
+  for (const svg of document.querySelectorAll('main figure.figure-diagram svg.psi-diagram')) {
+    if (svg.querySelector('.dg-bar')) ro.observe(svg);
+  }
 })();
 </script>
 <script data-host="https://pulse.psi.uni-bamberg.de" data-page="psi-slides – a guided tour">/*! Pulse Embed v2 – Lehrstuhl für Privatsphäre und Sicherheit in Informationssystemen, Universität Bamberg.

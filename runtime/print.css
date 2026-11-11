@@ -215,6 +215,22 @@ th, td {
   vertical-align: top;
 }
 th { font-weight: 600; color: var(--emph); border-bottom-width: 1pt; }
+/* A table cannot reflow, and one wider than the column - a letter-by-letter
+   table of fourteen columns is about 500px - pushed the whole page sideways
+   on a phone, where the column is 345px, and the reader then panned the
+   prose as well. So on a screen the table scrolls in its own box instead.
+   The table becomes a block and the browser wraps its rows in an anonymous
+   table, which inherits border-collapse, the font size and the line height,
+   so a table that fits looks as before at any width and only one wider than
+   the column gets a scrollbar of its own. Its margins stay its own and
+   still collapse with the paragraphs round it, which a wrapper element
+   would have stopped: a scroll container is a formatting context of its
+   own. overflow-y: hidden for the reason .math-display has it: an auto there
+   turns a pixel of a formula's ink into a vertical scrollbar. Screen only:
+   on paper an auto is a cut, so print and the PDF keep the table as it was. */
+@media screen {
+  main table { display: block; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+}
 
 a { color: inherit; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 0.15em; }
 a:hover { text-decoration-color: var(--ink); }
@@ -1280,6 +1296,30 @@ body[data-blocks=left] main .psi-diagram,
   margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
 }
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+
+/* A bar chart on a phone. The rule above lets a figure with more units than
+   the column can serve land under the target size, and a 26-bar histogram is
+   that figure: 34.6 base labels in a 345px column put its letters at 8px,
+   which on a phone is unreadable. A scrollbar would cost the one thing a
+   histogram is for, its shape seen at once, and the bars themselves read at
+   any width; it is the free texts round them - the axis letters and the
+   caption - that have to stay legible. So each of those grows by
+   --dg-lbl-k, down from the middle of its top edge so that it keeps its
+   distance to the axis above it. runtime/print.js measures the size the
+   chart's smallest label is drawn at and, where that is under 11px, sets the
+   factor that brings it to 11px and marks the figure data-lbl-grow. A figure
+   drawn at its type size, which is any window wider than a phone, is not
+   marked and not touched. The factor is capped where neighbouring letters
+   would touch.
+   Free texts only: a box's label growing would leave its box. Screen and
+   main only, so paper, the PDF and the lightbox's clone keep the drawing. */
+@media screen {
+  main figure.figure-diagram[data-lbl-grow] .dg-text .dg-lbl {
+    transform-box: fill-box;
+    transform-origin: center top;
+    transform: scale(var(--dg-lbl-k, 1));
+  }
+}
 
 @media print {
   /* The same sentence runtime/diagram.css says about a diagram - one picture, and

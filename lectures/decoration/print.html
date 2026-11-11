@@ -43,6 +43,15 @@ body:is([data-print-neutrals=tinted], [data-print-neutrals=warm], [data-print-ne
 * { box-sizing: border-box; }
 html { font-family: var(--serif); font-size: 10pt; color: var(--ink); line-height: 1.6; background: var(--paper); text-rendering: optimizeLegibility; }
 body { margin: 0; }
+sup:not(.rd-pn), sub {
+  font-size: 0.68em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+  font-variant-numeric: lining-nums;
+}
+sup:not(.rd-pn) { top: -0.5em; }
+sub { bottom: -0.22em; }
 body[data-print-body=sans] { font-family: var(--sans); }
 main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
 h1, h2, h3 { font-weight: 500; letter-spacing: -0.01em; break-after: avoid; page-break-after: avoid; }
@@ -123,6 +132,9 @@ th, td {
   vertical-align: top;
 }
 th { font-weight: 600; color: var(--emph); border-bottom-width: 1pt; }
+@media screen {
+  main table { display: block; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+}
 a { color: inherit; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 0.15em; }
 a:hover { text-decoration-color: var(--ink); }
 .toc {
@@ -777,6 +789,13 @@ body[data-blocks=left] main .psi-diagram,
   margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
 }
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+@media screen {
+  main figure.figure-diagram[data-lbl-grow] .dg-text .dg-lbl {
+    transform-box: fill-box;
+    transform-origin: center top;
+    transform: scale(var(--dg-lbl-k, 1));
+  }
+}
 @media print {
   figure.figure-img,
   figure.figure-video,
@@ -3259,6 +3278,34 @@ settings in YAML rather than wearing them.</p>
     else return;
     e.preventDefault();
   });
+})();
+(() => {
+  const MIN_PX = 11, MAX_K = 1.6;
+  if (typeof ResizeObserver !== 'function') return;
+  const fit = (svg) => {
+    const fig = svg.closest('figure');
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const w = svg.getBoundingClientRect().width;
+    if (!fig || !vb || !vb.width || !w) return;
+    let fs = Infinity;
+    for (const t of svg.querySelectorAll('.dg-text .dg-lbl text')) {
+      const v = parseFloat(t.getAttribute('font-size'));
+      if (v > 0 && v < fs) fs = v;
+    }
+    if (fs === Infinity) return;
+    const k = Math.min(MAX_K, MIN_PX / (fs * w / vb.width));
+    if (k > 1.01) {
+      fig.style.setProperty('--dg-lbl-k', k.toFixed(3));
+      fig.setAttribute('data-lbl-grow', '');
+    } else {
+      fig.style.removeProperty('--dg-lbl-k');
+      fig.removeAttribute('data-lbl-grow');
+    }
+  };
+  const ro = new ResizeObserver((entries) => { for (const e of entries) fit(e.target); });
+  for (const svg of document.querySelectorAll('main figure.figure-diagram svg.psi-diagram')) {
+    if (svg.querySelector('.dg-bar')) ro.observe(svg);
+  }
 })();
 </script>
 <script type="application/json" id="psiINT-reader-data">{"key":"decoration@7f0951ad","name":"decoration","title":"Slide Decoration","s":{"reader-close":"Close contents","reader-mark":"Highlight","reader-note":"Note (optional)","reader-remove":"Remove","reader-removed":"Highlight removed.","reader-undo":"Undo","reader-orphans":"No longer found in this version","reader-orphan-remove":"remove","reader-session":"This browser does not let the page save highlights – they are lost when the tab is closed.","reader-nav":"Highlights","reader-prev":"Previous highlight","reader-next":"Next highlight","reader-filter-all":"all","reader-filter-notes":"with note","reader-export":"Export highlights (.md)","reader-import":"Import","reader-delete-all":"Delete all","reader-help":"About highlights","reader-help-what":"Select words to highlight them and add a note. Figures, diagrams, images, code and formulas have a button in their corner that marks them whole; open a figure to mark a spot in it.","reader-help-keys":"On a keyboard: n and p step through the highlights, m marks a spot in an open figure.","reader-help-where":"Highlights and notes are stored only in this browser, on this device.","reader-help-risk":"That storage can be lost: clearing site data or closing a private window deletes it, and browsers may delete it on their own – Safari, notably on iPhone and iPad, after seven days of Safari use in which this page was not used.","reader-help-backup":"So export regularly, as a backup: the export is a readable .md file, and importing it brings the highlights back – here, in another browser or on another device.","reader-fold":"Slides in this part","reader-scheme":"Page","reader-scheme-auto":"Auto","reader-scheme-light":"Light","reader-scheme-dark":"Dark","reader-face":"Text","reader-face-serif":"Serif","reader-face-sans":"Sans","reader-export-file":"highlights","reader-export-line":"Exported on {date}. Highlights: {n}, with a note: {notes}.","reader-imported":"Imported: {added} new, {updated} updated, {orphaned} not found in this version.","reader-import-none":"This file holds no highlights.","reader-import-skipped":"Entries that could not be read: {n}.","reader-deleted-all":"All highlights deleted.","reader-fig-mark":"Highlight this figure","reader-lb-spot":"Mark a spot","reader-lb-close":"Close","reader-fig":"Figure “{key}”","reader-fig-at":"Figure “{key}”, at “{label}”","reader-fig-spot":"Figure “{key}”, a spot in it","reader-fig-approx":"Approximate: that part is no longer in this version of the figure.","reader-code-mark":"Highlight this code","reader-formula-mark":"Highlight this formula","reader-code":"Code, line {line}","reader-code-block":"Code “{key}”","reader-formula":"Formula “{key}”"}}</script>

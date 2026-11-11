@@ -58,6 +58,7 @@ const SPECS = [
   './cards.mjs',
   './beats-nested.mjs',
   './beats-footnote.mjs',
+  './print-phone.mjs',
   './dock.mjs',
   './autoplay.mjs',
   './live-sync.mjs',

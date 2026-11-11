@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Twenty-seven gates, about three seconds,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 59 specs, about 2,110
+- **`test/`** – the things that only break in a built page. 60 specs, about 2,120
   assertions, about four minutes on a twelve-core machine with six specs at a
   time (about eleven minutes one at a time). Three of them, `souffleuse`,
   `live-trust` and `watch-resume`, start an engine of their own beside their
@@ -276,7 +276,7 @@ window), `touch-rail`, `math-focus`, `block-align`, `code-fit`, `auto-fit`, `cam
 **The editor** – the `editor-*` specs: its gestures, its panel, and the
 neighbour-alignment guides, which are what a gesture snaps to.
 
-**The documents** are the one view outside those four, and two specs read
+**The documents** are the one view outside those four, and three specs read
 them. `document` builds a `kind: document` and measures what only its laid-out
 page can show: at 1440 and at 1024 px every `::: marginalia` – several in one
 chunk, one with a picture, a long one with another right after it – is floated
@@ -354,6 +354,12 @@ frames, the dots' and the whole figure's note numbers and the notes on paper;
 and a rebuild with a figure added above and a line added to the code, where a
 pin follows its part, one whose part was renamed stays at its spot and is
 called approximate, and the code highlight follows its words.
+The third is `print-phone`, a page at 390 and at 1280 px on a fixture of its
+own: at 390 the page never scrolls sideways, a table wider than the column
+scrolls in its own box and one that fits has nothing to scroll and keeps its
+width in em; the axis letters and the caption of a 26-bar chart are drawn at
+11 px at least, where the figure's own scale puts them at 8. At 1280 the wide
+table fits and the chart is not marked, so its labels are as drawn.
 
 **The figures** – the `figure-*` specs, which measure the SVG.
 `figure-framing` catches a drawing sitting off-centre in an oversized frame;
@@ -391,7 +397,7 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The twenty-seven specs that build a deck of their own
+### The twenty-eight specs that build a deck of their own
 
 Four different reasons, and the last is the one to remember.
 
@@ -491,7 +497,8 @@ to its canvas, one well inside it and one with a caption riding it, and a
 lecture that had all three would stop having them at the next edited label)
 and `document` (no lecture is a `kind: document`, and a syllabus's shape - five
 margin notes in one part, one a picture, two written back to back - is the
-fixture's whole point) and `code-fit` (no lecture sets `style: {code-fit}` or
+fixture's whole point) and `print-phone` (the claims are about a table and a
+chart a lecture may edit away, so the spec writes the two it needs) and `code-fit` (no lecture sets `style: {code-fit}` or
 `spacing: even`, and the claims are measurements on listings chosen for them: a
 four-line one that grows to the ceiling while its slide keeps its zoom, a
 twenty-line one and one with a 70-character line that do not grow, the free

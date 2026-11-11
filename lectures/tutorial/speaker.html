@@ -187,6 +187,15 @@ html, body {
   font-family: var(--body-font);
   font-size: clamp(20px, calc(var(--slide-h) * 0.026), 38px);
 }
+sup, sub {
+  font-size: 0.68em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+  font-variant-numeric: lining-nums;
+}
+sup { top: -0.5em; }
+sub { bottom: -0.22em; }
 html, body { user-select: none; -webkit-user-select: none; }
 textarea, input, [contenteditable=true] {
   user-select: text;
