@@ -3309,6 +3309,34 @@ function markAddresses(text) {
     (/[A-Za-z0-9À-ɏ]/.test(tok) ? `<span class="nohy">${tok}</span>` : tok));
 }
 
+// Unicode superscripts and subscripts become <sup>/<sub> around plain
+// characters. The bundled faces are fontsource's latin subsets, which carry
+// ¹ ² ³ (U+00B9, U+00B2, U+00B3 sit in Latin-1) and nothing of U+2070-209F:
+// no ⁰, no ⁴ to ⁹, no subscripts, and no `sups` feature to fall back on. So
+// "10¹⁰" was set with its ¹ from Literata and its ⁰ from whatever the
+// machine had next in the stack - Georgia on a Mac, whose superscripts are
+// old-style figures - and the second digit of every exponent hung below the
+// first. No stylesheet can mend a glyph the font does not have; ordinary
+// digits in a <sup> come from the face itself on every machine. Only text
+// tokens pass through here (code spans, KaTeX and diagrams do not), and the
+// text arrives escaped, so none of these characters can sit in a tag.
+const SCRIPT_CHARS = {
+  sup: [...'⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁱⁿ'],
+  supPlain: [...'0123456789+−=()in'],
+  sub: [...'₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓₔₕₖₗₘₙₚₛₜ'],
+  subPlain: [...'0123456789+−=()aeoxəhklmnpst'],
+};
+const SCRIPT_RUN_RE = new RegExp(`[${SCRIPT_CHARS.sup.join('')}]+|[${SCRIPT_CHARS.sub.join('')}]+`, 'gu');
+function markScripts(text) {
+  const s = String(text);
+  if (!/[²³¹⁰-ₜ]/.test(s)) return s;
+  return s.replace(SCRIPT_RUN_RE, (run) => {
+    const tag = SCRIPT_CHARS.sup.includes(run[0]) ? 'sup' : 'sub';
+    const from = SCRIPT_CHARS[tag], to = SCRIPT_CHARS[tag + 'Plain'];
+    return `<${tag}>${[...run].map(c => to[from.indexOf(c)]).join('')}</${tag}>`;
+  });
+}
+
 // ── marked renderer overrides (code highlighting + image shorthand) ──
 
 // Which side of a spaced code span keeps its margin. The spaced look puts a
@@ -3400,7 +3428,7 @@ marked.use({
     // all arrive through other renderers. A regex over rendered markup would
     // have had to know that, and would have been wrong once.
     text(t) {
-      return addressSpansOn ? markAddresses(t) : t;
+      return markScripts(addressSpansOn ? markAddresses(t) : t);
     },
     image(href, title, text) {
       // Shorthand: bare id (no slash, no extension) → assets/<id>.<ext>

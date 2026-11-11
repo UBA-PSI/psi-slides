@@ -406,6 +406,20 @@ html, body {
   font-family: var(--body-font);
   font-size: clamp(20px, calc(var(--slide-h) * 0.026), 38px);
 }
+/* Exponents and indices, including the ones the build makes from Unicode
+   ¹⁰ and ₂ (markScripts in build.js). Raised by position rather than by
+   vertical-align, which grows the line box: a line with 10¹⁰ in it stood
+   further from its neighbours than the lines around it. lining-nums because
+   an old-style 0 is x-height and sits lower than an old-style 1. */
+sup, sub {
+  font-size: 0.68em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+  font-variant-numeric: lining-nums;
+}
+sup { top: -0.5em; }
+sub { bottom: -0.22em; }
 /* Disable text selection in the live views: drag pans the stage and
    accidentally selecting prose mid-lecture is a constant
    micro-distraction. Print keeps selection for copy-paste. Textareas

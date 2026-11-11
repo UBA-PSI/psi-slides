@@ -56,6 +56,18 @@ body:is([data-print-neutrals=tinted], [data-print-neutrals=warm], [data-print-ne
 * { box-sizing: border-box; }
 html { font-family: var(--serif); font-size: 10pt; color: var(--ink); line-height: 1.6; background: var(--paper); text-rendering: optimizeLegibility; }
 body { margin: 0; }
+/* Exponents and indices, the live views' rule (runtime/audience.css): raised
+   by position so a line with 10¹⁰ in it keeps the leading of its paragraph.
+   Not the reader's printed note number, .rd-pn, which has its own. */
+sup:not(.rd-pn), sub {
+  font-size: 0.68em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+  font-variant-numeric: lining-nums;
+}
+sup:not(.rd-pn) { top: -0.5em; }
+sub { bottom: -0.22em; }
 /* style: {print-body: sans}. One declaration on <body> is the whole switch:
    it beats what body inherits from html, and everything below that should
    stay a sans or a mono names its own family already, so only what actually
